@@ -31,6 +31,12 @@
     <string name="rename">Rename</string>
     <string name="cancel">Cancel</string>
 
+    <!-- Ble service toasts -->
+    <string name="ble_service_new_connection">Trying to create a new connection…</string>
+    <string name="ble_service_adapter_uninitialized">BluetoothAdapter not initialized</string>
+    <string name="ble_service_reconnecting">Reconnecting to device</string>
+    <string name="ble_service_failed_to_connect">Failed connection attempt.</string>
+
     <!-- Menu items -->
     <string name="menu_connect">Connect</string>
     <string name="menu_disconnect">Disconnect</string>

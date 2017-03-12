@@ -174,6 +174,14 @@ public class ControlFragment extends BaseFragment
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+
+        // If the service is already bound, there will be no service connection callback
+        if (bluetoothLeService != null) bluetoothLeService.onAppForeGround();
+    }
+
+    @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         inflater.inflate(R.menu.menu_fragment_overview, menu);
 
@@ -190,7 +198,7 @@ public class ControlFragment extends BaseFragment
         if (bluetoothLeService != null) {
             switch (item.getItemId()) {
                 case R.id.menu_connect:
-                    bluetoothLeService.connect(bluetoothDevice.getAddress());
+                    bluetoothLeService.connect(bluetoothDevice);
                     return true;
                 case R.id.menu_disconnect:
                     bluetoothLeService.disconnect();
@@ -198,6 +206,12 @@ public class ControlFragment extends BaseFragment
             }
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        if (bluetoothLeService != null) bluetoothLeService.onAppBackground();
     }
 
     @Override

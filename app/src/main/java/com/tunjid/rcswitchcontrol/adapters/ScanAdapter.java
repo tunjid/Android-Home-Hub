@@ -9,7 +9,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-
 import com.tunjid.rcswitchcontrol.R;
 
 import java.util.List;
@@ -54,7 +53,14 @@ public class ScanAdapter extends RecyclerView.Adapter<ScanAdapter.ViewHolder> {
 
     // ViewHolder for actual content
     static class ViewHolder extends RecyclerView.ViewHolder
-            implements View.OnClickListener {
+            implements
+            Runnable,
+            View.OnClickListener {
+
+        private static final int MAX_NAME_CHECKS = 3;
+        private static final int NAME_CHECK_PERIOD = 1000;
+
+        int nameChecks;
 
         TextView deviceName;
         TextView deviceAddress;
@@ -74,12 +80,8 @@ public class ScanAdapter extends RecyclerView.Adapter<ScanAdapter.ViewHolder> {
             this.device = device;
             this.adapterListener = adapterListener;
 
-            String name = device.getName();
-
-            if (TextUtils.isEmpty(name)) deviceName.setText(name);
-            else deviceName.setText(R.string.unknown_device);
-
             deviceAddress.setText(device.getAddress());
+            resolveName();
         }
 
         @Override
@@ -90,10 +92,33 @@ public class ScanAdapter extends RecyclerView.Adapter<ScanAdapter.ViewHolder> {
                     break;
             }
         }
+
+        @Override
+        public void run() {
+            resolveName();
+        }
+
+        /**
+         * Checks for the device name, for a maximum of {@link ViewHolder#MAX_NAME_CHECKS}
+         * as the name may not have been resolved at binding.
+         */
+        private void resolveName() {
+            if (device != null) {
+                String name = device.getName();
+                boolean isEmptyName = TextUtils.isEmpty(name);
+
+                if (isEmptyName) deviceName.setText(R.string.unknown_device);
+                else deviceName.setText(name);
+
+                // Check later if device name is resolved
+                if (nameChecks++ < MAX_NAME_CHECKS && isEmptyName) {
+                    itemView.postDelayed(this, NAME_CHECK_PERIOD);
+                }
+            }
+        }
     }
 
     public interface AdapterListener {
         void onBluetoothDeviceClicked(BluetoothDevice bluetoothDevice);
     }
-
 }

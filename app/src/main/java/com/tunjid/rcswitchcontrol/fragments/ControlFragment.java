@@ -406,10 +406,6 @@ public class ControlFragment extends BaseFragment
 
         @Override
         public void onDismissed(Snackbar snackbar, int event) {
-            if (!deletedItems.isEmpty() && switches.size() != originalListSize) {
-                switches.remove(originalPosition);
-                switchList.getAdapter().notifyItemRemoved(originalPosition);
-            }
             isDeleting = false;
             saveSwitches();
         }

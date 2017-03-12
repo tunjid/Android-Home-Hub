@@ -25,6 +25,8 @@
     <string name="sniff_code">Sniff %1$s Code</string>
     <string name="on">ON</string>
     <string name="off">OFF</string>
+    <string name="undo">undo</string>
+    <string name="deleted_switch">Deleted switch</string>
     <string name="connection_state">Connection State: %1$s</string>
     <string name="connected">Connected</string>
     <string name="connecting">Connecting</string>

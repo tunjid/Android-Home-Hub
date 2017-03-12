@@ -12,11 +12,13 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.support.design.widget.AppBarLayout;
+import android.support.design.widget.Snackbar;
 import android.support.transition.AutoTransition;
 import android.support.transition.TransitionManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.helper.ItemTouchHelper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -38,6 +40,7 @@ import com.tunjid.rcswitchcontrol.model.RfSwitch;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Stack;
 
 import static android.content.Context.BIND_AUTO_CREATE;
 import static android.content.Context.MODE_PRIVATE;
@@ -175,9 +178,13 @@ public class ControlFragment extends BaseFragment
             }
         });
 
+        ItemTouchHelper helper = new ItemTouchHelper(swipeCallBack);
+        helper.attachToRecyclerView(switchList);
+
         appBarLayout.addOnOffsetChangedListener(new AppBarLayout.OnOffsetChangedListener() {
             @Override
             public void onOffsetChanged(AppBarLayout appBarLayout, int verticalOffset) {
+                if (verticalOffset == 0) return;
                 if (verticalOffset > lastOffSet) viewHider.hideTranslate();
                 else viewHider.showTranslate();
 
@@ -341,5 +348,75 @@ public class ControlFragment extends BaseFragment
 
         return array == null ? new ArrayList<RfSwitch>() : new ArrayList<>(Arrays.asList(array));
 
+    }
+
+    private ItemTouchHelper.SimpleCallback swipeCallBack = new ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP | ItemTouchHelper.DOWN, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+        @Override
+        public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
+            return false;
+        }
+
+        @Override
+        public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
+
+            View rootView = getView();
+
+            if (rootView != null) {
+                int position = viewHolder.getAdapterPosition();
+                DeletionHandler deletionHandler = new DeletionHandler(position, switches.size());
+
+                deletionHandler.push(switches.get(position));
+                switches.remove(position);
+
+                switchList.getAdapter().notifyItemRemoved(position);
+
+                Snackbar.make(rootView, R.string.deleted_switch, Snackbar.LENGTH_LONG)
+                        .addCallback(deletionHandler)
+                        .setAction(R.string.undo, deletionHandler)
+                        .show();
+            }
+        }
+    };
+
+    /**
+     * Handles queued deletion of a Switch
+     */
+    private class DeletionHandler extends Snackbar.Callback implements View.OnClickListener {
+
+        int originalPosition;
+        int originalListSize;
+
+        private Stack<RfSwitch> deletedItems = new Stack<>();
+
+        DeletionHandler(int originalPosition, int originalListSize) {
+            this.originalPosition = originalPosition;
+            this.originalListSize = originalListSize;
+        }
+
+        @Override
+        public void onDismissed(Snackbar snackbar, int event) {
+            if (!deletedItems.isEmpty() && switches.size() != originalListSize) {
+                TransitionManager.beginDelayedTransition(switchList, new AutoTransition());
+                switches.remove(originalPosition);
+                switchList.getAdapter().notifyItemRemoved(originalPosition);
+            }
+        }
+
+        @Override
+        public void onClick(View v) {
+            if (!deletedItems.isEmpty()) {
+                TransitionManager.beginDelayedTransition(switchList, new AutoTransition());
+                switches.add(originalPosition, pop());
+                switchList.getAdapter().notifyItemInserted(originalPosition);
+            }
+        }
+
+        RfSwitch push(RfSwitch item) {
+            return deletedItems.push(item);
+        }
+
+        RfSwitch pop() {
+            return deletedItems.pop();
+        }
     }
 }

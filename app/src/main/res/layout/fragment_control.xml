@@ -19,7 +19,6 @@
             android:id="@+id/collapsing_toolbar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:elevation="4dp"
             app:layout_scrollFlags="scroll|exitUntilCollapsed">
 
             <TextView
@@ -36,7 +35,8 @@
         android:id="@+id/button_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom">
+        android:layout_gravity="bottom"
+        android:layout_marginBottom="@dimen/single_margin">
 
         <Button
             android:id="@+id/sniff"

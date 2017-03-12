@@ -4,7 +4,7 @@
 
     <!-- Start Fragment -->
     <string name="splash_message">Hello! This app uses bluetooth smart to control 433/315Mhz
-    appliances. Tap yes to activate bluetooth and search for compatible bluetooth hosts.</string>
+    appliances.\n\nTap yes to activate bluetooth and search for compatible bluetooth hosts.</string>
     <string name="yes">Yes</string>
 
     <!-- Initialize Fragment -->

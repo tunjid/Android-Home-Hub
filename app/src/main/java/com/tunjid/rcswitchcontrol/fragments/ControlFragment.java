@@ -11,6 +11,7 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
+import android.support.design.widget.AppBarLayout;
 import android.support.transition.AutoTransition;
 import android.support.transition.TransitionManager;
 import android.support.v4.content.LocalBroadcastManager;
@@ -29,6 +30,7 @@ import android.widget.TextView;
 import com.google.gson.Gson;
 import com.tunjid.rcswitchcontrol.BluetoothLeService;
 import com.tunjid.rcswitchcontrol.R;
+import com.tunjid.rcswitchcontrol.ViewHider;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
 import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter;
 import com.tunjid.rcswitchcontrol.model.RfSwitch;
@@ -55,14 +57,18 @@ public class ControlFragment extends BaseFragment
 
     private static final Gson gson = new Gson();
 
+    private int lastOffSet;
+
     private BluetoothDevice bluetoothDevice;
     private BluetoothLeService bluetoothLeService;
 
-    private Button sniffButton;
     private View progressBar;
-
+    private Button sniffButton;
     private TextView connectionStatus;
     private RecyclerView switchList;
+
+    private ViewHider viewHider;
+
     private List<RfSwitch> switches;
 
     private RfSwitch.SwitchCreator switchCreator;
@@ -147,6 +153,7 @@ public class ControlFragment extends BaseFragment
         switches = getSavedSwitches();
 
         View rootView = inflater.inflate(R.layout.fragment_control, container, false);
+        AppBarLayout appBarLayout = (AppBarLayout) rootView.findViewById(R.id.app_bar_layout);
 
         sniffButton = (Button) rootView.findViewById(R.id.sniff);
         progressBar = rootView.findViewById(R.id.progress_bar);
@@ -154,10 +161,29 @@ public class ControlFragment extends BaseFragment
         connectionStatus = (TextView) rootView.findViewById(R.id.connection_status);
         switchList = (RecyclerView) rootView.findViewById(R.id.switch_list);
 
+        viewHider = new ViewHider(rootView.findViewById(R.id.button_container));
+
         sniffButton.setOnClickListener(this);
 
         switchList.setAdapter(new RemoteSwitchAdapter(this, switches));
         switchList.setLayoutManager(new LinearLayoutManager(getActivity()));
+        switchList.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                if (dy > 0) viewHider.hideTranslate();
+                else viewHider.showTranslate();
+            }
+        });
+
+        appBarLayout.addOnOffsetChangedListener(new AppBarLayout.OnOffsetChangedListener() {
+            @Override
+            public void onOffsetChanged(AppBarLayout appBarLayout, int verticalOffset) {
+                if (verticalOffset > lastOffSet) viewHider.hideTranslate();
+                else viewHider.showTranslate();
+
+                lastOffSet = verticalOffset;
+            }
+        });
 
         toggleSniffButton();
         return rootView;

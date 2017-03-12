@@ -34,7 +34,7 @@ public class StartFragment extends BaseFragment
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.yes:
-                showFragment(PairFragment.newInstance());
+                showFragment(InitializeFragment.newInstance());
                 break;
         }
     }

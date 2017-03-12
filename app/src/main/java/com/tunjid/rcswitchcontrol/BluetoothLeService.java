@@ -41,15 +41,12 @@ import java.util.UUID;
  */
 public class BluetoothLeService extends Service {
 
-
-    private static HashMap<String, String> attributes = new HashMap<String, String>();
-
     // States
     public static final byte STATE_SNIFFING = 0;
 
     // Services
     public static final String CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb";
-    public static final String DATA_TRANSCEIVER_SERVICE = "195ae58a-437a-489b-b0cd-b7c9c394bae4";
+    //public static final String DATA_TRANSCEIVER_SERVICE = "195ae58a-437a-489b-b0cd-b7c9c394bae4";
 
     // Characteristics
     public static final String C_HANDLE_CONTROL = "5fc569a0-74a9-4fa4-b8b7-8354c86e45a4";
@@ -93,21 +90,10 @@ public class BluetoothLeService extends Service {
     // Queue for reading multiple characteristics due to delay induced by callback.
     private Queue<BluetoothGattCharacteristic> readQueue = new LinkedList<>();
     // Queue for writing multiple descriptors due to delay induced by callback.
-    private Queue<BluetoothGattDescriptor> descriptorWriteQueue = new LinkedList<>();
+    private Queue<BluetoothGattDescriptor> writeQueue = new LinkedList<>();
     private Map<String, BluetoothGattCharacteristic> characteristicMap = new HashMap<>();
 
     private final IBinder mBinder = new LocalBinder();
-
-    static {
-        // Sample Services.
-
-        attributes.put(DATA_TRANSCEIVER_SERVICE, "Transciever Service");
-
-        // Sample Characteristics.
-
-        attributes.put(C_HANDLE_SNIFFER, "Sniffer");
-        attributes.put(C_HANDLE_TRANSMITTER, "Transmitter");
-    }
 
     // Implements callback methods for GATT events that the app cares about.  For example,
     // connection change and services discovered.
@@ -173,17 +159,16 @@ public class BluetoothLeService extends Service {
         public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 Log.i(TAG, "Callback: Wrote GATT Descriptor successfully.");
-                if (descriptorWriteQueue.size() > 0) {
-                    descriptorWriteQueue.remove();  //pop the item that we just finishing writing
-                }
+
+                // Remove the item that we just wrote
+                if (writeQueue.size() > 0) writeQueue.remove();
             }
             else {
                 showToast(BluetoothLeService.this, "onCharacteristicRead error: " + status);
             }
 
             // Read the top of the queue
-            if (descriptorWriteQueue.size() > 0)
-                bluetoothGatt.writeDescriptor(descriptorWriteQueue.element());
+            if (writeQueue.size() > 0) bluetoothGatt.writeDescriptor(writeQueue.element());
         }
 
         @Override
@@ -314,10 +299,6 @@ public class BluetoothLeService extends Service {
         Log.i(TAG, "Initialized BLE connection");
     }
 
-    public String getDeviceAddress() {
-        return deviceAddress;
-    }
-
     /**
      * Used to send broadcasts that don't have attached data
      */
@@ -437,13 +418,10 @@ public class BluetoothLeService extends Service {
 
     public void writeGattDescriptor(BluetoothGattDescriptor descriptor) {
         //put the descriptor into the write queue
-        descriptorWriteQueue.add(descriptor);
+        writeQueue.add(descriptor);
 
         //if there is only 1 item in the queue, then write it.  If more than 1, we handle asynchronously in the callback above
-        if (descriptorWriteQueue.size() > 0) {
-            bluetoothGatt.writeDescriptor(descriptor);
-            Log.i(TAG, "Wrote descriptor please");
-        }
+        if (writeQueue.size() > 0) bluetoothGatt.writeDescriptor(descriptor);
     }
 
     /**
@@ -470,18 +448,6 @@ public class BluetoothLeService extends Service {
         }
     }
 
-    public void writeCharacteristic(String uuid, int value) {
-        if (bluetoothAdapter == null || bluetoothGatt == null) {
-            showToast(this, "BluetoothAdapter not initialized");
-            return;
-        }
-
-        BluetoothGattCharacteristic characteristic = characteristicMap.get(uuid);
-
-        characteristic.setValue(value, BluetoothGattCharacteristic.FORMAT_UINT8, 0);
-        bluetoothGatt.writeCharacteristic(characteristic);
-    }
-
     public void writeCharacteristicArray(String uuid, byte[] values) {
         if (bluetoothAdapter == null || bluetoothGatt == null) {
             showToast(this, "BluetoothAdapter not initialized");
@@ -494,39 +460,11 @@ public class BluetoothLeService extends Service {
     }
 
     /**
-     * Enables or disables notification on a given characteristic.
+     * Enables or disables notifications or indications on a given characteristic.
      *
      * @param uuid UUID of the Characteristic to act on.
      * @param enabled If true, enable notification.  False otherwise.
      */
-    public void setCharacteristicNotification(String uuid, boolean enabled) {
-
-        if (bluetoothAdapter == null || bluetoothGatt == null) {
-            showToast(this, "BluetoothAdapter not initialized");
-            return;
-        }
-
-        BluetoothGattCharacteristic characteristic = characteristicMap.get(uuid);
-
-        if (characteristic == null) {
-            showToast(this);
-            return;
-        }
-
-
-        bluetoothGatt.setCharacteristicNotification(characteristic, enabled);
-
-        BluetoothGattDescriptor descriptor = characteristic.getDescriptor(
-                UUID.fromString(CLIENT_CHARACTERISTIC_CONFIG));
-
-        descriptor.setValue(enabled
-                ? BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-                : BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE);
-
-        writeGattDescriptor(descriptor);
-    }
-
-    // Used when writing to chracteristics when receiving a callback
 
     public void setCharacteristicIndication(String uuid, boolean enabled) {
         if (bluetoothAdapter == null || bluetoothGatt == null) {
@@ -545,7 +483,10 @@ public class BluetoothLeService extends Service {
 
         BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUID.fromString(CLIENT_CHARACTERISTIC_CONFIG));
 
-        descriptor.setValue(BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
+        descriptor.setValue(enabled
+                ? BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
+                : BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE);
+
         writeGattDescriptor(descriptor);
     }
 

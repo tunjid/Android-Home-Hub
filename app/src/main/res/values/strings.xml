@@ -1,35 +1,48 @@
 <resources>
     <string name="app_name">RcSwitchControl</string>
+    <string name="hello_world">Hello world!</string>
 
-    <string name="connection_state">Connection State: %1$s</string>
-
-    <string name="connected">Connected</string>
-    <string name="connecting">Connecting</string>
-    <string name="disconnected">Disconnected</string>
-    <string name="error">Disconnected</string>
-    <string name="splash_message">Hi</string>
+    <!-- Start Fragment -->
+    <string name="splash_message">Hello! This app uses bluetooth smart to control 433/315Mhz
+    appliances.\n\nTap yes to activate bluetooth and search for compatible bluetooth hosts.</string>
     <string name="yes">Yes</string>
 
-    <string name="hello_world">Hello world!</string>
-    <string name="button_scan">Scan</string>
-    <string name="unknown_device">Unknown Device</string>
-    <string name="service_name">BLE Service</string>
-
+    <!-- Initialize Fragment -->
+    <string name="initialize">Initialize</string>
     <string name="ble_not_supported">BLE is not supported</string>
-
     <string name="bt_attempt">Attempting to turn on Bluetooth&#8230;</string>
     <string name="bt_already_on">Bluetooth is already on.</string>
     <string name="bt_turned_on">Bluetooth was successfully turned on.</string>
     <string name="bt_denied">It\'s either you denied the bluetooth request,
         or there is a problem with your bluetooth adapter. Please try again later.</string>
 
-    <!-- Rename switch -->
+    <!-- Scan Fragment -->
+    <string name="button_scan">Scan</string>
+    <string name="unknown_device">Unknown Device</string>
+
+    <!-- Control Fragment -->
+    <string name="switches">Switches</string>
     <string name="sniff_code">Sniff %1$s Code</string>
     <string name="on">ON</string>
     <string name="off">OFF</string>
+    <string name="undo">undo</string>
+    <string name="deleted_switch">Deleted switch</string>
+    <string name="connection_state">Connection State: %1$s</string>
+    <string name="connected">Connected</string>
+    <string name="connecting">Connecting</string>
+    <string name="disconnected">Disconnected</string>
+
+    <!-- Rename switch -->
     <string name="rename_switch">Rename Switch</string>
     <string name="rename">Rename</string>
     <string name="cancel">Cancel</string>
+
+    <!-- Ble service -->
+    <string name="service_name">BLE Service</string>
+    <string name="ble_service_new_connection">Trying to create a new connection…</string>
+    <string name="ble_service_adapter_uninitialized">BluetoothAdapter not initialized</string>
+    <string name="ble_service_reconnecting">Reconnecting to device</string>
+    <string name="ble_service_failed_to_connect">Failed connection attempt.</string>
 
     <!-- Menu items -->
     <string name="menu_connect">Connect</string>
@@ -37,5 +50,4 @@
     <string name="menu_scan">Scan</string>
     <string name="menu_stop">Stop</string>
     <string name="menu_refresh">Refresh</string>
-    <string name="sniff">Sniff</string>
 </resources>

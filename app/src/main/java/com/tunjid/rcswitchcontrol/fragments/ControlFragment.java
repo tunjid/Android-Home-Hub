@@ -11,11 +11,14 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
+import android.support.design.widget.AppBarLayout;
+import android.support.design.widget.Snackbar;
 import android.support.transition.AutoTransition;
 import android.support.transition.TransitionManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.helper.ItemTouchHelper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -29,6 +32,7 @@ import android.widget.TextView;
 import com.google.gson.Gson;
 import com.tunjid.rcswitchcontrol.BluetoothLeService;
 import com.tunjid.rcswitchcontrol.R;
+import com.tunjid.rcswitchcontrol.ViewHider;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
 import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter;
 import com.tunjid.rcswitchcontrol.model.RfSwitch;
@@ -36,6 +40,7 @@ import com.tunjid.rcswitchcontrol.model.RfSwitch;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Stack;
 
 import static android.content.Context.BIND_AUTO_CREATE;
 import static android.content.Context.MODE_PRIVATE;
@@ -55,14 +60,19 @@ public class ControlFragment extends BaseFragment
 
     private static final Gson gson = new Gson();
 
+    private int lastOffSet;
+    private boolean isDeleting;
+
     private BluetoothDevice bluetoothDevice;
     private BluetoothLeService bluetoothLeService;
 
-    private Button sniffButton;
     private View progressBar;
-
+    private Button sniffButton;
     private TextView connectionStatus;
     private RecyclerView switchList;
+
+    private ViewHider viewHider;
+
     private List<RfSwitch> switches;
 
     private RfSwitch.SwitchCreator switchCreator;
@@ -147,6 +157,7 @@ public class ControlFragment extends BaseFragment
         switches = getSavedSwitches();
 
         View rootView = inflater.inflate(R.layout.fragment_control, container, false);
+        AppBarLayout appBarLayout = (AppBarLayout) rootView.findViewById(R.id.app_bar_layout);
 
         sniffButton = (Button) rootView.findViewById(R.id.sniff);
         progressBar = rootView.findViewById(R.id.progress_bar);
@@ -154,10 +165,34 @@ public class ControlFragment extends BaseFragment
         connectionStatus = (TextView) rootView.findViewById(R.id.connection_status);
         switchList = (RecyclerView) rootView.findViewById(R.id.switch_list);
 
+        viewHider = new ViewHider(rootView.findViewById(R.id.button_container));
+
         sniffButton.setOnClickListener(this);
 
         switchList.setAdapter(new RemoteSwitchAdapter(this, switches));
         switchList.setLayoutManager(new LinearLayoutManager(getActivity()));
+        switchList.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                if (dy == 0) return;
+                if (dy > 0) viewHider.hideTranslate();
+                else viewHider.showTranslate();
+            }
+        });
+
+        ItemTouchHelper helper = new ItemTouchHelper(swipeCallBack);
+        helper.attachToRecyclerView(switchList);
+
+        appBarLayout.addOnOffsetChangedListener(new AppBarLayout.OnOffsetChangedListener() {
+            @Override
+            public void onOffsetChanged(AppBarLayout appBarLayout, int verticalOffset) {
+                if (verticalOffset == 0) return;
+                if (verticalOffset > lastOffSet) viewHider.hideTranslate();
+                else viewHider.showTranslate();
+
+                lastOffSet = verticalOffset;
+            }
+        });
 
         toggleSniffButton();
         return rootView;
@@ -166,11 +201,22 @@ public class ControlFragment extends BaseFragment
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+
+        getToolBar().setTitle(R.string.switches);
+
         LocalBroadcastManager.getInstance(getContext()).registerReceiver(gattUpdateReceiver, intentFilter);
 
         Intent intent = new Intent(getActivity(), BluetoothLeService.class);
         intent.putExtra(BluetoothLeService.BLUETOOTH_DEVICE, getArguments().getParcelable(BluetoothLeService.BLUETOOTH_DEVICE));
         getActivity().bindService(intent, this, BIND_AUTO_CREATE);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        // If the service is already bound, there will be no service connection callback
+        if (bluetoothLeService != null) bluetoothLeService.onAppForeGround();
     }
 
     @Override
@@ -190,7 +236,7 @@ public class ControlFragment extends BaseFragment
         if (bluetoothLeService != null) {
             switch (item.getItemId()) {
                 case R.id.menu_connect:
-                    bluetoothLeService.connect(bluetoothDevice.getAddress());
+                    bluetoothLeService.connect(bluetoothDevice);
                     return true;
                 case R.id.menu_disconnect:
                     bluetoothLeService.disconnect();
@@ -198,6 +244,12 @@ public class ControlFragment extends BaseFragment
             }
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        if (bluetoothLeService != null) bluetoothLeService.onAppBackground();
     }
 
     @Override
@@ -209,9 +261,9 @@ public class ControlFragment extends BaseFragment
     @Override
     public void onServiceConnected(ComponentName name, IBinder service) {
         bluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
-        onConnectionStateChanged(bluetoothLeService.isConnected()
-                ? BluetoothLeService.GATT_CONNECTED
-                : BluetoothLeService.GATT_DISCONNECTED);
+        bluetoothLeService.onAppBackground();
+
+        onConnectionStateChanged(bluetoothLeService.getConnectionState());
     }
 
     @Override
@@ -298,5 +350,85 @@ public class ControlFragment extends BaseFragment
 
         return array == null ? new ArrayList<RfSwitch>() : new ArrayList<>(Arrays.asList(array));
 
+    }
+
+    private ItemTouchHelper.SimpleCallback swipeCallBack = new ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP | ItemTouchHelper.DOWN, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+        @Override
+        public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
+            return false;
+        }
+
+        @Override
+        public int getSwipeDirs(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
+            if (isDeleting) return 0;
+            return super.getSwipeDirs(recyclerView, viewHolder);
+        }
+
+        @Override
+        public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
+
+            if (isDeleting) return;
+            isDeleting = true;
+
+            View rootView = getView();
+
+            if (rootView != null) {
+                int position = viewHolder.getAdapterPosition();
+                DeletionHandler deletionHandler = new DeletionHandler(position, switches.size());
+
+                deletionHandler.push(switches.get(position));
+                switches.remove(position);
+
+                switchList.getAdapter().notifyItemRemoved(position);
+
+                Snackbar.make(rootView, R.string.deleted_switch, Snackbar.LENGTH_LONG)
+                        .addCallback(deletionHandler)
+                        .setAction(R.string.undo, deletionHandler)
+                        .show();
+            }
+        }
+    };
+
+    /**
+     * Handles queued deletion of a Switch
+     */
+    private class DeletionHandler extends Snackbar.Callback implements View.OnClickListener {
+
+        int originalPosition;
+        int originalListSize;
+
+        private Stack<RfSwitch> deletedItems = new Stack<>();
+
+        DeletionHandler(int originalPosition, int originalListSize) {
+            this.originalPosition = originalPosition;
+            this.originalListSize = originalListSize;
+        }
+
+        @Override
+        public void onDismissed(Snackbar snackbar, int event) {
+            if (!deletedItems.isEmpty() && switches.size() != originalListSize) {
+                switches.remove(originalPosition);
+                switchList.getAdapter().notifyItemRemoved(originalPosition);
+            }
+            isDeleting = false;
+            saveSwitches();
+        }
+
+        @Override
+        public void onClick(View v) {
+            if (!deletedItems.isEmpty()) {
+                switches.add(originalPosition, pop());
+                switchList.getAdapter().notifyItemInserted(originalPosition);
+            }
+            isDeleting = false;
+        }
+
+        RfSwitch push(RfSwitch item) {
+            return deletedItems.push(item);
+        }
+
+        RfSwitch pop() {
+            return deletedItems.pop();
+        }
     }
 }

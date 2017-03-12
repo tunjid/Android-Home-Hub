@@ -18,7 +18,7 @@ import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
 
 import static android.app.Activity.RESULT_OK;
 
-public class PairFragment extends BaseFragment
+public class InitializeFragment extends BaseFragment
         implements View.OnClickListener {
 
     // Declare final integers
@@ -29,8 +29,8 @@ public class PairFragment extends BaseFragment
     private Button pairButton;
     private ProgressBar progressBar;
 
-    public static PairFragment newInstance() {
-        PairFragment fragment = new PairFragment();
+    public static InitializeFragment newInstance() {
+        InitializeFragment fragment = new InitializeFragment();
         Bundle args = new Bundle();
         fragment.setArguments(args);
         return fragment;
@@ -55,7 +55,7 @@ public class PairFragment extends BaseFragment
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
-        getToolBar().setTitle(R.string.button_scan);
+        getToolBar().setTitle(R.string.initialize);
 
         BluetoothManager bluetoothManager =
                 (BluetoothManager) getActivity().getSystemService(Context.BLUETOOTH_SERVICE);

@@ -292,11 +292,12 @@ public class ControlFragment extends BaseFragment
     @Override
     public void onSwitchToggled(RfSwitch rfSwitch, boolean state) {
         byte[] code = state ? rfSwitch.getOnCode() : rfSwitch.getOffCode();
-        byte[] transmission = new byte[6];
+        byte[] transmission = new byte[7];
 
         System.arraycopy(code, 0, transmission, 0, code.length);
         transmission[4] = rfSwitch.getPulseLength();
         transmission[5] = rfSwitch.getBitLength();
+        transmission[6] = rfSwitch.getProtocol();
 
         bluetoothLeService.writeCharacteristicArray(BluetoothLeService.C_HANDLE_TRANSMITTER, transmission);
     }

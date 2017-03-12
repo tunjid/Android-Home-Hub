@@ -16,6 +16,8 @@ public class RfSwitch implements Parcelable {
 
     private byte bitLength;
     private byte pulseLength;
+    private byte protocol;
+
     private byte[] onCode = new byte[4];
     private byte[] offCode = new byte[4];
 
@@ -41,6 +43,10 @@ public class RfSwitch implements Parcelable {
 
     public byte getPulseLength() {
         return pulseLength;
+    }
+
+    public byte getProtocol() {
+        return protocol;
     }
 
     public void setName(String name) {
@@ -101,9 +107,11 @@ public class RfSwitch implements Parcelable {
 
         public void withOnCode(byte[] code) {
             state = State.OFF_CODE;
+
             rfSwitch = new RfSwitch();
             rfSwitch.pulseLength = code[4];
             rfSwitch.bitLength = code[5];
+            rfSwitch.protocol = code[6];
 
             System.arraycopy(code, 0, rfSwitch.onCode, 0, 4);
         }

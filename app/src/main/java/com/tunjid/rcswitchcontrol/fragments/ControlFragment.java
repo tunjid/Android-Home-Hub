@@ -61,6 +61,7 @@ public class ControlFragment extends BaseFragment
     private static final Gson gson = new Gson();
 
     private int lastOffSet;
+    private boolean isDeleting;
 
     private BluetoothDevice bluetoothDevice;
     private BluetoothLeService bluetoothLeService;
@@ -173,6 +174,7 @@ public class ControlFragment extends BaseFragment
         switchList.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                if (dy == 0) return;
                 if (dy > 0) viewHider.hideTranslate();
                 else viewHider.showTranslate();
             }
@@ -357,7 +359,16 @@ public class ControlFragment extends BaseFragment
         }
 
         @Override
+        public int getSwipeDirs(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
+            if (isDeleting) return 0;
+            return super.getSwipeDirs(recyclerView, viewHolder);
+        }
+
+        @Override
         public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
+
+            if (isDeleting) return;
+            isDeleting = true;
 
             View rootView = getView();
 
@@ -396,19 +407,20 @@ public class ControlFragment extends BaseFragment
         @Override
         public void onDismissed(Snackbar snackbar, int event) {
             if (!deletedItems.isEmpty() && switches.size() != originalListSize) {
-                TransitionManager.beginDelayedTransition(switchList, new AutoTransition());
                 switches.remove(originalPosition);
                 switchList.getAdapter().notifyItemRemoved(originalPosition);
             }
+            isDeleting = false;
+            saveSwitches();
         }
 
         @Override
         public void onClick(View v) {
             if (!deletedItems.isEmpty()) {
-                TransitionManager.beginDelayedTransition(switchList, new AutoTransition());
                 switches.add(originalPosition, pop());
                 switchList.getAdapter().notifyItemInserted(originalPosition);
             }
+            isDeleting = false;
         }
 
         RfSwitch push(RfSwitch item) {

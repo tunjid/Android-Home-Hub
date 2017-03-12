@@ -223,9 +223,9 @@ public class ControlFragment extends BaseFragment
     @Override
     public void onServiceConnected(ComponentName name, IBinder service) {
         bluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
-        onConnectionStateChanged(bluetoothLeService.isConnected()
-                ? BluetoothLeService.GATT_CONNECTED
-                : BluetoothLeService.GATT_DISCONNECTED);
+        bluetoothLeService.onAppBackground();
+
+        onConnectionStateChanged(bluetoothLeService.getConnectionState());
     }
 
     @Override

@@ -41,8 +41,10 @@ import java.util.UUID;
  */
 public class BluetoothLeService extends Service {
 
-    // States
     public static final byte STATE_SNIFFING = 0;
+    public static final int NOTIFICATION_ID = 1;
+
+    private final static String TAG = BluetoothLeService.class.getSimpleName();
 
     // Services
     public static final String CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb";
@@ -53,18 +55,7 @@ public class BluetoothLeService extends Service {
     public static final String C_HANDLE_SNIFFER = "21819ab0-c937-4188-b0db-b9621e1696cd";
     public static final String C_HANDLE_TRANSMITTER = "3c79909b-cc1c-4bb9-8595-f99fa98c6503";
 
-    private final static String TAG = BluetoothLeService.class.getSimpleName();
-
-    private boolean isUserInApp;
-
-    public static final int NOTIFICATION_ID = 1;
-
-    private BluetoothAdapter bluetoothAdapter;
-    private BluetoothGatt bluetoothGatt;
-    private BluetoothDevice connectedDevice;
-
     // Keys for data
-
     public final static String BLUETOOTH_DEVICE = "BLUETOOTH_DEVICE";
 
     public final static String GATT_CONNECTED = "ACTION_GATT_CONNECTED";
@@ -81,8 +72,13 @@ public class BluetoothLeService extends Service {
     public final static String EXTRA_DATA = "EXTRA_DATA";
 
     private boolean isInitialized;
+    private boolean isUserInApp;
 
     private String connectionState = GATT_DISCONNECTED;
+
+    private BluetoothAdapter bluetoothAdapter;
+    private BluetoothGatt bluetoothGatt;
+    private BluetoothDevice connectedDevice;
 
     // Queue for reading multiple characteristics due to delay induced by callback.
     private Queue<BluetoothGattCharacteristic> readQueue = new LinkedList<>();
@@ -262,6 +258,10 @@ public class BluetoothLeService extends Service {
 
     public boolean isConnected() {
         return connectionState.equals(GATT_CONNECTED);
+    }
+
+    public String getConnectionState() {
+        return connectionState;
     }
 
     /**

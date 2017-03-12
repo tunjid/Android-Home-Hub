@@ -182,14 +182,13 @@ public class ScanFragment extends BaseFragment
     @Override
     public void onBluetoothDeviceClicked(final BluetoothDevice bluetoothDevice) {
         if (bluetoothDevice == null) return;
+        if (isScanning) scanLeDevice(false);
 
         final Intent bleServiceIntent = new Intent(getActivity(), BluetoothLeService.class);
 
         bleServiceIntent.putExtra(BluetoothLeService.BLUETOOTH_DEVICE, bluetoothDevice);
-
-        if (isScanning) scanLeDevice(false);
-
         getActivity().startService(bleServiceIntent);
+
         showFragment(ControlFragment.newInstance(bluetoothDevice));
     }
 

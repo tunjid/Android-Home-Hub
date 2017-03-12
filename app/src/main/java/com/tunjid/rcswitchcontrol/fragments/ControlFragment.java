@@ -166,6 +166,9 @@ public class ControlFragment extends BaseFragment
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+
+        getToolBar().setTitle(R.string.switches);
+
         LocalBroadcastManager.getInstance(getContext()).registerReceiver(gattUpdateReceiver, intentFilter);
 
         Intent intent = new Intent(getActivity(), BluetoothLeService.class);

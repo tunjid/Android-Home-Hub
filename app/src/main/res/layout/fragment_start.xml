@@ -23,7 +23,7 @@
         android:background="?android:attr/selectableItemBackground"
         android:text="@string/yes"
         android:textColor="@color/colorPrimary"
-        android:textSize="@dimen/small_text"
+        android:textSize="@dimen/medium_text"
         android:textStyle="bold|italic"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintHorizontal_chainStyle="spread_inside"

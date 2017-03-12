@@ -1,13 +1,15 @@
+// A sketch to sniff and control 433/315Mhz devices
+
 // Based onBluegiga BGLib Arduino interface library slave device stub sketch
 // 2014-02-12 by Jeff Rowberg <jeff@rowberg.net>
-// 2014-11-02 modified by Adetunji Dahunsi <tunjid.com>
-// Updates should (hopefully) always be available at https://github.com/WuMRC
 
-#include "Wire.h"
+// 2014-03-12 modified by Adetunji Dahunsi <tunjid.com>
+// Updates should (hopefully) always be available at https://github.com/tunjid
+
 #include "Math.h"
 #include "BGLib.h" // BGLib C library for BGAPI communication.
 #include "RCSwitch.h"
-#include "FlexiTimer2.h"
+#include "FlexiTimer2.h" // Timer interrupt to limit sniff lengths
 
 // uncomment the following line for debug serial output
 #define DEBUG
@@ -43,7 +45,6 @@ boolean TIMED_OUT_FLAG = false; // Used to identify if the module timed out.
 // BLE STATE TRACKING 
 // ================================================================
 
-
 // BLE state/link status tracker
 
 uint8_t ble_state = BLE_STATE_STANDBY;
@@ -58,13 +59,8 @@ uint8_t ble_bonding = 0xFF; // 0xFF = no bonding, otherwise = bonding handle
 #define BLE_RESET_PIN   6   // BLE reset pin (active-low)
 
 #define GATT_HANDLE_C_STATE_TOGGLE   17  // 0x11, supports "read", "notify" and "indicate" operations
-#define GATT_HANDLE_C_SNIFFER   21  // 0x15, supports "read" and "write" operations
-#define GATT_HANDLE_C_TRANSMITTER   25  // 0x19, supports "read" and "write" operations
-
-// use SoftwareSerial on pins D8/D8 for RX/TX (Arduino side)
-
-//Serial1 bleSerialPort(19, 18); // change this to 3, 4 when using TinyDuino as pins cannot be changed to use
-// AltSoftSerial
+#define GATT_HANDLE_C_SNIFFER   21  // 0x15, supports "read", "notify" and "indicate" operations
+#define GATT_HANDLE_C_TRANSMITTER   25  // 0x19, supports "read", "notify" and "indicate" operations
 
 // create BGLib object:
 
@@ -75,8 +71,7 @@ BGLib ble112((HardwareSerial * ) & Serial1, 0, 1);
 
 #define BGAPI_GET_RESPONSE(v, dType) dType *v = (dType *)ble112.getLastRXPayload()
 
-
-// The interrupt number, on the MicroView this is PIN 11. On Arduino it is PIN 2. See http://arduino.cc/en/Reference/AttachInterrupt
+// The interrupt pin for the RcSwitch. See http://arduino.cc/en/Reference/AttachInterrupt
 #define INTERRUPT_RX digitalPinToInterrupt(3)
 #define PIN_TX 5
 
@@ -90,8 +85,6 @@ RCSwitch receiveSwitch = RCSwitch();
 // initialization sequence
 
 void setup() {
-
-    Wire.begin(); // Start Arduino I2C library
 
     // ================================================================
     // For BLE, Serial Communication and Timer interrupts
@@ -148,12 +141,9 @@ void setup() {
 void loop() {
 
     // keep polling for new data from BLE
-
     ble112.checkActivity();
 
-
     switch (state) {
-
         case STATE_SNIFFING:
             if (receiveSwitch.available()) { 
                 // Stop timer interrupts
@@ -191,7 +181,6 @@ void loop() {
                     // Revert state to sending
                     state = STATE_SENDING;
                 }
-
                 receiveSwitch.resetAvailable();
             }
             break;
@@ -232,7 +221,6 @@ void loop() {
 void onBusy() {
     // turn LED on when we're busy
     //digitalWrite(LED_PIN, HIGH);
-
 }
 
 // called when the module receives a complete response or "system_boot" event
@@ -248,7 +236,6 @@ void onTimeout() {
     // reset module (might be a bit drastic for a timeout condition though)
     Serial.println(F("Timed out."));
     resetBLE();
-
 }
 
 // ================================================================
@@ -455,7 +442,7 @@ void my_ble_evt_attributes_value(const struct ble_msg_attributes_value_evt_t *ms
     Serial.println(" }");
 #endif
 
-    // check for data written to "c_sample_rate" handle
+    // check for data written to "GATT_HANDLE_C_STATE_TOGGLE" handle
     if (msg->handle == GATT_HANDLE_C_STATE_TOGGLE && msg->value.len > 0) {
 
         state = msg->value.data[0];
@@ -472,7 +459,7 @@ void my_ble_evt_attributes_value(const struct ble_msg_attributes_value_evt_t *ms
                 receiveSwitch.enableReceive(INTERRUPT_RX);
 
                 // Only sniff for 5 seconds or till a packet is received.
-                FlexiTimer2::set(5000, notify);
+                FlexiTimer2::set(5000, interruptSniff);
                 FlexiTimer2::start();
                 break;
             case STATE_SENDING:
@@ -497,7 +484,7 @@ void my_ble_evt_attributes_value(const struct ble_msg_attributes_value_evt_t *ms
 
       receiveSwitch.enableTransmit(PIN_TX);
       receiveSwitch.setProtocol(1);
-      receiveSwitch.setPulseLength(pulseLength + 6);
+      receiveSwitch.setPulseLength(pulseLength);
       receiveSwitch.send(code, bitLength);
     }
 }
@@ -535,7 +522,7 @@ void my_ble_evt_attributes_status(const struct ble_msg_attributes_status_evt_t *
 #endif
 }
 
-void notify() {
+void interruptSniff() {
     FlexiTimer2::stop();
     Serial.println("Timer interrupt called");
     state = STATE_SENDING;

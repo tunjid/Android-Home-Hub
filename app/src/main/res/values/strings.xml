@@ -1,0 +1,41 @@
+<resources>
+    <string name="app_name">RcSwitchControl</string>
+
+    <string name="connection_state">Connection State: %1$s</string>
+
+    <string name="connected">Connected</string>
+    <string name="connecting">Connecting</string>
+    <string name="disconnected">Disconnected</string>
+    <string name="error">Disconnected</string>
+    <string name="splash_message">Hi</string>
+    <string name="yes">Yes</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="button_scan">Scan</string>
+    <string name="unknown_device">Unknown Device</string>
+    <string name="service_name">BLE Service</string>
+
+    <string name="ble_not_supported">BLE is not supported</string>
+
+    <string name="bt_attempt">Attempting to turn on Bluetooth&#8230;</string>
+    <string name="bt_already_on">Bluetooth is already on.</string>
+    <string name="bt_turned_on">Bluetooth was successfully turned on.</string>
+    <string name="bt_denied">It\'s either you denied the bluetooth request,
+        or there is a problem with your bluetooth adapter. Please try again later.</string>
+
+    <!-- Rename switch -->
+    <string name="sniff_code">Sniff %1$s Code</string>
+    <string name="on">ON</string>
+    <string name="off">OFF</string>
+    <string name="rename_switch">Rename Switch</string>
+    <string name="rename">Rename</string>
+    <string name="cancel">Cancel</string>
+
+    <!-- Menu items -->
+    <string name="menu_connect">Connect</string>
+    <string name="menu_disconnect">Disconnect</string>
+    <string name="menu_scan">Scan</string>
+    <string name="menu_stop">Stop</string>
+    <string name="menu_refresh">Refresh</string>
+    <string name="sniff">Sniff</string>
+</resources>

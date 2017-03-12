@@ -3,7 +3,7 @@
 // Based onBluegiga BGLib Arduino interface library slave device stub sketch
 // 2014-02-12 by Jeff Rowberg <jeff@rowberg.net>
 
-// 2014-03-12 modified by Adetunji Dahunsi <tunjid.com>
+// 2017-03-12 modified by Adetunji Dahunsi <tunjid.com>
 // Updates should (hopefully) always be available at https://github.com/tunjid
 
 #include "Math.h"

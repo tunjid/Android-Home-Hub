@@ -199,12 +199,16 @@ public class ControlFragment extends BaseFragment
     }
 
     @Override
+    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        LocalBroadcastManager.getInstance(getContext()).registerReceiver(gattUpdateReceiver, intentFilter);
+    }
+
+    @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
         getToolBar().setTitle(R.string.switches);
-
-        LocalBroadcastManager.getInstance(getContext()).registerReceiver(gattUpdateReceiver, intentFilter);
 
         Intent intent = new Intent(getActivity(), BluetoothLeService.class);
         intent.putExtra(BluetoothLeService.BLUETOOTH_DEVICE, getArguments().getParcelable(BluetoothLeService.BLUETOOTH_DEVICE));
@@ -216,7 +220,10 @@ public class ControlFragment extends BaseFragment
         super.onResume();
 
         // If the service is already bound, there will be no service connection callback
-        if (bluetoothLeService != null) bluetoothLeService.onAppForeGround();
+        if (bluetoothLeService != null) {
+            bluetoothLeService.onAppForeGround();
+            onConnectionStateChanged(bluetoothLeService.getConnectionState());
+        }
     }
 
     @Override
@@ -253,15 +260,28 @@ public class ControlFragment extends BaseFragment
     }
 
     @Override
-    public void onDestroy() {
+    public void onDestroyView() {
+        // Do not receive broadcasts when view is destroyed
         LocalBroadcastManager.getInstance(getContext()).unregisterReceiver(gattUpdateReceiver);
+
+        switchList = null;
+        progressBar = null;
+        sniffButton = null;
+        connectionStatus = null;
+
+        super.onDestroyView();
+    }
+
+    @Override
+    public void onDestroy() {
+        getActivity().unbindService(this);
         super.onDestroy();
     }
 
     @Override
     public void onServiceConnected(ComponentName name, IBinder service) {
         bluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
-        bluetoothLeService.onAppBackground();
+        bluetoothLeService.onAppForeGround();
 
         onConnectionStateChanged(bluetoothLeService.getConnectionState());
     }

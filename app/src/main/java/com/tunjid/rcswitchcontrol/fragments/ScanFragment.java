@@ -180,6 +180,12 @@ public class ScanFragment extends BaseFragment
     }
 
     @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        recyclerView = null;
+    }
+
+    @Override
     public void onBluetoothDeviceClicked(final BluetoothDevice bluetoothDevice) {
         if (bluetoothDevice == null) return;
         if (isScanning) scanLeDevice(false);

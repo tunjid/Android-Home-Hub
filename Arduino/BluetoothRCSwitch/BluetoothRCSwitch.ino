@@ -76,6 +76,8 @@ BGLib ble112((HardwareSerial * ) & Serial1, 0, 1);
 #define PIN_TX 5
 
 uint8_t stateCallback[1];
+uint8_t sniffedData[7];
+
 RCSwitch receiveSwitch = RCSwitch();
 
 // ================================================================
@@ -155,28 +157,33 @@ void loop() {
                     Serial.println("Unknown encoding");
                 }
                 else {
+
+                    uint8_t pulseLength = receiveSwitch.getReceivedDelay();
+                    uint8_t bitLength = receiveSwitch.getReceivedBitlength();
+                    uint8_t protocol = receiveSwitch.getReceivedProtocol();
+
                     Serial.print("Received ");
                     Serial.print(value);
                     Serial.print(" / ");
-                    Serial.print(receiveSwitch.getReceivedBitlength());
+                    Serial.print(bitLength);
                     Serial.print("bit ");
                     Serial.print("Protocol: ");
-                    Serial.println(receiveSwitch.getReceivedProtocol());
+                    Serial.println(protocol);
                     Serial.print("Delay (Pulse Length): ");
-                    Serial.println(receiveSwitch.getReceivedDelay());
+                    Serial.println(pulseLength);
 
                     // Break long value to binary byte array representation
-                    uint8_t bytes[6];
 
-                    bytes[0] = (value >> 24) & 0xff;
-                    bytes[1] = (value >> 16) & 0xff;
-                    bytes[2] = (value >> 8) & 0xff;
-                    bytes[3] = value & 0xff;
-                    bytes[4] = receiveSwitch.getReceivedDelay();
-                    bytes[5] = receiveSwitch.getReceivedBitlength();
-                    
+                    sniffedData[0] = (value >> 24) & 0xff;
+                    sniffedData[1] = (value >> 16) & 0xff;
+                    sniffedData[2] = (value >> 8) & 0xff;
+                    sniffedData[3] = value & 0xff;
+                    sniffedData[4] = pulseLength;
+                    sniffedData[5] = bitLength;
+                    sniffedData[6] = protocol;
+
                     // Write value to characteristic on ble112. Causes indication to be sent.
-                    ble112.ble_cmd_attributes_write(GATT_HANDLE_C_SNIFFER, 0, 6, bytes);
+                    ble112.ble_cmd_attributes_write(GATT_HANDLE_C_SNIFFER, 0, 7, sniffedData);
                     
                     // Revert state to sending
                     state = STATE_SENDING;
@@ -472,8 +479,9 @@ void my_ble_evt_attributes_value(const struct ble_msg_attributes_value_evt_t *ms
 
       unsigned long code = ((uint32_t)b[0] << 24) | ((uint32_t)b[1] << 16) | ((uint32_t)b[2] << 8) | ((uint32_t)b[3]);
 
-      int pulseLength = msg->value.data[4];
-      int bitLength  = msg->value.data[5];
+      uint8_t pulseLength = msg->value.data[4];
+      uint8_t bitLength  = msg->value.data[5];
+      uint8_t protocol  = msg->value.data[6];
       
       Serial.print("Code received: ");
       Serial.println(code);
@@ -481,10 +489,13 @@ void my_ble_evt_attributes_value(const struct ble_msg_attributes_value_evt_t *ms
       Serial.println(pulseLength);
       Serial.print("Bit Length: ");
       Serial.println(bitLength);
-
+      Serial.print("Protocol: ");
+      Serial.println(protocol);
+      
       receiveSwitch.enableTransmit(PIN_TX);
-      receiveSwitch.setProtocol(1);
+      receiveSwitch.setProtocol(protocol);
       receiveSwitch.setPulseLength(pulseLength);
+      
       receiveSwitch.send(code, bitLength);
     }
 }

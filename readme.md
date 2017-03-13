@@ -6,6 +6,8 @@ BLE RC Switch Control
 This Project contains an Android app and an Arduino sketch to sniff 433/315Mhz device codes
 from a remote, and reproduce the same codes, essentially replacing the remote.
 
+A video overview can be see [here](https://youtu.be/FrNVvwTE1eg).
+
 ### The Arduino GATT Server
 
 The Arduino GATT server is comprised of:

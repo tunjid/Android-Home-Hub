@@ -98,6 +98,14 @@ public class InitializeFragment extends BaseFragment
     }
 
     @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        infoText = null;
+        pairButton = null;
+        progressBar = null;
+    }
+
+    @Override
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.button_pair:

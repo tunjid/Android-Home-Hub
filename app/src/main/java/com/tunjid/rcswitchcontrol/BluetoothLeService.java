@@ -15,6 +15,7 @@ import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Binder;
 import android.os.Build;
 import android.os.Handler;
@@ -22,6 +23,7 @@ import android.os.HandlerThread;
 import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.LocalBroadcastManager;
+import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -45,6 +47,9 @@ public class BluetoothLeService extends Service {
     public static final int NOTIFICATION_ID = 1;
 
     private final static String TAG = BluetoothLeService.class.getSimpleName();
+
+    // Shared preference key
+    public static final String SWITCH_PREFS = "SwitchPrefs";
 
     // Services
     public static final String CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb";
@@ -70,6 +75,8 @@ public class BluetoothLeService extends Service {
     public final static String DATA_AVAILABLE_UNKNOWN = "ACTION_DATA_AVAILABLE";
 
     public final static String EXTRA_DATA = "EXTRA_DATA";
+
+    private static final String LAST_PAIRED_DEVICE = "LAST_PAIRED_DEVICE";
 
     private boolean isInitialized;
     private boolean isUserInApp;
@@ -99,6 +106,11 @@ public class BluetoothLeService extends Service {
                 case BluetoothProfile.STATE_CONNECTED:
                     connectionState = GATT_CONNECTED;
                     bluetoothGatt.discoverServices();
+
+                    // Save this device for connnecting later
+                    getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE).edit()
+                            .putString(LAST_PAIRED_DEVICE, connectedDevice.getAddress())
+                            .apply();
 
                     // Update the notification
                     if (!isUserInApp) startForeground(NOTIFICATION_ID, connectedNotification());
@@ -236,20 +248,31 @@ public class BluetoothLeService extends Service {
     }
 
     public void initialize(Intent intent) {
-        BluetoothDevice bluetoothDevice = intent.getParcelableExtra(BLUETOOTH_DEVICE);
 
-        if (isInitialized || bluetoothDevice == null) return;
+        if (isInitialized) return;
+
+        BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+        bluetoothAdapter = bluetoothManager.getAdapter();
+
+        if (bluetoothAdapter == null) {
+            showToast(this, R.string.ble_service_adapter_uninitialized);
+            return;
+        }
+
+        SharedPreferences sharedPreferences = getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE);
+        String lastConnectedDevice = sharedPreferences.getString(LAST_PAIRED_DEVICE, "");
+
+        BluetoothDevice bluetoothDevice = intent != null
+                ? (BluetoothDevice) intent.getParcelableExtra(BLUETOOTH_DEVICE)
+                : !TextUtils.isEmpty(lastConnectedDevice)
+                ? bluetoothAdapter.getRemoteDevice(lastConnectedDevice)
+                : null;
+
+        if (bluetoothDevice == null) return;
 
         this.connectedDevice = bluetoothDevice;
 
-        BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
-
-        if (bluetoothManager == null) showToast(this, R.string.ble_not_supported);
-        else bluetoothAdapter = bluetoothManager.getAdapter();
-
-        if (bluetoothAdapter == null) showToast(this, R.string.ble_service_adapter_uninitialized);
-
-        if (bluetoothManager != null && bluetoothAdapter != null) connect(connectedDevice);
+        connect(connectedDevice);
 
         isInitialized = true;
 
@@ -298,8 +321,7 @@ public class BluetoothLeService extends Service {
             }
         }
 
-        // We want to directly connect to the device, so we are setting the autoConnect
-        // parameter to false.
+        // Set the autoConnect parameter to true.
         bluetoothGatt = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
                 ? bluetoothDevice.connectGatt(this, true, gattCallback, BluetoothDevice.TRANSPORT_LE)
                 : bluetoothDevice.connectGatt(this, true, gattCallback);
@@ -352,6 +374,11 @@ public class BluetoothLeService extends Service {
         }
         BluetoothGattCharacteristic characteristic = characteristicMap.get(uuid);
 
+        if (characteristic == null) {
+            showToast(this, R.string.disconnected);
+            return;
+        }
+
         characteristic.setValue(values);
         bluetoothGatt.writeCharacteristic(characteristic);
     }
@@ -373,7 +400,7 @@ public class BluetoothLeService extends Service {
     /**
      * Enables or disables notifications or indications on a given characteristic.
      *
-     * @param uuid UUID of the Characteristic to act on.
+     * @param uuid    UUID of the Characteristic to act on.
      * @param enabled If true, enable notification.  False otherwise.
      */
 

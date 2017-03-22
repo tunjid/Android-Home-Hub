@@ -55,7 +55,6 @@ public class ControlFragment extends BaseFragment
         RenameSwitchDialogFragment.SwitchNameListener {
 
     private static final String TAG = ControlFragment.class.getSimpleName();
-    private static final String SWITCH_PREFS = "SwitchPrefs";
     private static final String SWITCHES_KEY = "Switches";
 
     private static final Gson gson = new Gson();
@@ -311,6 +310,8 @@ public class ControlFragment extends BaseFragment
 
     @Override
     public void onSwitchToggled(RfSwitch rfSwitch, boolean state) {
+        if (bluetoothLeService == null) return;
+
         byte[] code = state ? rfSwitch.getOnCode() : rfSwitch.getOffCode();
         byte[] transmission = new byte[7];
 
@@ -360,12 +361,12 @@ public class ControlFragment extends BaseFragment
     }
 
     private void saveSwitches() {
-        SharedPreferences sharedPreferences = getActivity().getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE);
+        SharedPreferences sharedPreferences = getActivity().getSharedPreferences(BluetoothLeService.SWITCH_PREFS, MODE_PRIVATE);
         sharedPreferences.edit().putString(SWITCHES_KEY, gson.toJson(switches)).apply();
     }
 
     private List<RfSwitch> getSavedSwitches() {
-        SharedPreferences sharedPreferences = getActivity().getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE);
+        SharedPreferences sharedPreferences = getActivity().getSharedPreferences(BluetoothLeService.SWITCH_PREFS, MODE_PRIVATE);
         String jsonString = sharedPreferences.getString(SWITCHES_KEY, "");
         RfSwitch[] array = gson.fromJson(jsonString, RfSwitch[].class);
 

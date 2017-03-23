@@ -36,7 +36,6 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.UUID;
 
-
 /**
  * Service for managing connection and data communication with a GATT server hosted on a
  * given Bluetooth LE device.
@@ -62,6 +61,7 @@ public class BluetoothLeService extends Service {
 
     // Keys for data
     public final static String BLUETOOTH_DEVICE = "BLUETOOTH_DEVICE";
+    public static final String LAST_PAIRED_DEVICE = "LAST_PAIRED_DEVICE";
 
     public final static String GATT_CONNECTED = "ACTION_GATT_CONNECTED";
     public final static String GATT_CONNECTING = "ACTION_GATT_CONNECTING";
@@ -76,9 +76,6 @@ public class BluetoothLeService extends Service {
 
     public final static String EXTRA_DATA = "EXTRA_DATA";
 
-    private static final String LAST_PAIRED_DEVICE = "LAST_PAIRED_DEVICE";
-
-    private boolean isInitialized;
     private boolean isUserInApp;
 
     private String connectionState = GATT_DISCONNECTED;
@@ -249,7 +246,8 @@ public class BluetoothLeService extends Service {
 
     public void initialize(Intent intent) {
 
-        if (isInitialized) return;
+        // We're already connected, return
+        if (isConnected()) return;
 
         BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         bluetoothAdapter = bluetoothManager.getAdapter();
@@ -262,19 +260,23 @@ public class BluetoothLeService extends Service {
         SharedPreferences sharedPreferences = getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE);
         String lastConnectedDevice = sharedPreferences.getString(LAST_PAIRED_DEVICE, "");
 
-        BluetoothDevice bluetoothDevice = intent != null
+        BluetoothDevice bluetoothDevice = intent != null && intent.getExtras().containsKey(BLUETOOTH_DEVICE)
                 ? (BluetoothDevice) intent.getParcelableExtra(BLUETOOTH_DEVICE)
                 : !TextUtils.isEmpty(lastConnectedDevice)
                 ? bluetoothAdapter.getRemoteDevice(lastConnectedDevice)
                 : null;
 
-        if (bluetoothDevice == null) return;
+        if (bluetoothDevice == null) {
+            // Service was restarted, but has no device to connect to. Close gatt and stop the service
+            close();
+            stopSelf();
+            Log.i(TAG, "Restarted with no device to connect to, stopping service");
+            return;
+        }
 
         this.connectedDevice = bluetoothDevice;
 
         connect(connectedDevice);
-
-        isInitialized = true;
 
         Log.i(TAG, "Initialized BLE connection");
     }
@@ -353,6 +355,7 @@ public class BluetoothLeService extends Service {
      * released properly.
      */
     public void close() {
+        connectionState = GATT_DISCONNECTED;
         if (bluetoothGatt == null) return;
 
         bluetoothGatt.close();

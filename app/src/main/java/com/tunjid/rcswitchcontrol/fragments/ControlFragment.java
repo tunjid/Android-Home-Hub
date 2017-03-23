@@ -34,6 +34,7 @@ import com.tunjid.rcswitchcontrol.BluetoothLeService;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.ViewHider;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
+import com.tunjid.rcswitchcontrol.activities.MainActivity;
 import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter;
 import com.tunjid.rcswitchcontrol.model.RfSwitch;
 
@@ -44,6 +45,7 @@ import java.util.Stack;
 
 import static android.content.Context.BIND_AUTO_CREATE;
 import static android.content.Context.MODE_PRIVATE;
+import static com.tunjid.rcswitchcontrol.BluetoothLeService.BLUETOOTH_DEVICE;
 import static com.tunjid.rcswitchcontrol.BluetoothLeService.DATA_AVAILABLE_CONTROL;
 import static com.tunjid.rcswitchcontrol.BluetoothLeService.DATA_AVAILABLE_SNIFFER;
 
@@ -127,7 +129,7 @@ public class ControlFragment extends BaseFragment
     public static ControlFragment newInstance(BluetoothDevice bluetoothDevice) {
         ControlFragment fragment = new ControlFragment();
         Bundle args = new Bundle();
-        args.putParcelable(BluetoothLeService.BLUETOOTH_DEVICE, bluetoothDevice);
+        args.putParcelable(BLUETOOTH_DEVICE, bluetoothDevice);
         fragment.setArguments(args);
         return fragment;
     }
@@ -137,7 +139,7 @@ public class ControlFragment extends BaseFragment
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
 
-        bluetoothDevice = getArguments().getParcelable(BluetoothLeService.BLUETOOTH_DEVICE);
+        bluetoothDevice = getArguments().getParcelable(BLUETOOTH_DEVICE);
 
         intentFilter.addAction(BluetoothLeService.GATT_CONNECTED);
         intentFilter.addAction(BluetoothLeService.GATT_CONNECTING);
@@ -210,7 +212,7 @@ public class ControlFragment extends BaseFragment
         getToolBar().setTitle(R.string.switches);
 
         Intent intent = new Intent(getActivity(), BluetoothLeService.class);
-        intent.putExtra(BluetoothLeService.BLUETOOTH_DEVICE, getArguments().getParcelable(BluetoothLeService.BLUETOOTH_DEVICE));
+        intent.putExtra(BLUETOOTH_DEVICE, getArguments().getParcelable(BLUETOOTH_DEVICE));
         getActivity().bindService(intent, this, BIND_AUTO_CREATE);
     }
 
@@ -227,7 +229,7 @@ public class ControlFragment extends BaseFragment
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        inflater.inflate(R.menu.menu_fragment_overview, menu);
+        inflater.inflate(R.menu.menu_fragment_control, menu);
 
         if (bluetoothLeService != null) {
             menu.findItem(R.id.menu_connect).setVisible(!bluetoothLeService.isConnected());
@@ -246,6 +248,19 @@ public class ControlFragment extends BaseFragment
                     return true;
                 case R.id.menu_disconnect:
                     bluetoothLeService.disconnect();
+                    return true;
+                case R.id.menu_forget:
+                    bluetoothLeService.disconnect();
+                    bluetoothLeService.close();
+                    getActivity().getSharedPreferences(BluetoothLeService.SWITCH_PREFS, MODE_PRIVATE)
+                            .edit().remove(BluetoothLeService.LAST_PAIRED_DEVICE).apply();
+
+                    Intent intent = new Intent(getActivity(), MainActivity.class);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+                    startActivity(intent);
+                    getActivity().finish();
                     return true;
             }
         }

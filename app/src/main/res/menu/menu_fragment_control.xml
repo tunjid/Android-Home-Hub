@@ -11,4 +11,9 @@
         android:orderInCategory="101"
         android:title="@string/menu_disconnect"
         compat:showAsAction="ifRoom|withText" />
+    <item
+        android:id="@+id/menu_forget"
+        android:orderInCategory="102"
+        android:title="@string/menu_forget"
+        compat:showAsAction="never" />
 </menu>

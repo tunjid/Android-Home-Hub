@@ -44,6 +44,18 @@
     <string name="ble_service_reconnecting">Reconnecting to device</string>
     <string name="ble_service_failed_to_connect">Failed connection attempt.</string>
 
+    <!-- NSD service -->
+    <string name="connect">Connect</string>
+    <string name="discover">Discover</string>
+    <string name="register">Register</string>
+    <string name="send">Send</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="refresh">Refresh</string>
+    <string name="in_server_mode">IN SERVER MODE</string>
+    <string name="connection_title">Connecting</string>
+    <string name="connection_text">Please wait…</string>
+
     <!-- Menu items -->
     <string name="menu_connect">Connect</string>
     <string name="menu_disconnect">Disconnect</string>

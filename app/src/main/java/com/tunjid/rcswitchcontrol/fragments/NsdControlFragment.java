@@ -28,6 +28,7 @@ import android.widget.TextView;
 
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
+import com.tunjid.rcswitchcontrol.adapters.ChatAdapter;
 import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter;
 import com.tunjid.rcswitchcontrol.bluetooth.BluetoothLeService;
 import com.tunjid.rcswitchcontrol.model.RfSwitch;
@@ -42,6 +43,7 @@ public class NsdControlFragment extends BaseFragment
         implements
         ServiceConnection,
         View.OnClickListener,
+        ChatAdapter.ChatAdapterListener,
         RemoteSwitchAdapter.SwitchListener,
         RenameSwitchDialogFragment.SwitchNameListener {
 
@@ -54,10 +56,12 @@ public class NsdControlFragment extends BaseFragment
 
     private TextView connectionStatus;
     private RecyclerView switchList;
+    private RecyclerView commandsView;
 
     private ProgressDialog progressDialog;
 
     private List<RfSwitch> switches = new ArrayList<>();
+    private List<String> commands = new ArrayList<>();
 
     private final IntentFilter clientNsdServiceFilter = new IntentFilter();
     private final BroadcastReceiver nsdUpdateReceiver = new BroadcastReceiver() {
@@ -72,6 +76,10 @@ public class NsdControlFragment extends BaseFragment
                 case ClientNsdService.ACTION_SERVER_RESPONSE:
                     String response = intent.getStringExtra(ClientNsdService.DATA_SERVER_RESPONSE);
                     Payload payload = Payload.deserialize(response);
+
+                    commands.clear();
+                    commands.addAll(payload.getCommands());
+                    commandsView.getAdapter().notifyDataSetChanged();
 
                     if (payload.getData() instanceof ArrayList) {
 
@@ -108,13 +116,17 @@ public class NsdControlFragment extends BaseFragment
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
 
-        View rootView = inflater.inflate(R.layout.fragment_control, container, false);
+        View rootView = inflater.inflate(R.layout.fragment_nsd_client, container, false);
 
         connectionStatus = (TextView) rootView.findViewById(R.id.connection_status);
         switchList = (RecyclerView) rootView.findViewById(R.id.switch_list);
+        commandsView = (RecyclerView) rootView.findViewById(R.id.commands);
 
         switchList.setAdapter(new RemoteSwitchAdapter(this, switches));
         switchList.setLayoutManager(new LinearLayoutManager(getActivity()));
+
+        commandsView.setAdapter(new ChatAdapter(this, commands));
+        commandsView.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
 
         ItemTouchHelper helper = new ItemTouchHelper(swipeCallBack);
         helper.attachToRecyclerView(switchList);
@@ -216,6 +228,11 @@ public class NsdControlFragment extends BaseFragment
             case R.id.sniff:
                 break;
         }
+    }
+
+    @Override
+    public void onTextClicked(String text) {
+        if (clientNsdService != null) clientNsdService.sendMessage(text);
     }
 
     @Override

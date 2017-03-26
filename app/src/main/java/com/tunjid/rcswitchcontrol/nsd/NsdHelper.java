@@ -26,8 +26,8 @@ import android.support.annotation.NonNull;
  */
 public class NsdHelper {
 
+    public static final String SERVICE_NAME = "RC Switch NSD";
     private static final String SERVICE_TYPE = "_http._tcp.";
-    private static final String SERVICE_NAME = "RC Switch NSD";
 
     private NsdManager nsdManager;
 

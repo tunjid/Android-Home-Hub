@@ -19,12 +19,12 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.tunjid.rcswitchcontrol.nsd.NsdHelper;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
+import com.tunjid.rcswitchcontrol.adapters.NSDAdapter;
+import com.tunjid.rcswitchcontrol.nsd.NsdHelper;
 import com.tunjid.rcswitchcontrol.nsd.abstractclasses.DiscoveryListener;
 import com.tunjid.rcswitchcontrol.nsd.abstractclasses.ResolveListener;
-import com.tunjid.rcswitchcontrol.adapters.NSDAdapter;
 import com.tunjid.rcswitchcontrol.nsd.services.ServerNsdService;
 
 import java.util.ArrayList;
@@ -153,7 +153,10 @@ public class ServerListFragment extends BaseFragment
 
     @Override
     public void onServiceClicked(NsdServiceInfo serviceInfo) {
-        showFragment(ClientFragment.newInstance(serviceInfo));
+        String serviceName = serviceInfo.getServiceName();
+        showFragment(serviceName != null && serviceName.contains(NsdHelper.SERVICE_NAME)
+                ? NsdControlFragment.newInstance(serviceInfo)
+                : ClientFragment.newInstance(serviceInfo));
     }
 
     @Override

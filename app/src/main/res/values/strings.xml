@@ -3,9 +3,13 @@
     <string name="hello_world">Hello world!</string>
 
     <!-- Start Fragment -->
-    <string name="splash_message">Hello! This app uses bluetooth smart to control 433/315Mhz
-    appliances.\n\nTap yes to activate bluetooth and search for compatible bluetooth hosts.</string>
+    <string name="splash_message">Hello! This app uses bluetooth smart and
+        WiFi Near service Discovery (NSD) to control 433/315Mhz appliances.\n\nTap "Server" to
+        activate bluetooth and search for compatible bluetooth hosts and set up an NSD server,
+        or "Client" to connect to an existing NSD server.</string>
     <string name="yes">Yes</string>
+    <string name="server">Server</string>
+    <string name="client">Client</string>
 
     <!-- Initialize Fragment -->
     <string name="initialize">Initialize</string>
@@ -44,7 +48,9 @@
     <string name="ble_service_reconnecting">Reconnecting to device</string>
     <string name="ble_service_failed_to_connect">Failed connection attempt.</string>
 
-    <!-- NSD service -->
+    <!-- NSD services -->
+    <string name="server_nsd_service">Server NSD Service</string>
+    <string name="client_nsd_service">Client NSD Service</string>
     <string name="connect">Connect</string>
     <string name="discover">Discover</string>
     <string name="register">Register</string>

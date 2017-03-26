@@ -28,12 +28,12 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
-import com.tunjid.rcswitchcontrol.bluetooth.BluetoothLeService;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.ViewHider;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
 import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter;
+import com.tunjid.rcswitchcontrol.bluetooth.BluetoothLeService;
 import com.tunjid.rcswitchcontrol.model.RfSwitch;
 import com.tunjid.rcswitchcontrol.nsd.services.ServerNsdService;
 
@@ -60,6 +60,7 @@ public class ControlFragment extends BaseFragment
 
     private BluetoothDevice bluetoothDevice;
     private BluetoothLeService bluetoothLeService;
+    private ServerNsdService serverNsdService;
 
     private View progressBar;
     private Button sniffButton;
@@ -246,6 +247,7 @@ public class ControlFragment extends BaseFragment
                 case R.id.menu_start_nsd:
                     Intent serviceIntent = new Intent(getActivity(), ServerNsdService.class);
                     getActivity().startService(serviceIntent);
+                    getActivity().bindService(serviceIntent, this, BIND_AUTO_CREATE);
                     break;
                 case R.id.menu_forget:
                     bluetoothLeService.disconnect();
@@ -291,11 +293,16 @@ public class ControlFragment extends BaseFragment
     }
 
     @Override
-    public void onServiceConnected(ComponentName name, IBinder service) {
-        bluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
-        bluetoothLeService.onAppForeGround();
+    public void onServiceConnected(ComponentName componentName, IBinder service) {
+        if (componentName.getClassName().equals(BluetoothLeService.class.getName())) {
+            bluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
+            bluetoothLeService.onAppForeGround();
 
-        onConnectionStateChanged(bluetoothLeService.getConnectionState());
+            onConnectionStateChanged(bluetoothLeService.getConnectionState());
+        }
+        else if (componentName.getClassName().equals(ServerNsdService.class.getName())) {
+            serverNsdService = ((ServerNsdService.ServerServiceBinder) service).getServerService();
+        }
     }
 
     @Override

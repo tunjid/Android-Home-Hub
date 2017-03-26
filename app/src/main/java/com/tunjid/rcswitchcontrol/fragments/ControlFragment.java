@@ -7,7 +7,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
@@ -29,25 +28,23 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
-import com.google.gson.Gson;
-import com.tunjid.rcswitchcontrol.BluetoothLeService;
+import com.tunjid.rcswitchcontrol.bluetooth.BluetoothLeService;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.ViewHider;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
 import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter;
 import com.tunjid.rcswitchcontrol.model.RfSwitch;
+import com.tunjid.rcswitchcontrol.nsd.services.ServerNsdService;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Stack;
 
 import static android.content.Context.BIND_AUTO_CREATE;
 import static android.content.Context.MODE_PRIVATE;
-import static com.tunjid.rcswitchcontrol.BluetoothLeService.BLUETOOTH_DEVICE;
-import static com.tunjid.rcswitchcontrol.BluetoothLeService.DATA_AVAILABLE_CONTROL;
-import static com.tunjid.rcswitchcontrol.BluetoothLeService.DATA_AVAILABLE_SNIFFER;
+import static com.tunjid.rcswitchcontrol.bluetooth.BluetoothLeService.ACTION_CONTROL;
+import static com.tunjid.rcswitchcontrol.bluetooth.BluetoothLeService.ACTION_SNIFFER;
+import static com.tunjid.rcswitchcontrol.bluetooth.BluetoothLeService.BLUETOOTH_DEVICE;
 
 public class ControlFragment extends BaseFragment
         implements
@@ -57,9 +54,6 @@ public class ControlFragment extends BaseFragment
         RenameSwitchDialogFragment.SwitchNameListener {
 
     private static final String TAG = ControlFragment.class.getSimpleName();
-    private static final String SWITCHES_KEY = "Switches";
-
-    private static final Gson gson = new Gson();
 
     private int lastOffSet;
     private boolean isDeleting;
@@ -85,18 +79,18 @@ public class ControlFragment extends BaseFragment
             String action = intent.getAction();
 
             switch (action) {
-                case BluetoothLeService.GATT_CONNECTED:
-                case BluetoothLeService.GATT_CONNECTING:
-                case BluetoothLeService.GATT_DISCONNECTED:
+                case BluetoothLeService.ACTION_GATT_CONNECTED:
+                case BluetoothLeService.ACTION_GATT_CONNECTING:
+                case BluetoothLeService.ACTION_GATT_DISCONNECTED:
                     onConnectionStateChanged(action);
                     break;
-                case DATA_AVAILABLE_CONTROL: {
+                case ACTION_CONTROL: {
                     byte[] rawData = intent.getByteArrayExtra(BluetoothLeService.DATA_AVAILABLE_CONTROL);
 
                     toggleProgress(rawData[0] == 0);
                     break;
                 }
-                case DATA_AVAILABLE_SNIFFER: {
+                case ACTION_SNIFFER: {
                     byte[] rawData = intent.getByteArrayExtra(BluetoothLeService.DATA_AVAILABLE_SNIFFER);
 
                     switch (switchCreator.getState()) {
@@ -111,7 +105,7 @@ public class ControlFragment extends BaseFragment
                                 switches.add(rfSwitch);
                                 switchList.getAdapter().notifyDataSetChanged();
 
-                                saveSwitches();
+                                RfSwitch.saveSwitches(getContext(), switches);
                             }
                             break;
                     }
@@ -141,10 +135,10 @@ public class ControlFragment extends BaseFragment
 
         bluetoothDevice = getArguments().getParcelable(BLUETOOTH_DEVICE);
 
-        intentFilter.addAction(BluetoothLeService.GATT_CONNECTED);
-        intentFilter.addAction(BluetoothLeService.GATT_CONNECTING);
-        intentFilter.addAction(BluetoothLeService.GATT_DISCONNECTED);
-        intentFilter.addAction(BluetoothLeService.GATT_SERVICES_DISCOVERED);
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTING);
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
         intentFilter.addAction(BluetoothLeService.DATA_AVAILABLE_CONTROL);
         intentFilter.addAction(BluetoothLeService.DATA_AVAILABLE_SNIFFER);
         intentFilter.addAction(BluetoothLeService.DATA_AVAILABLE_UNKNOWN);
@@ -155,7 +149,7 @@ public class ControlFragment extends BaseFragment
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
 
         switchCreator = new RfSwitch.SwitchCreator();
-        switches = getSavedSwitches();
+        switches = RfSwitch.getSavedSwitches(getContext());
 
         View rootView = inflater.inflate(R.layout.fragment_control, container, false);
         AppBarLayout appBarLayout = (AppBarLayout) rootView.findViewById(R.id.app_bar_layout);
@@ -249,10 +243,14 @@ public class ControlFragment extends BaseFragment
                 case R.id.menu_disconnect:
                     bluetoothLeService.disconnect();
                     return true;
+                case R.id.menu_start_nsd:
+                    Intent serviceIntent = new Intent(getActivity(), ServerNsdService.class);
+                    getActivity().startService(serviceIntent);
+                    break;
                 case R.id.menu_forget:
                     bluetoothLeService.disconnect();
                     bluetoothLeService.close();
-                    getActivity().getSharedPreferences(BluetoothLeService.SWITCH_PREFS, MODE_PRIVATE)
+                    getActivity().getSharedPreferences(RfSwitch.SWITCH_PREFS, MODE_PRIVATE)
                             .edit().remove(BluetoothLeService.LAST_PAIRED_DEVICE).apply();
 
                     Intent intent = new Intent(getActivity(), MainActivity.class);
@@ -341,20 +339,20 @@ public class ControlFragment extends BaseFragment
     @Override
     public void onSwitchRenamed(RfSwitch rfSwitch) {
         switchList.getAdapter().notifyItemChanged(switches.indexOf(rfSwitch));
-        saveSwitches();
+        RfSwitch.saveSwitches(getContext(), switches);
     }
 
     private void onConnectionStateChanged(String newState) {
         getActivity().invalidateOptionsMenu();
         String text = null;
         switch (newState) {
-            case BluetoothLeService.GATT_CONNECTED:
+            case BluetoothLeService.ACTION_GATT_CONNECTED:
                 text = getString(R.string.connected);
                 break;
-            case BluetoothLeService.GATT_CONNECTING:
+            case BluetoothLeService.ACTION_GATT_CONNECTING:
                 text = getString(R.string.connecting);
                 break;
-            case BluetoothLeService.GATT_DISCONNECTED:
+            case BluetoothLeService.ACTION_GATT_DISCONNECTED:
                 text = getString(R.string.disconnected);
                 break;
         }
@@ -373,20 +371,6 @@ public class ControlFragment extends BaseFragment
 
         sniffButton.setVisibility(show ? View.INVISIBLE : View.VISIBLE);
         progressBar.setVisibility(show ? View.VISIBLE : View.INVISIBLE);
-    }
-
-    private void saveSwitches() {
-        SharedPreferences sharedPreferences = getActivity().getSharedPreferences(BluetoothLeService.SWITCH_PREFS, MODE_PRIVATE);
-        sharedPreferences.edit().putString(SWITCHES_KEY, gson.toJson(switches)).apply();
-    }
-
-    private List<RfSwitch> getSavedSwitches() {
-        SharedPreferences sharedPreferences = getActivity().getSharedPreferences(BluetoothLeService.SWITCH_PREFS, MODE_PRIVATE);
-        String jsonString = sharedPreferences.getString(SWITCHES_KEY, "");
-        RfSwitch[] array = gson.fromJson(jsonString, RfSwitch[].class);
-
-        return array == null ? new ArrayList<RfSwitch>() : new ArrayList<>(Arrays.asList(array));
-
     }
 
     private ItemTouchHelper.SimpleCallback swipeCallBack = new ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP | ItemTouchHelper.DOWN, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
@@ -444,7 +428,7 @@ public class ControlFragment extends BaseFragment
         @Override
         public void onDismissed(Snackbar snackbar, int event) {
             isDeleting = false;
-            saveSwitches();
+            RfSwitch.saveSwitches(getContext(), switches);
         }
 
         @Override

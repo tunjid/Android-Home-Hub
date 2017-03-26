@@ -10,13 +10,14 @@ import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 
-import com.tunjid.rcswitchcontrol.BluetoothLeService;
+import com.tunjid.rcswitchcontrol.bluetooth.BluetoothLeService;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseActivity;
 import com.tunjid.rcswitchcontrol.fragments.ControlFragment;
 import com.tunjid.rcswitchcontrol.fragments.StartFragment;
+import com.tunjid.rcswitchcontrol.model.RfSwitch;
 
-import static com.tunjid.rcswitchcontrol.BluetoothLeService.BLUETOOTH_DEVICE;
+import static com.tunjid.rcswitchcontrol.bluetooth.BluetoothLeService.BLUETOOTH_DEVICE;
 
 public class MainActivity extends BaseActivity {
 
@@ -30,7 +31,7 @@ public class MainActivity extends BaseActivity {
         toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        SharedPreferences preferences = getSharedPreferences(BluetoothLeService.SWITCH_PREFS, MODE_PRIVATE);
+        SharedPreferences preferences = getSharedPreferences(RfSwitch.SWITCH_PREFS, MODE_PRIVATE);
         String lastConnectedDevice = preferences.getString(BluetoothLeService.LAST_PAIRED_DEVICE, "");
         BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();

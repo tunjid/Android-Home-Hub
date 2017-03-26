@@ -23,7 +23,7 @@ import android.view.ViewGroup;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
 import com.tunjid.rcswitchcontrol.adapters.ChatAdapter;
-import com.tunjid.rcswitchcontrol.nsd.nsdprotocols.Data;
+import com.tunjid.rcswitchcontrol.nsd.nsdprotocols.Payload;
 import com.tunjid.rcswitchcontrol.nsd.services.ClientNsdService;
 
 import java.util.ArrayList;
@@ -61,14 +61,14 @@ public class ClientFragment extends BaseFragment
                     break;
                 case ClientNsdService.ACTION_SERVER_RESPONSE:
                     String response = intent.getStringExtra(ClientNsdService.DATA_SERVER_RESPONSE);
-                    Data data = Data.deserialize(response);
+                    Payload payload = Payload.deserialize(response);
 
                     commands.clear();
-                    commands.addAll(data.getCommands());
+                    commands.addAll(payload.getCommands());
 
                     commandsView.getAdapter().notifyDataSetChanged();
 
-                    responses.add(data.getResponse());
+                    responses.add(payload.getResponse());
                     historyView.getAdapter().notifyItemInserted(responses.size() - 1);
                     historyView.smoothScrollToPosition(responses.size() - 1);
                     break;

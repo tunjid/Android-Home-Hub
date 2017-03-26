@@ -10,6 +10,6 @@ import java.io.Closeable;
 
 public interface CommsProtocol extends Closeable {
 
-    Data processInput(String input);
+    Payload processInput(String input);
 
 }

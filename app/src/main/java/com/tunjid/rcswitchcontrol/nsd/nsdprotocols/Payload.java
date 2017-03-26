@@ -2,23 +2,29 @@ package com.tunjid.rcswitchcontrol.nsd.nsdprotocols;
 
 import com.google.gson.Gson;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Data class
+ * Payload class
  * <p>
  * Created by tj.dahunsi on 2/11/17.
  */
 
-public class Data {
+public class Payload implements Serializable {
     private static final Gson GSON = new Gson();
 
     String response;
+    Serializable data;
     List<String> commands = new ArrayList<>();
 
     public String getResponse() {
         return response;
+    }
+
+    public Serializable getData() {
+        return data;
     }
 
     public List<String> getCommands() {
@@ -29,8 +35,8 @@ public class Data {
         return GSON.toJson(this);
     }
 
-    public static Data deserialize(String input) {
-        return GSON.fromJson(input, Data.class);
+    public static Payload deserialize(String input) {
+        return GSON.fromJson(input, Payload.class);
     }
 
 }

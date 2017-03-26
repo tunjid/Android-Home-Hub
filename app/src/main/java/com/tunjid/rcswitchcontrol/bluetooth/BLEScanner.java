@@ -1,4 +1,4 @@
-package com.tunjid.rcswitchcontrol;
+package com.tunjid.rcswitchcontrol.bluetooth;
 
 import android.annotation.TargetApi;
 import android.bluetooth.BluetoothAdapter;

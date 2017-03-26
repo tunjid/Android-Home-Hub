@@ -27,8 +27,8 @@ class KnockKnockProtocol implements CommsProtocol {
             "Is there an echo in here?"};
 
     @Override
-    public Data processInput(String input) {
-        Data output = new Data();
+    public Payload processInput(String input) {
+        Payload output = new Payload();
 
         if (state == WAITING) {
             output.response = "Knock! Knock!";

@@ -1,9 +1,17 @@
 package com.tunjid.rcswitchcontrol.model;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import com.google.gson.Gson;
+
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+
+import static android.content.Context.MODE_PRIVATE;
 
 /**
  * A model representing an RF switch
@@ -12,6 +20,13 @@ import java.util.Arrays;
  */
 
 public class RfSwitch implements Parcelable {
+
+    // Shared preference key
+    public static final String SWITCH_PREFS = "SwitchPrefs";
+    private static final String SWITCHES_KEY = "Switches";
+
+    private static final Gson gson = new Gson();
+
     private String name;
 
     private byte bitLength;
@@ -23,6 +38,20 @@ public class RfSwitch implements Parcelable {
 
     private RfSwitch() {
 
+    }
+
+    public static ArrayList<RfSwitch> getSavedSwitches(Context context) {
+        SharedPreferences sharedPreferences = context.getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE);
+        String jsonString = sharedPreferences.getString(SWITCHES_KEY, "");
+        RfSwitch[] array = gson.fromJson(jsonString, RfSwitch[].class);
+
+        return array == null ? new ArrayList<RfSwitch>() : new ArrayList<>(Arrays.asList(array));
+
+    }
+
+    public static void saveSwitches(Context context, List<RfSwitch> switches) {
+        SharedPreferences sharedPreferences = context.getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE);
+        sharedPreferences.edit().putString(SWITCHES_KEY, gson.toJson(switches)).apply();
     }
 
     public String getName() {

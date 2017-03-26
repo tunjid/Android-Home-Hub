@@ -12,7 +12,7 @@ public class ProxyProtocol implements CommsProtocol {
 
     private static final String CHOOSER = "choose";
     private static final String KNOCK_KNOCK = "Knock Knock Jokes";
-    private static final String ARDUINO = "Arduino Remote";
+    private static final String RC_REMOTE = "RC Remote";
 
     private boolean choosing;
 
@@ -22,15 +22,15 @@ public class ProxyProtocol implements CommsProtocol {
     }
 
     @Override
-    public Data processInput(String input) {
-        Data output = new Data();
+    public Payload processInput(String input) {
+        Payload output = new Payload();
 
         // First connection
         if (input == null || input.equals(CHOOSER)) {
             choosing = true;
-            output.response = "Please choose the server you want, Knock Knock jokes, or an RCSniffer";
+            output.response = "Please choose the server you want, Knock Knock jokes, or an RC Remote";
             output.commands.add(KNOCK_KNOCK);
-            output.commands.add(ARDUINO);
+            output.commands.add(RC_REMOTE);
             return output;
         }
 
@@ -39,7 +39,7 @@ public class ProxyProtocol implements CommsProtocol {
                 case KNOCK_KNOCK:
                     commsProtocol = new KnockKnockProtocol();
                     break;
-                case ARDUINO:
+                case RC_REMOTE:
                     commsProtocol = new BleRcProtocol();
                     break;
                 default:

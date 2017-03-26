@@ -1,6 +1,13 @@
 package com.tunjid.rcswitchcontrol.nsd.nsdprotocols;
 
 
+import android.content.Intent;
+import android.support.v4.content.LocalBroadcastManager;
+
+import com.tunjid.rcswitchcontrol.Application;
+import com.tunjid.rcswitchcontrol.bluetooth.BluetoothLeService;
+import com.tunjid.rcswitchcontrol.model.RfSwitch;
+
 import java.io.IOException;
 
 /**
@@ -11,32 +18,29 @@ import java.io.IOException;
 
 class BleRcProtocol implements CommsProtocol {
 
-    private static final String ENABLE_SNIFFER = "Enable Sniffer";
-    private static final String SNIFF = "Sniff";
-
+    private static final String TRANSMIT_CODE = "Transmit Code";
 
     BleRcProtocol() {
     }
 
     @Override
-    public Data processInput(String input) {
-        Data output = new Data();
+    public Payload processInput(String input) {
+        Payload output = new Payload();
 
-        if (input != null) {
-            switch (input) {
-                case ENABLE_SNIFFER:
-                    output.getCommands().add(SNIFF);
-                    return output;
-                case SNIFF:
-                    output.getCommands().add(SNIFF);
-                    return output;
-            }
-        }
         if (input == null) {
-            output.response = "Welcome!";
-            output.commands.add(ENABLE_SNIFFER);
+            output.response = "Welcome! Tap any of the switches to control them";
+            output.data = RfSwitch.getSavedSwitches(Application.getInstance());
+            output.commands.add(TRANSMIT_CODE);
         }
-        else output.response = "¯\\_(ツ)_/¯";
+        else {
+            output.response = "Sending transmission";
+            output.commands.add(TRANSMIT_CODE);
+
+            Intent intent = new Intent(BluetoothLeService.ACTION_TRANSMITTER);
+            intent.putExtra(BluetoothLeService.DATA_AVAILABLE_TRANSMITTER, input);
+
+            LocalBroadcastManager.getInstance(Application.getInstance()).sendBroadcast(intent);
+        }
         return output;
     }
 

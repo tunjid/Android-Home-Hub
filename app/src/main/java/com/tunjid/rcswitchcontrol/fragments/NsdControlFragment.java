@@ -72,6 +72,7 @@ public class NsdControlFragment extends BaseFragment
             switch (action) {
                 case ClientNsdService.ACTION_SOCKET_CONNECTED:
                     if (progressDialog != null) progressDialog.dismiss();
+                    onConnectionStateChanged(action);
                     break;
                 case ClientNsdService.ACTION_SERVER_RESPONSE:
                     String response = intent.getStringExtra(ClientNsdService.DATA_SERVER_RESPONSE);
@@ -81,8 +82,10 @@ public class NsdControlFragment extends BaseFragment
                     commands.addAll(payload.getCommands());
                     commandsView.getAdapter().notifyDataSetChanged();
 
-                    if (payload.getData() instanceof ArrayList) {
-
+                    if (payload.getData() != null) {
+                        switches.clear();
+                        switches.addAll(RfSwitch.deserialize(payload.getData()));
+                        switchList.getAdapter().notifyDataSetChanged();
                     }
 
                     break;
@@ -265,7 +268,7 @@ public class NsdControlFragment extends BaseFragment
         getActivity().invalidateOptionsMenu();
         String text = null;
         switch (newState) {
-            case BluetoothLeService.ACTION_GATT_CONNECTED:
+            case ClientNsdService.ACTION_SOCKET_CONNECTED:
                 text = getString(R.string.connected);
                 break;
             case BluetoothLeService.ACTION_GATT_CONNECTING:

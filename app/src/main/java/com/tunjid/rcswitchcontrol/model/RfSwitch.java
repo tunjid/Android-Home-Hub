@@ -6,6 +6,7 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 import com.google.gson.Gson;
+import com.tunjid.rcswitchcontrol.Application;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,6 +38,17 @@ public class RfSwitch implements Parcelable {
     private byte[] offCode = new byte[4];
 
     private RfSwitch() {
+
+    }
+
+    public static String serializedSavedSwitches(){
+        return Application.getInstance().getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE)
+                .getString(SWITCHES_KEY, "");
+    }
+
+    public static ArrayList<RfSwitch> deserialize(String serialized) {
+        RfSwitch[] array = gson.fromJson(serialized, RfSwitch[].class);
+        return array == null ? new ArrayList<RfSwitch>() : new ArrayList<>(Arrays.asList(array));
 
     }
 

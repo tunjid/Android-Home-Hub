@@ -29,7 +29,7 @@ class BleRcProtocol implements CommsProtocol {
 
         if (input == null) {
             output.response = "Welcome! Tap any of the switches to control them";
-            output.data = RfSwitch.getSavedSwitches(Application.getInstance());
+            output.data = RfSwitch.serializedSavedSwitches();
             output.commands.add(TRANSMIT_CODE);
         }
         else {

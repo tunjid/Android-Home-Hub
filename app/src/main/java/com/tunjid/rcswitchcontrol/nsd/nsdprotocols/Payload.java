@@ -16,14 +16,14 @@ public class Payload implements Serializable {
     private static final Gson GSON = new Gson();
 
     String response;
-    Serializable data;
+    String data;
     List<String> commands = new ArrayList<>();
 
     public String getResponse() {
         return response;
     }
 
-    public Serializable getData() {
+    public String getData() {
         return data;
     }
 

@@ -30,10 +30,10 @@ import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
 import com.tunjid.rcswitchcontrol.adapters.ChatAdapter;
 import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter;
-import com.tunjid.rcswitchcontrol.bluetooth.BluetoothLeService;
+import com.tunjid.rcswitchcontrol.services.BluetoothLeService;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
-import com.tunjid.rcswitchcontrol.nsd.nsdprotocols.Payload;
-import com.tunjid.rcswitchcontrol.nsd.services.ClientNsdService;
+import com.tunjid.rcswitchcontrol.model.Payload;
+import com.tunjid.rcswitchcontrol.services.ClientNsdService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -75,8 +75,8 @@ public class NsdControlFragment extends BaseFragment
                     onConnectionStateChanged(action);
                     break;
                 case ClientNsdService.ACTION_SERVER_RESPONSE:
-                    String response = intent.getStringExtra(ClientNsdService.DATA_SERVER_RESPONSE);
-                    Payload payload = Payload.deserialize(response);
+                    String serverResponse = intent.getStringExtra(ClientNsdService.DATA_SERVER_RESPONSE);
+                    Payload payload = Payload.deserialize(serverResponse);
 
                     commands.clear();
                     commands.addAll(payload.getCommands());
@@ -88,6 +88,7 @@ public class NsdControlFragment extends BaseFragment
                         switchList.getAdapter().notifyDataSetChanged();
                     }
 
+                    Snackbar.make(switchList, payload.getResponse(), Snackbar.LENGTH_SHORT);
                     break;
             }
 

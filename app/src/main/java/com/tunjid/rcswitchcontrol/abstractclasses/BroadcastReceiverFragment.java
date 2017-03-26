@@ -8,7 +8,7 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.content.LocalBroadcastManager;
 
-import com.tunjid.rcswitchcontrol.bluetooth.BluetoothLeService;
+import com.tunjid.rcswitchcontrol.services.BluetoothLeService;
 
 /**
  * A Fragment listening to broadcast from the {@link android.support.v4.content.LocalBroadcastManager}

@@ -15,7 +15,7 @@ import android.view.ViewGroup;
 
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
-import com.tunjid.rcswitchcontrol.nsd.services.ServerNsdService;
+import com.tunjid.rcswitchcontrol.services.ServerNsdService;
 
 import static android.content.Context.BIND_AUTO_CREATE;
 

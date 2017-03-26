@@ -23,8 +23,8 @@ import android.view.ViewGroup;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
 import com.tunjid.rcswitchcontrol.adapters.ChatAdapter;
-import com.tunjid.rcswitchcontrol.nsd.nsdprotocols.Payload;
-import com.tunjid.rcswitchcontrol.nsd.services.ClientNsdService;
+import com.tunjid.rcswitchcontrol.model.Payload;
+import com.tunjid.rcswitchcontrol.services.ClientNsdService;
 
 import java.util.ArrayList;
 import java.util.List;

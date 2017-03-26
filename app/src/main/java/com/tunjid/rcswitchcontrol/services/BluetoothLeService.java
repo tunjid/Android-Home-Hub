@@ -1,4 +1,4 @@
-package com.tunjid.rcswitchcontrol.bluetooth;
+package com.tunjid.rcswitchcontrol.services;
 
 import android.annotation.TargetApi;
 import android.app.Notification;

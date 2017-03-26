@@ -25,7 +25,7 @@ import com.tunjid.rcswitchcontrol.adapters.NSDAdapter;
 import com.tunjid.rcswitchcontrol.nsd.NsdHelper;
 import com.tunjid.rcswitchcontrol.nsd.abstractclasses.DiscoveryListener;
 import com.tunjid.rcswitchcontrol.nsd.abstractclasses.ResolveListener;
-import com.tunjid.rcswitchcontrol.nsd.services.ServerNsdService;
+import com.tunjid.rcswitchcontrol.services.ServerNsdService;
 
 import java.util.ArrayList;
 import java.util.List;

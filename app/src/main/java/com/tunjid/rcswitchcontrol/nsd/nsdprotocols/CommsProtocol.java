@@ -1,5 +1,7 @@
 package com.tunjid.rcswitchcontrol.nsd.nsdprotocols;
 
+import com.tunjid.rcswitchcontrol.model.Payload;
+
 import java.io.Closeable;
 
 /**

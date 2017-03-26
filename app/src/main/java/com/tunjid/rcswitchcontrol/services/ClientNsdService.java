@@ -1,4 +1,4 @@
-package com.tunjid.rcswitchcontrol.nsd.services;
+package com.tunjid.rcswitchcontrol.services;
 
 import android.content.Context;
 import android.content.Intent;

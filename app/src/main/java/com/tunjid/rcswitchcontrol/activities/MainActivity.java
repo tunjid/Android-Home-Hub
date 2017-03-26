@@ -10,14 +10,14 @@ import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 
-import com.tunjid.rcswitchcontrol.bluetooth.BluetoothLeService;
+import com.tunjid.rcswitchcontrol.services.BluetoothLeService;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseActivity;
 import com.tunjid.rcswitchcontrol.fragments.ControlFragment;
 import com.tunjid.rcswitchcontrol.fragments.StartFragment;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
 
-import static com.tunjid.rcswitchcontrol.bluetooth.BluetoothLeService.BLUETOOTH_DEVICE;
+import static com.tunjid.rcswitchcontrol.services.BluetoothLeService.BLUETOOTH_DEVICE;
 
 public class MainActivity extends BaseActivity {
 

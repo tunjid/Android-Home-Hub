@@ -33,18 +33,18 @@ import com.tunjid.rcswitchcontrol.ViewHider;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
 import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter;
-import com.tunjid.rcswitchcontrol.bluetooth.BluetoothLeService;
+import com.tunjid.rcswitchcontrol.services.BluetoothLeService;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
-import com.tunjid.rcswitchcontrol.nsd.services.ServerNsdService;
+import com.tunjid.rcswitchcontrol.services.ServerNsdService;
 
 import java.util.List;
 import java.util.Stack;
 
 import static android.content.Context.BIND_AUTO_CREATE;
 import static android.content.Context.MODE_PRIVATE;
-import static com.tunjid.rcswitchcontrol.bluetooth.BluetoothLeService.ACTION_CONTROL;
-import static com.tunjid.rcswitchcontrol.bluetooth.BluetoothLeService.ACTION_SNIFFER;
-import static com.tunjid.rcswitchcontrol.bluetooth.BluetoothLeService.BLUETOOTH_DEVICE;
+import static com.tunjid.rcswitchcontrol.services.BluetoothLeService.ACTION_CONTROL;
+import static com.tunjid.rcswitchcontrol.services.BluetoothLeService.ACTION_SNIFFER;
+import static com.tunjid.rcswitchcontrol.services.BluetoothLeService.BLUETOOTH_DEVICE;
 
 public class ControlFragment extends BaseFragment
         implements

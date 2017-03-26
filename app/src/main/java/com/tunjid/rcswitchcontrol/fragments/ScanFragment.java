@@ -23,7 +23,7 @@ import android.view.ViewGroup;
 import android.widget.Toast;
 
 import com.tunjid.rcswitchcontrol.bluetooth.BLEScanner;
-import com.tunjid.rcswitchcontrol.bluetooth.BluetoothLeService;
+import com.tunjid.rcswitchcontrol.services.BluetoothLeService;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
 import com.tunjid.rcswitchcontrol.adapters.ScanAdapter;

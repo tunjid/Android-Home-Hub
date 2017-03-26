@@ -1,5 +1,7 @@
 package com.tunjid.rcswitchcontrol.nsd.nsdprotocols;
 
+import com.tunjid.rcswitchcontrol.model.Payload;
+
 import java.io.IOException;
 
 /**
@@ -23,15 +25,15 @@ public class ProxyProtocol implements CommsProtocol {
 
     @Override
     public Payload processInput(String input) {
-        Payload output = new Payload();
+        Payload.Builder builder = Payload.builder();
 
         // First connection
         if (input == null || input.equals(CHOOSER)) {
             choosing = true;
-            output.response = "Please choose the server you want, Knock Knock jokes, or an RC Remote";
-            output.commands.add(KNOCK_KNOCK);
-            output.commands.add(RC_REMOTE);
-            return output;
+            builder.setResponse("Please choose the server you want, Knock Knock jokes, or an RC Remote");
+            builder.addCommand(KNOCK_KNOCK);
+            builder.addCommand(RC_REMOTE);
+            return builder.build();
         }
 
         if (choosing) {
@@ -43,9 +45,9 @@ public class ProxyProtocol implements CommsProtocol {
                     commsProtocol = new BleRcProtocol();
                     break;
                 default:
-                    output.response = "Invalid command. Please choose the server you want, Knock Knock jokes, or an RCSniffer";
-                    output.commands.add(KNOCK_KNOCK);
-                    return output;
+                    builder.setResponse("Invalid command. Please choose the server you want, Knock Knock jokes, or an RC Remote");
+                    builder.addCommand(KNOCK_KNOCK);
+                    return builder.build();
             }
             choosing = false;
 
@@ -53,10 +55,9 @@ public class ProxyProtocol implements CommsProtocol {
             result += "\n";
             result += "\n";
 
-            output = commsProtocol.processInput(null);
-            output.response = result + output.response;
+            builder.setResponse(result + commsProtocol.processInput(null).getResponse());
 
-            return output;
+            return builder.build();
         }
         return commsProtocol.processInput(input);
     }

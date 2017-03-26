@@ -5,7 +5,8 @@ import android.content.Intent;
 import android.support.v4.content.LocalBroadcastManager;
 
 import com.tunjid.rcswitchcontrol.Application;
-import com.tunjid.rcswitchcontrol.bluetooth.BluetoothLeService;
+import com.tunjid.rcswitchcontrol.services.BluetoothLeService;
+import com.tunjid.rcswitchcontrol.model.Payload;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
 
 import java.io.IOException;
@@ -18,30 +19,41 @@ import java.io.IOException;
 
 class BleRcProtocol implements CommsProtocol {
 
-    private static final String TRANSMIT_CODE = "Transmit Code";
+    private static final String REFRESH_SWITCHES = "Refresh Switches";
 
     BleRcProtocol() {
     }
 
     @Override
     public Payload processInput(String input) {
-        Payload output = new Payload();
+        Payload.Builder builder = Payload.builder();
 
         if (input == null) {
-            output.response = "Welcome! Tap any of the switches to control them";
-            output.data = RcSwitch.serializedSavedSwitches();
-            output.commands.add(TRANSMIT_CODE);
-        }
-        else {
-            output.response = "Sending transmission";
-            output.commands.add(TRANSMIT_CODE);
+            builder.setResponse("Welcome! Tap any of the switches to control them");
+            builder.setData(RcSwitch.serializedSavedSwitches());
+            builder.addCommand(REFRESH_SWITCHES);
 
-            Intent intent = new Intent(BluetoothLeService.ACTION_TRANSMITTER);
-            intent.putExtra(BluetoothLeService.DATA_AVAILABLE_TRANSMITTER, input);
-
-            LocalBroadcastManager.getInstance(Application.getInstance()).sendBroadcast(intent);
+            return builder.build();
         }
-        return output;
+
+        switch (input) {
+            case REFRESH_SWITCHES:
+                builder.setResponse("Updated available switches");
+                builder.setData( RcSwitch.serializedSavedSwitches());
+                builder.addCommand(REFRESH_SWITCHES);
+                break;
+            default:
+                builder.setResponse( "Sending transmission");
+                builder.addCommand(REFRESH_SWITCHES);
+
+                Intent intent = new Intent(BluetoothLeService.ACTION_TRANSMITTER);
+                intent.putExtra(BluetoothLeService.DATA_AVAILABLE_TRANSMITTER, input);
+
+                LocalBroadcastManager.getInstance(Application.getInstance()).sendBroadcast(intent);
+                break;
+        }
+
+        return builder.build();
     }
 
     @Override

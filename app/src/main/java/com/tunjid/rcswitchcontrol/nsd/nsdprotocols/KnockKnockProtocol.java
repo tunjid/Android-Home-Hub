@@ -1,5 +1,7 @@
 package com.tunjid.rcswitchcontrol.nsd.nsdprotocols;
 
+import com.tunjid.rcswitchcontrol.model.Payload;
+
 import java.io.IOException;
 
 /**
@@ -28,56 +30,56 @@ class KnockKnockProtocol implements CommsProtocol {
 
     @Override
     public Payload processInput(String input) {
-        Payload output = new Payload();
+        Payload.Builder builder = Payload.builder();
 
         if (state == WAITING) {
-            output.response = "Knock! Knock!";
-            output.commands.add("Who's there?");
+            builder.setResponse("Knock! Knock!");
+            builder.addCommand("Who's there?");
             state = SENTKNOCKKNOCK;
         }
         else if (state == SENTKNOCKKNOCK) {
             if (input.trim().equalsIgnoreCase("Who's there?")) {
-                output.response = clues[currentJoke];
-                output.commands.add(output.response + " who?");
+                builder.setResponse(clues[currentJoke]);
+                builder.addCommand(clues[currentJoke] + " who?");
                 state = SENTCLUE;
             }
             else {
-                output.response = "You're supposed to say \"Who's there?\"! " +
-                        "Try again. Knock! Knock!";
-                output.commands.add("Who's there?");
+                builder.setResponse("You're supposed to say \"Who's there?\"! " +
+                        "Try again. Knock! Knock!");
+                builder.addCommand("Who's there?");
             }
         }
         else if (state == SENTCLUE) {
             if (input.equalsIgnoreCase(clues[currentJoke] + " who?")) {
-                output.response = answers[currentJoke] + " Want another? (y/n)";
-                output.commands.add("y");
-                output.commands.add("n");
+                builder.setResponse(answers[currentJoke] + " Want another? (y/n)");
+                builder.addCommand("y");
+                builder.addCommand("n");
                 state = ANOTHER;
             }
             else {
-                output.response = "You're supposed to say \"" +
+                builder.setResponse("You're supposed to say \"" +
                         clues[currentJoke] +
                         " who?\"" +
-                        "! Try again. Knock! Knock!";
-                output.commands.add("Who's there?");
+                        "! Try again. Knock! Knock!");
+                builder.addCommand("Who's there?");
                 state = SENTKNOCKKNOCK;
             }
         }
         else if (state == ANOTHER) {
             if (input.equalsIgnoreCase("y")) {
-                output.response = "Knock! Knock!";
-                output.commands.add("Who's there?");
+                builder.setResponse("Knock! Knock!");
+                builder.addCommand("Who's there?");
 
                 if (currentJoke == (NUMJOKES - 1)) currentJoke = 0;
                 else currentJoke++;
                 state = SENTKNOCKKNOCK;
             }
             else {
-                output.response = "Bye.";
+                builder.setResponse("Bye.");
                 state = WAITING;
             }
         }
-        return output;
+        return builder.build();
     }
 
     @Override

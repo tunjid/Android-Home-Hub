@@ -25,6 +25,7 @@ import com.tunjid.rcswitchcontrol.adapters.NSDAdapter;
 import com.tunjid.rcswitchcontrol.nsd.NsdHelper;
 import com.tunjid.rcswitchcontrol.nsd.abstractclasses.DiscoveryListener;
 import com.tunjid.rcswitchcontrol.nsd.abstractclasses.ResolveListener;
+import com.tunjid.rcswitchcontrol.services.ClientNsdService;
 import com.tunjid.rcswitchcontrol.services.ServerNsdService;
 
 import java.util.ArrayList;
@@ -153,10 +154,11 @@ public class ServerListFragment extends BaseFragment
 
     @Override
     public void onServiceClicked(NsdServiceInfo serviceInfo) {
-        String serviceName = serviceInfo.getServiceName();
-        showFragment(serviceName != null && serviceName.contains(NsdHelper.SERVICE_NAME)
-                ? NsdControlFragment.newInstance(serviceInfo)
-                : ClientFragment.newInstance(serviceInfo));
+        Intent intent = new Intent(getContext(), ClientNsdService.class);
+        intent.putExtra(ClientNsdService.NSD_SERVICE_INFO_KEY, serviceInfo);
+        getContext().startService(intent);
+
+        showFragment(NsdControlFragment.newInstance());
     }
 
     @Override

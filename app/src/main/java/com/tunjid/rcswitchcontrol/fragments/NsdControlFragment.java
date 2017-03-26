@@ -7,7 +7,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.net.nsd.NsdServiceInfo;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
@@ -30,9 +29,9 @@ import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
 import com.tunjid.rcswitchcontrol.adapters.ChatAdapter;
 import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter;
-import com.tunjid.rcswitchcontrol.services.BluetoothLeService;
-import com.tunjid.rcswitchcontrol.model.RcSwitch;
 import com.tunjid.rcswitchcontrol.model.Payload;
+import com.tunjid.rcswitchcontrol.model.RcSwitch;
+import com.tunjid.rcswitchcontrol.services.BluetoothLeService;
 import com.tunjid.rcswitchcontrol.services.ClientNsdService;
 
 import java.util.ArrayList;
@@ -51,7 +50,6 @@ public class NsdControlFragment extends BaseFragment
 
     private boolean isDeleting;
 
-    private NsdServiceInfo service;
     private ClientNsdService clientNsdService;
 
     private TextView connectionStatus;
@@ -72,6 +70,9 @@ public class NsdControlFragment extends BaseFragment
             switch (action) {
                 case ClientNsdService.ACTION_SOCKET_CONNECTED:
                     if (progressDialog != null) progressDialog.dismiss();
+                    onConnectionStateChanged(action);
+                    break;
+                case ClientNsdService.ACTION_SOCKET_DISCONNECTED:
                     onConnectionStateChanged(action);
                     break;
                 case ClientNsdService.ACTION_SERVER_RESPONSE:
@@ -96,11 +97,11 @@ public class NsdControlFragment extends BaseFragment
         }
     };
 
-    public static NsdControlFragment newInstance(NsdServiceInfo nsdServiceInfo) {
+    public static NsdControlFragment newInstance() {
         NsdControlFragment fragment = new NsdControlFragment();
         Bundle bundle = new Bundle();
 
-        bundle.putParcelable(ClientNsdService.NSD_SERVICE_INFO_KEY, nsdServiceInfo);
+//        bundle.putParcelable(ClientNsdService.NSD_SERVICE_INFO_KEY, nsdServiceInfo);
         fragment.setArguments(bundle);
         return fragment;
     }
@@ -112,8 +113,6 @@ public class NsdControlFragment extends BaseFragment
 
         clientNsdServiceFilter.addAction(ClientNsdService.ACTION_SOCKET_CONNECTED);
         clientNsdServiceFilter.addAction(ClientNsdService.ACTION_SERVER_RESPONSE);
-
-        service = getArguments().getParcelable(ClientNsdService.NSD_SERVICE_INFO_KEY);
     }
 
     @Nullable
@@ -163,11 +162,11 @@ public class NsdControlFragment extends BaseFragment
     public void onResume() {
         super.onResume();
 
-//        // If the service is already bound, there will be no service connection callback
-//        if (bluetoothLeService != null) {
-//            bluetoothLeService.onAppForeGround();
-//            onConnectionStateChanged(bluetoothLeService.getConnectionState());
-//        }
+        // If the service is already bound, there will be no service connection callback
+        if (clientNsdService != null) {
+            clientNsdService.onAppForeGround();
+            onConnectionStateChanged(clientNsdService.getConnectionState());
+        }
     }
 
     @Override
@@ -194,7 +193,7 @@ public class NsdControlFragment extends BaseFragment
     @Override
     public void onStop() {
         super.onStop();
-//        if (bluetoothLeService != null) bluetoothLeService.onAppBackground();
+        if (clientNsdService != null) clientNsdService.onAppBackground();
     }
 
     @Override
@@ -216,9 +215,7 @@ public class NsdControlFragment extends BaseFragment
 
     @Override
     public void onServiceConnected(ComponentName name, IBinder binder) {
-
         clientNsdService = ((ClientNsdService.NsdClientBinder) binder).getClientService();
-        clientNsdService.connect(service);
     }
 
     @Override
@@ -261,8 +258,8 @@ public class NsdControlFragment extends BaseFragment
 
     @Override
     public void onSwitchRenamed(RcSwitch rcSwitch) {
-        switchList.getAdapter().notifyItemChanged(switches.indexOf(rcSwitch));
-        // TODO
+        //switchList.getAdapter().notifyItemChanged(switches.indexOf(rcSwitch));
+        Snackbar.make(commandsView, "Not supported, change the name on the server device", Snackbar.LENGTH_SHORT).show();
     }
 
     private void onConnectionStateChanged(String newState) {
@@ -275,7 +272,7 @@ public class NsdControlFragment extends BaseFragment
             case BluetoothLeService.ACTION_GATT_CONNECTING:
                 text = getString(R.string.connecting);
                 break;
-            case BluetoothLeService.ACTION_GATT_DISCONNECTED:
+            case ClientNsdService.ACTION_SOCKET_DISCONNECTED:
                 text = getString(R.string.disconnected);
                 break;
         }

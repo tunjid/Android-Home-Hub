@@ -55,7 +55,13 @@ public class ProxyProtocol implements CommsProtocol {
             result += "\n";
             result += "\n";
 
-            builder.setResponse(result + commsProtocol.processInput(null).getResponse());
+            Payload payload = commsProtocol.processInput(null);
+
+            builder.setKey(payload.getKey());
+            builder.setData(payload.getData());
+            builder.setResponse(result + payload.getResponse());
+
+            for (String command : payload.getCommands()) builder.addCommand(command);
 
             return builder.build();
         }

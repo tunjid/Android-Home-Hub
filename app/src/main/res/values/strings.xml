@@ -61,6 +61,7 @@
     <string name="in_server_mode">IN SERVER MODE</string>
     <string name="connection_title">Connecting</string>
     <string name="connection_text">Please wait…</string>
+    <string name="connected_to_server">Connected to switch server</string>
 
     <!-- Menu items -->
     <string name="menu_connect">Connect</string>

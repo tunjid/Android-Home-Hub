@@ -10,12 +10,14 @@ import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 
-import com.tunjid.rcswitchcontrol.services.BluetoothLeService;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseActivity;
 import com.tunjid.rcswitchcontrol.fragments.ControlFragment;
+import com.tunjid.rcswitchcontrol.fragments.NsdControlFragment;
 import com.tunjid.rcswitchcontrol.fragments.StartFragment;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
+import com.tunjid.rcswitchcontrol.services.BluetoothLeService;
+import com.tunjid.rcswitchcontrol.services.ClientNsdService;
 
 import static com.tunjid.rcswitchcontrol.services.BluetoothLeService.BLUETOOTH_DEVICE;
 
@@ -32,6 +34,7 @@ public class MainActivity extends BaseActivity {
         setSupportActionBar(toolbar);
 
         SharedPreferences preferences = getSharedPreferences(RcSwitch.SWITCH_PREFS, MODE_PRIVATE);
+
         String lastConnectedDevice = preferences.getString(BluetoothLeService.LAST_PAIRED_DEVICE, "");
         BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
@@ -46,6 +49,8 @@ public class MainActivity extends BaseActivity {
 
         boolean isSavedInstance = savedInstanceState != null;
         boolean isNullDevice = device == null;
+        boolean isNsdClient = startIntent.hasExtra(ClientNsdService.NSD_SERVICE_INFO_KEY)
+                || !TextUtils.isEmpty(preferences.getString(ClientNsdService.LAST_CONNECTED_SERVICE, ""));
 
         if (!isNullDevice) {
             Intent intent = new Intent(this, BluetoothLeService.class);
@@ -54,6 +59,7 @@ public class MainActivity extends BaseActivity {
         }
 
         if (!isSavedInstance) {
+            if (isNsdClient) showFragment(NsdControlFragment.newInstance());
             if (isNullDevice) showFragment(StartFragment.newInstance());
             else showFragment(ControlFragment.newInstance(device));
         }

@@ -20,7 +20,7 @@ import static android.content.Context.MODE_PRIVATE;
  * Created by tj.dahunsi on 3/11/17.
  */
 
-public class RfSwitch implements Parcelable {
+public class RcSwitch implements Parcelable {
 
     // Shared preference key
     public static final String SWITCH_PREFS = "SwitchPrefs";
@@ -37,7 +37,7 @@ public class RfSwitch implements Parcelable {
     private byte[] onCode = new byte[4];
     private byte[] offCode = new byte[4];
 
-    private RfSwitch() {
+    private RcSwitch() {
 
     }
 
@@ -46,22 +46,22 @@ public class RfSwitch implements Parcelable {
                 .getString(SWITCHES_KEY, "");
     }
 
-    public static ArrayList<RfSwitch> deserialize(String serialized) {
-        RfSwitch[] array = gson.fromJson(serialized, RfSwitch[].class);
-        return array == null ? new ArrayList<RfSwitch>() : new ArrayList<>(Arrays.asList(array));
+    public static ArrayList<RcSwitch> deserialize(String serialized) {
+        RcSwitch[] array = gson.fromJson(serialized, RcSwitch[].class);
+        return array == null ? new ArrayList<RcSwitch>() : new ArrayList<>(Arrays.asList(array));
 
     }
 
-    public static ArrayList<RfSwitch> getSavedSwitches(Context context) {
+    public static ArrayList<RcSwitch> getSavedSwitches(Context context) {
         SharedPreferences sharedPreferences = context.getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE);
         String jsonString = sharedPreferences.getString(SWITCHES_KEY, "");
-        RfSwitch[] array = gson.fromJson(jsonString, RfSwitch[].class);
+        RcSwitch[] array = gson.fromJson(jsonString, RcSwitch[].class);
 
-        return array == null ? new ArrayList<RfSwitch>() : new ArrayList<>(Arrays.asList(array));
+        return array == null ? new ArrayList<RcSwitch>() : new ArrayList<>(Arrays.asList(array));
 
     }
 
-    public static void saveSwitches(Context context, List<RfSwitch> switches) {
+    public static void saveSwitches(Context context, List<RcSwitch> switches) {
         SharedPreferences sharedPreferences = context.getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE);
         sharedPreferences.edit().putString(SWITCHES_KEY, gson.toJson(switches)).apply();
     }
@@ -99,9 +99,9 @@ public class RfSwitch implements Parcelable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        RfSwitch rfSwitch = (RfSwitch) o;
+        RcSwitch rcSwitch = (RcSwitch) o;
 
-        return Arrays.equals(onCode, rfSwitch.onCode) && Arrays.equals(offCode, rfSwitch.offCode);
+        return Arrays.equals(onCode, rcSwitch.onCode) && Arrays.equals(offCode, rcSwitch.offCode);
 
     }
 
@@ -112,7 +112,7 @@ public class RfSwitch implements Parcelable {
         return result;
     }
 
-    private RfSwitch(Parcel in) {
+    private RcSwitch(Parcel in) {
         name = in.readString();
     }
 
@@ -126,21 +126,21 @@ public class RfSwitch implements Parcelable {
         dest.writeString(name);
     }
 
-    public static final Parcelable.Creator<RfSwitch> CREATOR = new Parcelable.Creator<RfSwitch>() {
+    public static final Parcelable.Creator<RcSwitch> CREATOR = new Parcelable.Creator<RcSwitch>() {
         @Override
-        public RfSwitch createFromParcel(Parcel in) {
-            return new RfSwitch(in);
+        public RcSwitch createFromParcel(Parcel in) {
+            return new RcSwitch(in);
         }
 
         @Override
-        public RfSwitch[] newArray(int size) {
-            return new RfSwitch[size];
+        public RcSwitch[] newArray(int size) {
+            return new RcSwitch[size];
         }
     };
 
     public static final class SwitchCreator {
         State state;
-        RfSwitch rfSwitch;
+        RcSwitch rcSwitch;
 
         public SwitchCreator() {
             state = State.ON_CODE;
@@ -149,24 +149,24 @@ public class RfSwitch implements Parcelable {
         public void withOnCode(byte[] code) {
             state = State.OFF_CODE;
 
-            rfSwitch = new RfSwitch();
-            rfSwitch.pulseLength = code[4];
-            rfSwitch.bitLength = code[5];
-            rfSwitch.protocol = code[6];
+            rcSwitch = new RcSwitch();
+            rcSwitch.pulseLength = code[4];
+            rcSwitch.bitLength = code[5];
+            rcSwitch.protocol = code[6];
 
-            System.arraycopy(code, 0, rfSwitch.onCode, 0, 4);
+            System.arraycopy(code, 0, rcSwitch.onCode, 0, 4);
         }
 
-        public RfSwitch withOffCode(byte[] code) {
+        public RcSwitch withOffCode(byte[] code) {
             state = State.ON_CODE;
 
-            int pulseLength = rfSwitch.pulseLength;
+            int pulseLength = rcSwitch.pulseLength;
             pulseLength += (int) code[4];
             pulseLength /= 2;
-            rfSwitch.pulseLength = (byte) pulseLength;
+            rcSwitch.pulseLength = (byte) pulseLength;
 
-            System.arraycopy(code, 0, rfSwitch.offCode, 0, 4);
-            return rfSwitch;
+            System.arraycopy(code, 0, rcSwitch.offCode, 0, 4);
+            return rcSwitch;
         }
 
 

@@ -32,7 +32,7 @@ import android.widget.Toast;
 
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
-import com.tunjid.rcswitchcontrol.model.RfSwitch;
+import com.tunjid.rcswitchcontrol.model.RcSwitch;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -128,7 +128,7 @@ public class BluetoothLeService extends Service {
                     bluetoothGatt.discoverServices();
 
                     // Save this device for connnecting later
-                    getSharedPreferences(RfSwitch.SWITCH_PREFS, MODE_PRIVATE).edit()
+                    getSharedPreferences(RcSwitch.SWITCH_PREFS, MODE_PRIVATE).edit()
                             .putString(LAST_PAIRED_DEVICE, connectedDevice.getAddress())
                             .apply();
 
@@ -291,7 +291,7 @@ public class BluetoothLeService extends Service {
             return;
         }
 
-        SharedPreferences sharedPreferences = getSharedPreferences(RfSwitch.SWITCH_PREFS, MODE_PRIVATE);
+        SharedPreferences sharedPreferences = getSharedPreferences(RcSwitch.SWITCH_PREFS, MODE_PRIVATE);
         String lastConnectedDevice = sharedPreferences.getString(LAST_PAIRED_DEVICE, "");
 
         BluetoothDevice bluetoothDevice = intent != null && intent.getExtras().containsKey(BLUETOOTH_DEVICE)

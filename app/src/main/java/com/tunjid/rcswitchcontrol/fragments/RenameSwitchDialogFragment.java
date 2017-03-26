@@ -13,7 +13,7 @@ import android.view.View;
 import android.widget.EditText;
 
 import com.tunjid.rcswitchcontrol.R;
-import com.tunjid.rcswitchcontrol.model.RfSwitch;
+import com.tunjid.rcswitchcontrol.model.RcSwitch;
 
 
 @SuppressLint("InflateParams")
@@ -21,13 +21,13 @@ public class RenameSwitchDialogFragment extends DialogFragment {
 
     private static final String SWITCH = "SWITCH";
 
-    private RfSwitch rfSwitch;
+    private RcSwitch rcSwitch;
 
-    public static RenameSwitchDialogFragment newInstance(RfSwitch rfSwitch) {
+    public static RenameSwitchDialogFragment newInstance(RcSwitch rcSwitch) {
 
         RenameSwitchDialogFragment fragment = new RenameSwitchDialogFragment();
         Bundle args = new Bundle();
-        args.putParcelable(SWITCH, rfSwitch);
+        args.putParcelable(SWITCH, rcSwitch);
         fragment.setArguments(args);
         return fragment;
     }
@@ -40,7 +40,7 @@ public class RenameSwitchDialogFragment extends DialogFragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        rfSwitch = getArguments().getParcelable(SWITCH);
+        rcSwitch = getArguments().getParcelable(SWITCH);
     }
 
     @Override
@@ -54,7 +54,7 @@ public class RenameSwitchDialogFragment extends DialogFragment {
         final View view = inflater.inflate(R.layout.dialog_rename_switch, null);
         final EditText editText = (EditText) view.findViewById(R.id.switch_name);
 
-        editText.setText(rfSwitch.getName());
+        editText.setText(rcSwitch.getName());
 
 
         return new AlertDialog.Builder(getActivity()).setTitle(R.string.rename_switch)
@@ -62,8 +62,8 @@ public class RenameSwitchDialogFragment extends DialogFragment {
                 .setPositiveButton(R.string.rename, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int id) {
-                        rfSwitch.setName(editText.getText().toString());
-                        listener.onSwitchRenamed(rfSwitch);
+                        rcSwitch.setName(editText.getText().toString());
+                        listener.onSwitchRenamed(rcSwitch);
                         dismiss();
                     }
                 })
@@ -76,6 +76,6 @@ public class RenameSwitchDialogFragment extends DialogFragment {
     }
 
     interface SwitchNameListener {
-        void onSwitchRenamed(RfSwitch rfSwitch);
+        void onSwitchRenamed(RcSwitch rcSwitch);
     }
 }

@@ -9,7 +9,7 @@ import android.widget.Switch;
 import android.widget.TextView;
 
 import com.tunjid.rcswitchcontrol.R;
-import com.tunjid.rcswitchcontrol.model.RfSwitch;
+import com.tunjid.rcswitchcontrol.model.RcSwitch;
 
 import java.util.List;
 
@@ -20,10 +20,10 @@ public class RemoteSwitchAdapter extends RecyclerView.Adapter<RemoteSwitchAdapte
 
     private static final int BLE_DEVICE = 1;
 
-    private List<RfSwitch> switches;
+    private List<RcSwitch> switches;
     private SwitchListener switchListener;
 
-    public RemoteSwitchAdapter(SwitchListener switchListener, List<RfSwitch> switches) {
+    public RemoteSwitchAdapter(SwitchListener switchListener, List<RcSwitch> switches) {
         this.switchListener = switchListener;
         this.switches = switches;
     }
@@ -60,7 +60,7 @@ public class RemoteSwitchAdapter extends RecyclerView.Adapter<RemoteSwitchAdapte
         TextView deviceName;
         Switch toggle;
 
-        RfSwitch rfSwitch;
+        RcSwitch rcSwitch;
         SwitchListener switchListener;
 
         ViewHolder(View itemView) {
@@ -73,32 +73,32 @@ public class RemoteSwitchAdapter extends RecyclerView.Adapter<RemoteSwitchAdapte
             itemView.setOnLongClickListener(this);
         }
 
-        void bind(RfSwitch rfSwitch, SwitchListener switchListener) {
-            this.rfSwitch = rfSwitch;
+        void bind(RcSwitch rcSwitch, SwitchListener switchListener) {
+            this.rcSwitch = rcSwitch;
             this.switchListener = switchListener;
 
-            deviceName.setText(rfSwitch.getName());
+            deviceName.setText(rcSwitch.getName());
         }
 
         @Override
         public void onClick(View v) {
             switch ((v.getId())) {
                 case R.id.switch_toggle:
-                    switchListener.onSwitchToggled(rfSwitch, toggle.isChecked());
+                    switchListener.onSwitchToggled(rcSwitch, toggle.isChecked());
                     break;
             }
         }
 
         @Override
         public boolean onLongClick(View v) {
-            switchListener.onLongClicked(rfSwitch);
+            switchListener.onLongClicked(rcSwitch);
             return true;
         }
     }
 
     public interface SwitchListener {
-        void onLongClicked(RfSwitch rfSwitch);
-        void onSwitchToggled(RfSwitch rfSwitch, boolean state);
+        void onLongClicked(RcSwitch rcSwitch);
+        void onSwitchToggled(RcSwitch rcSwitch, boolean state);
     }
 
 }

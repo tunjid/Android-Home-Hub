@@ -6,7 +6,7 @@ import android.support.v4.content.LocalBroadcastManager;
 
 import com.tunjid.rcswitchcontrol.Application;
 import com.tunjid.rcswitchcontrol.bluetooth.BluetoothLeService;
-import com.tunjid.rcswitchcontrol.model.RfSwitch;
+import com.tunjid.rcswitchcontrol.model.RcSwitch;
 
 import java.io.IOException;
 
@@ -29,7 +29,7 @@ class BleRcProtocol implements CommsProtocol {
 
         if (input == null) {
             output.response = "Welcome! Tap any of the switches to control them";
-            output.data = RfSwitch.serializedSavedSwitches();
+            output.data = RcSwitch.serializedSavedSwitches();
             output.commands.add(TRANSMIT_CODE);
         }
         else {

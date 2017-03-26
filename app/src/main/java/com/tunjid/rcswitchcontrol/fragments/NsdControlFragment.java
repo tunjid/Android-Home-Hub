@@ -31,7 +31,7 @@ import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
 import com.tunjid.rcswitchcontrol.adapters.ChatAdapter;
 import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter;
 import com.tunjid.rcswitchcontrol.bluetooth.BluetoothLeService;
-import com.tunjid.rcswitchcontrol.model.RfSwitch;
+import com.tunjid.rcswitchcontrol.model.RcSwitch;
 import com.tunjid.rcswitchcontrol.nsd.nsdprotocols.Payload;
 import com.tunjid.rcswitchcontrol.nsd.services.ClientNsdService;
 
@@ -60,7 +60,7 @@ public class NsdControlFragment extends BaseFragment
 
     private ProgressDialog progressDialog;
 
-    private List<RfSwitch> switches = new ArrayList<>();
+    private List<RcSwitch> switches = new ArrayList<>();
     private List<String> commands = new ArrayList<>();
 
     private final IntentFilter clientNsdServiceFilter = new IntentFilter();
@@ -84,7 +84,7 @@ public class NsdControlFragment extends BaseFragment
 
                     if (payload.getData() != null) {
                         switches.clear();
-                        switches.addAll(RfSwitch.deserialize(payload.getData()));
+                        switches.addAll(RcSwitch.deserialize(payload.getData()));
                         switchList.getAdapter().notifyDataSetChanged();
                     }
 
@@ -239,28 +239,28 @@ public class NsdControlFragment extends BaseFragment
     }
 
     @Override
-    public void onLongClicked(RfSwitch rfSwitch) {
-        RenameSwitchDialogFragment.newInstance(rfSwitch).show(getChildFragmentManager(), "");
+    public void onLongClicked(RcSwitch rcSwitch) {
+        RenameSwitchDialogFragment.newInstance(rcSwitch).show(getChildFragmentManager(), "");
     }
 
     @Override
-    public void onSwitchToggled(RfSwitch rfSwitch, boolean state) {
+    public void onSwitchToggled(RcSwitch rcSwitch, boolean state) {
         if (clientNsdService == null) return;
 
-        byte[] code = state ? rfSwitch.getOnCode() : rfSwitch.getOffCode();
+        byte[] code = state ? rcSwitch.getOnCode() : rcSwitch.getOffCode();
         byte[] transmission = new byte[7];
 
         System.arraycopy(code, 0, transmission, 0, code.length);
-        transmission[4] = rfSwitch.getPulseLength();
-        transmission[5] = rfSwitch.getBitLength();
-        transmission[6] = rfSwitch.getProtocol();
+        transmission[4] = rcSwitch.getPulseLength();
+        transmission[5] = rcSwitch.getBitLength();
+        transmission[6] = rcSwitch.getProtocol();
 
         clientNsdService.sendMessage(Base64.encodeToString(transmission, Base64.DEFAULT));
     }
 
     @Override
-    public void onSwitchRenamed(RfSwitch rfSwitch) {
-        switchList.getAdapter().notifyItemChanged(switches.indexOf(rfSwitch));
+    public void onSwitchRenamed(RcSwitch rcSwitch) {
+        switchList.getAdapter().notifyItemChanged(switches.indexOf(rcSwitch));
         // TODO
     }
 
@@ -326,7 +326,7 @@ public class NsdControlFragment extends BaseFragment
         int originalPosition;
         int originalListSize;
 
-        private Stack<RfSwitch> deletedItems = new Stack<>();
+        private Stack<RcSwitch> deletedItems = new Stack<>();
 
         DeletionHandler(int originalPosition, int originalListSize) {
             this.originalPosition = originalPosition;
@@ -336,7 +336,7 @@ public class NsdControlFragment extends BaseFragment
         @Override
         public void onDismissed(Snackbar snackbar, int event) {
             isDeleting = false;
-            RfSwitch.saveSwitches(getContext(), switches);
+            RcSwitch.saveSwitches(getContext(), switches);
         }
 
         @Override
@@ -348,11 +348,11 @@ public class NsdControlFragment extends BaseFragment
             isDeleting = false;
         }
 
-        RfSwitch push(RfSwitch item) {
+        RcSwitch push(RcSwitch item) {
             return deletedItems.push(item);
         }
 
-        RfSwitch pop() {
+        RcSwitch pop() {
             return deletedItems.pop();
         }
     }

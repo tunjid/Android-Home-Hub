@@ -30,6 +30,13 @@ The app assumes the switches it controls has 2 states, ON and OFF. To Create a s
 consecutively, after which a switch will be created with a UI to toggle between the ON and OFF states. Once a switch is created, it is persisted
 in the app unless it is deleted with a swipe on the UI. Long pressing a switch brings up a dialog to rename the switch.
 
+### Near Service Discovery (NSD)
+
+Should you want multiple devices to be able to control your RC switches, it is possible to set up one device as an NSD server.
+This device will hold the actual Bluetooth connection to the sniffer, while consecutive devices will connect to the server device
+via NSD. The clients will then proxy the RC commands over to the server device which will then execute them.
+
+
 ![alt text](http://i.imgur.com/MnurD22.png "Connections")
 
 

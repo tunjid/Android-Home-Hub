@@ -23,9 +23,11 @@ public class StartFragment extends BaseFragment
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_start, container, false);
-        View yesButton = rootView.findViewById(R.id.yes);
+        View serverButton = rootView.findViewById(R.id.server);
+        View clientButton = rootView.findViewById(R.id.client);
 
-        yesButton.setOnClickListener(this);
+        serverButton.setOnClickListener(this);
+        clientButton.setOnClickListener(this);
 
         return rootView;
     }
@@ -33,8 +35,11 @@ public class StartFragment extends BaseFragment
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
-            case R.id.yes:
+            case R.id.server:
                 showFragment(InitializeFragment.newInstance());
+                break;
+            case R.id.client:
+                showFragment(ServerListFragment.newInstance());
                 break;
         }
     }

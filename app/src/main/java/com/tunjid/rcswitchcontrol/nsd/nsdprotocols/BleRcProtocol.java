@@ -5,9 +5,9 @@ import android.content.Intent;
 import android.support.v4.content.LocalBroadcastManager;
 
 import com.tunjid.rcswitchcontrol.Application;
-import com.tunjid.rcswitchcontrol.services.BluetoothLeService;
 import com.tunjid.rcswitchcontrol.model.Payload;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
+import com.tunjid.rcswitchcontrol.services.BluetoothLeService;
 
 import java.io.IOException;
 
@@ -37,13 +37,14 @@ class BleRcProtocol implements CommsProtocol {
         }
 
         switch (input) {
+            case PING:
             case REFRESH_SWITCHES:
                 builder.setResponse("Updated available switches");
-                builder.setData( RcSwitch.serializedSavedSwitches());
+                builder.setData(RcSwitch.serializedSavedSwitches());
                 builder.addCommand(REFRESH_SWITCHES);
                 break;
             default:
-                builder.setResponse( "Sending transmission");
+                builder.setResponse("Sending transmission");
                 builder.addCommand(REFRESH_SWITCHES);
 
                 Intent intent = new Intent(BluetoothLeService.ACTION_TRANSMITTER);

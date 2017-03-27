@@ -1,5 +1,6 @@
 package com.tunjid.rcswitchcontrol.fragments;
 
+import android.app.Activity;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -33,8 +34,8 @@ import com.tunjid.rcswitchcontrol.ViewHider;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
 import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter;
-import com.tunjid.rcswitchcontrol.services.BluetoothLeService;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
+import com.tunjid.rcswitchcontrol.services.BluetoothLeService;
 import com.tunjid.rcswitchcontrol.services.ServerNsdService;
 
 import java.util.List;
@@ -42,6 +43,7 @@ import java.util.Stack;
 
 import static android.content.Context.BIND_AUTO_CREATE;
 import static android.content.Context.MODE_PRIVATE;
+import static com.tunjid.rcswitchcontrol.model.RcSwitch.SWITCH_PREFS;
 import static com.tunjid.rcswitchcontrol.services.BluetoothLeService.ACTION_CONTROL;
 import static com.tunjid.rcswitchcontrol.services.BluetoothLeService.ACTION_SNIFFER;
 import static com.tunjid.rcswitchcontrol.services.BluetoothLeService.BLUETOOTH_DEVICE;
@@ -60,7 +62,6 @@ public class ControlFragment extends BaseFragment
 
     private BluetoothDevice bluetoothDevice;
     private BluetoothLeService bluetoothLeService;
-    private ServerNsdService serverNsdService;
 
     private View progressBar;
     private Button sniffButton;
@@ -206,9 +207,15 @@ public class ControlFragment extends BaseFragment
 
         getToolBar().setTitle(R.string.switches);
 
+        Activity activity = getActivity();
+
         Intent intent = new Intent(getActivity(), BluetoothLeService.class);
         intent.putExtra(BLUETOOTH_DEVICE, getArguments().getParcelable(BLUETOOTH_DEVICE));
-        getActivity().bindService(intent, this, BIND_AUTO_CREATE);
+        activity.bindService(intent, this, BIND_AUTO_CREATE);
+
+        if (activity.getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE).getBoolean(ServerNsdService.SERVER_FLAG, false)) {
+            activity.startService(new Intent(activity, ServerNsdService.class));
+        }
     }
 
     @Override
@@ -248,12 +255,19 @@ public class ControlFragment extends BaseFragment
                     Intent serviceIntent = new Intent(getActivity(), ServerNsdService.class);
                     getActivity().startService(serviceIntent);
                     getActivity().bindService(serviceIntent, this, BIND_AUTO_CREATE);
+
+                    getActivity().getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE)
+                            .edit().putBoolean(ServerNsdService.SERVER_FLAG, true).apply();
                     break;
                 case R.id.menu_forget:
+                    LocalBroadcastManager.getInstance(getActivity()).sendBroadcast(new Intent(ServerNsdService.ACTION_STOP));
+
                     bluetoothLeService.disconnect();
                     bluetoothLeService.close();
-                    getActivity().getSharedPreferences(RcSwitch.SWITCH_PREFS, MODE_PRIVATE)
-                            .edit().remove(BluetoothLeService.LAST_PAIRED_DEVICE).apply();
+
+                    getActivity().getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE).edit()
+                            .remove(BluetoothLeService.LAST_PAIRED_DEVICE)
+                            .remove(ServerNsdService.SERVER_FLAG).apply();
 
                     Intent intent = new Intent(getActivity(), MainActivity.class);
                     intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -300,9 +314,9 @@ public class ControlFragment extends BaseFragment
 
             onConnectionStateChanged(bluetoothLeService.getConnectionState());
         }
-        else if (componentName.getClassName().equals(ServerNsdService.class.getName())) {
-            serverNsdService = ((ServerNsdService.ServerServiceBinder) service).getServerService();
-        }
+//        else if (componentName.getClassName().equals(ServerNsdService.class.getName())) {
+//            serverNsdService = ((ServerNsdService.ServerServiceBinder) service).getServerService();
+//        }
     }
 
     @Override

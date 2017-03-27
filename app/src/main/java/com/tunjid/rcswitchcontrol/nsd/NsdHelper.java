@@ -20,14 +20,16 @@ import android.content.Context;
 import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
 import android.support.annotation.NonNull;
+import android.util.Log;
 
 /**
  * Utility class wrapping {@link NsdManager} methods
  */
 public class NsdHelper {
 
-    public static final String SERVICE_NAME = "RC Switch NSD";
+    private static final String TAG = NsdHelper.class.getSimpleName();
     private static final String SERVICE_TYPE = "_http._tcp.";
+    private static final String SERVICE_NAME = "RC Switch NSD";
 
     private NsdManager nsdManager;
 
@@ -68,14 +70,14 @@ public class NsdHelper {
         try { // May or may not be registered, throws IllegalArgumentException if it isn't
             nsdManager.unregisterService(mRegistrationListener);
         }
-        catch (Exception e) {
-            e.printStackTrace();
+        catch (IllegalArgumentException e) {
+            Log.w(TAG, "Nsd Registration Listner not added");
         }
         try { // May or may not be looking for services, throws IllegalArgumentException if it isn't
             nsdManager.stopServiceDiscovery(mDiscoveryListener);
         }
-        catch (Exception e) {
-            e.printStackTrace();
+        catch (IllegalArgumentException e) {
+            Log.w(TAG, "Nsd Discovery Listner not added");
         }
 
     }

@@ -27,14 +27,20 @@ public class ProxyProtocol implements CommsProtocol {
     public Payload processInput(String input) {
         Payload.Builder builder = Payload.builder();
 
+        if (input == null) input = RESET;
+
         // First connection
-        if (input == null || input.equals(CHOOSER)) {
-            choosing = true;
-            builder.setResponse("Please choose the server you want, Knock Knock jokes, or an RC Remote");
-            builder.addCommand(KNOCK_KNOCK);
-            builder.addCommand(RC_REMOTE);
-            return builder.build();
+        switch (input) {
+            case RESET:
+            case CHOOSER:
+                choosing = true;
+                builder.setResponse("Please choose the server you want, Knock Knock jokes, or an RC Remote");
+                builder.addCommand(KNOCK_KNOCK);
+                builder.addCommand(RC_REMOTE);
+                builder.addCommand(RESET);
+                return builder.build();
         }
+
 
         if (choosing) {
             switch (input) {
@@ -47,8 +53,11 @@ public class ProxyProtocol implements CommsProtocol {
                 default:
                     builder.setResponse("Invalid command. Please choose the server you want, Knock Knock jokes, or an RC Remote");
                     builder.addCommand(KNOCK_KNOCK);
+                    builder.addCommand(RC_REMOTE);
+                    builder.addCommand(RESET);
                     return builder.build();
             }
+
             choosing = false;
 
             String result = "Chose Protocol: " + commsProtocol.getClass().getSimpleName();

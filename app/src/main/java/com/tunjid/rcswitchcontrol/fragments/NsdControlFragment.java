@@ -1,6 +1,5 @@
 package com.tunjid.rcswitchcontrol.fragments;
 
-import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -27,16 +26,21 @@ import android.widget.TextView;
 
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
+import com.tunjid.rcswitchcontrol.activities.MainActivity;
 import com.tunjid.rcswitchcontrol.adapters.ChatAdapter;
 import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter;
 import com.tunjid.rcswitchcontrol.model.Payload;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
+import com.tunjid.rcswitchcontrol.nsd.nsdprotocols.CommsProtocol;
 import com.tunjid.rcswitchcontrol.services.BluetoothLeService;
 import com.tunjid.rcswitchcontrol.services.ClientNsdService;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
+
+import static android.content.Context.MODE_PRIVATE;
+import static com.tunjid.rcswitchcontrol.model.RcSwitch.SWITCH_PREFS;
 
 public class NsdControlFragment extends BaseFragment
         implements
@@ -56,8 +60,6 @@ public class NsdControlFragment extends BaseFragment
     private RecyclerView switchList;
     private RecyclerView commandsView;
 
-    private ProgressDialog progressDialog;
-
     private List<RcSwitch> switches = new ArrayList<>();
     private List<String> commands = new ArrayList<>();
 
@@ -69,8 +71,8 @@ public class NsdControlFragment extends BaseFragment
 
             switch (action) {
                 case ClientNsdService.ACTION_SOCKET_CONNECTED:
-                    if (progressDialog != null) progressDialog.dismiss();
                     onConnectionStateChanged(action);
+                    if (commands.isEmpty()) clientNsdService.sendMessage(CommsProtocol.PING);
                     break;
                 case ClientNsdService.ACTION_SOCKET_DISCONNECTED:
                     onConnectionStateChanged(action);
@@ -141,10 +143,6 @@ public class NsdControlFragment extends BaseFragment
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        progressDialog = ProgressDialog.show(getActivity(),
-                getString(R.string.connection_title),
-                getString(R.string.connection_text), true, true);
-
         LocalBroadcastManager.getInstance(getContext()).registerReceiver(nsdUpdateReceiver, clientNsdServiceFilter);
     }
 
@@ -167,26 +165,35 @@ public class NsdControlFragment extends BaseFragment
             clientNsdService.onAppForeGround();
             onConnectionStateChanged(clientNsdService.getConnectionState());
         }
+        else {
+            onConnectionStateChanged(ClientNsdService.ACTION_SOCKET_DISCONNECTED);
+        }
     }
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-//        inflater.inflate(R.menu.menu_fragment_control, menu);
-//
-//        if (bluetoothLeService != null) {
-//            menu.findItem(R.id.menu_connect).setVisible(!bluetoothLeService.isConnected());
-//            menu.findItem(R.id.menu_disconnect).setVisible(bluetoothLeService.isConnected());
-//        }
-
+        inflater.inflate(R.menu.menu_fragment_nsd_control, menu);
         super.onCreateOptionsMenu(menu, inflater);
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-//        if (bluetoothLeService != null) {
-//            switch (item.getItemId()) {
-//            }
-//        }
+        if (clientNsdService != null) {
+            switch (item.getItemId()) {
+                case R.id.menu_forget:
+
+                    getActivity().getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE).edit()
+                            .remove(ClientNsdService.LAST_CONNECTED_SERVICE).apply();
+
+                    Intent intent = new Intent(getActivity(), MainActivity.class);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+                    startActivity(intent);
+                    getActivity().finish();
+                    return true;
+            }
+        }
         return super.onOptionsItemSelected(item);
     }
 
@@ -216,6 +223,8 @@ public class NsdControlFragment extends BaseFragment
     @Override
     public void onServiceConnected(ComponentName name, IBinder binder) {
         clientNsdService = ((ClientNsdService.NsdClientBinder) binder).getClientService();
+        onConnectionStateChanged(clientNsdService.getConnectionState());
+        if (commands.isEmpty()) clientNsdService.sendMessage(CommsProtocol.PING);
     }
 
     @Override

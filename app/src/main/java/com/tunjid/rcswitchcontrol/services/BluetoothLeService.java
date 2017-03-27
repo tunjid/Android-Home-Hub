@@ -30,6 +30,7 @@ import android.util.Base64;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.tunjid.rcswitchcontrol.Application;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
@@ -561,7 +562,7 @@ public class BluetoothLeService extends Service {
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this)
                 .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle(getText(R.string.connected))
-                .setContentText(getText(R.string.connected))
+                .setContentText(getText(Application.isServiceRunning(ServerNsdService.class) ? R.string.ble_connected_nsd_server : R.string.connected))
                 .setContentIntent(activityPendingIntent);
 
         return notificationBuilder.build();

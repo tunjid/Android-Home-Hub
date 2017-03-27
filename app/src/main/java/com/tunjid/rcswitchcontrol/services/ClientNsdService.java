@@ -20,6 +20,8 @@ import java.io.BufferedReader;
 import java.io.PrintWriter;
 import java.lang.annotation.Retention;
 import java.net.Socket;
+import java.util.LinkedList;
+import java.util.Queue;
 
 import static com.tunjid.rcswitchcontrol.model.RcSwitch.SWITCH_PREFS;
 import static java.lang.annotation.RetentionPolicy.SOURCE;
@@ -31,11 +33,13 @@ public class ClientNsdService extends BaseNsdService
     public static final int NOTIFICATION_ID = 2;
     private static final String TAG = ClientNsdService.class.getSimpleName();
 
-    public static final String LAST_CONNECTED_SERVICE = ClientNsdService.class.getSimpleName() + "last connected service";
+    public static final String LAST_CONNECTED_SERVICE = "com.tunjid.rcswitchcontrol.services.ClientNsdService.last connected service";
     public static final String NSD_SERVICE_INFO_KEY = "current Service key";
-    public static final String ACTION_SOCKET_CONNECTED = "service_socket_connected";
-    public static final String ACTION_SOCKET_DISCONNECTED = "service_socket_disconnected";
-    public static final String ACTION_SERVER_RESPONSE = "service_response";
+
+    public static final String ACTION_SOCKET_CONNECTED = "com.tunjid.rcswitchcontrol.services.ClientNsdService.service.socket.connected";
+    public static final String ACTION_SOCKET_DISCONNECTED = "com.tunjid.rcswitchcontrol.services.ClientNsdService.service.socket.disconnected";
+    public static final String ACTION_SERVER_RESPONSE = "com.tunjid.rcswitchcontrol.services.ClientNsdService.service.response";
+    public static final String ACTION_START_NSD_DISCOVERY = "com.tunjid.rcswitchcontrol.services.ClientNsdService.start.nsd.discovery";
 
     public static final String DATA_SERVER_RESPONSE = "service_response";
 
@@ -45,6 +49,7 @@ public class ClientNsdService extends BaseNsdService
     @ConnectionState
     private String connectionState = ACTION_SOCKET_DISCONNECTED;
     private MessageThread messageThread;
+    private Queue<String> messageQueue = new LinkedList<>();
 
     private final IBinder binder = new NsdClientBinder();
 
@@ -138,7 +143,8 @@ public class ClientNsdService extends BaseNsdService
     }
 
     public void sendMessage(String message) {
-        messageThread.send(message);
+        messageQueue.add(message);
+        if (messageThread != null) messageThread.send(messageQueue.remove());
     }
 
     protected void tearDown() {
@@ -204,6 +210,10 @@ public class ClientNsdService extends BaseNsdService
                 Log.d(TAG, "Connection-side socket initialized.");
 
                 clientNsdService.setConnectionState(ACTION_SOCKET_CONNECTED);
+
+                if (!clientNsdService.messageQueue.isEmpty()) {
+                    out.println(clientNsdService.messageQueue.remove());
+                }
 
                 String fromServer;
 

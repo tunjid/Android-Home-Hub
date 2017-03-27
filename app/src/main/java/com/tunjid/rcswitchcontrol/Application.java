@@ -1,5 +1,11 @@
 package com.tunjid.rcswitchcontrol;
 
+import android.app.ActivityManager;
+import android.app.Service;
+import android.content.Context;
+
+import java.util.List;
+
 /**
  * Application Singleton.
  * <p>
@@ -18,5 +24,17 @@ public class Application extends android.app.Application {
 
     public static Application getInstance() {
         return instance;
+    }
+
+    public static boolean isServiceRunning(Class<? extends Service> serviceClass) {
+        final ActivityManager activityManager = (ActivityManager) instance.getSystemService(Context.ACTIVITY_SERVICE);
+        final List<ActivityManager.RunningServiceInfo> services = activityManager.getRunningServices(Integer.MAX_VALUE);
+
+        for (ActivityManager.RunningServiceInfo runningServiceInfo : services) {
+            if (runningServiceInfo.service.getClassName().equals(serviceClass.getName())) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -32,6 +32,13 @@ class KnockKnockProtocol implements CommsProtocol {
     public Payload processInput(String input) {
         Payload.Builder builder = Payload.builder();
 
+        if (input == null) input = RESET;
+
+        if (input.equals(RESET)) {
+            state = WAITING;
+            currentJoke = 0;
+        }
+
         if (state == WAITING) {
             builder.setResponse("Knock! Knock!");
             builder.addCommand("Who's there?");

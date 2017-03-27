@@ -1,9 +1,13 @@
 package com.tunjid.rcswitchcontrol.services;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.nsd.NsdServiceInfo;
 import android.os.Binder;
 import android.os.IBinder;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.tunjid.rcswitchcontrol.nsd.NsdHelper;
@@ -24,10 +28,13 @@ import java.net.Socket;
 public class ServerNsdService extends BaseNsdService {
 
     private static final String TAG = ServerNsdService.class.getSimpleName();
+    public static final String SERVER_FLAG = "com.tunjid.rcswitchcontrol.ServerNsdService.services.server.flag";
+    public static final String ACTION_STOP = "com.tunjid.rcswitchcontrol.ServerNsdService.services.server.stop";
 
     private String serviceName;
     private ServerThread serverThread;
 
+    private final IntentFilter intentFilter = new IntentFilter();
     private final IBinder binder = new ServerServiceBinder();
     private final RegistrationListener registrationListener = new RegistrationListener() {
 
@@ -38,9 +45,24 @@ public class ServerNsdService extends BaseNsdService {
         }
     };
 
+    private final BroadcastReceiver nsdUpdateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            switch (action) {
+                case ACTION_STOP:
+                    stopSelf();
+            }
+            Log.i(TAG, "Received data for: " + action);
+        }
+    };
+
     @Override
     public void onCreate() {
         super.onCreate();
+
+        intentFilter.addAction(ACTION_STOP);
+        LocalBroadcastManager.getInstance(this).registerReceiver(nsdUpdateReceiver, intentFilter);
 
         nsdHelper.initializeRegistrationListener(registrationListener);
         serverThread = new ServerThread(nsdHelper);
@@ -56,9 +78,17 @@ public class ServerNsdService extends BaseNsdService {
         return serviceName;
     }
 
+    @Override
     protected void tearDown() {
         super.tearDown();
         serverThread.tearDown();
+    }
+
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(nsdUpdateReceiver);
     }
 
     /**

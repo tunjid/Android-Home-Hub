@@ -12,6 +12,9 @@ import java.io.Closeable;
 
 public interface CommsProtocol extends Closeable {
 
+    String PING = "Ping";
+    String RESET = "reset";
+
     Payload processInput(String input);
 
 }

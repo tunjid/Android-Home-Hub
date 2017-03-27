@@ -23,6 +23,14 @@ public class WifiStatusReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         switch (intent.getAction()) {
+            case ClientNsdService.ACTION_START_NSD_DISCOVERY:
+                connectLastNsdService(context);
+                break;
+            case WifiManager.WIFI_STATE_CHANGED_ACTION:
+                if (intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, 0) == WifiManager.WIFI_STATE_ENABLED) {
+                    connectLastNsdService(context);
+                }
+                break;
             case WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION:
                 if (intent.getBooleanExtra(WifiManager.EXTRA_SUPPLICANT_CONNECTED, false)) {
                     connectLastNsdService(context);

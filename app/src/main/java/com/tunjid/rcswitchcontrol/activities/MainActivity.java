@@ -57,10 +57,13 @@ public class MainActivity extends BaseActivity {
             intent.putExtra(BLUETOOTH_DEVICE, device);
             startService(intent);
         }
+        if(isNsdClient){
+            sendBroadcast(new Intent(ClientNsdService.ACTION_START_NSD_DISCOVERY));
+        }
 
         if (!isSavedInstance) {
             if (isNsdClient) showFragment(NsdControlFragment.newInstance());
-            if (isNullDevice) showFragment(StartFragment.newInstance());
+            else if (isNullDevice) showFragment(StartFragment.newInstance());
             else showFragment(ControlFragment.newInstance(device));
         }
     }

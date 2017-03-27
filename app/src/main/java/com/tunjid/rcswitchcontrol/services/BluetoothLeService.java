@@ -1,4 +1,4 @@
-package com.tunjid.rcswitchcontrol;
+package com.tunjid.rcswitchcontrol.services;
 
 import android.annotation.TargetApi;
 import android.app.Notification;
@@ -13,8 +13,10 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Binder;
 import android.os.Build;
@@ -24,10 +26,14 @@ import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
+import android.util.Base64;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.tunjid.rcswitchcontrol.Application;
+import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
+import com.tunjid.rcswitchcontrol.model.RcSwitch;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -47,9 +53,6 @@ public class BluetoothLeService extends Service {
 
     private final static String TAG = BluetoothLeService.class.getSimpleName();
 
-    // Shared preference key
-    public static final String SWITCH_PREFS = "SwitchPrefs";
-
     // Services
     public static final String CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb";
     //public static final String DATA_TRANSCEIVER_SERVICE = "195ae58a-437a-489b-b0cd-b7c9c394bae4";
@@ -63,10 +66,13 @@ public class BluetoothLeService extends Service {
     public final static String BLUETOOTH_DEVICE = "BLUETOOTH_DEVICE";
     public static final String LAST_PAIRED_DEVICE = "LAST_PAIRED_DEVICE";
 
-    public final static String GATT_CONNECTED = "ACTION_GATT_CONNECTED";
-    public final static String GATT_CONNECTING = "ACTION_GATT_CONNECTING";
-    public final static String GATT_DISCONNECTED = "ACTION_GATT_DISCONNECTED";
-    public final static String GATT_SERVICES_DISCOVERED = "GATT_SERVICES_DISCOVERED";
+    public final static String ACTION_GATT_CONNECTED = "ACTION_GATT_CONNECTED";
+    public final static String ACTION_GATT_CONNECTING = "ACTION_GATT_CONNECTING";
+    public final static String ACTION_GATT_DISCONNECTED = "ACTION_GATT_DISCONNECTED";
+    public final static String ACTION_GATT_SERVICES_DISCOVERED = "ACTION_GATT_SERVICES_DISCOVERED";
+    public final static String ACTION_CONTROL = "ACTION_CONTROL";
+    public final static String ACTION_SNIFFER = "ACTION_SNIFFER";
+    public final static String ACTION_TRANSMITTER = "ACTION_TRANSMITTER";
 
     public final static String DATA_AVAILABLE_CONTROL = "DATA_AVAILABLE_CONTROL";
     public final static String DATA_AVAILABLE_SNIFFER = "DATA_AVAILABLE_SNIFFER";
@@ -78,7 +84,7 @@ public class BluetoothLeService extends Service {
 
     private boolean isUserInApp;
 
-    private String connectionState = GATT_DISCONNECTED;
+    private String connectionState = ACTION_GATT_DISCONNECTED;
 
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothGatt bluetoothGatt;
@@ -92,6 +98,24 @@ public class BluetoothLeService extends Service {
     private Map<String, BluetoothGattCharacteristic> characteristicMap = new HashMap<>();
 
     private final IBinder mBinder = new LocalBinder();
+    private final IntentFilter nsdIntentFilter = new IntentFilter();
+
+    private final BroadcastReceiver nsdUpdateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+
+            switch (action) {
+                case ACTION_TRANSMITTER:
+                    String data = intent.getStringExtra(DATA_AVAILABLE_TRANSMITTER);
+                    byte[] transmission = Base64.decode(data, Base64.DEFAULT);
+                    writeCharacteristicArray(C_HANDLE_TRANSMITTER, transmission);
+                    break;
+            }
+
+            Log.i(TAG, "Received data for: " + action);
+        }
+    };
 
     // Implements callback methods for GATT events that the app cares about.  For example,
     // connection change and services discovered.
@@ -101,11 +125,11 @@ public class BluetoothLeService extends Service {
 
             switch (newState) {
                 case BluetoothProfile.STATE_CONNECTED:
-                    connectionState = GATT_CONNECTED;
+                    connectionState = ACTION_GATT_CONNECTED;
                     bluetoothGatt.discoverServices();
 
                     // Save this device for connnecting later
-                    getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE).edit()
+                    getSharedPreferences(RcSwitch.SWITCH_PREFS, MODE_PRIVATE).edit()
                             .putString(LAST_PAIRED_DEVICE, connectedDevice.getAddress())
                             .apply();
 
@@ -114,11 +138,11 @@ public class BluetoothLeService extends Service {
                     else stopForeground(true);
                     break;
                 case BluetoothProfile.STATE_CONNECTING:
-                    connectionState = GATT_CONNECTING;
+                    connectionState = ACTION_GATT_CONNECTING;
                     broadcastUpdate(connectionState);
                     break;
                 case BluetoothProfile.STATE_DISCONNECTED:
-                    connectionState = GATT_DISCONNECTED;
+                    connectionState = ACTION_GATT_DISCONNECTED;
                     broadcastUpdate(connectionState);
 
                     // Remove the notification
@@ -134,7 +158,7 @@ public class BluetoothLeService extends Service {
             boolean success = status == BluetoothGatt.GATT_SUCCESS;
 
             if (success) {
-                broadcastUpdate(GATT_SERVICES_DISCOVERED);
+                broadcastUpdate(ACTION_GATT_SERVICES_DISCOVERED);
                 findGattServices(getSupportedGattServices());
                 broadcastUpdate(connectionState);
             }
@@ -171,7 +195,7 @@ public class BluetoothLeService extends Service {
 
                 switch (uuid) {
                     case C_HANDLE_CONTROL:
-                        broadcastUpdate(DATA_AVAILABLE_CONTROL, characteristic);
+                        broadcastUpdate(ACTION_CONTROL, characteristic);
                         break;
                     case C_HANDLE_SNIFFER:
                         broadcastUpdate(DATA_AVAILABLE_SNIFFER, characteristic);
@@ -197,17 +221,26 @@ public class BluetoothLeService extends Service {
 
             switch (characteristic.getUuid().toString()) {
                 case C_HANDLE_CONTROL:
-                    broadcastUpdate(DATA_AVAILABLE_CONTROL, characteristic);
+                    broadcastUpdate(ACTION_CONTROL, characteristic);
                     break;
                 case C_HANDLE_SNIFFER:
-                    broadcastUpdate(DATA_AVAILABLE_SNIFFER, characteristic);
+                    broadcastUpdate(ACTION_SNIFFER, characteristic);
                     break;
                 case C_HANDLE_TRANSMITTER:
-                    broadcastUpdate(DATA_AVAILABLE_TRANSMITTER, characteristic);
+                    broadcastUpdate(ACTION_TRANSMITTER, characteristic);
                     break;
             }
         }
     };
+
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+
+        nsdIntentFilter.addAction(ACTION_TRANSMITTER);
+        LocalBroadcastManager.getInstance(this).registerReceiver(nsdUpdateReceiver, nsdIntentFilter);
+    }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -241,6 +274,8 @@ public class BluetoothLeService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(nsdUpdateReceiver);
+
         close();
     }
 
@@ -257,7 +292,7 @@ public class BluetoothLeService extends Service {
             return;
         }
 
-        SharedPreferences sharedPreferences = getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE);
+        SharedPreferences sharedPreferences = getSharedPreferences(RcSwitch.SWITCH_PREFS, MODE_PRIVATE);
         String lastConnectedDevice = sharedPreferences.getString(LAST_PAIRED_DEVICE, "");
 
         BluetoothDevice bluetoothDevice = intent != null && intent.getExtras().containsKey(BLUETOOTH_DEVICE)
@@ -282,7 +317,7 @@ public class BluetoothLeService extends Service {
     }
 
     public boolean isConnected() {
-        return connectionState.equals(GATT_CONNECTED);
+        return connectionState.equals(ACTION_GATT_CONNECTED);
     }
 
     public String getConnectionState() {
@@ -311,7 +346,7 @@ public class BluetoothLeService extends Service {
             showToast(this, R.string.ble_service_reconnecting);
 
             if (bluetoothGatt.connect()) {
-                connectionState = GATT_CONNECTING;
+                connectionState = ACTION_GATT_CONNECTING;
 
                 broadcastUpdate(connectionState);
                 showToast(this, R.string.connecting);
@@ -328,7 +363,7 @@ public class BluetoothLeService extends Service {
                 ? bluetoothDevice.connectGatt(this, true, gattCallback, BluetoothDevice.TRANSPORT_LE)
                 : bluetoothDevice.connectGatt(this, true, gattCallback);
 
-        connectionState = GATT_CONNECTING;
+        connectionState = ACTION_GATT_CONNECTING;
 
         broadcastUpdate(connectionState);
         showToast(this, R.string.ble_service_new_connection);
@@ -355,7 +390,7 @@ public class BluetoothLeService extends Service {
      * released properly.
      */
     public void close() {
-        connectionState = GATT_DISCONNECTED;
+        connectionState = ACTION_GATT_DISCONNECTED;
         if (bluetoothGatt == null) return;
 
         bluetoothGatt.close();
@@ -403,7 +438,7 @@ public class BluetoothLeService extends Service {
     /**
      * Enables or disables notifications or indications on a given characteristic.
      *
-     * @param uuid    UUID of the Characteristic to act on.
+     * @param uuid UUID of the Characteristic to act on.
      * @param enabled If true, enable notification.  False otherwise.
      */
 
@@ -527,7 +562,7 @@ public class BluetoothLeService extends Service {
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this)
                 .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle(getText(R.string.connected))
-                .setContentText(getText(R.string.connected))
+                .setContentText(getText(Application.isServiceRunning(ServerNsdService.class) ? R.string.ble_connected_nsd_server : R.string.connected))
                 .setContentIntent(activityPendingIntent);
 
         return notificationBuilder.build();

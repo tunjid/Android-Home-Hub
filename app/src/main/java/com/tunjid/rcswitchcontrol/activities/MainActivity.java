@@ -12,7 +12,7 @@ import android.text.TextUtils;
 
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseActivity;
-import com.tunjid.rcswitchcontrol.fragments.ControlFragment;
+import com.tunjid.rcswitchcontrol.fragments.BleControlFragment;
 import com.tunjid.rcswitchcontrol.fragments.NsdControlFragment;
 import com.tunjid.rcswitchcontrol.fragments.StartFragment;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
@@ -64,7 +64,7 @@ public class MainActivity extends BaseActivity {
         if (!isSavedInstance) {
             if (isNsdClient) showFragment(NsdControlFragment.newInstance());
             else if (isNullDevice) showFragment(StartFragment.newInstance());
-            else showFragment(ControlFragment.newInstance(device));
+            else showFragment(BleControlFragment.newInstance(device));
         }
     }
 }

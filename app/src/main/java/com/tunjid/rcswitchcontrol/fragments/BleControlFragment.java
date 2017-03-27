@@ -48,14 +48,14 @@ import static com.tunjid.rcswitchcontrol.services.BluetoothLeService.ACTION_CONT
 import static com.tunjid.rcswitchcontrol.services.BluetoothLeService.ACTION_SNIFFER;
 import static com.tunjid.rcswitchcontrol.services.BluetoothLeService.BLUETOOTH_DEVICE;
 
-public class ControlFragment extends BaseFragment
+public class BleControlFragment extends BaseFragment
         implements
         ServiceConnection,
         View.OnClickListener,
         RemoteSwitchAdapter.SwitchListener,
         RenameSwitchDialogFragment.SwitchNameListener {
 
-    private static final String TAG = ControlFragment.class.getSimpleName();
+    private static final String TAG = BleControlFragment.class.getSimpleName();
 
     private int lastOffSet;
     private boolean isDeleting;
@@ -122,8 +122,8 @@ public class ControlFragment extends BaseFragment
         }
     };
 
-    public static ControlFragment newInstance(BluetoothDevice bluetoothDevice) {
-        ControlFragment fragment = new ControlFragment();
+    public static BleControlFragment newInstance(BluetoothDevice bluetoothDevice) {
+        BleControlFragment fragment = new BleControlFragment();
         Bundle args = new Bundle();
         args.putParcelable(BLUETOOTH_DEVICE, bluetoothDevice);
         fragment.setArguments(args);
@@ -141,8 +141,8 @@ public class ControlFragment extends BaseFragment
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTING);
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
-        intentFilter.addAction(BluetoothLeService.DATA_AVAILABLE_CONTROL);
-        intentFilter.addAction(BluetoothLeService.DATA_AVAILABLE_SNIFFER);
+        intentFilter.addAction(BluetoothLeService.ACTION_CONTROL);
+        intentFilter.addAction(BluetoothLeService.ACTION_SNIFFER);
         intentFilter.addAction(BluetoothLeService.DATA_AVAILABLE_UNKNOWN);
     }
 

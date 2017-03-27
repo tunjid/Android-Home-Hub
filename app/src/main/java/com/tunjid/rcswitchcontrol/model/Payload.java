@@ -3,8 +3,8 @@ package com.tunjid.rcswitchcontrol.model;
 import com.google.gson.Gson;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 /**
  * Payload class
@@ -18,7 +18,7 @@ public class Payload implements Serializable {
     private String key;
     private String data;
     private String response;
-    private List<String> commands = new ArrayList<>();
+    private Set<String> commands = new LinkedHashSet<>();
 
     public String getKey() {
         return key;
@@ -32,7 +32,7 @@ public class Payload implements Serializable {
         return response;
     }
 
-    public List<String> getCommands() {
+    public Set<String> getCommands() {
         return commands;
     }
 

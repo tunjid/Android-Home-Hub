@@ -13,7 +13,7 @@ import java.io.Closeable;
 public interface CommsProtocol extends Closeable {
 
     String PING = "Ping";
-    String RESET = "reset";
+    String RESET = "Reset";
 
     Payload processInput(String input);
 

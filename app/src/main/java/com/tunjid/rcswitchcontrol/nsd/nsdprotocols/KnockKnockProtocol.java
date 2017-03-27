@@ -31,6 +31,8 @@ class KnockKnockProtocol implements CommsProtocol {
     @Override
     public Payload processInput(String input) {
         Payload.Builder builder = Payload.builder();
+        builder.setKey(getClass().getName());
+        builder.addCommand(RESET);
 
         if (input == null) input = RESET;
 

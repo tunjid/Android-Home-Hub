@@ -31,8 +31,8 @@ import com.tunjid.rcswitchcontrol.adapters.ChatAdapter;
 import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter;
 import com.tunjid.rcswitchcontrol.model.Payload;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
+import com.tunjid.rcswitchcontrol.nsd.nsdprotocols.BleRcProtocol;
 import com.tunjid.rcswitchcontrol.nsd.nsdprotocols.CommsProtocol;
-import com.tunjid.rcswitchcontrol.services.BluetoothLeService;
 import com.tunjid.rcswitchcontrol.services.ClientNsdService;
 
 import java.util.ArrayList;
@@ -62,6 +62,7 @@ public class NsdControlFragment extends BaseFragment
 
     private List<RcSwitch> switches = new ArrayList<>();
     private List<String> commands = new ArrayList<>();
+    private List<String> messageHistory = new ArrayList<>();
 
     private final IntentFilter clientNsdServiceFilter = new IntentFilter();
     private final BroadcastReceiver nsdUpdateReceiver = new BroadcastReceiver() {
@@ -85,13 +86,24 @@ public class NsdControlFragment extends BaseFragment
                     commands.addAll(payload.getCommands());
                     commandsView.getAdapter().notifyDataSetChanged();
 
-                    if (payload.getData() != null) {
-                        switches.clear();
-                        switches.addAll(RcSwitch.deserialize(payload.getData()));
+                    String key = payload.getKey();
+                    boolean isBleRc = key.equals(BleRcProtocol.class.getName());
+
+                    swapAdapter(isBleRc);
+
+                    if (isBleRc) {
+                        if (payload.getData() != null) {
+                            switches.clear();
+                            switches.addAll(RcSwitch.deserialize(payload.getData()));
+                            switchList.getAdapter().notifyDataSetChanged();
+                            Snackbar.make(switchList, payload.getResponse(), Snackbar.LENGTH_SHORT);
+                        }
+                    }
+                    else {
+                        messageHistory.add(payload.getResponse());
                         switchList.getAdapter().notifyDataSetChanged();
                     }
 
-                    Snackbar.make(switchList, payload.getResponse(), Snackbar.LENGTH_SHORT);
                     break;
             }
 
@@ -103,7 +115,6 @@ public class NsdControlFragment extends BaseFragment
         NsdControlFragment fragment = new NsdControlFragment();
         Bundle bundle = new Bundle();
 
-//        bundle.putParcelable(ClientNsdService.NSD_SERVICE_INFO_KEY, nsdServiceInfo);
         fragment.setArguments(bundle);
         return fragment;
     }
@@ -114,6 +125,8 @@ public class NsdControlFragment extends BaseFragment
         setHasOptionsMenu(true);
 
         clientNsdServiceFilter.addAction(ClientNsdService.ACTION_SOCKET_CONNECTED);
+        clientNsdServiceFilter.addAction(ClientNsdService.ACTION_SOCKET_CONNECTING);
+        clientNsdServiceFilter.addAction(ClientNsdService.ACTION_SOCKET_DISCONNECTED);
         clientNsdServiceFilter.addAction(ClientNsdService.ACTION_SERVER_RESPONSE);
     }
 
@@ -127,7 +140,7 @@ public class NsdControlFragment extends BaseFragment
         switchList = (RecyclerView) rootView.findViewById(R.id.switch_list);
         commandsView = (RecyclerView) rootView.findViewById(R.id.commands);
 
-        switchList.setAdapter(new RemoteSwitchAdapter(this, switches));
+        swapAdapter(false);
         switchList.setLayoutManager(new LinearLayoutManager(getActivity()));
 
         commandsView.setAdapter(new ChatAdapter(this, commands));
@@ -181,6 +194,7 @@ public class NsdControlFragment extends BaseFragment
         if (clientNsdService != null) {
             switch (item.getItemId()) {
                 case R.id.menu_forget:
+                    if (clientNsdService != null) clientNsdService.stopSelf();
 
                     getActivity().getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE).edit()
                             .remove(ClientNsdService.LAST_CONNECTED_SERVICE).apply();
@@ -191,6 +205,7 @@ public class NsdControlFragment extends BaseFragment
 
                     startActivity(intent);
                     getActivity().finish();
+
                     return true;
             }
         }
@@ -223,6 +238,8 @@ public class NsdControlFragment extends BaseFragment
     @Override
     public void onServiceConnected(ComponentName name, IBinder binder) {
         clientNsdService = ((ClientNsdService.NsdClientBinder) binder).getClientService();
+        clientNsdService.onAppForeGround();
+
         onConnectionStateChanged(clientNsdService.getConnectionState());
         if (commands.isEmpty()) clientNsdService.sendMessage(CommsProtocol.PING);
     }
@@ -278,7 +295,7 @@ public class NsdControlFragment extends BaseFragment
             case ClientNsdService.ACTION_SOCKET_CONNECTED:
                 text = getString(R.string.connected);
                 break;
-            case BluetoothLeService.ACTION_GATT_CONNECTING:
+            case ClientNsdService.ACTION_SOCKET_CONNECTING:
                 text = getString(R.string.connecting);
                 break;
             case ClientNsdService.ACTION_SOCKET_DISCONNECTED:
@@ -288,16 +305,33 @@ public class NsdControlFragment extends BaseFragment
         connectionStatus.setText(getResources().getString(R.string.connection_state, text));
     }
 
+    private void swapAdapter(boolean isSwitchAdapter) {
+        Object adapter = switchList.getAdapter();
+
+        if (isSwitchAdapter && adapter instanceof RemoteSwitchAdapter) return;
+        if (!isSwitchAdapter && adapter instanceof ChatAdapter) return;
+
+        switchList.setAdapter(isSwitchAdapter
+                ? new RemoteSwitchAdapter(this, switches)
+                : new ChatAdapter(null, messageHistory));
+    }
+
     private ItemTouchHelper.SimpleCallback swipeCallBack = new ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP | ItemTouchHelper.DOWN, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+
         @Override
-        public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
-            return false;
+        public int getDragDirs(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
+            return 0;
         }
 
         @Override
         public int getSwipeDirs(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
-            if (isDeleting) return 0;
+            if (isDeleting || recyclerView.getAdapter() instanceof ChatAdapter) return 0;
             return super.getSwipeDirs(recyclerView, viewHolder);
+        }
+
+        @Override
+        public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
+            return false;
         }
 
         @Override

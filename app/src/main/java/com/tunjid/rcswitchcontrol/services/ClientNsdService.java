@@ -37,6 +37,7 @@ public class ClientNsdService extends BaseNsdService
     public static final String NSD_SERVICE_INFO_KEY = "current Service key";
 
     public static final String ACTION_SOCKET_CONNECTED = "com.tunjid.rcswitchcontrol.services.ClientNsdService.service.socket.connected";
+    public static final String ACTION_SOCKET_CONNECTING = "com.tunjid.rcswitchcontrol.services.ClientNsdService.service.socket.connecting";
     public static final String ACTION_SOCKET_DISCONNECTED = "com.tunjid.rcswitchcontrol.services.ClientNsdService.service.socket.disconnected";
     public static final String ACTION_SERVER_RESPONSE = "com.tunjid.rcswitchcontrol.services.ClientNsdService.service.response";
     public static final String ACTION_START_NSD_DISCOVERY = "com.tunjid.rcswitchcontrol.services.ClientNsdService.start.nsd.discovery";
@@ -54,7 +55,7 @@ public class ClientNsdService extends BaseNsdService
     private final IBinder binder = new NsdClientBinder();
 
     @Retention(SOURCE)
-    @StringDef({ACTION_SOCKET_CONNECTED, ACTION_SOCKET_DISCONNECTED})
+    @StringDef({ACTION_SOCKET_CONNECTED, ACTION_SOCKET_CONNECTING, ACTION_SOCKET_DISCONNECTED})
     @interface ConnectionState {
     }
 
@@ -113,6 +114,8 @@ public class ClientNsdService extends BaseNsdService
 
         // If we're already connected to this service, return
         if (isConnected()) return;
+
+        setConnectionState(ACTION_SOCKET_CONNECTING);
 
         // Initialize current service if we are starting up the first time
         if (messageThread == null) {

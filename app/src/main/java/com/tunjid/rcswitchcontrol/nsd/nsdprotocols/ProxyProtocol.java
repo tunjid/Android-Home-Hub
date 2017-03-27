@@ -26,6 +26,7 @@ public class ProxyProtocol implements CommsProtocol {
     @Override
     public Payload processInput(String input) {
         Payload.Builder builder = Payload.builder();
+        builder.setKey(getClass().getName());
 
         if (input == null) input = RESET;
 
@@ -75,6 +76,7 @@ public class ProxyProtocol implements CommsProtocol {
 
             return builder.build();
         }
+
         return commsProtocol.processInput(input);
     }
 

@@ -17,7 +17,7 @@ import java.io.IOException;
  * Created by tj.dahunsi on 2/11/17.
  */
 
-class BleRcProtocol implements CommsProtocol {
+public class BleRcProtocol implements CommsProtocol {
 
     private static final String REFRESH_SWITCHES = "Refresh Switches";
 
@@ -27,6 +27,8 @@ class BleRcProtocol implements CommsProtocol {
     @Override
     public Payload processInput(String input) {
         Payload.Builder builder = Payload.builder();
+        builder.setKey(getClass().getName());
+        builder.addCommand(RESET);
 
         if (input == null) {
             builder.setResponse("Welcome! Tap any of the switches to control them");

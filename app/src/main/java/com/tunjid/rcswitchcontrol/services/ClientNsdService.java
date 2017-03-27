@@ -2,7 +2,10 @@ package com.tunjid.rcswitchcontrol.services;
 
 import android.app.Notification;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.nsd.NsdServiceInfo;
 import android.os.Binder;
 import android.os.IBinder;
@@ -36,10 +39,11 @@ public class ClientNsdService extends BaseNsdService
     public static final String LAST_CONNECTED_SERVICE = "com.tunjid.rcswitchcontrol.services.ClientNsdService.last connected service";
     public static final String NSD_SERVICE_INFO_KEY = "current Service key";
 
+    public static final String ACTION_STOP = "com.tunjid.rcswitchcontrol.services.ClientNsdService.stop";
+    public static final String ACTION_SERVER_RESPONSE = "com.tunjid.rcswitchcontrol.services.ClientNsdService.service.response";
     public static final String ACTION_SOCKET_CONNECTED = "com.tunjid.rcswitchcontrol.services.ClientNsdService.service.socket.connected";
     public static final String ACTION_SOCKET_CONNECTING = "com.tunjid.rcswitchcontrol.services.ClientNsdService.service.socket.connecting";
     public static final String ACTION_SOCKET_DISCONNECTED = "com.tunjid.rcswitchcontrol.services.ClientNsdService.service.socket.disconnected";
-    public static final String ACTION_SERVER_RESPONSE = "com.tunjid.rcswitchcontrol.services.ClientNsdService.service.response";
     public static final String ACTION_START_NSD_DISCOVERY = "com.tunjid.rcswitchcontrol.services.ClientNsdService.start.nsd.discovery";
 
     public static final String DATA_SERVER_RESPONSE = "service_response";
@@ -52,6 +56,7 @@ public class ClientNsdService extends BaseNsdService
     private MessageThread messageThread;
     private Queue<String> messageQueue = new LinkedList<>();
 
+    private final IntentFilter intentFilter = new IntentFilter();
     private final IBinder binder = new NsdClientBinder();
 
     @Retention(SOURCE)
@@ -59,9 +64,25 @@ public class ClientNsdService extends BaseNsdService
     @interface ConnectionState {
     }
 
+    private final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            switch (action) {
+                case ACTION_STOP:
+                    tearDown();
+                    stopSelf();
+                    break;
+            }
+            Log.i(TAG, "Received data for: " + action);
+        }
+    };
+
     @Override
     public void onCreate() {
         super.onCreate();
+        intentFilter.addAction(ACTION_STOP);
+        LocalBroadcastManager.getInstance(this).registerReceiver(broadcastReceiver, intentFilter);
     }
 
     @Override
@@ -104,6 +125,12 @@ public class ClientNsdService extends BaseNsdService
     public void onAppForeGround() {
         isUserInApp = true;
         stopForeground(true);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver);
     }
 
     public String getConnectionState() {

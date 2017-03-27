@@ -51,7 +51,9 @@ public class ServerNsdService extends BaseNsdService {
             String action = intent.getAction();
             switch (action) {
                 case ACTION_STOP:
+                    tearDown();
                     stopSelf();
+                    break;
             }
             Log.i(TAG, "Received data for: " + action);
         }

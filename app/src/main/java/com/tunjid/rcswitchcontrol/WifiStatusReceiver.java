@@ -7,18 +7,22 @@ import android.net.nsd.NsdServiceInfo;
 import android.net.wifi.WifiManager;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.tunjid.rcswitchcontrol.nsd.NsdHelper;
 import com.tunjid.rcswitchcontrol.nsd.abstractclasses.DiscoveryListener;
 import com.tunjid.rcswitchcontrol.nsd.abstractclasses.ResolveListener;
 import com.tunjid.rcswitchcontrol.services.ClientNsdService;
+import com.tunjid.rcswitchcontrol.services.ServerNsdService;
 
 import static com.tunjid.rcswitchcontrol.model.RcSwitch.SWITCH_PREFS;
 
 public class WifiStatusReceiver extends BroadcastReceiver {
 
-    public static final int SEARCH_LENGTH_MILLIS = 15000;
+    public static final int SEARCH_LENGTH_MILLIS = 10000;
+    private static final String TAG = WifiStatusReceiver.class.getSimpleName();
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -27,14 +31,14 @@ public class WifiStatusReceiver extends BroadcastReceiver {
                 connectLastNsdService(context);
                 break;
             case WifiManager.WIFI_STATE_CHANGED_ACTION:
-                if (intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, 0) == WifiManager.WIFI_STATE_ENABLED) {
+                if (intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, 0) == WifiManager.WIFI_STATE_ENABLED)
                     connectLastNsdService(context);
-                }
+                else stopClient(context);
                 break;
             case WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION:
-                if (intent.getBooleanExtra(WifiManager.EXTRA_SUPPLICANT_CONNECTED, false)) {
+                if (intent.getBooleanExtra(WifiManager.EXTRA_SUPPLICANT_CONNECTED, false))
                     connectLastNsdService(context);
-                }
+                else stopClient(context);
                 break;
         }
     }
@@ -65,7 +69,12 @@ public class WifiStatusReceiver extends BroadcastReceiver {
             @Override
             public void onServiceFound(NsdServiceInfo service) {
                 super.onServiceFound(service);
-                nsdHelper.getNsdManager().resolveService(service, resolveListener);
+                try {
+                    nsdHelper.getNsdManager().resolveService(service, resolveListener);
+                }
+                catch (IllegalArgumentException e) {
+                    Log.i(TAG, "IllegalArgumentException trying to resolve NSD service");
+                }
             }
         };
 
@@ -78,5 +87,11 @@ public class WifiStatusReceiver extends BroadcastReceiver {
                 nsdHelper.tearDown();
             }
         }, SEARCH_LENGTH_MILLIS);
+    }
+
+    private void stopClient(Context context) {
+        LocalBroadcastManager broadcastManager = LocalBroadcastManager.getInstance(context);
+        broadcastManager.sendBroadcast(new Intent(ClientNsdService.ACTION_STOP));
+        broadcastManager.sendBroadcast(new Intent(ServerNsdService.ACTION_STOP));
     }
 }

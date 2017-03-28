@@ -5,16 +5,26 @@
     android:padding="@dimen/activity_horizontal_margin">
 
     <TextView
-        android:id="@+id/textViewName"
+        android:id="@+id/message"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:gravity="start"
         android:text="@string/splash_message"
         android:textIsSelectable="true"
-        android:textSize="@dimen/small_text"
+        android:textSize="@dimen/regular_text"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:layout_width="@dimen/quadruple_margin"
+        android:layout_height="@dimen/quadruple_margin"
+        android:layout_marginTop="@dimen/quadruple_margin"
+        android:contentDescription="@string/app_name"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/message"
+        app:srcCompat="@drawable/ic_settings_remote_grey_24dp" />
 
     <Button
         android:id="@+id/server"
@@ -26,7 +36,7 @@
         android:textSize="@dimen/medium_text"
         android:textStyle="bold|italic"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintHorizontal_chainStyle="spread_inside"
+        app:layout_constraintHorizontal_chainStyle="spread"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toLeftOf="@+id/client" />
 

@@ -96,8 +96,8 @@ public class NsdControlFragment extends BaseFragment
                             switches.clear();
                             switches.addAll(RcSwitch.deserialize(payload.getData()));
                             switchList.getAdapter().notifyDataSetChanged();
-                            Snackbar.make(switchList, payload.getResponse(), Snackbar.LENGTH_SHORT);
                         }
+                        Snackbar.make(switchList, payload.getResponse(), Snackbar.LENGTH_SHORT).show();
                     }
                     else {
                         messageHistory.add(payload.getResponse());

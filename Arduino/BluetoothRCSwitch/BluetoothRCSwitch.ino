@@ -12,7 +12,19 @@
 #include "FlexiTimer2.h" // Timer interrupt to limit sniff lengths
 
 // uncomment the following line for debug serial output
-#define DEBUG
+ #define DEBUG
+
+#ifdef DEBUG
+ #define DEBUG_PRINT(x)     Serial.print (x)
+ #define DEBUG_PRINTDEC(x)     Serial.print (x, DEC)
+ #define DEBUG_PRINTHEX(x)     Serial.print (x, HEX)
+ #define DEBUG_PRINTLN(x)  Serial.println (x)
+#else
+ #define DEBUG_PRINT(x)
+ #define DEBUG_PRINTDEC(x)
+ #define DEBUG_PRINTHEX(x)
+ #define DEBUG_PRINTLN(x)
+#endif
 
 // ================================================================
 // Constants
@@ -130,8 +142,8 @@ void setup() {
     delay(5); // wait 5ms
     digitalWrite(BLE_RESET_PIN, HIGH);
 
-    Serial.print("Starting up");
-    Serial.println();
+    DEBUG_PRINT("Starting up");
+    DEBUG_PRINTLN();
 
     state = STATE_SENDING;
 }
@@ -154,7 +166,7 @@ void loop() {
                 unsigned long value = receiveSwitch.getReceivedValue();
 
                 if (value == 0) {
-                    Serial.println("Unknown encoding");
+                    DEBUG_PRINTLN("Unknown encoding");
                 }
                 else {
 
@@ -162,15 +174,15 @@ void loop() {
                     uint8_t bitLength = receiveSwitch.getReceivedBitlength();
                     uint8_t protocol = receiveSwitch.getReceivedProtocol();
 
-                    Serial.print("Received ");
-                    Serial.print(value);
-                    Serial.print(" / ");
-                    Serial.print(bitLength);
-                    Serial.print("bit ");
-                    Serial.print("Protocol: ");
-                    Serial.println(protocol);
-                    Serial.print("Delay (Pulse Length): ");
-                    Serial.println(pulseLength);
+                    DEBUG_PRINT("Received ");
+                    DEBUG_PRINT(value);
+                    DEBUG_PRINT(" / ");
+                    DEBUG_PRINT(bitLength);
+                    DEBUG_PRINT("bit ");
+                    DEBUG_PRINT("Protocol: ");
+                    DEBUG_PRINTLN(protocol);
+                    DEBUG_PRINT("Delay (Pulse Length): ");
+                    DEBUG_PRINTLN(pulseLength);
 
                     // Break long value to binary byte array representation
 
@@ -241,7 +253,7 @@ void onTimeout() {
     ble_state == BLE_STATE_TIMED_OUT;
     TIMED_OUT_FLAG = true;
     // reset module (might be a bit drastic for a timeout condition though)
-    Serial.println(F("Timed out."));
+    DEBUG_PRINTLN(F("Timed out."));
     resetBLE();
 }
 
@@ -250,24 +262,24 @@ void onTimeout() {
 // ================================================================
 
 void my_ble_evt_system_boot(const ble_msg_system_boot_evt_t *msg) {
-#ifdef DEBUG
-    Serial.print("###\tsystem_boot: { ");
-    Serial.print("major: ");
-    Serial.print(msg->major, HEX);
-    Serial.print(", minor: ");
-    Serial.print(msg->minor, HEX);
-    Serial.print(", patch: ");
-    Serial.print(msg->patch, HEX);
-    Serial.print(", build: ");
-    Serial.print(msg->build, HEX);
-    Serial.print(", ll_version: ");
-    Serial.print(msg->ll_version, HEX);
-    Serial.print(", protocol_version: ");
-    Serial.print(msg->protocol_version, HEX);
-    Serial.print(", hw: ");
-    Serial.print(msg->hw, HEX);
-    Serial.println(" }");
-#endif
+
+    DEBUG_PRINT("###\tsystem_boot: { ");
+    DEBUG_PRINT("major: ");
+    DEBUG_PRINTHEX(msg->major);
+    DEBUG_PRINT(", minor: ");
+    DEBUG_PRINTHEX(msg->minor);
+    DEBUG_PRINT(", patch: ");
+    DEBUG_PRINTHEX(msg->patch);
+    DEBUG_PRINT(", build: ");
+    DEBUG_PRINTHEX(msg->build);
+    DEBUG_PRINT(", ll_version: ");
+    DEBUG_PRINTHEX(msg->ll_version);
+    DEBUG_PRINT(", protocol_version: ");
+    DEBUG_PRINTHEX(msg->protocol_version);
+    DEBUG_PRINT(", hw: ");
+    DEBUG_PRINTHEX(msg->hw);
+    DEBUG_PRINTLN(" }");
+
 
     // system boot means module is in standby state
     //ble_state = BLE_STATE_STANDBY;
@@ -343,30 +355,30 @@ void my_ble_evt_system_boot(const ble_msg_system_boot_evt_t *msg) {
 }
 
 void my_ble_evt_connection_status(const ble_msg_connection_status_evt_t *msg) {
-#ifdef DEBUG
-    Serial.print("###\tconnection_status: { ");
-    Serial.print("connection: ");
-    Serial.print(msg->connection, HEX);
-    Serial.print(", flags: ");
-    Serial.print(msg->flags, HEX);
-    Serial.print(", address: ");
+
+    DEBUG_PRINT("###\tconnection_status: { ");
+    DEBUG_PRINT("connection: ");
+    DEBUG_PRINTHEX(msg->connection);
+    DEBUG_PRINT(", flags: ");
+    DEBUG_PRINTHEX(msg->flags);
+    DEBUG_PRINT(", address: ");
     // this is a "bd_addr" data type, which is a 6-byte uint8_t array
     for (uint8_t i = 0; i < 6; i++) {
         if (msg->address.addr[i] < 16) Serial.write('0');
-        Serial.print(msg->address.addr[i], HEX);
+        DEBUG_PRINTHEX(msg->address.addr[i]);
     }
-    Serial.print(", address_type: ");
-    Serial.print(msg->address_type, HEX);
-    Serial.print(", conn_interval: ");
-    Serial.print(msg->conn_interval, HEX);
-    Serial.print(", timeout: ");
-    Serial.print(msg->timeout, HEX);
-    Serial.print(", latency: ");
-    Serial.print(msg->latency, HEX);
-    Serial.print(", bonding: ");
-    Serial.print(msg->bonding, HEX);
-    Serial.println(" }");
-#endif
+    DEBUG_PRINT(", address_type: ");
+    DEBUG_PRINTHEX(msg->address_type);
+    DEBUG_PRINT(", conn_interval: ");
+    DEBUG_PRINTHEX(msg->conn_interval);
+    DEBUG_PRINT(", timeout: ");
+    DEBUG_PRINTHEX(msg->timeout);
+    DEBUG_PRINT(", latency: ");
+    DEBUG_PRINTHEX(msg->latency);
+    DEBUG_PRINT(", bonding: ");
+    DEBUG_PRINTHEX(msg->bonding);
+    DEBUG_PRINTLN(" }");
+
 
     // "flags" bit description:
     //  - bit 0: connection_connected
@@ -398,14 +410,14 @@ void my_ble_evt_connection_status(const ble_msg_connection_status_evt_t *msg) {
 }
 
 void my_ble_evt_connection_disconnect(const struct ble_msg_connection_disconnected_evt_t *msg) {
-#ifdef DEBUG
-    Serial.print("###\tconnection_disconnect: { ");
-    Serial.print("connection: ");
-    Serial.print(msg->connection, HEX);
-    Serial.print(", reason: ");
-    Serial.print(msg->reason, HEX);
-    Serial.println(" }");
-#endif
+
+    DEBUG_PRINT("###\tconnection_disconnect: { ");
+    DEBUG_PRINT("connection: ");
+    DEBUG_PRINTHEX(msg->connection);
+    DEBUG_PRINT(", reason: ");
+    DEBUG_PRINTHEX(msg->reason);
+    DEBUG_PRINTLN(" }");
+
 
     // set state to DISCONNECTED
     //ble_state = BLE_STATE_DISCONNECTED;
@@ -428,26 +440,26 @@ void my_ble_evt_connection_disconnect(const struct ble_msg_connection_disconnect
 }
 
 void my_ble_evt_attributes_value(const struct ble_msg_attributes_value_evt_t *msg) {
-#ifdef DEBUG
-    Serial.print("###\tattributes_value: { ");
-    Serial.print("connection: ");
-    Serial.print(msg->connection, HEX);
-    Serial.print(", reason: ");
-    Serial.print(msg->reason, HEX);
-    Serial.print(", handle: ");
-    Serial.print(msg->handle, HEX);
-    Serial.print(", offset: ");
-    Serial.print(msg->offset, HEX);
-    Serial.print(", value_len: ");
-    Serial.print(msg->value.len, HEX);
-    Serial.print(", value_data: ");
+
+    DEBUG_PRINT("###\tattributes_value: { ");
+    DEBUG_PRINT("connection: ");
+    DEBUG_PRINTHEX(msg->connection);
+    DEBUG_PRINT(", reason: ");
+    DEBUG_PRINTHEX(msg->reason);
+    DEBUG_PRINT(", handle: ");
+    DEBUG_PRINTHEX(msg->handle);
+    DEBUG_PRINT(", offset: ");
+    DEBUG_PRINTHEX(msg->offset);
+    DEBUG_PRINT(", value_len: ");
+    DEBUG_PRINTHEX(msg->value.len);
+    DEBUG_PRINT(", value_data: ");
     // this is a "uint8array" data type, which is a length byte and a uint8_t* pointer
     for (uint8_t i = 0; i < msg->value.len; i++) {
         if (msg->value.data[i] < 16) Serial.write('0');
-        Serial.print(msg->value.data[i], HEX);
+        DEBUG_PRINTHEX(msg->value.data[i]);
     }
-    Serial.println(" }");
-#endif
+    DEBUG_PRINTLN(" }");
+
 
     // check for data written to "GATT_HANDLE_C_STATE_TOGGLE" handle
     if (msg->handle == GATT_HANDLE_C_STATE_TOGGLE && msg->value.len > 0) {
@@ -458,8 +470,8 @@ void my_ble_evt_attributes_value(const struct ble_msg_attributes_value_evt_t *ms
         stateCallback[0] = STATE_SNIFFING;
         ble112.ble_cmd_attributes_write(GATT_HANDLE_C_STATE_TOGGLE, 0, 1, stateCallback);
 
-        Serial.print("Current state is: ");
-        Serial.println(state);
+        DEBUG_PRINT("Current state is: ");
+        DEBUG_PRINTLN(state);
 
         switch (state){
             case STATE_SNIFFING:
@@ -483,14 +495,14 @@ void my_ble_evt_attributes_value(const struct ble_msg_attributes_value_evt_t *ms
       uint8_t bitLength  = msg->value.data[5];
       uint8_t protocol  = msg->value.data[6];
       
-      Serial.print("Code received: ");
-      Serial.println(code);
-      Serial.print("Pulse Length: ");
-      Serial.println(pulseLength);
-      Serial.print("Bit Length: ");
-      Serial.println(bitLength);
-      Serial.print("Protocol: ");
-      Serial.println(protocol);
+      DEBUG_PRINT("Code received: ");
+      DEBUG_PRINTLN(code);
+      DEBUG_PRINT("Pulse Length: ");
+      DEBUG_PRINTLN(pulseLength);
+      DEBUG_PRINT("Bit Length: ");
+      DEBUG_PRINTLN(bitLength);
+      DEBUG_PRINT("Protocol: ");
+      DEBUG_PRINTLN(protocol);
       
       receiveSwitch.enableTransmit(PIN_TX);
       receiveSwitch.setProtocol(protocol);
@@ -501,41 +513,41 @@ void my_ble_evt_attributes_value(const struct ble_msg_attributes_value_evt_t *ms
 }
 
 void my_ble_evt_attclient_indicated(const struct ble_msg_attclient_indicated_evt_t *msg) {
-#ifdef DEBUG
-    Serial.print("###\tattclient_indicate: { ");
-    Serial.print("Indication received.");
-    Serial.println(" }");
-#endif
+
+    DEBUG_PRINT("###\tattclient_indicate: { ");
+    DEBUG_PRINT("Indication received.");
+    DEBUG_PRINTLN(" }");
+
 }
 
 void my_ble_rsp_attributes_write(const struct ble_msg_attributes_write_rsp_t *msg) {
-#ifdef DEBUG
+
     if (msg->result == 0) {
     }
     else {
-        Serial.print("###\trsp_attributes_write: {");
-        Serial.print("result: ");
-        Serial.print(msg->result, DEC);
-        Serial.println("}");
+        DEBUG_PRINT("###\trsp_attributes_write: {");
+        DEBUG_PRINT("result: ");
+        DEBUG_PRINTDEC(msg->result);
+        DEBUG_PRINTLN("}");
     }
-#endif
+
 }
 
 void my_ble_evt_attributes_status(const struct ble_msg_attributes_status_evt_t *msg) {
-#ifdef DEBUG
-    Serial.print("###\tattributes_status: { ");
-    Serial.print("nSubscription changed");
-    Serial.print(", flags: ");
-    Serial.print(msg->flags, HEX);
-    Serial.print(", Handle: ");
-    Serial.print(msg->handle, DEC);
-    Serial.println(" }");
-#endif
+
+    DEBUG_PRINT("###\tattributes_status: { ");
+    DEBUG_PRINT("nSubscription changed");
+    DEBUG_PRINT(", flags: ");
+    DEBUG_PRINTHEX(msg->flags);
+    DEBUG_PRINT(", Handle: ");
+    DEBUG_PRINTDEC(msg->handle);
+    DEBUG_PRINTLN(" }");
+
 }
 
 void interruptSniff() {
     FlexiTimer2::stop();
-    Serial.println("Timer interrupt called");
+    DEBUG_PRINTLN("Timer interrupt called");
     state = STATE_SENDING;
     receiveSwitch.enableTransmit(PIN_TX);
 
@@ -547,8 +559,9 @@ void resetBLE() {
     digitalWrite(BLE_RESET_PIN, LOW);
     delay(50); // wait 5ms
     digitalWrite(BLE_RESET_PIN, HIGH);
-    Serial.println("Reset attempt.");
+    DEBUG_PRINTLN("Reset attempt.");
 }
+
 
 
 

@@ -160,7 +160,7 @@ public class NsdScanFragment extends BaseFragment
         intent.putExtra(ClientNsdService.NSD_SERVICE_INFO_KEY, serviceInfo);
         getContext().startService(intent);
 
-        showFragment(NsdControlFragment.newInstance());
+        showFragment(ClientNsdFragment.newInstance());
     }
 
     @Override

@@ -48,14 +48,14 @@ import static com.tunjid.rcswitchcontrol.services.ClientBleService.ACTION_CONTRO
 import static com.tunjid.rcswitchcontrol.services.ClientBleService.ACTION_SNIFFER;
 import static com.tunjid.rcswitchcontrol.services.ClientBleService.BLUETOOTH_DEVICE;
 
-public class BleControlFragment extends BaseFragment
+public class ClientBleFragment extends BaseFragment
         implements
         ServiceConnection,
         View.OnClickListener,
         RemoteSwitchAdapter.SwitchListener,
         RenameSwitchDialogFragment.SwitchNameListener {
 
-    private static final String TAG = BleControlFragment.class.getSimpleName();
+    private static final String TAG = ClientBleFragment.class.getSimpleName();
 
     private int lastOffSet;
     private boolean isDeleting;
@@ -122,8 +122,8 @@ public class BleControlFragment extends BaseFragment
         }
     };
 
-    public static BleControlFragment newInstance(BluetoothDevice bluetoothDevice) {
-        BleControlFragment fragment = new BleControlFragment();
+    public static ClientBleFragment newInstance(BluetoothDevice bluetoothDevice) {
+        ClientBleFragment fragment = new ClientBleFragment();
         Bundle args = new Bundle();
         args.putParcelable(BLUETOOTH_DEVICE, bluetoothDevice);
         fragment.setArguments(args);

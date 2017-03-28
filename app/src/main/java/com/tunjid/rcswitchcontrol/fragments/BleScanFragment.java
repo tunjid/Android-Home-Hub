@@ -195,7 +195,7 @@ public class BleScanFragment extends BaseFragment
         bleServiceIntent.putExtra(ClientBleService.BLUETOOTH_DEVICE, bluetoothDevice);
         getActivity().startService(bleServiceIntent);
 
-        showFragment(BleControlFragment.newInstance(bluetoothDevice));
+        showFragment(ClientBleFragment.newInstance(bluetoothDevice));
     }
 
     @Override

@@ -12,8 +12,8 @@ import android.text.TextUtils;
 
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseActivity;
-import com.tunjid.rcswitchcontrol.fragments.BleControlFragment;
-import com.tunjid.rcswitchcontrol.fragments.NsdControlFragment;
+import com.tunjid.rcswitchcontrol.fragments.ClientBleFragment;
+import com.tunjid.rcswitchcontrol.fragments.ClientNsdFragment;
 import com.tunjid.rcswitchcontrol.fragments.StartFragment;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
 import com.tunjid.rcswitchcontrol.services.ClientBleService;
@@ -62,9 +62,9 @@ public class MainActivity extends BaseActivity {
         }
 
         if (!isSavedInstance) {
-            if (isNsdClient) showFragment(NsdControlFragment.newInstance());
+            if (isNsdClient) showFragment(ClientNsdFragment.newInstance());
             else if (isNullDevice) showFragment(StartFragment.newInstance());
-            else showFragment(BleControlFragment.newInstance(device));
+            else showFragment(ClientBleFragment.newInstance(device));
         }
     }
 }

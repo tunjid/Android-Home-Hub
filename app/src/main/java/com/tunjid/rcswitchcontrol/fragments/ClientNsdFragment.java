@@ -42,7 +42,7 @@ import java.util.Stack;
 import static android.content.Context.MODE_PRIVATE;
 import static com.tunjid.rcswitchcontrol.model.RcSwitch.SWITCH_PREFS;
 
-public class NsdControlFragment extends BaseFragment
+public class ClientNsdFragment extends BaseFragment
         implements
         ServiceConnection,
         View.OnClickListener,
@@ -50,7 +50,7 @@ public class NsdControlFragment extends BaseFragment
         RemoteSwitchAdapter.SwitchListener,
         RenameSwitchDialogFragment.SwitchNameListener {
 
-    private static final String TAG = NsdControlFragment.class.getSimpleName();
+    private static final String TAG = ClientNsdFragment.class.getSimpleName();
 
     private boolean isDeleting;
 
@@ -111,8 +111,8 @@ public class NsdControlFragment extends BaseFragment
         }
     };
 
-    public static NsdControlFragment newInstance() {
-        NsdControlFragment fragment = new NsdControlFragment();
+    public static ClientNsdFragment newInstance() {
+        ClientNsdFragment fragment = new ClientNsdFragment();
         Bundle bundle = new Bundle();
 
         fragment.setArguments(bundle);

@@ -23,7 +23,7 @@ import android.view.ViewGroup;
 import android.widget.Toast;
 
 import com.tunjid.rcswitchcontrol.bluetooth.BLEScanner;
-import com.tunjid.rcswitchcontrol.services.BluetoothLeService;
+import com.tunjid.rcswitchcontrol.services.ClientBleService;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
 import com.tunjid.rcswitchcontrol.adapters.ScanAdapter;
@@ -35,7 +35,7 @@ import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
 import static android.os.Build.VERSION.SDK_INT;
 import static android.os.Build.VERSION_CODES.M;
 
-public class ScanFragment extends BaseFragment
+public class BleScanFragment extends BaseFragment
         implements
         BLEScanner.BleScanCallback,
         ScanAdapter.AdapterListener {
@@ -50,8 +50,8 @@ public class ScanFragment extends BaseFragment
     private BLEScanner scanner;
     private List<BluetoothDevice> bleDevices = new ArrayList<>();
 
-    public static ScanFragment newInstance() {
-        ScanFragment fragment = new ScanFragment();
+    public static BleScanFragment newInstance() {
+        BleScanFragment fragment = new BleScanFragment();
         Bundle args = new Bundle();
         fragment.setArguments(args);
         return fragment;
@@ -190,12 +190,12 @@ public class ScanFragment extends BaseFragment
         if (bluetoothDevice == null) return;
         if (isScanning) scanLeDevice(false);
 
-        final Intent bleServiceIntent = new Intent(getActivity(), BluetoothLeService.class);
+        final Intent bleServiceIntent = new Intent(getActivity(), ClientBleService.class);
 
-        bleServiceIntent.putExtra(BluetoothLeService.BLUETOOTH_DEVICE, bluetoothDevice);
+        bleServiceIntent.putExtra(ClientBleService.BLUETOOTH_DEVICE, bluetoothDevice);
         getActivity().startService(bleServiceIntent);
 
-        showFragment(BleControlFragment.newInstance(bluetoothDevice));
+        showFragment(ClientBleFragment.newInstance(bluetoothDevice));
     }
 
     @Override

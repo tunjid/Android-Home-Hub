@@ -7,7 +7,7 @@ import android.support.v4.content.LocalBroadcastManager;
 import com.tunjid.rcswitchcontrol.Application;
 import com.tunjid.rcswitchcontrol.model.Payload;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
-import com.tunjid.rcswitchcontrol.services.BluetoothLeService;
+import com.tunjid.rcswitchcontrol.services.ClientBleService;
 
 import java.io.IOException;
 
@@ -49,8 +49,8 @@ public class BleRcProtocol implements CommsProtocol {
                 builder.setResponse("Sending transmission");
                 builder.addCommand(REFRESH_SWITCHES);
 
-                Intent intent = new Intent(BluetoothLeService.ACTION_TRANSMITTER);
-                intent.putExtra(BluetoothLeService.DATA_AVAILABLE_TRANSMITTER, input);
+                Intent intent = new Intent(ClientBleService.ACTION_TRANSMITTER);
+                intent.putExtra(ClientBleService.DATA_AVAILABLE_TRANSMITTER, input);
 
                 LocalBroadcastManager.getInstance(Application.getInstance()).sendBroadcast(intent);
                 break;

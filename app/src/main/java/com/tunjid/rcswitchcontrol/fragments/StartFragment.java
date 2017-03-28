@@ -39,7 +39,7 @@ public class StartFragment extends BaseFragment
                 showFragment(InitializeFragment.newInstance());
                 break;
             case R.id.client:
-                showFragment(ServerListFragment.newInstance());
+                showFragment(NsdScanFragment.newInstance());
                 break;
         }
     }

@@ -37,6 +37,7 @@
     <!-- Text sizes -->
     <dimen name="tiny_text">14sp</dimen>
     <dimen name="small_text">16sp</dimen>
+    <dimen name="regular_text">20sp</dimen>
     <dimen name="medium_text">24sp</dimen>
     <dimen name="large_text">34sp</dimen>
     <dimen name="extra_large_text">45sp</dimen>

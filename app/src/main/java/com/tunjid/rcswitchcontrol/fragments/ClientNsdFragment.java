@@ -42,7 +42,7 @@ import java.util.Stack;
 import static android.content.Context.MODE_PRIVATE;
 import static com.tunjid.rcswitchcontrol.model.RcSwitch.SWITCH_PREFS;
 
-public class NsdControlFragment extends BaseFragment
+public class ClientNsdFragment extends BaseFragment
         implements
         ServiceConnection,
         View.OnClickListener,
@@ -50,7 +50,7 @@ public class NsdControlFragment extends BaseFragment
         RemoteSwitchAdapter.SwitchListener,
         RenameSwitchDialogFragment.SwitchNameListener {
 
-    private static final String TAG = NsdControlFragment.class.getSimpleName();
+    private static final String TAG = ClientNsdFragment.class.getSimpleName();
 
     private boolean isDeleting;
 
@@ -96,8 +96,8 @@ public class NsdControlFragment extends BaseFragment
                             switches.clear();
                             switches.addAll(RcSwitch.deserialize(payload.getData()));
                             switchList.getAdapter().notifyDataSetChanged();
-                            Snackbar.make(switchList, payload.getResponse(), Snackbar.LENGTH_SHORT);
                         }
+                        //Snackbar.make(switchList, payload.getResponse(), Snackbar.LENGTH_SHORT).show();
                     }
                     else {
                         messageHistory.add(payload.getResponse());
@@ -111,8 +111,8 @@ public class NsdControlFragment extends BaseFragment
         }
     };
 
-    public static NsdControlFragment newInstance() {
-        NsdControlFragment fragment = new NsdControlFragment();
+    public static ClientNsdFragment newInstance() {
+        ClientNsdFragment fragment = new ClientNsdFragment();
         Bundle bundle = new Bundle();
 
         fragment.setArguments(bundle);
@@ -377,7 +377,7 @@ public class NsdControlFragment extends BaseFragment
         @Override
         public void onDismissed(Snackbar snackbar, int event) {
             isDeleting = false;
-            RcSwitch.saveSwitches(getContext(), switches);
+            RcSwitch.saveSwitches(switches);
         }
 
         @Override

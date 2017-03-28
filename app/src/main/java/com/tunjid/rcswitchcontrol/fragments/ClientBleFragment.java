@@ -43,6 +43,7 @@ import java.util.Stack;
 
 import static android.content.Context.BIND_AUTO_CREATE;
 import static android.content.Context.MODE_PRIVATE;
+import static com.tunjid.rcswitchcontrol.Application.isServiceRunning;
 import static com.tunjid.rcswitchcontrol.model.RcSwitch.SWITCH_PREFS;
 import static com.tunjid.rcswitchcontrol.services.ClientBleService.ACTION_CONTROL;
 import static com.tunjid.rcswitchcontrol.services.ClientBleService.ACTION_SNIFFER;
@@ -215,6 +216,7 @@ public class ClientBleFragment extends BaseFragment
 
         if (activity.getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE).getBoolean(ServerNsdService.SERVER_FLAG, false)) {
             activity.startService(new Intent(activity, ServerNsdService.class));
+            getActivity().invalidateOptionsMenu();
         }
     }
 
@@ -237,7 +239,7 @@ public class ClientBleFragment extends BaseFragment
             menu.findItem(R.id.menu_connect).setVisible(!clientBleService.isConnected());
             menu.findItem(R.id.menu_disconnect).setVisible(clientBleService.isConnected());
         }
-
+        menu.findItem(R.id.menu_start_nsd).setVisible(!isServiceRunning(ServerNsdService.class));
         super.onCreateOptionsMenu(menu, inflater);
     }
 
@@ -252,12 +254,7 @@ public class ClientBleFragment extends BaseFragment
                     clientBleService.disconnect();
                     return true;
                 case R.id.menu_start_nsd:
-                    Intent serviceIntent = new Intent(getActivity(), ServerNsdService.class);
-                    getActivity().startService(serviceIntent);
-                    getActivity().bindService(serviceIntent, this, BIND_AUTO_CREATE);
-
-                    getActivity().getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE)
-                            .edit().putBoolean(ServerNsdService.SERVER_FLAG, true).apply();
+                    NameServiceDialogFragment.newInstance().show(getChildFragmentManager(), "");
                     break;
                 case R.id.menu_forget:
                     LocalBroadcastManager.getInstance(getActivity()).sendBroadcast(new Intent(ServerNsdService.ACTION_STOP));
@@ -314,9 +311,9 @@ public class ClientBleFragment extends BaseFragment
 
             onConnectionStateChanged(clientBleService.getConnectionState());
         }
-//        else if (componentName.getClassName().equals(ServerNsdService.class.getName())) {
-//            serverNsdService = ((ServerNsdService.ServerServiceBinder) service).getServerService();
-//        }
+        else if (componentName.getClassName().equals(ServerNsdService.class.getName())) {
+            getActivity().invalidateOptionsMenu();
+        }
     }
 
     @Override

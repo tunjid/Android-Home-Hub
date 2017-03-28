@@ -22,6 +22,8 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+import static com.tunjid.rcswitchcontrol.model.RcSwitch.SWITCH_PREFS;
+
 /**
  * Service hosting a {@link CommsProtocol} on network service discovery
  */
@@ -30,20 +32,13 @@ public class ServerNsdService extends BaseNsdService {
     private static final String TAG = ServerNsdService.class.getSimpleName();
     public static final String SERVER_FLAG = "com.tunjid.rcswitchcontrol.ServerNsdService.services.server.flag";
     public static final String ACTION_STOP = "com.tunjid.rcswitchcontrol.ServerNsdService.services.server.stop";
+    public static final String SERVICE_NAME_KEY = "com.tunjid.rcswitchcontrol.ServerNsdService.services.server.serviceName";
+    public static final String WIRELESS_SWITCH_SERVICE = "Wireless Switch Service";
 
-    private String serviceName;
     private ServerThread serverThread;
 
     private final IntentFilter intentFilter = new IntentFilter();
     private final IBinder binder = new ServerServiceBinder();
-    private final RegistrationListener registrationListener = new RegistrationListener() {
-
-        @Override
-        public void onServiceRegistered(NsdServiceInfo serviceInfo) {
-            super.onServiceRegistered(serviceInfo);
-            ServerNsdService.this.serviceName = serviceInfo.getServiceName();
-        }
-    };
 
     private final BroadcastReceiver nsdUpdateReceiver = new BroadcastReceiver() {
         @Override
@@ -63,12 +58,14 @@ public class ServerNsdService extends BaseNsdService {
     public void onCreate() {
         super.onCreate();
 
+        String serviceName = getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE)
+                .getString(SERVICE_NAME_KEY, WIRELESS_SWITCH_SERVICE);
+
+        serverThread = new ServerThread(nsdHelper, serviceName);
+        serverThread.start();
+
         intentFilter.addAction(ACTION_STOP);
         LocalBroadcastManager.getInstance(this).registerReceiver(nsdUpdateReceiver, intentFilter);
-
-        nsdHelper.initializeRegistrationListener(registrationListener);
-        serverThread = new ServerThread(nsdHelper);
-        serverThread.start();
     }
 
     @Override
@@ -77,7 +74,7 @@ public class ServerNsdService extends BaseNsdService {
     }
 
     public String getServiceName() {
-        return serviceName;
+        return serverThread != null ? serverThread.serviceName : "";
     }
 
     @Override
@@ -109,15 +106,26 @@ public class ServerNsdService extends BaseNsdService {
 
         volatile boolean isRunning;
 
+        private String serviceName;
         private ServerSocket serverSocket;
 
-        ServerThread(NsdHelper helper) {
+        private final RegistrationListener registrationListener = new RegistrationListener() {
+
+            @Override
+            public void onServiceRegistered(NsdServiceInfo serviceInfo) {
+                super.onServiceRegistered(serviceInfo);
+                ServerThread.this.serviceName = serviceInfo.getServiceName();
+            }
+        };
+
+        ServerThread(NsdHelper helper, String serviceName) {
 
             // Since discovery will happen via Nsd, we don't need to care which port is
             // used, just grab an isAvailable one and advertise it via Nsd.
             try {
                 serverSocket = new ServerSocket(0);
-                helper.registerService(serverSocket.getLocalPort());
+                helper.initializeRegistrationListener(registrationListener);
+                helper.registerService(serverSocket.getLocalPort(), serviceName);
             }
             catch (Exception e) {
                 e.printStackTrace();

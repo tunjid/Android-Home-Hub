@@ -62,6 +62,8 @@
     <string name="in_server_mode">IN SERVER MODE</string>
     <string name="connection_title">Connecting</string>
     <string name="connection_text">Please wait…</string>
+    <string name="ok">Okay</string>
+    <string name="name_nsd_service">Name NSD Service</string>
     <string name="connected_to_server">Connected to switch server</string>
 
     <!-- Menu items -->

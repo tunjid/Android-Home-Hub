@@ -12,14 +12,14 @@ import android.text.TextUtils;
 
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseActivity;
-import com.tunjid.rcswitchcontrol.fragments.BleControlFragment;
-import com.tunjid.rcswitchcontrol.fragments.NsdControlFragment;
+import com.tunjid.rcswitchcontrol.fragments.ClientBleFragment;
+import com.tunjid.rcswitchcontrol.fragments.ClientNsdFragment;
 import com.tunjid.rcswitchcontrol.fragments.StartFragment;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
-import com.tunjid.rcswitchcontrol.services.BluetoothLeService;
+import com.tunjid.rcswitchcontrol.services.ClientBleService;
 import com.tunjid.rcswitchcontrol.services.ClientNsdService;
 
-import static com.tunjid.rcswitchcontrol.services.BluetoothLeService.BLUETOOTH_DEVICE;
+import static com.tunjid.rcswitchcontrol.services.ClientBleService.BLUETOOTH_DEVICE;
 
 public class MainActivity extends BaseActivity {
 
@@ -35,7 +35,7 @@ public class MainActivity extends BaseActivity {
 
         SharedPreferences preferences = getSharedPreferences(RcSwitch.SWITCH_PREFS, MODE_PRIVATE);
 
-        String lastConnectedDevice = preferences.getString(BluetoothLeService.LAST_PAIRED_DEVICE, "");
+        String lastConnectedDevice = preferences.getString(ClientBleService.LAST_PAIRED_DEVICE, "");
         BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
         Intent startIntent = getIntent();
@@ -53,7 +53,7 @@ public class MainActivity extends BaseActivity {
                 || !TextUtils.isEmpty(preferences.getString(ClientNsdService.LAST_CONNECTED_SERVICE, ""));
 
         if (!isNullDevice) {
-            Intent intent = new Intent(this, BluetoothLeService.class);
+            Intent intent = new Intent(this, ClientBleService.class);
             intent.putExtra(BLUETOOTH_DEVICE, device);
             startService(intent);
         }
@@ -62,9 +62,9 @@ public class MainActivity extends BaseActivity {
         }
 
         if (!isSavedInstance) {
-            if (isNsdClient) showFragment(NsdControlFragment.newInstance());
+            if (isNsdClient) showFragment(ClientNsdFragment.newInstance());
             else if (isNullDevice) showFragment(StartFragment.newInstance());
-            else showFragment(BleControlFragment.newInstance(device));
+            else showFragment(ClientBleFragment.newInstance(device));
         }
     }
 }

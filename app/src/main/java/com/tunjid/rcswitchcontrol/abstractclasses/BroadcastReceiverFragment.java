@@ -8,7 +8,7 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.content.LocalBroadcastManager;
 
-import com.tunjid.rcswitchcontrol.services.BluetoothLeService;
+import com.tunjid.rcswitchcontrol.services.ClientBleService;
 
 /**
  * A Fragment listening to broadcast from the {@link android.support.v4.content.LocalBroadcastManager}
@@ -30,11 +30,11 @@ public abstract class BroadcastReceiverFragment extends BaseFragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
-        intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTING);
-        intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
-        intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
-        intentFilter.addAction(BluetoothLeService.DATA_AVAILABLE_UNKNOWN);
+        intentFilter.addAction(ClientBleService.ACTION_GATT_CONNECTED);
+        intentFilter.addAction(ClientBleService.ACTION_GATT_CONNECTING);
+        intentFilter.addAction(ClientBleService.ACTION_GATT_DISCONNECTED);
+        intentFilter.addAction(ClientBleService.ACTION_GATT_SERVICES_DISCOVERED);
+        intentFilter.addAction(ClientBleService.DATA_AVAILABLE_UNKNOWN);
     }
 
     @Override

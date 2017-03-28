@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">RcSwitchControl</string>
+    <string name="app_name">RC Remote</string>
     <string name="hello_world">Hello world!</string>
 
     <!-- Start Fragment -->

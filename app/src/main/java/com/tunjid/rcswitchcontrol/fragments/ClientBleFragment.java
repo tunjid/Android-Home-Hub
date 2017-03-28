@@ -107,7 +107,7 @@ public class ClientBleFragment extends BaseFragment
                                 switches.add(rcSwitch);
                                 switchList.getAdapter().notifyDataSetChanged();
 
-                                RcSwitch.saveSwitches(getContext(), switches);
+                                RcSwitch.saveSwitches(switches);
                             }
                             break;
                     }
@@ -151,7 +151,7 @@ public class ClientBleFragment extends BaseFragment
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
 
         switchCreator = new RcSwitch.SwitchCreator();
-        switches = RcSwitch.getSavedSwitches(getContext());
+        switches = RcSwitch.getSavedSwitches();
 
         View rootView = inflater.inflate(R.layout.fragment_control, container, false);
         AppBarLayout appBarLayout = (AppBarLayout) rootView.findViewById(R.id.app_bar_layout);
@@ -360,7 +360,7 @@ public class ClientBleFragment extends BaseFragment
     @Override
     public void onSwitchRenamed(RcSwitch rcSwitch) {
         switchList.getAdapter().notifyItemChanged(switches.indexOf(rcSwitch));
-        RcSwitch.saveSwitches(getContext(), switches);
+        RcSwitch.saveSwitches(switches);
     }
 
     private void onConnectionStateChanged(String newState) {
@@ -455,7 +455,7 @@ public class ClientBleFragment extends BaseFragment
         @Override
         public void onDismissed(Snackbar snackbar, int event) {
             isDeleting = false;
-            RcSwitch.saveSwitches(getContext(), switches);
+            RcSwitch.saveSwitches(switches);
         }
 
         @Override

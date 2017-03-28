@@ -1,6 +1,8 @@
 package com.tunjid.rcswitchcontrol.model;
 
 import android.content.SharedPreferences;
+import android.os.Parcel;
+import android.os.Parcelable;
 
 import com.google.gson.Gson;
 import com.tunjid.rcswitchcontrol.Application;
@@ -17,7 +19,7 @@ import static android.content.Context.MODE_PRIVATE;
  * Created by tj.dahunsi on 3/11/17.
  */
 
-public class RcSwitch {
+public class RcSwitch implements Parcelable {
 
     // Shared preference key
     public static final String SWITCH_PREFS = "SwitchPrefs";
@@ -102,6 +104,42 @@ public class RcSwitch {
         result = 31 * result + Arrays.hashCode(offCode);
         return result;
     }
+
+    protected RcSwitch(Parcel in) {
+        name = in.readString();
+        bitLength = in.readByte();
+        pulseLength = in.readByte();
+        protocol = in.readByte();
+        onCode = in.createByteArray();
+        offCode = in.createByteArray();
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(name);
+        dest.writeByte(bitLength);
+        dest.writeByte(pulseLength);
+        dest.writeByte(protocol);
+        dest.writeByteArray(onCode);
+        dest.writeByteArray(offCode);
+    }
+
+    public static final Parcelable.Creator<RcSwitch> CREATOR = new Parcelable.Creator<RcSwitch>() {
+        @Override
+        public RcSwitch createFromParcel(Parcel in) {
+            return new RcSwitch(in);
+        }
+
+        @Override
+        public RcSwitch[] newArray(int size) {
+            return new RcSwitch[size];
+        }
+    };
 
     public static final class SwitchCreator {
         State state;

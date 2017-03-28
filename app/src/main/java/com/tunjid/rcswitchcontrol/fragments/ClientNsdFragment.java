@@ -377,7 +377,7 @@ public class ClientNsdFragment extends BaseFragment
         @Override
         public void onDismissed(Snackbar snackbar, int event) {
             isDeleting = false;
-            RcSwitch.saveSwitches(getContext(), switches);
+            RcSwitch.saveSwitches(switches);
         }
 
         @Override

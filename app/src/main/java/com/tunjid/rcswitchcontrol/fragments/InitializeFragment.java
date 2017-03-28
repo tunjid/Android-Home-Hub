@@ -109,7 +109,7 @@ public class InitializeFragment extends BaseFragment
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.button_pair:
-                showFragment(ScanFragment.newInstance());
+                showFragment(BleScanFragment.newInstance());
                 break;
         }
     }

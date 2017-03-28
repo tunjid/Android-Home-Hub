@@ -37,7 +37,7 @@ import static android.content.Context.BIND_AUTO_CREATE;
 /**
  * A {@link Fragment} listing supported NSD servers
  */
-public class ServerListFragment extends BaseFragment
+public class NsdScanFragment extends BaseFragment
         implements
         ServiceConnection,
         NSDAdapter.ServiceClickedListener {
@@ -49,12 +49,12 @@ public class ServerListFragment extends BaseFragment
 
     private List<NsdServiceInfo> services = new ArrayList<>();
 
-    public ServerListFragment() {
+    public NsdScanFragment() {
         // Required empty public constructor
     }
 
-    public static ServerListFragment newInstance() {
-        ServerListFragment fragment = new ServerListFragment();
+    public static NsdScanFragment newInstance() {
+        NsdScanFragment fragment = new NsdScanFragment();
         Bundle bundle = new Bundle();
 
         fragment.setArguments(bundle);

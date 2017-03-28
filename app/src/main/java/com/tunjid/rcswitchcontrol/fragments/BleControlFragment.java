@@ -35,7 +35,7 @@ import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
 import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
-import com.tunjid.rcswitchcontrol.services.BluetoothLeService;
+import com.tunjid.rcswitchcontrol.services.ClientBleService;
 import com.tunjid.rcswitchcontrol.services.ServerNsdService;
 
 import java.util.List;
@@ -44,9 +44,9 @@ import java.util.Stack;
 import static android.content.Context.BIND_AUTO_CREATE;
 import static android.content.Context.MODE_PRIVATE;
 import static com.tunjid.rcswitchcontrol.model.RcSwitch.SWITCH_PREFS;
-import static com.tunjid.rcswitchcontrol.services.BluetoothLeService.ACTION_CONTROL;
-import static com.tunjid.rcswitchcontrol.services.BluetoothLeService.ACTION_SNIFFER;
-import static com.tunjid.rcswitchcontrol.services.BluetoothLeService.BLUETOOTH_DEVICE;
+import static com.tunjid.rcswitchcontrol.services.ClientBleService.ACTION_CONTROL;
+import static com.tunjid.rcswitchcontrol.services.ClientBleService.ACTION_SNIFFER;
+import static com.tunjid.rcswitchcontrol.services.ClientBleService.BLUETOOTH_DEVICE;
 
 public class BleControlFragment extends BaseFragment
         implements
@@ -61,7 +61,7 @@ public class BleControlFragment extends BaseFragment
     private boolean isDeleting;
 
     private BluetoothDevice bluetoothDevice;
-    private BluetoothLeService bluetoothLeService;
+    private ClientBleService clientBleService;
 
     private View progressBar;
     private Button sniffButton;
@@ -81,19 +81,19 @@ public class BleControlFragment extends BaseFragment
             String action = intent.getAction();
 
             switch (action) {
-                case BluetoothLeService.ACTION_GATT_CONNECTED:
-                case BluetoothLeService.ACTION_GATT_CONNECTING:
-                case BluetoothLeService.ACTION_GATT_DISCONNECTED:
+                case ClientBleService.ACTION_GATT_CONNECTED:
+                case ClientBleService.ACTION_GATT_CONNECTING:
+                case ClientBleService.ACTION_GATT_DISCONNECTED:
                     onConnectionStateChanged(action);
                     break;
                 case ACTION_CONTROL: {
-                    byte[] rawData = intent.getByteArrayExtra(BluetoothLeService.DATA_AVAILABLE_CONTROL);
+                    byte[] rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_CONTROL);
 
                     toggleProgress(rawData[0] == 0);
                     break;
                 }
                 case ACTION_SNIFFER: {
-                    byte[] rawData = intent.getByteArrayExtra(BluetoothLeService.DATA_AVAILABLE_SNIFFER);
+                    byte[] rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_SNIFFER);
 
                     switch (switchCreator.getState()) {
                         case ON_CODE:
@@ -137,13 +137,13 @@ public class BleControlFragment extends BaseFragment
 
         bluetoothDevice = getArguments().getParcelable(BLUETOOTH_DEVICE);
 
-        intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
-        intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTING);
-        intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
-        intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
-        intentFilter.addAction(BluetoothLeService.ACTION_CONTROL);
-        intentFilter.addAction(BluetoothLeService.ACTION_SNIFFER);
-        intentFilter.addAction(BluetoothLeService.DATA_AVAILABLE_UNKNOWN);
+        intentFilter.addAction(ClientBleService.ACTION_GATT_CONNECTED);
+        intentFilter.addAction(ClientBleService.ACTION_GATT_CONNECTING);
+        intentFilter.addAction(ClientBleService.ACTION_GATT_DISCONNECTED);
+        intentFilter.addAction(ClientBleService.ACTION_GATT_SERVICES_DISCOVERED);
+        intentFilter.addAction(ClientBleService.ACTION_CONTROL);
+        intentFilter.addAction(ClientBleService.ACTION_SNIFFER);
+        intentFilter.addAction(ClientBleService.DATA_AVAILABLE_UNKNOWN);
     }
 
     @Nullable
@@ -209,7 +209,7 @@ public class BleControlFragment extends BaseFragment
 
         Activity activity = getActivity();
 
-        Intent intent = new Intent(getActivity(), BluetoothLeService.class);
+        Intent intent = new Intent(getActivity(), ClientBleService.class);
         intent.putExtra(BLUETOOTH_DEVICE, getArguments().getParcelable(BLUETOOTH_DEVICE));
         activity.bindService(intent, this, BIND_AUTO_CREATE);
 
@@ -223,9 +223,9 @@ public class BleControlFragment extends BaseFragment
         super.onResume();
 
         // If the service is already bound, there will be no service connection callback
-        if (bluetoothLeService != null) {
-            bluetoothLeService.onAppForeGround();
-            onConnectionStateChanged(bluetoothLeService.getConnectionState());
+        if (clientBleService != null) {
+            clientBleService.onAppForeGround();
+            onConnectionStateChanged(clientBleService.getConnectionState());
         }
     }
 
@@ -233,9 +233,9 @@ public class BleControlFragment extends BaseFragment
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         inflater.inflate(R.menu.menu_fragment_control, menu);
 
-        if (bluetoothLeService != null) {
-            menu.findItem(R.id.menu_connect).setVisible(!bluetoothLeService.isConnected());
-            menu.findItem(R.id.menu_disconnect).setVisible(bluetoothLeService.isConnected());
+        if (clientBleService != null) {
+            menu.findItem(R.id.menu_connect).setVisible(!clientBleService.isConnected());
+            menu.findItem(R.id.menu_disconnect).setVisible(clientBleService.isConnected());
         }
 
         super.onCreateOptionsMenu(menu, inflater);
@@ -243,13 +243,13 @@ public class BleControlFragment extends BaseFragment
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (bluetoothLeService != null) {
+        if (clientBleService != null) {
             switch (item.getItemId()) {
                 case R.id.menu_connect:
-                    bluetoothLeService.connect(bluetoothDevice);
+                    clientBleService.connect(bluetoothDevice);
                     return true;
                 case R.id.menu_disconnect:
-                    bluetoothLeService.disconnect();
+                    clientBleService.disconnect();
                     return true;
                 case R.id.menu_start_nsd:
                     Intent serviceIntent = new Intent(getActivity(), ServerNsdService.class);
@@ -262,11 +262,11 @@ public class BleControlFragment extends BaseFragment
                 case R.id.menu_forget:
                     LocalBroadcastManager.getInstance(getActivity()).sendBroadcast(new Intent(ServerNsdService.ACTION_STOP));
 
-                    bluetoothLeService.disconnect();
-                    bluetoothLeService.close();
+                    clientBleService.disconnect();
+                    clientBleService.close();
 
                     getActivity().getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE).edit()
-                            .remove(BluetoothLeService.LAST_PAIRED_DEVICE)
+                            .remove(ClientBleService.LAST_PAIRED_DEVICE)
                             .remove(ServerNsdService.SERVER_FLAG).apply();
 
                     Intent intent = new Intent(getActivity(), MainActivity.class);
@@ -284,7 +284,7 @@ public class BleControlFragment extends BaseFragment
     @Override
     public void onStop() {
         super.onStop();
-        if (bluetoothLeService != null) bluetoothLeService.onAppBackground();
+        if (clientBleService != null) clientBleService.onAppBackground();
     }
 
     @Override
@@ -308,11 +308,11 @@ public class BleControlFragment extends BaseFragment
 
     @Override
     public void onServiceConnected(ComponentName componentName, IBinder service) {
-        if (componentName.getClassName().equals(BluetoothLeService.class.getName())) {
-            bluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
-            bluetoothLeService.onAppForeGround();
+        if (componentName.getClassName().equals(ClientBleService.class.getName())) {
+            clientBleService = ((ClientBleService.LocalBinder) service).getService();
+            clientBleService.onAppForeGround();
 
-            onConnectionStateChanged(bluetoothLeService.getConnectionState());
+            onConnectionStateChanged(clientBleService.getConnectionState());
         }
 //        else if (componentName.getClassName().equals(ServerNsdService.class.getName())) {
 //            serverNsdService = ((ServerNsdService.ServerServiceBinder) service).getServerService();
@@ -321,7 +321,7 @@ public class BleControlFragment extends BaseFragment
 
     @Override
     public void onServiceDisconnected(ComponentName name) {
-        bluetoothLeService = null;
+        clientBleService = null;
     }
 
 
@@ -331,8 +331,8 @@ public class BleControlFragment extends BaseFragment
             case R.id.sniff:
                 toggleProgress(true);
 
-                bluetoothLeService.writeCharacteristicArray(BluetoothLeService.C_HANDLE_CONTROL,
-                        new byte[]{BluetoothLeService.STATE_SNIFFING});
+                clientBleService.writeCharacteristicArray(ClientBleService.C_HANDLE_CONTROL,
+                        new byte[]{ClientBleService.STATE_SNIFFING});
                 break;
         }
     }
@@ -344,7 +344,7 @@ public class BleControlFragment extends BaseFragment
 
     @Override
     public void onSwitchToggled(RcSwitch rcSwitch, boolean state) {
-        if (bluetoothLeService == null) return;
+        if (clientBleService == null) return;
 
         byte[] code = state ? rcSwitch.getOnCode() : rcSwitch.getOffCode();
         byte[] transmission = new byte[7];
@@ -354,7 +354,7 @@ public class BleControlFragment extends BaseFragment
         transmission[5] = rcSwitch.getBitLength();
         transmission[6] = rcSwitch.getProtocol();
 
-        bluetoothLeService.writeCharacteristicArray(BluetoothLeService.C_HANDLE_TRANSMITTER, transmission);
+        clientBleService.writeCharacteristicArray(ClientBleService.C_HANDLE_TRANSMITTER, transmission);
     }
 
     @Override
@@ -367,13 +367,13 @@ public class BleControlFragment extends BaseFragment
         getActivity().invalidateOptionsMenu();
         String text = null;
         switch (newState) {
-            case BluetoothLeService.ACTION_GATT_CONNECTED:
+            case ClientBleService.ACTION_GATT_CONNECTED:
                 text = getString(R.string.connected);
                 break;
-            case BluetoothLeService.ACTION_GATT_CONNECTING:
+            case ClientBleService.ACTION_GATT_CONNECTING:
                 text = getString(R.string.connecting);
                 break;
-            case BluetoothLeService.ACTION_GATT_DISCONNECTED:
+            case ClientBleService.ACTION_GATT_DISCONNECTED:
                 text = getString(R.string.disconnected);
                 break;
         }

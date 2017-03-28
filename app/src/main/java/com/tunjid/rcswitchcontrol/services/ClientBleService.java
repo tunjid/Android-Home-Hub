@@ -33,6 +33,7 @@ import android.widget.Toast;
 import com.tunjid.rcswitchcontrol.Application;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
+import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
 
 import java.util.HashMap;
@@ -46,12 +47,12 @@ import java.util.UUID;
  * Service for managing connection and data communication with a GATT server hosted on a
  * given Bluetooth LE device.
  */
-public class BluetoothLeService extends Service {
+public class ClientBleService extends Service implements ClientStartedBoundService {
 
     public static final byte STATE_SNIFFING = 0;
     public static final int NOTIFICATION_ID = 1;
 
-    private final static String TAG = BluetoothLeService.class.getSimpleName();
+    private final static String TAG = ClientBleService.class.getSimpleName();
 
     // Services
     public static final String CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb";
@@ -256,29 +257,6 @@ public class BluetoothLeService extends Service {
     }
 
     @Override
-    public void onRebind(Intent intent) {
-        onAppForeGround();
-    }
-
-    @Override
-    public boolean onUnbind(Intent intent) {
-        // After using a given device, you should make sure that BluetoothGatt.close() is called
-        // such that resources are cleaned up properly.  In this particular example, close() is
-        // invoked when the UI is disconnected from the Service.
-
-        onAppBackground();
-
-        return super.onUnbind(intent);
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(nsdUpdateReceiver);
-
-        close();
-    }
-
     public void initialize(Intent intent) {
 
         // We're already connected, return
@@ -316,8 +294,43 @@ public class BluetoothLeService extends Service {
         Log.i(TAG, "Initialized BLE connection");
     }
 
+    @Override
     public boolean isConnected() {
         return connectionState.equals(ACTION_GATT_CONNECTED);
+    }
+
+    @Override
+    public void onAppBackground() {
+        isUserInApp = false;
+
+        // Use a notification to tell the user the app is running
+        if (isConnected()) startForeground(NOTIFICATION_ID, connectedNotification());
+            // Otherwise, remove the notification and wait for a reconnect
+        else stopForeground(true);
+    }
+
+    @Override
+    public void onAppForeGround() {
+        isUserInApp = true;
+        stopForeground(true);
+    }
+
+    @Override
+    public void onRebind(Intent intent) {
+        onAppForeGround();
+    }
+
+    @Override
+    public boolean onUnbind(Intent intent) {
+        onAppBackground();
+        return super.onUnbind(intent);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(nsdUpdateReceiver);
+        close();
     }
 
     public String getConnectionState() {
@@ -419,20 +432,6 @@ public class BluetoothLeService extends Service {
 
         characteristic.setValue(values);
         bluetoothGatt.writeCharacteristic(characteristic);
-    }
-
-    public void onAppBackground() {
-        isUserInApp = false;
-
-        // Use a notification to tell the user the app is running
-        if (isConnected()) startForeground(NOTIFICATION_ID, connectedNotification());
-            // Otherwise, remove the notification and wait for a reconnect
-        else stopForeground(true);
-    }
-
-    public void onAppForeGround() {
-        isUserInApp = true;
-        stopForeground(true);
     }
 
     /**
@@ -573,8 +572,8 @@ public class BluetoothLeService extends Service {
     }
 
     public class LocalBinder extends Binder {
-        public BluetoothLeService getService() {
-            return BluetoothLeService.this;
+        public ClientBleService getService() {
+            return ClientBleService.this;
         }
     }
 }

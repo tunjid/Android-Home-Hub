@@ -3,6 +3,7 @@ package com.tunjid.rcswitchcontrol;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.net.NetworkInfo;
 import android.net.nsd.NsdServiceInfo;
 import android.net.wifi.WifiManager;
 import android.os.Handler;
@@ -17,6 +18,10 @@ import com.tunjid.rcswitchcontrol.nsd.abstractclasses.ResolveListener;
 import com.tunjid.rcswitchcontrol.services.ClientNsdService;
 import com.tunjid.rcswitchcontrol.services.ServerNsdService;
 
+import static android.content.Context.WIFI_SERVICE;
+import static android.net.wifi.WifiManager.EXTRA_NETWORK_INFO;
+import static android.net.wifi.WifiManager.EXTRA_SUPPLICANT_CONNECTED;
+import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
 import static com.tunjid.rcswitchcontrol.model.RcSwitch.SWITCH_PREFS;
 
 public class WifiStatusReceiver extends BroadcastReceiver {
@@ -26,21 +31,24 @@ public class WifiStatusReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        boolean flag = false;
         switch (intent.getAction()) {
             case ClientNsdService.ACTION_START_NSD_DISCOVERY:
-                connectLastNsdService(context);
+                flag = ((WifiManager) context.getApplicationContext().getSystemService(WIFI_SERVICE)).isWifiEnabled();
                 break;
             case WifiManager.WIFI_STATE_CHANGED_ACTION:
-                if (intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, 0) == WifiManager.WIFI_STATE_ENABLED)
-                    connectLastNsdService(context);
-                else stopClient(context);
+                flag = intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, 0) == WIFI_STATE_ENABLED;
+                break;
+            case WifiManager.NETWORK_STATE_CHANGED_ACTION:
+                NetworkInfo info = intent.getParcelableExtra(EXTRA_NETWORK_INFO);
+                flag = info.isConnected();
                 break;
             case WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION:
-                if (intent.getBooleanExtra(WifiManager.EXTRA_SUPPLICANT_CONNECTED, false))
-                    connectLastNsdService(context);
-                else stopClient(context);
+                flag = intent.getBooleanExtra(EXTRA_SUPPLICANT_CONNECTED, false);
                 break;
         }
+        if (flag) connectLastNsdService(context);
+        else stopClient(context);
     }
 
     private void connectLastNsdService(final Context context) {

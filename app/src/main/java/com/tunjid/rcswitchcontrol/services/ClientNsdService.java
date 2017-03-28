@@ -16,7 +16,7 @@ import android.util.Log;
 
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
-import com.tunjid.rcswitchcontrol.interfaces.StartedBoundService;
+import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService;
 import com.tunjid.rcswitchcontrol.nsd.abstractclasses.BaseNsdService;
 
 import java.io.BufferedReader;
@@ -31,7 +31,7 @@ import static java.lang.annotation.RetentionPolicy.SOURCE;
 
 
 public class ClientNsdService extends BaseNsdService
-        implements StartedBoundService {
+        implements ClientStartedBoundService {
 
     public static final int NOTIFICATION_ID = 2;
     private static final String TAG = ClientNsdService.class.getSimpleName();
@@ -70,6 +70,7 @@ public class ClientNsdService extends BaseNsdService
             String action = intent.getAction();
             switch (action) {
                 case ACTION_STOP:
+                    stopForeground(true);
                     tearDown();
                     stopSelf();
                     break;

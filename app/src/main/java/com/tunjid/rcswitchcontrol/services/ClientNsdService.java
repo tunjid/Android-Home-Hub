@@ -9,6 +9,7 @@ import android.content.IntentFilter;
 import android.net.nsd.NsdServiceInfo;
 import android.os.Binder;
 import android.os.IBinder;
+import android.support.annotation.Nullable;
 import android.support.annotation.StringDef;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.LocalBroadcastManager;
@@ -136,6 +137,11 @@ public class ClientNsdService extends BaseNsdService
 
     public String getConnectionState() {
         return connectionState;
+    }
+
+    @Nullable
+    public String getServiceName() {
+        return currentService == null ? null : currentService.getServiceName();
     }
 
     public void connect(NsdServiceInfo serviceInfo) {

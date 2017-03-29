@@ -34,6 +34,8 @@
     <string name="connection_state">Connection State: %1$s</string>
     <string name="connected">Connected</string>
     <string name="connecting">Connecting</string>
+    <string name="connected_to">Connected to %1$s</string>
+    <string name="connecting_to">Connecting to %1$s</string>
     <string name="disconnected">Disconnected</string>
 
     <!-- Rename switch -->

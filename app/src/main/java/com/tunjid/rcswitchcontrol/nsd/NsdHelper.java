@@ -70,13 +70,13 @@ public class NsdHelper {
             nsdManager.unregisterService(mRegistrationListener);
         }
         catch (IllegalArgumentException e) {
-            Log.w(TAG, "Nsd Registration Listner not added");
+            Log.w(TAG, "Nsd Registration Listener not added");
         }
         try { // May or may not be looking for services, throws IllegalArgumentException if it isn't
             nsdManager.stopServiceDiscovery(mDiscoveryListener);
         }
         catch (IllegalArgumentException e) {
-            Log.w(TAG, "Nsd Discovery Listner not added");
+            Log.w(TAG, "Nsd Discovery Listener not added");
         }
 
     }

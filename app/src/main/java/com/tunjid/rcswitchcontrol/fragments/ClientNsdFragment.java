@@ -264,7 +264,8 @@ public class ClientNsdFragment extends BaseFragment
 
     @Override
     public void onLongClicked(RcSwitch rcSwitch) {
-        RenameSwitchDialogFragment.newInstance(rcSwitch).show(getChildFragmentManager(), "");
+        Snackbar.make(commandsView, "Not supported yet, change the name on the server device",
+                Snackbar.LENGTH_SHORT).show();
     }
 
     @Override
@@ -284,8 +285,7 @@ public class ClientNsdFragment extends BaseFragment
 
     @Override
     public void onSwitchRenamed(RcSwitch rcSwitch) {
-        //switchList.getAdapter().notifyItemChanged(switches.indexOf(rcSwitch));
-        Snackbar.make(commandsView, "Not supported, change the name on the server device", Snackbar.LENGTH_SHORT).show();
+        // Not implemented yet.
     }
 
     private void onConnectionStateChanged(String newState) {
@@ -293,10 +293,10 @@ public class ClientNsdFragment extends BaseFragment
         String text = null;
         switch (newState) {
             case ClientNsdService.ACTION_SOCKET_CONNECTED:
-                text = getString(R.string.connected);
+                text = getResources().getString(R.string.connected_to, clientNsdService.getServiceName());
                 break;
             case ClientNsdService.ACTION_SOCKET_CONNECTING:
-                text = getString(R.string.connecting);
+                text = getResources().getString(R.string.connecting_to, clientNsdService.getServiceName());
                 break;
             case ClientNsdService.ACTION_SOCKET_DISCONNECTED:
                 text = getString(R.string.disconnected);

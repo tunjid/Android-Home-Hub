@@ -132,7 +132,7 @@ public class ServerNsdService extends BaseNsdService {
         ServerThread(NsdHelper helper, String serviceName) {
 
             // Since discovery will happen via Nsd, we don't need to care which port is
-            // used, just grab an isAvailable one and advertise it via Nsd.
+            // used, just grab an avaialable one and advertise it via Nsd.
             try {
                 serverSocket = new ServerSocket(0);
                 helper.initializeRegistrationListener(registrationListener);
@@ -147,7 +147,7 @@ public class ServerNsdService extends BaseNsdService {
         public void run() {
             isRunning = true;
 
-            Log.d(TAG, "ServerSocket Created, awaiting connectionsMap.");
+            Log.d(TAG, "ServerSocket Created, awaiting connection.");
 
             while (isRunning) {
                 try {
@@ -159,7 +159,7 @@ public class ServerNsdService extends BaseNsdService {
                     Log.d(TAG, "Client connected. Number of clients: " + connectionsMap.size());
                 }
                 catch (Exception e) {
-                    Log.e(TAG, "Error creating connecting to a client: ", e);
+                    Log.e(TAG, "Error creating client connection: ", e);
                 }
             }
         }
@@ -198,6 +198,10 @@ public class ServerNsdService extends BaseNsdService {
         private Socket socket;
         private Map<Long, Connection> connectionMap;
 
+        CommsProtocol commsProtocol = null;
+        PrintWriter out = null;
+        BufferedReader in = null;
+
         Connection(Socket socket, Map<Long, Connection> connectionMap) {
             Log.d(TAG, "Connected to new client");
             this.socket = socket;
@@ -207,9 +211,6 @@ public class ServerNsdService extends BaseNsdService {
         @Override
         public void start() {
             if (socket != null && socket.isConnected()) {
-                CommsProtocol commsProtocol = null;
-                PrintWriter out = null;
-                BufferedReader in = null;
                 try {
                     commsProtocol = new ProxyProtocol();
                     in = createBufferedReader(socket);
@@ -235,33 +236,34 @@ public class ServerNsdService extends BaseNsdService {
                     e.printStackTrace();
                 }
                 finally {
-                    if (commsProtocol != null) try {
-                        commsProtocol.close();
-                    }
-                    catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    if (in != null) try {
-                        in.close();
-                    }
-                    catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    if (out != null) out.close();
                     try {
                         close();
                     }
                     catch (IOException e) {
                         e.printStackTrace();
                     }
-                    connectionMap.remove(getId());
                 }
             }
         }
 
         @Override
         public void close() throws IOException {
+            if (commsProtocol != null) try {
+                commsProtocol.close();
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+            if (in != null) try {
+                in.close();
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+            if (out != null) out.close();
+
             socket.close();
+            connectionMap.remove(getId());
         }
     }
 }

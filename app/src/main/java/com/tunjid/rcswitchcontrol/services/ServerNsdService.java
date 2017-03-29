@@ -139,6 +139,14 @@ public class ServerNsdService extends BaseNsdService {
             catch (Exception e) {
                 e.printStackTrace();
             }
+//            finally {
+//                try {
+//                    serverSocket.close();
+//                }
+//                catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//            }
         }
 
         @Override
@@ -154,6 +162,14 @@ public class ServerNsdService extends BaseNsdService {
                 catch (Exception e) {
                     Log.e(TAG, "Error creating ServerSocket: ", e);
                 }
+//                finally {
+//                    try {
+//                        if (connection != null) connection.close();
+//                    }
+//                    catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                }
             }
         }
 
@@ -190,12 +206,13 @@ public class ServerNsdService extends BaseNsdService {
 
         void start() {
             if (socket != null && socket.isConnected()) {
-                CommsProtocol commsProtocol = new ProxyProtocol();
-
+                CommsProtocol commsProtocol;
+                PrintWriter out;
+                BufferedReader in;
                 try {
-
-                    PrintWriter out = createPrintWriter(socket);
-                    BufferedReader in = createBufferedReader(socket);
+                    commsProtocol = new ProxyProtocol();
+                    in = createBufferedReader(socket);
+                    out = createPrintWriter(socket);
 
                     String inputLine, outputLine;
 
@@ -212,21 +229,25 @@ public class ServerNsdService extends BaseNsdService {
 
                         if (outputLine.equals("Bye.")) break;
                     }
-
-                    // Close protocol
-                    commsProtocol.close();
-                    in.close();
                 }
                 catch (IOException e) {
                     e.printStackTrace();
-                    // Try to close protocol if disconnected
-                    try {
-                        commsProtocol.close();
-                    }
-                    catch (IOException e2) {
-                        e2.printStackTrace();
-                    }
                 }
+//                finally {
+//                    if (commsProtocol != null) try {
+//                        commsProtocol.close();
+//                    }
+//                    catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                    if (in != null) try {
+//                        in.close();
+//                    }
+//                    catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                    if (out != null) out.close();
+//                }
             }
         }
 

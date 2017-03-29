@@ -63,6 +63,7 @@ public class ClientBleFragment extends BaseFragment
 
     private BluetoothDevice bluetoothDevice;
     private ClientBleService clientBleService;
+    private ServerNsdService serverNsdService;
 
     private View progressBar;
     private Button sniffButton;
@@ -154,7 +155,7 @@ public class ClientBleFragment extends BaseFragment
         switchCreator = new RcSwitch.SwitchCreator();
         switches = RcSwitch.getSavedSwitches();
 
-        View rootView = inflater.inflate(R.layout.fragment_control, container, false);
+        View rootView = inflater.inflate(R.layout.fragment_ble_client, container, false);
         AppBarLayout appBarLayout = (AppBarLayout) rootView.findViewById(R.id.app_bar_layout);
 
         sniffButton = (Button) rootView.findViewById(R.id.sniff);
@@ -216,6 +217,7 @@ public class ClientBleFragment extends BaseFragment
 
         if (activity.getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE).getBoolean(ServerNsdService.SERVER_FLAG, false)) {
             activity.startService(new Intent(activity, ServerNsdService.class));
+            activity.bindService(new Intent(activity, ServerNsdService.class), this, BIND_AUTO_CREATE);
             getActivity().invalidateOptionsMenu();
         }
     }
@@ -233,13 +235,15 @@ public class ClientBleFragment extends BaseFragment
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        inflater.inflate(R.menu.menu_fragment_control, menu);
+        inflater.inflate(R.menu.menu_ble_client, menu);
 
         if (clientBleService != null) {
             menu.findItem(R.id.menu_connect).setVisible(!clientBleService.isConnected());
             menu.findItem(R.id.menu_disconnect).setVisible(clientBleService.isConnected());
         }
         menu.findItem(R.id.menu_start_nsd).setVisible(!isServiceRunning(ServerNsdService.class));
+        menu.findItem(R.id.menu_restart_nsd).setVisible(isServiceRunning(ServerNsdService.class));
+
         super.onCreateOptionsMenu(menu, inflater);
     }
 
@@ -255,6 +259,9 @@ public class ClientBleFragment extends BaseFragment
                     return true;
                 case R.id.menu_start_nsd:
                     NameServiceDialogFragment.newInstance().show(getChildFragmentManager(), "");
+                    break;
+                case R.id.menu_restart_nsd:
+                    if (serverNsdService != null) serverNsdService.restart();
                     break;
                 case R.id.menu_forget:
                     LocalBroadcastManager.getInstance(getActivity()).sendBroadcast(new Intent(ServerNsdService.ACTION_STOP));
@@ -306,12 +313,13 @@ public class ClientBleFragment extends BaseFragment
     @Override
     public void onServiceConnected(ComponentName componentName, IBinder service) {
         if (componentName.getClassName().equals(ClientBleService.class.getName())) {
-            clientBleService = ((ClientBleService.LocalBinder) service).getService();
+            clientBleService = ((ClientBleService.Binder) service).getService();
             clientBleService.onAppForeGround();
 
             onConnectionStateChanged(clientBleService.getConnectionState());
         }
         else if (componentName.getClassName().equals(ServerNsdService.class.getName())) {
+            serverNsdService = ((ServerNsdService.Binder) service).getService();
             getActivity().invalidateOptionsMenu();
         }
     }

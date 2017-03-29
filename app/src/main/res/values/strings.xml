@@ -74,6 +74,7 @@
     <string name="menu_forget">Forget Device</string>
     <string name="menu_forget_server">Forget Server</string>
     <string name="menu_start_nsd">Start Wifi Service</string>
+    <string name="menu_restart_nsd">Restart Wifi Service</string>
     <string name="menu_scan">Scan</string>
     <string name="menu_stop">Stop</string>
     <string name="menu_refresh">Refresh</string>

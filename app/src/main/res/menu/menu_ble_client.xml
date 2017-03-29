@@ -17,8 +17,13 @@
         android:title="@string/menu_start_nsd"
         compat:showAsAction="never" />
     <item
-        android:id="@+id/menu_forget"
+        android:id="@+id/menu_restart_nsd"
         android:orderInCategory="103"
+        android:title="@string/menu_restart_nsd"
+        compat:showAsAction="never" />
+    <item
+        android:id="@+id/menu_forget"
+        android:orderInCategory="104"
         android:title="@string/menu_forget"
         compat:showAsAction="never" />
 </menu>

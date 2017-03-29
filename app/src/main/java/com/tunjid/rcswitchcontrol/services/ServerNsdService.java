@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.nsd.NsdServiceInfo;
-import android.os.Binder;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
@@ -17,6 +16,7 @@ import com.tunjid.rcswitchcontrol.nsd.nsdprotocols.CommsProtocol;
 import com.tunjid.rcswitchcontrol.nsd.nsdprotocols.ProxyProtocol;
 
 import java.io.BufferedReader;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
@@ -38,7 +38,7 @@ public class ServerNsdService extends BaseNsdService {
     private ServerThread serverThread;
 
     private final IntentFilter intentFilter = new IntentFilter();
-    private final IBinder binder = new ServerServiceBinder();
+    private final IBinder binder = new Binder();
 
     private final BroadcastReceiver nsdUpdateReceiver = new BroadcastReceiver() {
         @Override
@@ -57,15 +57,10 @@ public class ServerNsdService extends BaseNsdService {
     @Override
     public void onCreate() {
         super.onCreate();
-
-        String serviceName = getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE)
-                .getString(SERVICE_NAME_KEY, WIRELESS_SWITCH_SERVICE);
-
-        serverThread = new ServerThread(nsdHelper, serviceName);
-        serverThread.start();
-
         intentFilter.addAction(ACTION_STOP);
         LocalBroadcastManager.getInstance(this).registerReceiver(nsdUpdateReceiver, intentFilter);
+
+        startUp();
     }
 
     @Override
@@ -73,9 +68,17 @@ public class ServerNsdService extends BaseNsdService {
         return binder;
     }
 
-    public String getServiceName() {
-        return serverThread != null ? serverThread.serviceName : "";
+    private void startUp() {
+        String serviceName = getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE)
+                .getString(SERVICE_NAME_KEY, WIRELESS_SWITCH_SERVICE);
+
+        serverThread = new ServerThread(nsdHelper, serviceName);
+        serverThread.start();
     }
+
+//    public String getServiceName() {
+//        return serverThread != null ? serverThread.serviceName : "";
+//    }
 
     @Override
     protected void tearDown() {
@@ -83,18 +86,23 @@ public class ServerNsdService extends BaseNsdService {
         serverThread.tearDown();
     }
 
-
     @Override
     public void onDestroy() {
         super.onDestroy();
         LocalBroadcastManager.getInstance(this).unregisterReceiver(nsdUpdateReceiver);
     }
 
+    public void restart() {
+        serverThread.tearDown();
+        tearDown();
+        startUp();
+    }
+
     /**
-     * {@link Binder} for {@link ServerNsdService}
+     * {@link android.os.Binder} for {@link ServerNsdService}
      */
-    public class ServerServiceBinder extends Binder {
-        public ServerNsdService getServerService() {
+    public class Binder extends android.os.Binder {
+        public ServerNsdService getService() {
             return ServerNsdService.this;
         }
     }
@@ -106,8 +114,9 @@ public class ServerNsdService extends BaseNsdService {
 
         volatile boolean isRunning;
 
-        private String serviceName;
+        String serviceName;
         private ServerSocket serverSocket;
+        private Connection connection;
 
         private final RegistrationListener registrationListener = new RegistrationListener() {
 
@@ -135,16 +144,15 @@ public class ServerNsdService extends BaseNsdService {
         @Override
         public void run() {
             isRunning = true;
-
             while (isRunning) {
                 try {
                     Log.d(TAG, "ServerSocket Created, awaiting connection.");
                     // Create new clients for every connection received
-                    new Connection(serverSocket.accept());
+                    connection = new Connection(serverSocket.accept());
+                    connection.start();
                 }
                 catch (Exception e) {
                     Log.e(TAG, "Error creating ServerSocket: ", e);
-                    e.printStackTrace();
                 }
             }
         }
@@ -152,12 +160,18 @@ public class ServerNsdService extends BaseNsdService {
         void tearDown() {
             isRunning = false;
             try {
+                Log.d(TAG, "Attempting to close server connection.");
+                connection.close();
+            }
+            catch (Exception e) {
+                Log.e(TAG, "Error closing ServerSocket: ", e);
+            }
+            try {
                 Log.d(TAG, "Attempting to close server socket.");
                 serverSocket.close();
             }
             catch (Exception e) {
                 Log.e(TAG, "Error closing ServerSocket: ", e);
-                e.printStackTrace();
             }
         }
     }
@@ -165,11 +179,16 @@ public class ServerNsdService extends BaseNsdService {
     /**
      * Connection between {@link ServerNsdService} and it's clients
      */
-    private static class Connection {
+    private static class Connection implements Closeable {
+
+        private Socket socket;
 
         Connection(Socket socket) {
             Log.d(TAG, "Connected to new client");
+            this.socket = socket;
+        }
 
+        void start() {
             if (socket != null && socket.isConnected()) {
                 CommsProtocol commsProtocol = new ProxyProtocol();
 
@@ -211,5 +230,9 @@ public class ServerNsdService extends BaseNsdService {
             }
         }
 
+        @Override
+        public void close() throws IOException {
+            socket.close();
+        }
     }
 }

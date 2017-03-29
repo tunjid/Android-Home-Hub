@@ -18,7 +18,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.os.Binder;
 import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -98,7 +97,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
     // Map of characteristics of interest
     private Map<String, BluetoothGattCharacteristic> characteristicMap = new HashMap<>();
 
-    private final IBinder mBinder = new LocalBinder();
+    private final IBinder mBinder = new Binder();
     private final IntentFilter nsdIntentFilter = new IntentFilter();
 
     private final BroadcastReceiver nsdUpdateReceiver = new BroadcastReceiver() {
@@ -571,7 +570,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
         Toast.makeText(context, resourceId, Toast.LENGTH_SHORT).show();
     }
 
-    public class LocalBinder extends Binder {
+    public class Binder extends android.os.Binder {
         public ClientBleService getService() {
             return ClientBleService.this;
         }

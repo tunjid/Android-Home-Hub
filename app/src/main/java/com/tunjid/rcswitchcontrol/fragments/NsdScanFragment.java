@@ -1,7 +1,6 @@
 package com.tunjid.rcswitchcontrol.fragments;
 
 
-import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
@@ -27,12 +26,9 @@ import com.tunjid.rcswitchcontrol.nsd.NsdHelper;
 import com.tunjid.rcswitchcontrol.nsd.abstractclasses.DiscoveryListener;
 import com.tunjid.rcswitchcontrol.nsd.abstractclasses.ResolveListener;
 import com.tunjid.rcswitchcontrol.services.ClientNsdService;
-import com.tunjid.rcswitchcontrol.services.ServerNsdService;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static android.content.Context.BIND_AUTO_CREATE;
 
 /**
  * A {@link Fragment} listing supported NSD servers
@@ -45,7 +41,7 @@ public class NsdScanFragment extends BaseFragment
     private RecyclerView recyclerView;
 
     private NsdHelper nsdHelper;
-    private ServerNsdService serverService;
+//    private ServerNsdService serverService;
 
     private List<NsdServiceInfo> services = new ArrayList<>();
 
@@ -103,7 +99,7 @@ public class NsdScanFragment extends BaseFragment
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-        View rootView = inflater.inflate(R.layout.fragment_server_list, container, false);
+        View rootView = inflater.inflate(R.layout.fragment_nsd_scan, container, false);
 
         recyclerView = (RecyclerView) rootView.findViewById(R.id.list);
 
@@ -117,13 +113,9 @@ public class NsdScanFragment extends BaseFragment
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-
-//        floatingActionButton.hide();
-
-        Activity activity = getActivity();
-
-        Intent server = new Intent(activity, ServerNsdService.class);
-        activity.bindService(server, this, BIND_AUTO_CREATE);
+//        Activity activity = getActivity();
+//        Intent server = new Intent(activity, ServerNsdService.class);
+//        activity.bindService(server, this, BIND_AUTO_CREATE);
     }
 
     @Override
@@ -140,7 +132,7 @@ public class NsdScanFragment extends BaseFragment
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        //inflater.inflate(R.menu.menu_client, menu);
+        //inflater.inflate(R.menu.menu_nsd_client, menu);
     }
 
     @Override
@@ -165,7 +157,8 @@ public class NsdScanFragment extends BaseFragment
 
     @Override
     public boolean isSelf(NsdServiceInfo serviceInfo) {
-        return serverService != null && serviceInfo.getServiceName().equals(serverService.getServiceName());
+//        return serverService != null && serviceInfo.getServiceName().equals(serverService.getServiceName());
+        return false;
     }
 
     @Override
@@ -177,12 +170,12 @@ public class NsdScanFragment extends BaseFragment
 
     @Override
     public void onServiceConnected(ComponentName name, IBinder service) {
-        serverService = ((ServerNsdService.ServerServiceBinder) service).getServerService();
+//        serverService = ((ServerNsdService.Binder) service).getService();
         recyclerView.getAdapter().notifyDataSetChanged();
     }
 
     @Override
     public void onServiceDisconnected(ComponentName name) {
-        serverService = null;
+//        serverService = null;
     }
 }

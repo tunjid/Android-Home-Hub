@@ -73,7 +73,9 @@ public class ClientNsdFragment extends BaseFragment
             switch (action) {
                 case ClientNsdService.ACTION_SOCKET_CONNECTED:
                     onConnectionStateChanged(action);
-                    if (commands.isEmpty()) clientNsdService.sendMessage(CommsProtocol.PING);
+                    if (commands.isEmpty() && clientNsdService != null) {
+                        clientNsdService.sendMessage(CommsProtocol.PING);
+                    }
                     break;
                 case ClientNsdService.ACTION_SOCKET_DISCONNECTED:
                     onConnectionStateChanged(action);
@@ -185,7 +187,7 @@ public class ClientNsdFragment extends BaseFragment
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        inflater.inflate(R.menu.menu_fragment_nsd_control, menu);
+        inflater.inflate(R.menu.menu_fragment_nsd_client, menu);
         super.onCreateOptionsMenu(menu, inflater);
     }
 
@@ -293,10 +295,14 @@ public class ClientNsdFragment extends BaseFragment
         String text = null;
         switch (newState) {
             case ClientNsdService.ACTION_SOCKET_CONNECTED:
-                text = getResources().getString(R.string.connected_to, clientNsdService.getServiceName());
+                text = clientNsdService == null
+                        ? getString(R.string.connected)
+                        : getResources().getString(R.string.connected_to, clientNsdService.getServiceName());
                 break;
             case ClientNsdService.ACTION_SOCKET_CONNECTING:
-                text = getResources().getString(R.string.connecting_to, clientNsdService.getServiceName());
+                text = clientNsdService == null
+                        ? getString(R.string.connecting)
+                        : getResources().getString(R.string.connecting_to, clientNsdService.getServiceName());
                 break;
             case ClientNsdService.ACTION_SOCKET_DISCONNECTED:
                 text = getString(R.string.disconnected);

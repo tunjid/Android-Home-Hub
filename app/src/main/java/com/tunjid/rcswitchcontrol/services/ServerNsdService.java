@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static com.tunjid.rcswitchcontrol.model.RcSwitch.SWITCH_PREFS;
 
@@ -83,7 +85,7 @@ public class ServerNsdService extends BaseNsdService {
     @Override
     protected void tearDown() {
         super.tearDown();
-        serverThread.tearDown();
+        serverThread.close();
     }
 
     @Override
@@ -93,7 +95,7 @@ public class ServerNsdService extends BaseNsdService {
     }
 
     public void restart() {
-        serverThread.tearDown();
+        serverThread.close();
         tearDown();
         startUp();
     }
@@ -110,13 +112,13 @@ public class ServerNsdService extends BaseNsdService {
     /**
      * Thread for communications between {@link ServerNsdService} and it's clients
      */
-    private static class ServerThread extends Thread {
+    private static class ServerThread extends Thread implements Closeable {
 
         volatile boolean isRunning;
 
         String serviceName;
         private ServerSocket serverSocket;
-        private Connection connection;
+        private Map<Long, Connection> connectionsMap = new ConcurrentHashMap<>();
 
         private final RegistrationListener registrationListener = new RegistrationListener() {
 
@@ -139,52 +141,48 @@ public class ServerNsdService extends BaseNsdService {
             catch (Exception e) {
                 e.printStackTrace();
             }
-//            finally {
-//                try {
-//                    serverSocket.close();
-//                }
-//                catch (IOException e) {
-//                    e.printStackTrace();
-//                }
-//            }
         }
 
         @Override
         public void run() {
             isRunning = true;
+
+            Log.d(TAG, "ServerSocket Created, awaiting connectionsMap.");
+
             while (isRunning) {
                 try {
-                    Log.d(TAG, "ServerSocket Created, awaiting connection.");
-                    // Create new clients for every connection received
-                    connection = new Connection(serverSocket.accept());
+                    // Create new connection for every new client
+                    Connection connection = new Connection(serverSocket.accept(), connectionsMap);
                     connection.start();
+                    connectionsMap.put(connection.getId(), connection);
+
+                    Log.d(TAG, "Client connected. Number of clients: " + connectionsMap.size());
                 }
                 catch (Exception e) {
-                    Log.e(TAG, "Error creating ServerSocket: ", e);
+                    Log.e(TAG, "Error creating connecting to a client: ", e);
                 }
-//                finally {
-//                    try {
-//                        if (connection != null) connection.close();
-//                    }
-//                    catch (IOException e) {
-//                        e.printStackTrace();
-//                    }
-//                }
             }
         }
 
-        void tearDown() {
+        @Override
+        public void close() {
             isRunning = false;
-            try {
-                Log.d(TAG, "Attempting to close server connection.");
-                connection.close();
+
+            for (Long key : connectionsMap.keySet()) {
+                try {
+                    Log.d(TAG, "Attempting to close server connection with id " + key);
+                    connectionsMap.get(key).close();
+                }
+                catch (Exception e) {
+                    Log.e(TAG, "Error closing ServerSocket: ", e);
+                }
             }
-            catch (Exception e) {
-                Log.e(TAG, "Error closing ServerSocket: ", e);
-            }
+
+            connectionsMap.clear();
+
             try {
                 Log.d(TAG, "Attempting to close server socket.");
-                serverSocket.close();
+                if (serverSocket != null) serverSocket.close();
             }
             catch (Exception e) {
                 Log.e(TAG, "Error closing ServerSocket: ", e);
@@ -195,20 +193,23 @@ public class ServerNsdService extends BaseNsdService {
     /**
      * Connection between {@link ServerNsdService} and it's clients
      */
-    private static class Connection implements Closeable {
+    private static class Connection extends Thread implements Closeable {
 
         private Socket socket;
+        private Map<Long, Connection> connectionMap;
 
-        Connection(Socket socket) {
+        Connection(Socket socket, Map<Long, Connection> connectionMap) {
             Log.d(TAG, "Connected to new client");
             this.socket = socket;
+            this.connectionMap = connectionMap;
         }
 
-        void start() {
+        @Override
+        public void start() {
             if (socket != null && socket.isConnected()) {
-                CommsProtocol commsProtocol;
-                PrintWriter out;
-                BufferedReader in;
+                CommsProtocol commsProtocol = null;
+                PrintWriter out = null;
+                BufferedReader in = null;
                 try {
                     commsProtocol = new ProxyProtocol();
                     in = createBufferedReader(socket);
@@ -233,21 +234,28 @@ public class ServerNsdService extends BaseNsdService {
                 catch (IOException e) {
                     e.printStackTrace();
                 }
-//                finally {
-//                    if (commsProtocol != null) try {
-//                        commsProtocol.close();
-//                    }
-//                    catch (IOException e) {
-//                        e.printStackTrace();
-//                    }
-//                    if (in != null) try {
-//                        in.close();
-//                    }
-//                    catch (IOException e) {
-//                        e.printStackTrace();
-//                    }
-//                    if (out != null) out.close();
-//                }
+                finally {
+                    if (commsProtocol != null) try {
+                        commsProtocol.close();
+                    }
+                    catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    if (in != null) try {
+                        in.close();
+                    }
+                    catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    if (out != null) out.close();
+                    try {
+                        close();
+                    }
+                    catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    connectionMap.remove(getId());
+                }
             }
         }
 

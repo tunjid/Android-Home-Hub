@@ -165,7 +165,7 @@ public class NsdScanFragment extends BaseFragment
     public void onDestroy() {
         super.onDestroy();
         nsdHelper.tearDown();
-        getActivity().unbindService(this);
+//        getActivity().unbindService(this);
     }
 
     @Override

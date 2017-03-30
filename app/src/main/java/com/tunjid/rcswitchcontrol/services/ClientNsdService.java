@@ -21,6 +21,8 @@ import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService;
 import com.tunjid.rcswitchcontrol.nsd.abstractclasses.BaseNsdService;
 
 import java.io.BufferedReader;
+import java.io.Closeable;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.annotation.Retention;
 import java.net.Socket;
@@ -189,7 +191,12 @@ public class ClientNsdService extends BaseNsdService
 
         Log.e(TAG, "Tearing down ClientServer");
 
-        if (messageThread != null) messageThread.exit();
+        try {
+            if (messageThread != null) messageThread.close();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private Notification connectedNotification() {
@@ -220,7 +227,7 @@ public class ClientNsdService extends BaseNsdService
         }
     }
 
-    private static class MessageThread extends Thread {
+    private static class MessageThread extends Thread implements Closeable {
 
         NsdServiceInfo service;
 
@@ -273,13 +280,41 @@ public class ClientNsdService extends BaseNsdService
                 e.printStackTrace();
                 clientNsdService.setConnectionState(ACTION_SOCKET_DISCONNECTED);
             }
+            finally {
+                try {
+                    close();
+                }
+                catch (IOException ioe) {
+                    ioe.printStackTrace();
+                }
+            }
         }
 
-        void send(String message) {
-            new MessageSender(message, this).start();
+        void send(final String message) {
+            if (out == null) return;
+
+            if (out.checkError()) {
+                try {
+                    close();
+                    Log.d(TAG, "Error writing to server, closing.");
+                }
+                catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            else {
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        out.println(message);
+                        Log.d(TAG, "Connection sent message: " + message);
+                    }
+                }).start();
+            }
         }
 
-        synchronized void exit() {
+        @Override
+        public void close() throws IOException {
             try {
                 Log.d(TAG, "Exiting message thread.");
                 currentSocket.close();
@@ -288,28 +323,6 @@ public class ClientNsdService extends BaseNsdService
                 e.printStackTrace();
             }
             clientNsdService.setConnectionState(ACTION_SOCKET_DISCONNECTED);
-        }
-    }
-
-    private static class MessageSender extends Thread {
-
-        String message;
-        MessageThread messageThread;
-
-        MessageSender(String message, MessageThread messageThread) {
-            this.message = message;
-            this.messageThread = messageThread;
-        }
-
-        @Override
-        public void run() {
-            try {
-                messageThread.out.println(message);
-            }
-            catch (Exception e) {
-                Log.d(TAG, "Error3", e);
-            }
-            Log.d(TAG, "Connection sent message: " + message);
         }
     }
 }

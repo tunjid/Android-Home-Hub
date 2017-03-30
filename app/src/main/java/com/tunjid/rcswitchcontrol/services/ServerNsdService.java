@@ -198,10 +198,6 @@ public class ServerNsdService extends BaseNsdService {
         private Socket socket;
         private Map<Long, Connection> connectionMap;
 
-        CommsProtocol commsProtocol = null;
-        PrintWriter out = null;
-        BufferedReader in = null;
-
         Connection(Socket socket, Map<Long, Connection> connectionMap) {
             Log.d(TAG, "Connected to new client");
             this.socket = socket;
@@ -211,10 +207,11 @@ public class ServerNsdService extends BaseNsdService {
         @Override
         public void run() {
             if (socket != null && socket.isConnected()) {
+                CommsProtocol commsProtocol = null;
                 try {
                     commsProtocol = new ProxyProtocol();
-                    in = createBufferedReader(socket);
-                    out = createPrintWriter(socket);
+                    BufferedReader in = createBufferedReader(socket);
+                    PrintWriter out = createPrintWriter(socket);
 
                     String inputLine, outputLine;
 
@@ -237,6 +234,12 @@ public class ServerNsdService extends BaseNsdService {
                 }
                 finally {
                     try {
+                        if (commsProtocol != null) try {
+                            commsProtocol.close();
+                        }
+                        catch (IOException e) {
+                            e.printStackTrace();
+                        }
                         close();
                     }
                     catch (IOException e) {
@@ -249,20 +252,6 @@ public class ServerNsdService extends BaseNsdService {
         @Override
         public void close() throws IOException {
             connectionMap.remove(getId());
-            if (commsProtocol != null) try {
-                commsProtocol.close();
-            }
-            catch (IOException e) {
-                e.printStackTrace();
-            }
-            if (in != null) try {
-                in.close();
-            }
-            catch (IOException e) {
-                e.printStackTrace();
-            }
-            if (out != null) out.close();
-
             socket.close();
         }
     }

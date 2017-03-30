@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:compat="http://schemas.android.com/apk/res-auto">
-
+    <item
+        android:id="@+id/menu_connect"
+        android:orderInCategory="100"
+        android:title="@string/connect"
+        compat:showAsAction="ifRoom" />
     <item
         android:id="@+id/menu_forget"
-        android:orderInCategory="103"
+        android:orderInCategory="101"
         android:title="@string/menu_forget_server"
         compat:showAsAction="never" />
 </menu>

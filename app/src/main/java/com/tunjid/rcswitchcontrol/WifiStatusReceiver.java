@@ -33,6 +33,8 @@ public class WifiStatusReceiver extends BroadcastReceiver {
     public static final int SEARCH_LENGTH_MILLIS = 15000;
     private static final String TAG = WifiStatusReceiver.class.getSimpleName();
 
+    private boolean isSearching;
+
     @Override
     public void onReceive(Context context, Intent intent) {
         boolean flag = false;
@@ -56,6 +58,7 @@ public class WifiStatusReceiver extends BroadcastReceiver {
     }
 
     private void connectLastNsdService(final Context context) {
+        if (isSearching) return;
 
         SharedPreferences preferences = context.getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE);
 
@@ -80,6 +83,7 @@ public class WifiStatusReceiver extends BroadcastReceiver {
                     context.startService(intent);
 
                     nsdHelper.tearDown();
+                    isSearching = false;
                 }
             }
         };
@@ -99,11 +103,13 @@ public class WifiStatusReceiver extends BroadcastReceiver {
 
         nsdHelper.initializeDiscoveryListener(discoveryListener);
         nsdHelper.discoverServices();
+        isSearching = true;
 
         new Handler(Looper.myLooper()).postDelayed(new Runnable() {
             @Override
             public void run() {
                 nsdHelper.tearDown();
+                isSearching = false;
             }
         }, SEARCH_LENGTH_MILLIS);
     }

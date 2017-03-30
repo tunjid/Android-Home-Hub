@@ -209,7 +209,7 @@ public class ServerNsdService extends BaseNsdService {
         }
 
         @Override
-        public void start() {
+        public void run() {
             if (socket != null && socket.isConnected()) {
                 try {
                     commsProtocol = new ProxyProtocol();
@@ -248,6 +248,7 @@ public class ServerNsdService extends BaseNsdService {
 
         @Override
         public void close() throws IOException {
+            connectionMap.remove(getId());
             if (commsProtocol != null) try {
                 commsProtocol.close();
             }
@@ -263,7 +264,6 @@ public class ServerNsdService extends BaseNsdService {
             if (out != null) out.close();
 
             socket.close();
-            connectionMap.remove(getId());
         }
     }
 }

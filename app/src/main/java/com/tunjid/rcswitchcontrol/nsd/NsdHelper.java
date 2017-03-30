@@ -29,7 +29,6 @@ public class NsdHelper {
 
     private static final String TAG = NsdHelper.class.getSimpleName();
     private static final String SERVICE_TYPE = "_http._tcp.";
-    private static final String SERVICE_NAME = "RC Switch NSD";
 
     private NsdManager nsdManager;
 
@@ -48,10 +47,10 @@ public class NsdHelper {
         mRegistrationListener = listener;
     }
 
-    public void registerService(int port) {
+    public void registerService(int port, String serviceName) {
         NsdServiceInfo serviceInfo = new NsdServiceInfo();
         serviceInfo.setPort(port);
-        serviceInfo.setServiceName(SERVICE_NAME);
+        serviceInfo.setServiceName(serviceName);
         serviceInfo.setServiceType(SERVICE_TYPE);
 
         nsdManager.registerService(serviceInfo, NsdManager.PROTOCOL_DNS_SD, mRegistrationListener);
@@ -71,13 +70,13 @@ public class NsdHelper {
             nsdManager.unregisterService(mRegistrationListener);
         }
         catch (IllegalArgumentException e) {
-            Log.w(TAG, "Nsd Registration Listner not added");
+            Log.w(TAG, "Nsd Registration Listener not added");
         }
         try { // May or may not be looking for services, throws IllegalArgumentException if it isn't
             nsdManager.stopServiceDiscovery(mDiscoveryListener);
         }
         catch (IllegalArgumentException e) {
-            Log.w(TAG, "Nsd Discovery Listner not added");
+            Log.w(TAG, "Nsd Discovery Listener not added");
         }
 
     }

@@ -66,7 +66,7 @@ public class BleScanFragment extends BaseFragment
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View rootView = inflater.inflate(R.layout.fragment_scan, container, false);
+        View rootView = inflater.inflate(R.layout.fragment_ble_scan, container, false);
 
         recyclerView = (RecyclerView) rootView.findViewById(R.id.list);
         recyclerView.setAdapter(new ScanAdapter(this, bleDevices));
@@ -103,7 +103,7 @@ public class BleScanFragment extends BaseFragment
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
 
         // Inflate the menu; this adds items to the action bar if it is present.
-        inflater.inflate(R.menu.scan, menu);
+        inflater.inflate(R.menu.menu_ble_scan, menu);
 
         menu.findItem(R.id.menu_stop).setVisible(isScanning);
         menu.findItem(R.id.menu_scan).setVisible(!isScanning);
@@ -206,7 +206,7 @@ public class BleScanFragment extends BaseFragment
         }
     }
 
-    // Used to scan for BLE devices
+    // Used to menu_ble_scan for BLE devices
     private void scanLeDevice(boolean enable) {
         isScanning = enable;
 
@@ -215,7 +215,7 @@ public class BleScanFragment extends BaseFragment
 
         getActivity().invalidateOptionsMenu();
 
-        // Stops  after a pre-defined scan period.
+        // Stops  after a pre-defined menu_ble_scan period.
         if (enable) {
             recyclerView.postDelayed(new Runnable() {
                 @Override

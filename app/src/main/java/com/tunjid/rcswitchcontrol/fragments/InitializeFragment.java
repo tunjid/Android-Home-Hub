@@ -69,7 +69,7 @@ public class InitializeFragment extends BaseFragment
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         }
 
-        // if BT is already on, prompt user to go ahead and scan
+        // if BT is already on, prompt user to go ahead and menu_ble_scan
         else if (mBluetoothAdapter.isEnabled()) {
             onActivityResult(REQUEST_ENABLE_BT, BLUETOOTH_ALREADY_ON, enableBtIntent);
         }

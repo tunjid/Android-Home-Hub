@@ -34,6 +34,8 @@
     <string name="connection_state">Connection State: %1$s</string>
     <string name="connected">Connected</string>
     <string name="connecting">Connecting</string>
+    <string name="connected_to">Connected to %1$s</string>
+    <string name="connecting_to">Connecting to %1$s</string>
     <string name="disconnected">Disconnected</string>
 
     <!-- Rename switch -->
@@ -62,6 +64,8 @@
     <string name="in_server_mode">IN SERVER MODE</string>
     <string name="connection_title">Connecting</string>
     <string name="connection_text">Please wait…</string>
+    <string name="ok">Okay</string>
+    <string name="name_nsd_service">Name NSD Service</string>
     <string name="connected_to_server">Connected to switch server</string>
 
     <!-- Menu items -->
@@ -70,6 +74,7 @@
     <string name="menu_forget">Forget Device</string>
     <string name="menu_forget_server">Forget Server</string>
     <string name="menu_start_nsd">Start Wifi Service</string>
+    <string name="menu_restart_nsd">Restart Wifi Service</string>
     <string name="menu_scan">Scan</string>
     <string name="menu_stop">Stop</string>
     <string name="menu_refresh">Refresh</string>

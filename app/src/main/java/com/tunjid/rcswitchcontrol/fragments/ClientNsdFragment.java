@@ -72,11 +72,16 @@ public class ClientNsdFragment extends BaseFragment
 
             switch (action) {
                 case ClientNsdService.ACTION_SOCKET_CONNECTED:
+                    if (commands.isEmpty() && clientNsdService != null) {
+                        clientNsdService.sendMessage(CommsProtocol.PING);
+                    }
                     onConnectionStateChanged(action);
-                    if (commands.isEmpty()) clientNsdService.sendMessage(CommsProtocol.PING);
+                    getActivity().invalidateOptionsMenu();
                     break;
+                case ClientNsdService.ACTION_SOCKET_CONNECTING:
                 case ClientNsdService.ACTION_SOCKET_DISCONNECTED:
                     onConnectionStateChanged(action);
+                    getActivity().invalidateOptionsMenu();
                     break;
                 case ClientNsdService.ACTION_SERVER_RESPONSE:
                     String serverResponse = intent.getStringExtra(ClientNsdService.DATA_SERVER_RESPONSE);
@@ -185,7 +190,8 @@ public class ClientNsdFragment extends BaseFragment
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        inflater.inflate(R.menu.menu_fragment_nsd_control, menu);
+        inflater.inflate(R.menu.menu_fragment_nsd_client, menu);
+        menu.findItem(R.id.menu_connect).setVisible(clientNsdService != null && !clientNsdService.isConnected());
         super.onCreateOptionsMenu(menu, inflater);
     }
 
@@ -193,6 +199,10 @@ public class ClientNsdFragment extends BaseFragment
     public boolean onOptionsItemSelected(MenuItem item) {
         if (clientNsdService != null) {
             switch (item.getItemId()) {
+                case R.id.menu_connect:
+                    getActivity().sendBroadcast(new Intent(ClientNsdService.ACTION_START_NSD_DISCOVERY));
+                    onConnectionStateChanged(ClientNsdService.ACTION_SOCKET_CONNECTING);
+                    return true;
                 case R.id.menu_forget:
                     if (clientNsdService != null) clientNsdService.stopSelf();
 
@@ -264,7 +274,8 @@ public class ClientNsdFragment extends BaseFragment
 
     @Override
     public void onLongClicked(RcSwitch rcSwitch) {
-        RenameSwitchDialogFragment.newInstance(rcSwitch).show(getChildFragmentManager(), "");
+        Snackbar.make(commandsView, "Not supported yet, change the name on the server device",
+                Snackbar.LENGTH_SHORT).show();
     }
 
     @Override
@@ -284,8 +295,7 @@ public class ClientNsdFragment extends BaseFragment
 
     @Override
     public void onSwitchRenamed(RcSwitch rcSwitch) {
-        //switchList.getAdapter().notifyItemChanged(switches.indexOf(rcSwitch));
-        Snackbar.make(commandsView, "Not supported, change the name on the server device", Snackbar.LENGTH_SHORT).show();
+        // Not implemented yet.
     }
 
     private void onConnectionStateChanged(String newState) {
@@ -293,10 +303,14 @@ public class ClientNsdFragment extends BaseFragment
         String text = null;
         switch (newState) {
             case ClientNsdService.ACTION_SOCKET_CONNECTED:
-                text = getString(R.string.connected);
+                text = clientNsdService == null
+                        ? getString(R.string.connected)
+                        : getResources().getString(R.string.connected_to, clientNsdService.getServiceName());
                 break;
             case ClientNsdService.ACTION_SOCKET_CONNECTING:
-                text = getString(R.string.connecting);
+                text = clientNsdService == null
+                        ? getString(R.string.connecting)
+                        : getResources().getString(R.string.connecting_to, clientNsdService.getServiceName());
                 break;
             case ClientNsdService.ACTION_SOCKET_DISCONNECTED:
                 text = getString(R.string.disconnected);

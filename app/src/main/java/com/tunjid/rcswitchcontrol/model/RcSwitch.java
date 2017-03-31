@@ -30,9 +30,9 @@ public class RcSwitch implements Parcelable {
     private String name;
 
     private byte bitLength;
-    private byte pulseLength;
     private byte protocol;
 
+    private byte[] pulseLength = new byte[4];
     private byte[] onCode = new byte[4];
     private byte[] offCode = new byte[4];
 
@@ -63,28 +63,19 @@ public class RcSwitch implements Parcelable {
         return name;
     }
 
-    public byte[] getOnCode() {
-        return onCode;
-    }
-
-    public byte[] getOffCode() {
-        return offCode;
-    }
-
-    public byte getBitLength() {
-        return bitLength;
-    }
-
-    public byte getPulseLength() {
-        return pulseLength;
-    }
-
-    public byte getProtocol() {
-        return protocol;
-    }
-
     public void setName(String name) {
         this.name = name;
+    }
+
+    public byte[] getTransmission(boolean state){
+        byte[] transmission = new byte[10];
+
+        System.arraycopy(state ? onCode : offCode, 0, transmission, 0, onCode.length);
+        System.arraycopy(pulseLength, 0, transmission, 4, pulseLength.length);
+        transmission[8] = bitLength;
+        transmission[9] = protocol;
+
+        return transmission;
     }
 
     @Override
@@ -107,11 +98,11 @@ public class RcSwitch implements Parcelable {
 
     protected RcSwitch(Parcel in) {
         name = in.readString();
-        bitLength = in.readByte();
-        pulseLength = in.readByte();
         protocol = in.readByte();
+        bitLength = in.readByte();
         onCode = in.createByteArray();
         offCode = in.createByteArray();
+        pulseLength = in.createByteArray();
     }
 
     @Override
@@ -122,11 +113,11 @@ public class RcSwitch implements Parcelable {
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeString(name);
-        dest.writeByte(bitLength);
-        dest.writeByte(pulseLength);
         dest.writeByte(protocol);
+        dest.writeByte(bitLength);
         dest.writeByteArray(onCode);
         dest.writeByteArray(offCode);
+        dest.writeByteArray(pulseLength);
     }
 
     public static final Parcelable.Creator<RcSwitch> CREATOR = new Parcelable.Creator<RcSwitch>() {
@@ -153,21 +144,16 @@ public class RcSwitch implements Parcelable {
             state = State.OFF_CODE;
 
             rcSwitch = new RcSwitch();
-            rcSwitch.pulseLength = code[4];
-            rcSwitch.bitLength = code[5];
-            rcSwitch.protocol = code[6];
+
+            rcSwitch.bitLength = code[8];
+            rcSwitch.protocol = code[9];
 
             System.arraycopy(code, 0, rcSwitch.onCode, 0, 4);
+            System.arraycopy(code, 4, rcSwitch.pulseLength, 0, 4);
         }
 
         public RcSwitch withOffCode(byte[] code) {
             state = State.ON_CODE;
-
-            int pulseLength = rcSwitch.pulseLength;
-            pulseLength += (int) code[4];
-            pulseLength /= 2;
-            rcSwitch.pulseLength = (byte) pulseLength;
-
             System.arraycopy(code, 0, rcSwitch.offCode, 0, 4);
             return rcSwitch;
         }

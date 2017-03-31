@@ -88,7 +88,7 @@ BGLib ble112((HardwareSerial * ) & Serial1, 0, 1);
 #define PIN_TX 5
 
 uint8_t stateCallback[1];
-uint8_t sniffedData[7];
+uint8_t sniffedData[10];
 
 RCSwitch receiveSwitch = RCSwitch();
 
@@ -170,7 +170,7 @@ void loop() {
                 }
                 else {
 
-                    uint8_t pulseLength = receiveSwitch.getReceivedDelay();
+                    unsigned int pulseLength = receiveSwitch.getReceivedDelay();
                     uint8_t bitLength = receiveSwitch.getReceivedBitlength();
                     uint8_t protocol = receiveSwitch.getReceivedProtocol();
 
@@ -190,12 +190,15 @@ void loop() {
                     sniffedData[1] = (value >> 16) & 0xff;
                     sniffedData[2] = (value >> 8) & 0xff;
                     sniffedData[3] = value & 0xff;
-                    sniffedData[4] = pulseLength;
-                    sniffedData[5] = bitLength;
-                    sniffedData[6] = protocol;
+                    sniffedData[4] = (pulseLength >> 24) & 0xff;
+                    sniffedData[5] = (pulseLength >> 16) & 0xff;
+                    sniffedData[6] = (pulseLength >> 8) & 0xff;
+                    sniffedData[7] = pulseLength & 0xff;
+                    sniffedData[8] = bitLength;
+                    sniffedData[9] = protocol;
 
                     // Write value to characteristic on ble112. Causes indication to be sent.
-                    ble112.ble_cmd_attributes_write(GATT_HANDLE_C_SNIFFER, 0, 7, sniffedData);
+                    ble112.ble_cmd_attributes_write(GATT_HANDLE_C_SNIFFER, 0, 10, sniffedData);
                     
                     // Revert state to sending
                     state = STATE_SENDING;
@@ -490,10 +493,10 @@ void my_ble_evt_attributes_value(const struct ble_msg_attributes_value_evt_t *ms
       uint8_t* b = msg->value.data;
 
       unsigned long code = ((uint32_t)b[0] << 24) | ((uint32_t)b[1] << 16) | ((uint32_t)b[2] << 8) | ((uint32_t)b[3]);
+      unsigned int pulseLength = ((uint32_t)b[4] << 24) | ((uint32_t)b[5] << 16) | ((uint32_t)b[6] << 8) | ((uint32_t)b[7]);
 
-      uint8_t pulseLength = msg->value.data[4];
-      uint8_t bitLength  = msg->value.data[5];
-      uint8_t protocol  = msg->value.data[6];
+      uint8_t bitLength  = msg->value.data[8];
+      uint8_t protocol  = msg->value.data[9];
       
       DEBUG_PRINT("Code received: ");
       DEBUG_PRINTLN(code);

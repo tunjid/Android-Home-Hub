@@ -282,15 +282,7 @@ public class ClientNsdFragment extends BaseFragment
     public void onSwitchToggled(RcSwitch rcSwitch, boolean state) {
         if (clientNsdService == null) return;
 
-        byte[] code = state ? rcSwitch.getOnCode() : rcSwitch.getOffCode();
-        byte[] transmission = new byte[7];
-
-        System.arraycopy(code, 0, transmission, 0, code.length);
-        transmission[4] = rcSwitch.getPulseLength();
-        transmission[5] = rcSwitch.getBitLength();
-        transmission[6] = rcSwitch.getProtocol();
-
-        clientNsdService.sendMessage(Base64.encodeToString(transmission, Base64.DEFAULT));
+        clientNsdService.sendMessage(Base64.encodeToString(rcSwitch.getTransmission(state), Base64.DEFAULT));
     }
 
     @Override

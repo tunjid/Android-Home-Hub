@@ -60,24 +60,26 @@ public class NsdHelper {
         nsdManager.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, mDiscoveryListener);
     }
 
-    public NsdManager getNsdManager() {
-        return nsdManager;
-    }
-
-    public void tearDown() {
-
-        try { // May or may not be registered, throws IllegalArgumentException if it isn't
-            nsdManager.unregisterService(mRegistrationListener);
-        }
-        catch (IllegalArgumentException e) {
-            Log.w(TAG, "Nsd Registration Listener not added");
-        }
+    public void stopServiceDiscovery() {
         try { // May or may not be looking for services, throws IllegalArgumentException if it isn't
             nsdManager.stopServiceDiscovery(mDiscoveryListener);
         }
         catch (IllegalArgumentException e) {
             Log.w(TAG, "Nsd Discovery Listener not added");
         }
+    }
 
+    public NsdManager getNsdManager() {
+        return nsdManager;
+    }
+
+    public void tearDown() {
+        stopServiceDiscovery();
+        try { // May or may not be registered, throws IllegalArgumentException if it isn't
+            nsdManager.unregisterService(mRegistrationListener);
+        }
+        catch (IllegalArgumentException e) {
+            Log.w(TAG, "Nsd Registration Listener not added");
+        }
     }
 }

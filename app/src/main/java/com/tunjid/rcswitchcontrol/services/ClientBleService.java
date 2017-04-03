@@ -31,6 +31,7 @@ import android.widget.Toast;
 
 import com.tunjid.rcswitchcontrol.Application;
 import com.tunjid.rcswitchcontrol.R;
+import com.tunjid.rcswitchcontrol.ServiceConnection;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
 import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
@@ -41,6 +42,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.UUID;
+
+import static com.tunjid.rcswitchcontrol.model.RcSwitch.SWITCH_PREFS;
 
 /**
  * Service for managing connection and data communication with a GATT server hosted on a
@@ -97,7 +100,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
     // Map of characteristics of interest
     private Map<String, BluetoothGattCharacteristic> characteristicMap = new HashMap<>();
 
-    private final IBinder mBinder = new Binder();
+    private final IBinder binder = new Binder();
     private final IntentFilter nsdIntentFilter = new IntentFilter();
 
     private final BroadcastReceiver nsdUpdateReceiver = new BroadcastReceiver() {
@@ -233,6 +236,8 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
         }
     };
 
+    private final ServiceConnection<ServerNsdService> serverConnection = new ServiceConnection<>(ServerNsdService.class);
+
 
     @Override
     public void onCreate() {
@@ -252,7 +257,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
     public IBinder onBind(Intent intent) {
         onAppForeGround();
         initialize(intent);
-        return mBinder;
+        return binder;
     }
 
     @Override
@@ -291,6 +296,13 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
         connect(connectedDevice);
 
         Log.i(TAG, "Initialized BLE connection");
+
+        if (getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE).getBoolean(ServerNsdService.SERVER_FLAG, false)) {
+            serverConnection.startService(this);
+            serverConnection.with(this).bind();
+
+            Log.i(TAG, "Binding to NSD server");
+        }
     }
 
     @Override
@@ -328,6 +340,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
     @Override
     public void onDestroy() {
         super.onDestroy();
+        if (serverConnection.isBound()) serverConnection.unbindService();
         LocalBroadcastManager.getInstance(this).unregisterReceiver(nsdUpdateReceiver);
         close();
     }
@@ -570,7 +583,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
         Toast.makeText(context, resourceId, Toast.LENGTH_SHORT).show();
     }
 
-    public class Binder extends android.os.Binder {
+    private class Binder extends ServiceConnection.Binder<ClientBleService> {
         public ClientBleService getService() {
             return ClientBleService.this;
         }

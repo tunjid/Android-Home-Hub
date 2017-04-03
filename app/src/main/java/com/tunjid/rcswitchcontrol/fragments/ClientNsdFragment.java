@@ -1,13 +1,10 @@
 package com.tunjid.rcswitchcontrol.fragments;
 
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.ServiceConnection;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.LocalBroadcastManager;
@@ -24,11 +21,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.tunjid.rcswitchcontrol.ServiceConnection;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
 import com.tunjid.rcswitchcontrol.adapters.ChatAdapter;
 import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter;
+import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment;
 import com.tunjid.rcswitchcontrol.model.Payload;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
 import com.tunjid.rcswitchcontrol.nsd.nsdprotocols.BleRcProtocol;
@@ -44,7 +43,6 @@ import static com.tunjid.rcswitchcontrol.model.RcSwitch.SWITCH_PREFS;
 
 public class ClientNsdFragment extends BaseFragment
         implements
-        ServiceConnection,
         View.OnClickListener,
         ChatAdapter.ChatAdapterListener,
         RemoteSwitchAdapter.SwitchListener,
@@ -53,8 +51,6 @@ public class ClientNsdFragment extends BaseFragment
     private static final String TAG = ClientNsdFragment.class.getSimpleName();
 
     private boolean isDeleting;
-
-    private ClientNsdService clientNsdService;
 
     private TextView connectionStatus;
     private RecyclerView switchList;
@@ -65,6 +61,7 @@ public class ClientNsdFragment extends BaseFragment
     private List<String> messageHistory = new ArrayList<>();
 
     private final IntentFilter clientNsdServiceFilter = new IntentFilter();
+
     private final BroadcastReceiver nsdUpdateReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -72,8 +69,8 @@ public class ClientNsdFragment extends BaseFragment
 
             switch (action) {
                 case ClientNsdService.ACTION_SOCKET_CONNECTED:
-                    if (commands.isEmpty() && clientNsdService != null) {
-                        clientNsdService.sendMessage(CommsProtocol.PING);
+                    if (commands.isEmpty() && nsdConnection.isBound()) {
+                        nsdConnection.getBoundService().sendMessage(CommsProtocol.PING);
                     }
                     onConnectionStateChanged(action);
                     getActivity().invalidateOptionsMenu();
@@ -115,6 +112,16 @@ public class ClientNsdFragment extends BaseFragment
             Log.i(TAG, "Received data for: " + action);
         }
     };
+
+    private final ServiceConnection<ClientNsdService> nsdConnection = new ServiceConnection<>(
+            ClientNsdService.class,
+            new ServiceConnection.BindCallback<ClientNsdService>() {
+                @Override
+                public void onServiceBound(ClientNsdService service) {
+                    onConnectionStateChanged(service.getConnectionState());
+                    if (commands.isEmpty()) service.sendMessage(CommsProtocol.PING);
+                }
+            });
 
     public static ClientNsdFragment newInstance() {
         ClientNsdFragment fragment = new ClientNsdFragment();
@@ -170,8 +177,7 @@ public class ClientNsdFragment extends BaseFragment
 
         getToolBar().setTitle(R.string.switches);
 
-        Intent clientIntent = new Intent(getActivity(), ClientNsdService.class);
-        getActivity().bindService(clientIntent, this, Context.BIND_AUTO_CREATE);
+        nsdConnection.with(getActivity()).bind();
     }
 
     @Override
@@ -179,9 +185,9 @@ public class ClientNsdFragment extends BaseFragment
         super.onResume();
 
         // If the service is already bound, there will be no service connection callback
-        if (clientNsdService != null) {
-            clientNsdService.onAppForeGround();
-            onConnectionStateChanged(clientNsdService.getConnectionState());
+        if (nsdConnection.isBound()) {
+            nsdConnection.getBoundService().onAppForeGround();
+            onConnectionStateChanged(nsdConnection.getBoundService().getConnectionState());
         }
         else {
             onConnectionStateChanged(ClientNsdService.ACTION_SOCKET_DISCONNECTED);
@@ -191,20 +197,22 @@ public class ClientNsdFragment extends BaseFragment
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         inflater.inflate(R.menu.menu_fragment_nsd_client, menu);
-        menu.findItem(R.id.menu_connect).setVisible(clientNsdService != null && !clientNsdService.isConnected());
+        menu.findItem(R.id.menu_connect).setVisible(nsdConnection.isBound() && !nsdConnection.getBoundService().isConnected());
         super.onCreateOptionsMenu(menu, inflater);
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (clientNsdService != null) {
+        if (nsdConnection.isBound()) {
             switch (item.getItemId()) {
                 case R.id.menu_connect:
                     getActivity().sendBroadcast(new Intent(ClientNsdService.ACTION_START_NSD_DISCOVERY));
                     onConnectionStateChanged(ClientNsdService.ACTION_SOCKET_CONNECTING);
                     return true;
                 case R.id.menu_forget:
-                    if (clientNsdService != null) clientNsdService.stopSelf();
+                    // Don't call unbind, when the hosting activity is finished,
+                    // onDestroy will be called and the connection unbound
+                    if (nsdConnection.isBound()) nsdConnection.getBoundService().stopSelf();
 
                     getActivity().getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE).edit()
                             .remove(ClientNsdService.LAST_CONNECTED_SERVICE).apply();
@@ -225,7 +233,7 @@ public class ClientNsdFragment extends BaseFragment
     @Override
     public void onStop() {
         super.onStop();
-        if (clientNsdService != null) clientNsdService.onAppBackground();
+        if (nsdConnection.isBound()) nsdConnection.getBoundService().onAppBackground();
     }
 
     @Override
@@ -241,22 +249,8 @@ public class ClientNsdFragment extends BaseFragment
 
     @Override
     public void onDestroy() {
-        getActivity().unbindService(this);
+        nsdConnection.unbindService();
         super.onDestroy();
-    }
-
-    @Override
-    public void onServiceConnected(ComponentName name, IBinder binder) {
-        clientNsdService = ((ClientNsdService.NsdClientBinder) binder).getClientService();
-        clientNsdService.onAppForeGround();
-
-        onConnectionStateChanged(clientNsdService.getConnectionState());
-        if (commands.isEmpty()) clientNsdService.sendMessage(CommsProtocol.PING);
-    }
-
-    @Override
-    public void onServiceDisconnected(ComponentName name) {
-        clientNsdService = null;
     }
 
     @Override
@@ -269,7 +263,7 @@ public class ClientNsdFragment extends BaseFragment
 
     @Override
     public void onTextClicked(String text) {
-        if (clientNsdService != null) clientNsdService.sendMessage(text);
+        if (nsdConnection.isBound()) nsdConnection.getBoundService().sendMessage(text);
     }
 
     @Override
@@ -280,9 +274,8 @@ public class ClientNsdFragment extends BaseFragment
 
     @Override
     public void onSwitchToggled(RcSwitch rcSwitch, boolean state) {
-        if (clientNsdService == null) return;
-
-        clientNsdService.sendMessage(Base64.encodeToString(rcSwitch.getTransmission(state), Base64.DEFAULT));
+        if (!nsdConnection.isBound()) return;
+        nsdConnection.getBoundService().sendMessage(Base64.encodeToString(rcSwitch.getTransmission(state), Base64.DEFAULT));
     }
 
     @Override
@@ -295,14 +288,14 @@ public class ClientNsdFragment extends BaseFragment
         String text = null;
         switch (newState) {
             case ClientNsdService.ACTION_SOCKET_CONNECTED:
-                text = clientNsdService == null
+                text = !nsdConnection.isBound()
                         ? getString(R.string.connected)
-                        : getResources().getString(R.string.connected_to, clientNsdService.getServiceName());
+                        : getResources().getString(R.string.connected_to, nsdConnection.getBoundService().getServiceName());
                 break;
             case ClientNsdService.ACTION_SOCKET_CONNECTING:
-                text = clientNsdService == null
+                text = !nsdConnection.isBound()
                         ? getString(R.string.connecting)
-                        : getResources().getString(R.string.connecting_to, clientNsdService.getServiceName());
+                        : getResources().getString(R.string.connecting_to, nsdConnection.getBoundService().getServiceName());
                 break;
             case ClientNsdService.ACTION_SOCKET_DISCONNECTED:
                 text = getString(R.string.disconnected);

@@ -7,7 +7,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.nsd.NsdServiceInfo;
-import android.os.Binder;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.support.annotation.StringDef;
@@ -16,6 +15,7 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.tunjid.rcswitchcontrol.R;
+import com.tunjid.rcswitchcontrol.ServiceConnection;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
 import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService;
 import com.tunjid.rcswitchcontrol.nsd.abstractclasses.BaseNsdService;
@@ -220,9 +220,9 @@ public class ClientNsdService extends BaseNsdService
         return notificationBuilder.build();
     }
 
-    public class NsdClientBinder extends Binder {
-        // Binder impl
-        public ClientNsdService getClientService() {
+    private class NsdClientBinder extends ServiceConnection.Binder<ClientNsdService> {
+        // Binding impl
+        public ClientNsdService getService() {
             return ClientNsdService.this;
         }
     }
@@ -276,7 +276,7 @@ public class ClientNsdService extends BaseNsdService
                     }
                 }
             }
-            catch (Exception e) {
+            catch (IOException e) {
                 e.printStackTrace();
                 clientNsdService.setConnectionState(ACTION_SOCKET_DISCONNECTED);
             }

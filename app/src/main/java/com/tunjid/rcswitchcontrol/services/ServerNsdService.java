@@ -9,6 +9,7 @@ import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import com.tunjid.rcswitchcontrol.ServiceConnection;
 import com.tunjid.rcswitchcontrol.nsd.NsdHelper;
 import com.tunjid.rcswitchcontrol.nsd.abstractclasses.BaseNsdService;
 import com.tunjid.rcswitchcontrol.nsd.abstractclasses.RegistrationListener;
@@ -103,7 +104,7 @@ public class ServerNsdService extends BaseNsdService {
     /**
      * {@link android.os.Binder} for {@link ServerNsdService}
      */
-    public class Binder extends android.os.Binder {
+    private class Binder extends ServiceConnection.Binder<ServerNsdService> {
         public ServerNsdService getService() {
             return ServerNsdService.this;
         }

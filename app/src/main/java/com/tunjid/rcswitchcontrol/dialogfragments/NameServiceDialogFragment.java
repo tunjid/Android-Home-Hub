@@ -1,4 +1,4 @@
-package com.tunjid.rcswitchcontrol.fragments;
+package com.tunjid.rcswitchcontrol.dialogfragments;
 
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
@@ -6,64 +6,45 @@ import android.app.Dialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.v4.app.DialogFragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
 
 import com.tunjid.rcswitchcontrol.R;
-import com.tunjid.rcswitchcontrol.model.RcSwitch;
 
 
 @SuppressLint("InflateParams")
-public class RenameSwitchDialogFragment extends DialogFragment {
+public class NameServiceDialogFragment extends DialogFragment {
 
-    private static final String SWITCH = "SWITCH";
+    public static NameServiceDialogFragment newInstance() {
 
-    private RcSwitch rcSwitch;
-
-    public static RenameSwitchDialogFragment newInstance(RcSwitch rcSwitch) {
-
-        RenameSwitchDialogFragment fragment = new RenameSwitchDialogFragment();
+        NameServiceDialogFragment fragment = new NameServiceDialogFragment();
         Bundle args = new Bundle();
-        args.putParcelable(SWITCH, rcSwitch);
         fragment.setArguments(args);
         return fragment;
     }
 
-    public RenameSwitchDialogFragment() {
+    public NameServiceDialogFragment() {
 
-    }
-
-    @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
-        rcSwitch = getArguments().getParcelable(SWITCH);
     }
 
     @Override
     @NonNull
     public Dialog onCreateDialog(Bundle savedInstanceState) {
 
-        final SwitchNameListener listener = ((SwitchNameListener) getParentFragment());
-
+        final ServiceNameListener nameListener = (ServiceNameListener) getParentFragment();
         final LayoutInflater inflater = getActivity().getLayoutInflater();
 
         final View view = inflater.inflate(R.layout.dialog_rename_switch, null);
         final EditText editText = (EditText) view.findViewById(R.id.switch_name);
 
-        editText.setText(rcSwitch.getName());
-
-
-        return new AlertDialog.Builder(getActivity()).setTitle(R.string.rename_switch)
+        return new AlertDialog.Builder(getActivity()).setTitle(R.string.name_nsd_service)
                 .setView(view)
-                .setPositiveButton(R.string.rename, new DialogInterface.OnClickListener() {
+                .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int id) {
-                        rcSwitch.setName(editText.getText().toString());
-                        listener.onSwitchRenamed(rcSwitch);
+                        nameListener.onServiceNamed(editText.getText().toString());
                         dismiss();
                     }
                 })
@@ -75,7 +56,7 @@ public class RenameSwitchDialogFragment extends DialogFragment {
                 .create();
     }
 
-    interface SwitchNameListener {
-        void onSwitchRenamed(RcSwitch rcSwitch);
+    public interface ServiceNameListener {
+        void onServiceNamed(String name);
     }
 }

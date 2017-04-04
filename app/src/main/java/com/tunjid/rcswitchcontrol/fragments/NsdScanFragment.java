@@ -1,12 +1,9 @@
 package com.tunjid.rcswitchcontrol.fragments;
 
 
-import android.content.ComponentName;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.net.nsd.NsdServiceInfo;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.DividerItemDecoration;
@@ -30,18 +27,22 @@ import com.tunjid.rcswitchcontrol.services.ClientNsdService;
 import java.util.ArrayList;
 import java.util.List;
 
+import static android.support.v7.widget.DividerItemDecoration.VERTICAL;
+
 /**
  * A {@link Fragment} listing supported NSD servers
  */
 public class NsdScanFragment extends BaseFragment
         implements
-        ServiceConnection,
         NSDAdapter.ServiceClickedListener {
+
+    private static final long SCAN_PERIOD = 10000;    // Stops scanning after 10 seconds.
+
+    private boolean isScanning;
 
     private RecyclerView recyclerView;
 
     private NsdHelper nsdHelper;
-//    private ServerNsdService serverService;
 
     private List<NsdServiceInfo> services = new ArrayList<>();
 
@@ -74,6 +75,7 @@ public class NsdScanFragment extends BaseFragment
 
                 if (!services.contains(service)) services.add(service);
 
+                // Runs on a diifferent thread, post here
                 if (recyclerView != null) recyclerView.post(new Runnable() {
                     @Override
                     public void run() {
@@ -91,8 +93,6 @@ public class NsdScanFragment extends BaseFragment
 
         nsdHelper = new NsdHelper(getContext());
         nsdHelper.initializeDiscoveryListener(discoveryListener);
-
-        nsdHelper.discoverServices();
     }
 
     @Override
@@ -105,22 +105,15 @@ public class NsdScanFragment extends BaseFragment
 
         recyclerView.setAdapter(new NSDAdapter(this, services));
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        recyclerView.addItemDecoration(new DividerItemDecoration(getActivity(), DividerItemDecoration.VERTICAL));
+        recyclerView.addItemDecoration(new DividerItemDecoration(getActivity(), VERTICAL));
 
         return rootView;
     }
 
     @Override
-    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-//        Activity activity = getActivity();
-//        Intent server = new Intent(activity, ServerNsdService.class);
-//        activity.bindService(server, this, BIND_AUTO_CREATE);
-    }
-
-    @Override
     public void onResume() {
         super.onResume();
+        scanDevices(true);
         recyclerView.getAdapter().notifyDataSetChanged();
     }
 
@@ -132,19 +125,34 @@ public class NsdScanFragment extends BaseFragment
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        //inflater.inflate(R.menu.menu_nsd_client, menu);
+        inflater.inflate(R.menu.menu_nsd_scan, menu);
+
+        menu.findItem(R.id.menu_stop).setVisible(isScanning);
+        menu.findItem(R.id.menu_scan).setVisible(!isScanning);
+
+        if (!isScanning) {
+            menu.findItem(R.id.menu_refresh).setVisible(false);
+        }
+        else {
+            menu.findItem(R.id.menu_refresh).setVisible(true);
+            menu.findItem(R.id.menu_refresh).setActionView(R.layout.actionbar_indeterminate_progress);
+        }
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-            case R.id.refresh:
-                nsdHelper.discoverServices();
+            case R.id.menu_scan:
+                services.clear();
+                recyclerView.getAdapter().notifyDataSetChanged();
+                scanDevices(true);
+                return true;
+            case R.id.menu_stop:
+                scanDevices(false);
                 return true;
         }
         return super.onOptionsItemSelected(item);
     }
-
 
     @Override
     public void onServiceClicked(NsdServiceInfo serviceInfo) {
@@ -157,7 +165,6 @@ public class NsdScanFragment extends BaseFragment
 
     @Override
     public boolean isSelf(NsdServiceInfo serviceInfo) {
-//        return serverService != null && serviceInfo.getServiceName().equals(serverService.getServiceName());
         return false;
     }
 
@@ -165,17 +172,26 @@ public class NsdScanFragment extends BaseFragment
     public void onDestroy() {
         super.onDestroy();
         nsdHelper.tearDown();
-//        getActivity().unbindService(this);
     }
 
-    @Override
-    public void onServiceConnected(ComponentName name, IBinder service) {
-//        serverService = ((ServerNsdService.Binder) service).getService();
-        recyclerView.getAdapter().notifyDataSetChanged();
-    }
+    private void scanDevices(boolean enable) {
+        isScanning = enable;
 
-    @Override
-    public void onServiceDisconnected(ComponentName name) {
-//        serverService = null;
+        if (enable) nsdHelper.discoverServices();
+        else nsdHelper.stopServiceDiscovery();
+
+        getActivity().invalidateOptionsMenu();
+
+        // Stops  after a pre-defined scan period.
+        if (enable) {
+            recyclerView.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    isScanning = false;
+                    nsdHelper.stopServiceDiscovery();
+                    if (getActivity() != null) getActivity().invalidateOptionsMenu();
+                }
+            }, SCAN_PERIOD);
+        }
     }
 }

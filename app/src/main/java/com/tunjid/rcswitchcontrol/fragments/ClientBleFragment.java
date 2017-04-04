@@ -3,13 +3,10 @@ package com.tunjid.rcswitchcontrol.fragments;
 import android.app.Activity;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.ServiceConnection;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.Snackbar;
@@ -30,10 +27,13 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import com.tunjid.rcswitchcontrol.R;
+import com.tunjid.rcswitchcontrol.ServiceConnection;
 import com.tunjid.rcswitchcontrol.ViewHider;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
 import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter;
+import com.tunjid.rcswitchcontrol.dialogfragments.NameServiceDialogFragment;
+import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
 import com.tunjid.rcswitchcontrol.services.ClientBleService;
 import com.tunjid.rcswitchcontrol.services.ServerNsdService;
@@ -41,20 +41,21 @@ import com.tunjid.rcswitchcontrol.services.ServerNsdService;
 import java.util.List;
 import java.util.Stack;
 
-import static android.content.Context.BIND_AUTO_CREATE;
 import static android.content.Context.MODE_PRIVATE;
 import static com.tunjid.rcswitchcontrol.Application.isServiceRunning;
 import static com.tunjid.rcswitchcontrol.model.RcSwitch.SWITCH_PREFS;
 import static com.tunjid.rcswitchcontrol.services.ClientBleService.ACTION_CONTROL;
 import static com.tunjid.rcswitchcontrol.services.ClientBleService.ACTION_SNIFFER;
 import static com.tunjid.rcswitchcontrol.services.ClientBleService.BLUETOOTH_DEVICE;
+import static com.tunjid.rcswitchcontrol.services.ServerNsdService.SERVICE_NAME_KEY;
 
 public class ClientBleFragment extends BaseFragment
         implements
-        ServiceConnection,
+        //ServiceConnection,
         View.OnClickListener,
         RemoteSwitchAdapter.SwitchListener,
-        RenameSwitchDialogFragment.SwitchNameListener {
+        RenameSwitchDialogFragment.SwitchNameListener,
+        NameServiceDialogFragment.ServiceNameListener {
 
     private static final String TAG = ClientBleFragment.class.getSimpleName();
 
@@ -62,8 +63,8 @@ public class ClientBleFragment extends BaseFragment
     private boolean isDeleting;
 
     private BluetoothDevice bluetoothDevice;
-    private ClientBleService clientBleService;
-    private ServerNsdService serverNsdService;
+    //private ClientBleService clientBleService;
+    //private ServerNsdService serverNsdService;
 
     private View progressBar;
     private Button sniffButton;
@@ -123,6 +124,26 @@ public class ClientBleFragment extends BaseFragment
             Log.i(TAG, "Received data for: " + action);
         }
     };
+
+    private final ServiceConnection<ClientBleService> bleConnection = new ServiceConnection<>(
+            ClientBleService.class,
+            new ServiceConnection.BindCallback<ClientBleService>() {
+                @Override
+                public void onServiceBound(ClientBleService service) {
+                    onConnectionStateChanged(service.getConnectionState());
+                }
+            }
+    );
+
+    private final ServiceConnection<ServerNsdService> serverConnection = new ServiceConnection<>(
+            ServerNsdService.class,
+            new ServiceConnection.BindCallback<ServerNsdService>() {
+                @Override
+                public void onServiceBound(ServerNsdService service) {
+                    getActivity().invalidateOptionsMenu();
+                }
+            }
+    );
 
     public static ClientBleFragment newInstance(BluetoothDevice bluetoothDevice) {
         ClientBleFragment fragment = new ClientBleFragment();
@@ -211,13 +232,14 @@ public class ClientBleFragment extends BaseFragment
 
         Activity activity = getActivity();
 
-        Intent intent = new Intent(getActivity(), ClientBleService.class);
-        intent.putExtra(BLUETOOTH_DEVICE, getArguments().getParcelable(BLUETOOTH_DEVICE));
-        activity.bindService(intent, this, BIND_AUTO_CREATE);
+        Bundle extras = new Bundle();
+        extras.putParcelable(BLUETOOTH_DEVICE, getArguments().getParcelable(BLUETOOTH_DEVICE));
+
+        bleConnection.with(activity).setExtras(extras).bind();
 
         if (activity.getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE).getBoolean(ServerNsdService.SERVER_FLAG, false)) {
-            activity.startService(new Intent(activity, ServerNsdService.class));
-            activity.bindService(new Intent(activity, ServerNsdService.class), this, BIND_AUTO_CREATE);
+            serverConnection.startService(activity);
+            serverConnection.with(activity).bind();
             getActivity().invalidateOptionsMenu();
         }
     }
@@ -227,9 +249,9 @@ public class ClientBleFragment extends BaseFragment
         super.onResume();
 
         // If the service is already bound, there will be no service connection callback
-        if (clientBleService != null) {
-            clientBleService.onAppForeGround();
-            onConnectionStateChanged(clientBleService.getConnectionState());
+        if (bleConnection.isBound()) {
+            bleConnection.getBoundService().onAppForeGround();
+            onConnectionStateChanged(bleConnection.getBoundService().getConnectionState());
         }
     }
 
@@ -237,7 +259,8 @@ public class ClientBleFragment extends BaseFragment
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         inflater.inflate(R.menu.menu_ble_client, menu);
 
-        if (clientBleService != null) {
+        if (bleConnection.isBound()) {
+            ClientBleService clientBleService = bleConnection.getBoundService();
             menu.findItem(R.id.menu_connect).setVisible(!clientBleService.isConnected());
             menu.findItem(R.id.menu_disconnect).setVisible(clientBleService.isConnected());
         }
@@ -249,22 +272,24 @@ public class ClientBleFragment extends BaseFragment
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (clientBleService != null) {
+        if (bleConnection.isBound()) {
             switch (item.getItemId()) {
                 case R.id.menu_connect:
-                    clientBleService.connect(bluetoothDevice);
+                    bleConnection.getBoundService().connect(bluetoothDevice);
                     return true;
                 case R.id.menu_disconnect:
-                    clientBleService.disconnect();
+                    bleConnection.getBoundService().disconnect();
                     return true;
                 case R.id.menu_start_nsd:
                     NameServiceDialogFragment.newInstance().show(getChildFragmentManager(), "");
                     break;
                 case R.id.menu_restart_nsd:
-                    if (serverNsdService != null) serverNsdService.restart();
+                    if (serverConnection.isBound()) serverConnection.getBoundService().restart();
                     break;
                 case R.id.menu_forget:
                     LocalBroadcastManager.getInstance(getActivity()).sendBroadcast(new Intent(ServerNsdService.ACTION_STOP));
+
+                    ClientBleService clientBleService = bleConnection.getBoundService();
 
                     clientBleService.disconnect();
                     clientBleService.close();
@@ -288,7 +313,7 @@ public class ClientBleFragment extends BaseFragment
     @Override
     public void onStop() {
         super.onStop();
-        if (clientBleService != null) clientBleService.onAppBackground();
+        if (bleConnection.isBound()) bleConnection.getBoundService().onAppBackground();
     }
 
     @Override
@@ -306,29 +331,10 @@ public class ClientBleFragment extends BaseFragment
 
     @Override
     public void onDestroy() {
-        getActivity().unbindService(this);
+        bleConnection.unbindService();
+        serverConnection.unbindService();
         super.onDestroy();
     }
-
-    @Override
-    public void onServiceConnected(ComponentName componentName, IBinder service) {
-        if (componentName.getClassName().equals(ClientBleService.class.getName())) {
-            clientBleService = ((ClientBleService.Binder) service).getService();
-            clientBleService.onAppForeGround();
-
-            onConnectionStateChanged(clientBleService.getConnectionState());
-        }
-        else if (componentName.getClassName().equals(ServerNsdService.class.getName())) {
-            serverNsdService = ((ServerNsdService.Binder) service).getService();
-            getActivity().invalidateOptionsMenu();
-        }
-    }
-
-    @Override
-    public void onServiceDisconnected(ComponentName name) {
-        clientBleService = null;
-    }
-
 
     @Override
     public void onClick(View v) {
@@ -336,8 +342,11 @@ public class ClientBleFragment extends BaseFragment
             case R.id.sniff:
                 toggleProgress(true);
 
-                clientBleService.writeCharacteristicArray(ClientBleService.C_HANDLE_CONTROL,
-                        new byte[]{ClientBleService.STATE_SNIFFING});
+                if (bleConnection.isBound()) {
+                    bleConnection.getBoundService().writeCharacteristicArray(
+                            ClientBleService.C_HANDLE_CONTROL,
+                            new byte[]{ClientBleService.STATE_SNIFFING});
+                }
                 break;
         }
     }
@@ -349,15 +358,29 @@ public class ClientBleFragment extends BaseFragment
 
     @Override
     public void onSwitchToggled(RcSwitch rcSwitch, boolean state) {
-        if (clientBleService == null) return;
-
-        clientBleService.writeCharacteristicArray(ClientBleService.C_HANDLE_TRANSMITTER, rcSwitch.getTransmission(state));
+        if (bleConnection.isBound()) {
+            bleConnection.getBoundService().writeCharacteristicArray(
+                    ClientBleService.C_HANDLE_TRANSMITTER,
+                    rcSwitch.getTransmission(state));
+        }
     }
 
     @Override
     public void onSwitchRenamed(RcSwitch rcSwitch) {
         switchList.getAdapter().notifyItemChanged(switches.indexOf(rcSwitch));
         RcSwitch.saveSwitches(switches);
+    }
+
+    @Override
+    public void onServiceNamed(String name) {
+        Activity activity = getActivity();
+
+        activity.getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE)
+                .edit().putString(SERVICE_NAME_KEY, name)
+                .putBoolean(ServerNsdService.SERVER_FLAG, true).apply();
+
+        serverConnection.startService(activity);
+        serverConnection.with(activity).bind();
     }
 
     private void onConnectionStateChanged(String newState) {

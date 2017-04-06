@@ -62,18 +62,30 @@ public class ServerNsdService extends BaseNsdService {
         super.onCreate();
         intentFilter.addAction(ACTION_STOP);
         LocalBroadcastManager.getInstance(this).registerReceiver(nsdUpdateReceiver, intentFilter);
+    }
 
-        startUp();
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        initialize();
+        return super.onStartCommand(intent, flags, startId);
     }
 
     @Override
     public IBinder onBind(Intent intent) {
+        initialize();
         return binder;
     }
 
-    private void startUp() {
+    private void initialize() {
+
+        // We're already running, return
+        if (serverThread != null && serverThread.isRunning) return;
+
         String serviceName = getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE)
                 .getString(SERVICE_NAME_KEY, WIRELESS_SWITCH_SERVICE);
+
+        // If we aren't accepting sockect connections, close
+        if (serverThread != null && !serverThread.isRunning) serverThread.close();
 
         serverThread = new ServerThread(nsdHelper, serviceName);
         serverThread.start();
@@ -98,7 +110,7 @@ public class ServerNsdService extends BaseNsdService {
     public void restart() {
         serverThread.close();
         tearDown();
-        startUp();
+        initialize();
     }
 
     /**

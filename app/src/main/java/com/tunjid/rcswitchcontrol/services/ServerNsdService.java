@@ -100,6 +100,10 @@ public class ServerNsdService extends BaseNsdService {
         LocalBroadcastManager.getInstance(this).unregisterReceiver(nsdUpdateReceiver);
     }
 
+    public boolean isRunning() {
+        return serverThread != null && serverThread.isRunning;
+    }
+
     public void restart() {
         serverThread.close();
         tearDown();

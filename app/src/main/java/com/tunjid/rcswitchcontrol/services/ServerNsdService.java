@@ -10,7 +10,6 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.tunjid.rcswitchcontrol.ServiceConnection;
-import com.tunjid.rcswitchcontrol.nsd.NsdHelper;
 import com.tunjid.rcswitchcontrol.nsd.abstractclasses.BaseNsdService;
 import com.tunjid.rcswitchcontrol.nsd.abstractclasses.RegistrationListener;
 import com.tunjid.rcswitchcontrol.nsd.nsdprotocols.CommsProtocol;
@@ -39,6 +38,7 @@ public class ServerNsdService extends BaseNsdService {
     public static final String WIRELESS_SWITCH_SERVICE = "Wireless Switch Service";
 
     private ServerThread serverThread;
+//    private String serviceName;
 
     private final IntentFilter intentFilter = new IntentFilter();
     private final IBinder binder = new Binder();
@@ -57,13 +57,25 @@ public class ServerNsdService extends BaseNsdService {
         }
     };
 
+    private final RegistrationListener registrationListener = new RegistrationListener() {
+        @Override
+        public void onServiceRegistered(NsdServiceInfo serviceInfo) {
+            super.onServiceRegistered(serviceInfo);
+//            serviceName = serviceInfo.getServiceName();
+        }
+
+        @Override
+        public void onServiceUnregistered(NsdServiceInfo serviceInfo) {
+            super.onServiceUnregistered(serviceInfo);
+        }
+    };
+
     @Override
     public void onCreate() {
         super.onCreate();
+        initialize();
         intentFilter.addAction(ACTION_STOP);
         LocalBroadcastManager.getInstance(this).registerReceiver(nsdUpdateReceiver, intentFilter);
-
-        startUp();
     }
 
     @Override
@@ -71,16 +83,9 @@ public class ServerNsdService extends BaseNsdService {
         return binder;
     }
 
-    private void startUp() {
-        String serviceName = getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE)
-                .getString(SERVICE_NAME_KEY, WIRELESS_SWITCH_SERVICE);
-
-        serverThread = new ServerThread(nsdHelper, serviceName);
-        serverThread.start();
-    }
-
+//    @Nullable
 //    public String getServiceName() {
-//        return serverThread != null ? serverThread.serviceName : "";
+//        return serviceName;
 //    }
 
     @Override
@@ -95,10 +100,33 @@ public class ServerNsdService extends BaseNsdService {
         LocalBroadcastManager.getInstance(this).unregisterReceiver(nsdUpdateReceiver);
     }
 
+    public boolean isRunning() {
+        return serverThread != null && serverThread.isRunning;
+    }
+
     public void restart() {
         serverThread.close();
         tearDown();
-        startUp();
+        initialize();
+    }
+
+    private void initialize() {
+        String initialServicename = getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE)
+                .getString(SERVICE_NAME_KEY, WIRELESS_SWITCH_SERVICE);
+
+        // Since discovery will happen via Nsd, we don't need to care which port is
+        // used, just grab an avaialable one and advertise it via Nsd.
+        try {
+            ServerSocket serverSocket = new ServerSocket(0);
+            nsdHelper.initializeRegistrationListener(registrationListener);
+            nsdHelper.registerService(serverSocket.getLocalPort(), initialServicename);
+
+            serverThread = new ServerThread(serverSocket);
+            serverThread.start();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -117,31 +145,11 @@ public class ServerNsdService extends BaseNsdService {
 
         volatile boolean isRunning;
 
-        String serviceName;
-        private ServerSocket serverSocket;
-        private Map<Long, Connection> connectionsMap = new ConcurrentHashMap<>();
+        private final ServerSocket serverSocket;
+        private final Map<Long, Connection> connectionsMap = new ConcurrentHashMap<>();
 
-        private final RegistrationListener registrationListener = new RegistrationListener() {
-
-            @Override
-            public void onServiceRegistered(NsdServiceInfo serviceInfo) {
-                super.onServiceRegistered(serviceInfo);
-                ServerThread.this.serviceName = serviceInfo.getServiceName();
-            }
-        };
-
-        ServerThread(NsdHelper helper, String serviceName) {
-
-            // Since discovery will happen via Nsd, we don't need to care which port is
-            // used, just grab an avaialable one and advertise it via Nsd.
-            try {
-                serverSocket = new ServerSocket(0);
-                helper.initializeRegistrationListener(registrationListener);
-                helper.registerService(serverSocket.getLocalPort(), serviceName);
-            }
-            catch (Exception e) {
-                e.printStackTrace();
-            }
+        ServerThread(ServerSocket serverSocket) {
+            this.serverSocket = serverSocket;
         }
 
         @Override

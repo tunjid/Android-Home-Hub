@@ -57,7 +57,12 @@ public class NsdHelper {
     }
 
     public void discoverServices() {
-        nsdManager.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, mDiscoveryListener);
+        try {
+            nsdManager.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, mDiscoveryListener);
+        }
+         catch (IllegalArgumentException e) {
+            Log.w(TAG, "Nsd Discovery Listener already added");
+        }
     }
 
     public void stopServiceDiscovery() {

@@ -29,7 +29,6 @@ import android.util.Base64;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.tunjid.rcswitchcontrol.Application;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.ServiceConnection;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
@@ -53,22 +52,16 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
 
     public static final byte STATE_SNIFFING = 0;
     public static final int NOTIFICATION_ID = 1;
-
-    private final static String TAG = ClientBleService.class.getSimpleName();
-
     // Services
     public static final String CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb";
-    //public static final String DATA_TRANSCEIVER_SERVICE = "195ae58a-437a-489b-b0cd-b7c9c394bae4";
-
     // Characteristics
     public static final String C_HANDLE_CONTROL = "5fc569a0-74a9-4fa4-b8b7-8354c86e45a4";
+    //public static final String DATA_TRANSCEIVER_SERVICE = "195ae58a-437a-489b-b0cd-b7c9c394bae4";
     public static final String C_HANDLE_SNIFFER = "21819ab0-c937-4188-b0db-b9621e1696cd";
     public static final String C_HANDLE_TRANSMITTER = "3c79909b-cc1c-4bb9-8595-f99fa98c6503";
-
     // Keys for data
     public final static String BLUETOOTH_DEVICE = "BLUETOOTH_DEVICE";
     public static final String LAST_PAIRED_DEVICE = "LAST_PAIRED_DEVICE";
-
     public final static String ACTION_GATT_CONNECTED = "ACTION_GATT_CONNECTED";
     public final static String ACTION_GATT_CONNECTING = "ACTION_GATT_CONNECTING";
     public final static String ACTION_GATT_DISCONNECTED = "ACTION_GATT_DISCONNECTED";
@@ -76,33 +69,26 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
     public final static String ACTION_CONTROL = "ACTION_CONTROL";
     public final static String ACTION_SNIFFER = "ACTION_SNIFFER";
     public final static String ACTION_TRANSMITTER = "ACTION_TRANSMITTER";
-
     public final static String DATA_AVAILABLE_CONTROL = "DATA_AVAILABLE_CONTROL";
     public final static String DATA_AVAILABLE_SNIFFER = "DATA_AVAILABLE_SNIFFER";
     public final static String DATA_AVAILABLE_TRANSMITTER = "DATA_AVAILABLE_TRANSMITTER";
-
     public final static String DATA_AVAILABLE_UNKNOWN = "ACTION_DATA_AVAILABLE";
-
     public final static String EXTRA_DATA = "EXTRA_DATA";
-
+    private final static String TAG = ClientBleService.class.getSimpleName();
+    private final IBinder binder = new Binder();
+    private final IntentFilter nsdIntentFilter = new IntentFilter();
+    private final ServiceConnection<ServerNsdService> serverConnection = new ServiceConnection<>(ServerNsdService.class);
     private boolean isUserInApp;
-
     private String connectionState = ACTION_GATT_DISCONNECTED;
-
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothGatt bluetoothGatt;
     private BluetoothDevice connectedDevice;
-
     // Queue for reading multiple characteristics due to delay induced by callback.
     private Queue<BluetoothGattCharacteristic> readQueue = new LinkedList<>();
     // Queue for writing multiple descriptors due to delay induced by callback.
     private Queue<BluetoothGattDescriptor> writeQueue = new LinkedList<>();
     // Map of characteristics of interest
     private Map<String, BluetoothGattCharacteristic> characteristicMap = new HashMap<>();
-
-    private final IBinder binder = new Binder();
-    private final IntentFilter nsdIntentFilter = new IntentFilter();
-
     private final BroadcastReceiver nsdUpdateReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -119,7 +105,6 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
             Log.i(TAG, "Received data for: " + action);
         }
     };
-
     // Implements callback methods for GATT events that the app cares about.  For example,
     // connection change and services discovered.
     private final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
@@ -236,8 +221,9 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
         }
     };
 
-    private final ServiceConnection<ServerNsdService> serverConnection = new ServiceConnection<>(ServerNsdService.class);
-
+    public static void showToast(Context context, int resourceId) {
+        Toast.makeText(context, resourceId, Toast.LENGTH_SHORT).show();
+    }
 
     @Override
     public void onCreate() {
@@ -573,14 +559,12 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this)
                 .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle(getText(R.string.connected))
-                .setContentText(getText(Application.isServiceRunning(ServerNsdService.class) ? R.string.ble_connected_nsd_server : R.string.connected))
+                .setContentText(getText(serverConnection.isBound() && serverConnection.getBoundService().isRunning()
+                        ? R.string.ble_connected_nsd_server
+                        : R.string.connected))
                 .setContentIntent(activityPendingIntent);
 
         return notificationBuilder.build();
-    }
-
-    public static void showToast(Context context, int resourceId) {
-        Toast.makeText(context, resourceId, Toast.LENGTH_SHORT).show();
     }
 
     private class Binder extends ServiceConnection.Binder<ClientBleService> {

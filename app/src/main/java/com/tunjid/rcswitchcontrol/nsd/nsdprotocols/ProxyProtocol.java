@@ -1,8 +1,13 @@
 package com.tunjid.rcswitchcontrol.nsd.nsdprotocols;
 
+import android.util.Log;
+
+import com.tunjid.rcswitchcontrol.Application;
+import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.model.Payload;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 
 /**
  * A protocol that proxies requests to another {@link CommsProtocol} of a user's choosing
@@ -10,17 +15,21 @@ import java.io.IOException;
  * Created by tj.dahunsi on 2/11/17.
  */
 
-public class ProxyProtocol implements CommsProtocol {
+public class ProxyProtocol extends CommsProtocol {
+
+    private static final String TAG = ProxyProtocol.class.getSimpleName();
 
     private static final String CHOOSER = "choose";
     private static final String KNOCK_KNOCK = "Knock Knock Jokes";
     private static final String RC_REMOTE = "RC Remote";
+    private static final String ANDROID_THINGS = "Android Things";
 
     private boolean choosing;
 
     private CommsProtocol commsProtocol;
 
-    public ProxyProtocol() {
+    public ProxyProtocol(PrintWriter printWriter) {
+        super(printWriter);
     }
 
     @Override
@@ -34,8 +43,16 @@ public class ProxyProtocol implements CommsProtocol {
         switch (input) {
             case RESET:
             case CHOOSER:
+                try {
+                    if (commsProtocol != null) commsProtocol.close();
+                }
+                catch (IOException e) {
+                    Log.e(TAG, "Failed to close current CommsProtocul in ProxyProtocol", e);
+                }
+
                 choosing = true;
-                builder.setResponse("Please choose the server you want, Knock Knock jokes, or an RC Remote");
+                builder.setResponse(appContext.getString(R.string.proxyprotocol_ping_response));
+                if (Application.isAndroidThings()) builder.addCommand(ANDROID_THINGS);
                 builder.addCommand(KNOCK_KNOCK);
                 builder.addCommand(RC_REMOTE);
                 builder.addCommand(RESET);
@@ -45,6 +62,9 @@ public class ProxyProtocol implements CommsProtocol {
 
         if (choosing) {
             switch (input) {
+                case ANDROID_THINGS:
+                    commsProtocol = new AndroidThingsProtocol(printWriter);
+                    break;
                 case KNOCK_KNOCK:
                     commsProtocol = new KnockKnockProtocol();
                     break;
@@ -53,6 +73,7 @@ public class ProxyProtocol implements CommsProtocol {
                     break;
                 default:
                     builder.setResponse("Invalid command. Please choose the server you want, Knock Knock jokes, or an RC Remote");
+                    if (Application.isAndroidThings()) builder.addCommand(ANDROID_THINGS);
                     builder.addCommand(KNOCK_KNOCK);
                     builder.addCommand(RC_REMOTE);
                     builder.addCommand(RESET);

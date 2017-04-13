@@ -238,7 +238,7 @@ public class ClientBleFragment extends BaseFragment
         bleConnection.with(activity).setExtras(extras).bind();
 
         if (activity.getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE).getBoolean(ServerNsdService.SERVER_FLAG, false)) {
-            serverConnection.startService(activity);
+            serverConnection.with(activity).start();
             serverConnection.with(activity).bind();
             getActivity().invalidateOptionsMenu();
         }
@@ -379,7 +379,7 @@ public class ClientBleFragment extends BaseFragment
                 .edit().putString(SERVICE_NAME_KEY, name)
                 .putBoolean(ServerNsdService.SERVER_FLAG, true).apply();
 
-        serverConnection.startService(activity);
+        serverConnection.with(activity).start();
         serverConnection.with(activity).bind();
     }
 

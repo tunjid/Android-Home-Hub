@@ -284,7 +284,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
         Log.i(TAG, "Initialized BLE connection");
 
         if (getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE).getBoolean(ServerNsdService.SERVER_FLAG, false)) {
-            serverConnection.startService(this);
+            serverConnection.with(this).start();
             serverConnection.with(this).bind();
 
             Log.i(TAG, "Binding to NSD server");
@@ -549,9 +549,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
 
         resumeIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
         resumeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
         resumeIntent.putExtra(BLUETOOTH_DEVICE, connectedDevice);
-        resumeIntent.putExtra(MainActivity.GO_TO_SCAN, !isConnected());
 
         PendingIntent activityPendingIntent = PendingIntent.getActivity(
                 this, 0, resumeIntent, PendingIntent.FLAG_CANCEL_CURRENT);

@@ -10,11 +10,13 @@ import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 
+import com.tunjid.rcswitchcontrol.Application;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseActivity;
 import com.tunjid.rcswitchcontrol.fragments.ClientBleFragment;
 import com.tunjid.rcswitchcontrol.fragments.ClientNsdFragment;
 import com.tunjid.rcswitchcontrol.fragments.StartFragment;
+import com.tunjid.rcswitchcontrol.fragments.ThingsFragment;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
 import com.tunjid.rcswitchcontrol.services.ClientBleService;
 import com.tunjid.rcswitchcontrol.services.ClientNsdService;
@@ -22,8 +24,6 @@ import com.tunjid.rcswitchcontrol.services.ClientNsdService;
 import static com.tunjid.rcswitchcontrol.services.ClientBleService.BLUETOOTH_DEVICE;
 
 public class MainActivity extends BaseActivity {
-
-    public static final String GO_TO_SCAN = "GO_TO_SCAN";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,14 +57,16 @@ public class MainActivity extends BaseActivity {
             intent.putExtra(BLUETOOTH_DEVICE, device);
             startService(intent);
         }
-        if(isNsdClient){
+        if (isNsdClient) {
             sendBroadcast(new Intent(ClientNsdService.ACTION_START_NSD_DISCOVERY));
         }
 
         if (!isSavedInstance) {
-            if (isNsdClient) showFragment(ClientNsdFragment.newInstance());
+            if (Application.isAndroidThings()) showFragment(ThingsFragment.newInstance());
+            else if (isNsdClient) showFragment(ClientNsdFragment.newInstance());
             else if (isNullDevice) showFragment(StartFragment.newInstance());
             else showFragment(ClientBleFragment.newInstance(device));
         }
     }
+
 }

@@ -2,9 +2,10 @@ package com.tunjid.rcswitchcontrol.nsd.nsdprotocols;
 
 
 import android.content.Intent;
+import android.content.res.Resources;
 import android.support.v4.content.LocalBroadcastManager;
 
-import com.tunjid.rcswitchcontrol.Application;
+import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.model.Payload;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
 import com.tunjid.rcswitchcontrol.services.ClientBleService;
@@ -17,43 +18,43 @@ import java.io.IOException;
  * Created by tj.dahunsi on 2/11/17.
  */
 
-public class BleRcProtocol implements CommsProtocol {
+public class BleRcProtocol extends CommsProtocol {
 
-    private static final String REFRESH_SWITCHES = "Refresh Switches";
+    private final String REFRESH_SWITCHES;
 
     BleRcProtocol() {
+        super();
+        REFRESH_SWITCHES = appContext.getString(R.string.blercprotocol_refresh_switches_command);
     }
 
     @Override
     public Payload processInput(String input) {
+        Resources resources = appContext.getResources();
         Payload.Builder builder = Payload.builder();
         builder.setKey(getClass().getName());
         builder.addCommand(RESET);
 
         if (input == null) {
-            builder.setResponse("Welcome! Tap any of the switches to control them");
+            builder.setResponse(resources.getString(R.string.blercprotocol_ping_response));
             builder.setData(RcSwitch.serializedSavedSwitches());
             builder.addCommand(REFRESH_SWITCHES);
 
             return builder.build();
         }
 
-        switch (input) {
-            case PING:
-            case REFRESH_SWITCHES:
-                builder.setResponse("Updated available switches");
-                builder.setData(RcSwitch.serializedSavedSwitches());
-                builder.addCommand(REFRESH_SWITCHES);
-                break;
-            default:
-                builder.setResponse("Sending transmission");
-                builder.addCommand(REFRESH_SWITCHES);
+        if (input.equals(PING) || input.equals(REFRESH_SWITCHES)) {
+            builder.setResponse(resources.getString(R.string.blercprotocol_refresh_response));
+            builder.setData(RcSwitch.serializedSavedSwitches());
+            builder.addCommand(REFRESH_SWITCHES);
+        }
+        else {
+            builder.setResponse(resources.getString(R.string.blercprotocol_transmission_response));
+            builder.addCommand(REFRESH_SWITCHES);
 
-                Intent intent = new Intent(ClientBleService.ACTION_TRANSMITTER);
-                intent.putExtra(ClientBleService.DATA_AVAILABLE_TRANSMITTER, input);
+            Intent intent = new Intent(ClientBleService.ACTION_TRANSMITTER);
+            intent.putExtra(ClientBleService.DATA_AVAILABLE_TRANSMITTER, input);
 
-                LocalBroadcastManager.getInstance(Application.getInstance()).sendBroadcast(intent);
-                break;
+            LocalBroadcastManager.getInstance(appContext).sendBroadcast(intent);
         }
 
         return builder.build();

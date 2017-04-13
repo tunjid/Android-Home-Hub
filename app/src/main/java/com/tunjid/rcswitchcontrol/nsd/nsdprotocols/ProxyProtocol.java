@@ -63,13 +63,13 @@ public class ProxyProtocol extends CommsProtocol {
         if (choosing) {
             switch (input) {
                 case ANDROID_THINGS:
-                    commsProtocol = new RemoteBleRcProtocol(printWriter);
+                    commsProtocol = new ScanBleRcProtocol(printWriter);
+                    break;
+                case RC_REMOTE:
+                    commsProtocol = new BleRcProtocol(printWriter);
                     break;
                 case KNOCK_KNOCK:
                     commsProtocol = new KnockKnockProtocol();
-                    break;
-                case RC_REMOTE:
-                    commsProtocol = new BleRcProtocol();
                     break;
                 default:
                     builder.setResponse("Invalid command. Please choose the server you want, Knock Knock jokes, or an RC Remote");

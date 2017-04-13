@@ -26,7 +26,6 @@ import com.tunjid.rcswitchcontrol.services.ClientBleService;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static android.content.Context.MODE_PRIVATE;
@@ -37,20 +36,14 @@ import static android.content.Context.MODE_PRIVATE;
  * Created by tj.dahunsi on 4/12/17.
  */
 
-class RemoteBleRcProtocol extends CommsProtocol implements BLEScanner.BleScanCallback {
+class ScanBleRcProtocol extends CommsProtocol implements BLEScanner.BleScanCallback {
 
-    private static final String TAG = RemoteBleRcProtocol.class.getSimpleName();
-
-    private static final String SCAN = "Scan";
-    private static final String SNIFF = "Sniff";
-    private static final String DISCONNECT = "Disconnect";
-    private static final String CONNECT = "Connect";
-
-//    static final String STATE_CONNECTING = "STATE_CONNECTING";
-//    static final String STATE_CONNECTED = "STATE_CONNECTED";
-//    static final String STATE_DISCONNECTED = "STATE_DISCONNECTED";
-
+    private static final String TAG = ScanBleRcProtocol.class.getSimpleName();
     private static final int SCAN_DURATION = 5000;
+
+    private final String SCAN;
+    private final String CONNECT;
+    private final String DISCONNECT;
 
     private BluetoothDevice currentDevice;
     private final BLEScanner scanner;
@@ -58,8 +51,6 @@ class RemoteBleRcProtocol extends CommsProtocol implements BLEScanner.BleScanCal
     private final Handler scanHandler;
     private final HandlerThread scanThread;
 
-    private final RcSwitch.SwitchCreator switchCreator;
-    private final List<RcSwitch> switches;
     private final Map<String, BluetoothDevice> deviceMap = new HashMap<>();
     private final ServiceConnection<ClientBleService> bleConnection;
     private final Runnable scanCompleteRunnable = new Runnable() {
@@ -69,14 +60,13 @@ class RemoteBleRcProtocol extends CommsProtocol implements BLEScanner.BleScanCal
 
             Resources resources = appContext.getResources();
             Payload.Builder builder = Payload.builder();
-            builder.setKey(RemoteBleRcProtocol.this.getClass().getName());
+            builder.setKey(ScanBleRcProtocol.this.getClass().getName());
             builder.addCommand(RESET);
-            builder.addCommand(SNIFF);
             builder.addCommand(SCAN);
 
             for (BluetoothDevice device : deviceMap.values()) builder.addCommand(device.getName());
 
-            builder.setResponse(resources.getString(R.string.remoteblercprotocol_scan_response, deviceMap.size()));
+            builder.setResponse(resources.getString(R.string.scanblercprotocol_scan_response, deviceMap.size()));
 
             assert printWriter != null;
             printWriter.println(builder.build().serialize());
@@ -87,69 +77,28 @@ class RemoteBleRcProtocol extends CommsProtocol implements BLEScanner.BleScanCal
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            Payload.Builder builder = Payload.builder();
-            builder.setKey(getClass().getSimpleName());
-
             switch (action) {
                 case ClientBleService.ACTION_GATT_CONNECTED:
                 case ClientBleService.ACTION_GATT_CONNECTING:
                 case ClientBleService.ACTION_GATT_DISCONNECTED:
                     onConnectionStateChanged(action);
                     break;
-                case ClientBleService.ACTION_CONTROL: {
-                    byte[] rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_CONTROL);
-
-                    if (rawData[0] == 1) {
-                        builder.setResponse(appContext.getString(R.string.remoteblercprotocol_stop_sniff_response))
-                                .addCommand(SNIFF).addCommand(RESET);
-                        pushData(builder.build());
-                    }
-                    break;
-                }
-                case ClientBleService.ACTION_SNIFFER: {
-                    byte[] rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_SNIFFER);
-
-                    switch (switchCreator.getState()) {
-                        case ON_CODE:
-                            switchCreator.withOnCode(rawData);
-                            builder.setResponse(appContext.getString(R.string.remoteblercprotocol_sniff_on_response))
-                                    .addCommand(SNIFF).addCommand(RESET);
-                            pushData(builder.build());
-                            break;
-                        case OFF_CODE:
-                            RcSwitch rcSwitch = switchCreator.withOffCode(rawData);
-                            rcSwitch.setName("Switch " + (switches.size() + 1));
-
-                            builder.addCommand(SNIFF).addCommand(RESET);
-                            if (!switches.contains(rcSwitch)) {
-                                switches.add(rcSwitch);
-                                RcSwitch.saveSwitches(switches);
-                                builder.setResponse(appContext.getString(R.string.remoteblercprotocol_sniff_off_response));
-                            }
-                            else {
-                                builder.setResponse(appContext.getString(R.string.remoteblercprotocol_sniff_already_exists_response));
-                            }
-                            pushData(builder.build());
-                            break;
-                    }
-                    break;
-                }
             }
-
             Log.i(TAG, "Received data for: " + action);
         }
     };
 
-    RemoteBleRcProtocol(PrintWriter printWriter) {
+    ScanBleRcProtocol(PrintWriter printWriter) {
         super(printWriter);
+
+        SCAN = appContext.getString(R.string.button_scan);
+        CONNECT = appContext.getString(R.string.connect);
+        DISCONNECT = appContext.getString(R.string.menu_disconnect);
 
         scanThread = new HandlerThread("Hi");
         scanThread.start();
 
         scanHandler = new Handler(scanThread.getLooper());
-        switchCreator = new RcSwitch.SwitchCreator();
-        switches = RcSwitch.getSavedSwitches();
-
         bleConnection = new ServiceConnection<>(ClientBleService.class);
 
         IntentFilter intentFilter = new IntentFilter();
@@ -193,27 +142,17 @@ class RemoteBleRcProtocol extends CommsProtocol implements BLEScanner.BleScanCal
         if (input == null) input = PING;
 
         if (input.equals(PING) || input.equals(RESET)) {
-            return builder.addCommand(isConnected() ? SNIFF : SCAN)
-                    .setResponse(resources.getString(R.string.remoteblercprotocol_ping_reponse)).build();
+            return builder.setResponse(resources.getString(R.string.scanblercprotocol_ping_reponse))
+                    .addCommand(SCAN).build();
         }
         else if (input.equals(SCAN)) {
             deviceMap.clear();
             scanner.startScan();
             scanHandler.postDelayed(scanCompleteRunnable, SCAN_DURATION);
 
-            builder.setResponse(resources.getString(R.string.remoteblercprotocol_start_scan_reponse));
+            builder.setResponse(resources.getString(R.string.scanblercprotocol_start_scan_reponse));
 
             return builder.build();
-        }
-        else if (input.equals(SNIFF)) {
-            builder.setResponse(appContext.getString(R.string.remoteblercprotocol_start_sniff_response))
-                    .addCommand(SNIFF).addCommand(DISCONNECT);
-
-            if (bleConnection.isBound()) {
-                bleConnection.getBoundService().writeCharacteristicArray(
-                        ClientBleService.C_HANDLE_CONTROL,
-                        new byte[]{ClientBleService.STATE_SNIFFING});
-            }
         }
         else if (input.equals(CONNECT) && bleConnection.isBound()) {
             bleConnection.getBoundService().connect(currentDevice);
@@ -254,16 +193,15 @@ class RemoteBleRcProtocol extends CommsProtocol implements BLEScanner.BleScanCal
 
         switch (newState) {
             case ClientBleService.ACTION_GATT_CONNECTED:
-                builder.addCommand(SNIFF);
-                builder.addCommand(DISCONNECT);
-                builder.setResponse(appContext.getString(R.string.connected));
+                builder.setResponse(appContext.getString(R.string.connected))
+                        .addCommand(DISCONNECT);
                 break;
             case ClientBleService.ACTION_GATT_CONNECTING:
                 builder.setResponse(appContext.getString(R.string.connecting));
                 break;
             case ClientBleService.ACTION_GATT_DISCONNECTED:
-                builder.addCommand(CONNECT);
-                builder.setResponse(appContext.getString(R.string.disconnected));
+                builder.setResponse(appContext.getString(R.string.disconnected))
+                        .addCommand(CONNECT);
                 break;
         }
         pushData(builder.build());
@@ -277,9 +215,5 @@ class RemoteBleRcProtocol extends CommsProtocol implements BLEScanner.BleScanCal
                 printWriter.println(payload.serialize());
             }
         });
-    }
-
-    private boolean isConnected() {
-        return bleConnection.isBound() && bleConnection.getBoundService().isConnected();
     }
 }

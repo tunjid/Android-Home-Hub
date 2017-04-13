@@ -1,16 +1,24 @@
 package com.tunjid.rcswitchcontrol.nsd.nsdprotocols;
 
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.support.v4.content.LocalBroadcastManager;
+import android.util.Log;
 
 import com.tunjid.rcswitchcontrol.R;
+import com.tunjid.rcswitchcontrol.ServiceConnection;
 import com.tunjid.rcswitchcontrol.model.Payload;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
 import com.tunjid.rcswitchcontrol.services.ClientBleService;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.List;
 
 /**
  * A protocol for communicating with RF 433 MhZ devices
@@ -20,11 +28,91 @@ import java.io.IOException;
 
 public class BleRcProtocol extends CommsProtocol {
 
+    private static final String TAG = BleRcProtocol.class.getSimpleName();
+
+    private final String SNIFF;
+    private final String CONNECT;
+    private final String DISCONNECT;
     private final String REFRESH_SWITCHES;
 
-    BleRcProtocol() {
-        super();
+    private final List<RcSwitch> switches;
+    private final Handler pushHandler;
+    private final HandlerThread pushThread;
+    private final RcSwitch.SwitchCreator switchCreator;
+    private final ServiceConnection<ClientBleService> bleConnection;
+    private final BroadcastReceiver gattUpdateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            Payload.Builder builder = Payload.builder();
+            builder.setKey(getClass().getSimpleName());
+
+            switch (action) {
+                case ClientBleService.ACTION_GATT_CONNECTED:
+                case ClientBleService.ACTION_GATT_CONNECTING:
+                case ClientBleService.ACTION_GATT_DISCONNECTED:
+                    onConnectionStateChanged(action);
+                    break;
+                case ClientBleService.ACTION_CONTROL: {
+                    byte[] rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_CONTROL);
+
+                    if (rawData[0] == 1) {
+                        builder.setResponse(appContext.getString(R.string.scanblercprotocol_stop_sniff_response))
+                                .addCommand(SNIFF).addCommand(RESET);
+                        pushData(builder.build());
+                    }
+                    break;
+                }
+                case ClientBleService.ACTION_SNIFFER: {
+                    byte[] rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_SNIFFER);
+
+                    switch (switchCreator.getState()) {
+                        case ON_CODE:
+                            switchCreator.withOnCode(rawData);
+                            builder.setResponse(appContext.getString(R.string.scanblercprotocol_sniff_on_response))
+                                    .addCommand(SNIFF).addCommand(RESET);
+                            pushData(builder.build());
+                            break;
+                        case OFF_CODE:
+                            RcSwitch rcSwitch = switchCreator.withOffCode(rawData);
+                            rcSwitch.setName("Switch " + (switches.size() + 1));
+
+                            builder.addCommand(SNIFF).addCommand(RESET);
+                            if (!switches.contains(rcSwitch)) {
+                                switches.add(rcSwitch);
+                                RcSwitch.saveSwitches(switches);
+                                builder.setResponse(appContext.getString(R.string.scanblercprotocol_sniff_off_response));
+                            }
+                            else {
+                                builder.setResponse(appContext.getString(R.string.scanblercprotocol_sniff_already_exists_response));
+                            }
+                            pushData(builder.build());
+                            break;
+                    }
+                    break;
+                }
+            }
+
+            Log.i(TAG, "Received data for: " + action);
+        }
+    };
+
+    BleRcProtocol(PrintWriter printWriter) {
+        super(printWriter);
+
+        SNIFF = appContext.getString(R.string.scanblercprotocol_sniff);
+        CONNECT = appContext.getString(R.string.connect);
+        DISCONNECT = appContext.getString(R.string.menu_disconnect);
         REFRESH_SWITCHES = appContext.getString(R.string.blercprotocol_refresh_switches_command);
+
+        pushThread = new HandlerThread("PushThread");
+        pushThread.start();
+
+        switches = RcSwitch.getSavedSwitches();
+        switchCreator = new RcSwitch.SwitchCreator();
+
+        pushHandler = new Handler(pushThread.getLooper());
+        bleConnection = new ServiceConnection<>(ClientBleService.class);
     }
 
     @Override
@@ -47,6 +135,16 @@ public class BleRcProtocol extends CommsProtocol {
             builder.setData(RcSwitch.serializedSavedSwitches());
             builder.addCommand(REFRESH_SWITCHES);
         }
+        else if (input.equals(SNIFF)) {
+            builder.setResponse(appContext.getString(R.string.scanblercprotocol_start_sniff_response))
+                    .addCommand(SNIFF).addCommand(DISCONNECT);
+
+            if (bleConnection.isBound()) {
+                bleConnection.getBoundService().writeCharacteristicArray(
+                        ClientBleService.C_HANDLE_CONTROL,
+                        new byte[]{ClientBleService.STATE_SNIFFING});
+            }
+        }
         else {
             builder.setResponse(resources.getString(R.string.blercprotocol_transmission_response));
             builder.addCommand(REFRESH_SWITCHES);
@@ -62,5 +160,41 @@ public class BleRcProtocol extends CommsProtocol {
 
     @Override
     public void close() throws IOException {
+        LocalBroadcastManager.getInstance(appContext).unregisterReceiver(gattUpdateReceiver);
+
+        pushThread.quitSafely();
+        if (bleConnection.isBound()) bleConnection.unbindService();
+    }
+
+    private void onConnectionStateChanged(String newState) {
+        Payload.Builder builder = Payload.builder();
+        builder.setKey(getClass().getSimpleName());
+        builder.addCommand(RESET);
+
+        switch (newState) {
+            case ClientBleService.ACTION_GATT_CONNECTED:
+                builder.addCommand(SNIFF);
+                builder.addCommand(DISCONNECT);
+                builder.setResponse(appContext.getString(R.string.connected));
+                break;
+            case ClientBleService.ACTION_GATT_CONNECTING:
+                builder.setResponse(appContext.getString(R.string.connecting));
+                break;
+            case ClientBleService.ACTION_GATT_DISCONNECTED:
+                builder.addCommand(CONNECT);
+                builder.setResponse(appContext.getString(R.string.disconnected));
+                break;
+        }
+        pushData(builder.build());
+    }
+
+    private void pushData(final Payload payload) {
+        pushHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                assert printWriter != null;
+                printWriter.println(payload.serialize());
+            }
+        });
     }
 }

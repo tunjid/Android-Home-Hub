@@ -44,6 +44,7 @@ class AndroidThingsProtocol extends CommsProtocol implements BLEScanner.BleScanC
     private static final String SCAN = "Scan";
     private static final String SNIFF = "Sniff";
     private static final String DISCONNECT = "Disconnect";
+    private static final String CONNECT = "Connect";
 
 //    static final String STATE_CONNECTING = "STATE_CONNECTING";
 //    static final String STATE_CONNECTED = "STATE_CONNECTED";
@@ -67,6 +68,7 @@ class AndroidThingsProtocol extends CommsProtocol implements BLEScanner.BleScanC
             Payload.Builder builder = Payload.builder();
             builder.setKey(AndroidThingsProtocol.this.getClass().getName());
             builder.addCommand(RESET);
+            builder.addCommand(SNIFF);
             builder.addCommand(SCAN);
 
             for (BluetoothDevice device : deviceMap.values()) builder.addCommand(device.getName());
@@ -92,6 +94,13 @@ class AndroidThingsProtocol extends CommsProtocol implements BLEScanner.BleScanC
                     onConnectionStateChanged(action);
                     break;
                 case ClientBleService.ACTION_CONTROL: {
+                    byte[] rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_CONTROL);
+
+                    if (rawData[0] == 1) {
+                        builder.setResponse(appContext.getString(R.string.androidthingsprotocol_stop_sniff_response))
+                                .addCommand(SNIFF).addCommand(RESET);
+                        pushData(builder.build());
+                    }
                     break;
                 }
                 case ClientBleService.ACTION_SNIFFER: {
@@ -100,12 +109,15 @@ class AndroidThingsProtocol extends CommsProtocol implements BLEScanner.BleScanC
                     switch (switchCreator.getState()) {
                         case ON_CODE:
                             switchCreator.withOnCode(rawData);
-                            builder.setResponse(appContext.getString(R.string.androidthingsprotocol_sniff_on_response));
+                            builder.setResponse(appContext.getString(R.string.androidthingsprotocol_sniff_on_response))
+                                    .addCommand(SNIFF).addCommand(RESET);
+                            pushData(builder.build());
                             break;
                         case OFF_CODE:
                             RcSwitch rcSwitch = switchCreator.withOffCode(rawData);
                             rcSwitch.setName("Switch " + (switches.size() + 1));
 
+                            builder.addCommand(SNIFF).addCommand(RESET);
                             if (!switches.contains(rcSwitch)) {
                                 switches.add(rcSwitch);
                                 RcSwitch.saveSwitches(switches);
@@ -189,11 +201,20 @@ class AndroidThingsProtocol extends CommsProtocol implements BLEScanner.BleScanC
             return builder.build();
         }
         else if (input.equals(SNIFF)) {
+            builder.setResponse(appContext.getString(R.string.androidthingsprotocol_start_sniff_response))
+                    .addCommand(SNIFF).addCommand(DISCONNECT);
+
             if (bleConnection.isBound()) {
                 bleConnection.getBoundService().writeCharacteristicArray(
                         ClientBleService.C_HANDLE_CONTROL,
                         new byte[]{ClientBleService.STATE_SNIFFING});
             }
+        }
+        else if (input.equals(CONNECT) && bleConnection.isBound()) {
+            //bleConnection.getBoundService().connect()
+        }
+        else if (input.equals(DISCONNECT) && bleConnection.isBound()) {
+            bleConnection.getBoundService().disconnect();
         }
         else if (deviceMap.containsKey(input)) {
             Bundle extras = new Bundle();
@@ -202,7 +223,7 @@ class AndroidThingsProtocol extends CommsProtocol implements BLEScanner.BleScanC
             bleConnection.with(appContext).setExtras(extras).start();
             bleConnection.with(appContext).setExtras(extras).bind();
 
-            Log.i(TAG, "Started ClientBleService, devide: " + input);
+            Log.i(TAG, "Started ClientBleService, device: " + input);
         }
         return builder.build();
     }
@@ -216,13 +237,9 @@ class AndroidThingsProtocol extends CommsProtocol implements BLEScanner.BleScanC
     @Override
     public void close() throws IOException {
         LocalBroadcastManager.getInstance(appContext).unregisterReceiver(gattUpdateReceiver);
-
         scanThread.quitSafely();
 
-        if (bleConnection.isBound()) {
-            bleConnection.getBoundService().stopSelf();
-            bleConnection.unbindService();
-        }
+        if (bleConnection.isBound()) bleConnection.unbindService();
     }
 
     private void onConnectionStateChanged(String newState) {
@@ -240,6 +257,7 @@ class AndroidThingsProtocol extends CommsProtocol implements BLEScanner.BleScanC
                 builder.setResponse(appContext.getString(R.string.connecting));
                 break;
             case ClientBleService.ACTION_GATT_DISCONNECTED:
+                builder.addCommand(CONNECT);
                 builder.setResponse(appContext.getString(R.string.disconnected));
                 break;
         }

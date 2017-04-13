@@ -63,7 +63,7 @@ public class ProxyProtocol extends CommsProtocol {
         if (choosing) {
             switch (input) {
                 case ANDROID_THINGS:
-                    commsProtocol = new AndroidThingsProtocol(printWriter);
+                    commsProtocol = new RemoteBleRcProtocol(printWriter);
                     break;
                 case KNOCK_KNOCK:
                     commsProtocol = new KnockKnockProtocol();

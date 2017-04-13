@@ -80,18 +80,18 @@
     <string name="menu_refresh">Refresh</string>
 
     <!-- Protocol strings -->
-    <string name="proxyprotocol_ping_response">Please choose the server you want, Knock Knock jokes, or an RC Remote</string>
+    <string name="proxyprotocol_ping_response">Please choose an option;\n1. Set up a remote device to connect to the ble sniffer\n2. Control a remote device to find and toggle switches\n3. Knock-Knock jokes</string>
     <string name="blercprotocol_ping_response">Welcome! Tap any of the switches to control them</string>
     <string name="blercprotocol_refresh_response">Updated available switches</string>
     <string name="blercprotocol_transmission_response">Sending transmission</string>
     <string name="blercprotocol_refresh_switches_command">Refresh Switches</string>
-    <string name="androidthingsprotocol_device_name">Device: %1$s</string>
-    <string name="androidthingsprotocol_scan_response">Scan complete, found %1$d device(s)</string>
-    <string name="androidthingsprotocol_ping_reponse">Welcome! Tap scan to search for bluetooth hosts. Note that Scanning is done in bouts of 5 seconds.</string>
-    <string name="androidthingsprotocol_start_scan_reponse">Scanning</string>
-    <string name="androidthingsprotocol_start_sniff_response">Sniffing</string>
-    <string name="androidthingsprotocol_stop_sniff_response">Sniff ended</string>
-    <string name="androidthingsprotocol_sniff_on_response">Sniffed on code</string>
-    <string name="androidthingsprotocol_sniff_off_response">Sniffed off code</string>
-    <string name="androidthingsprotocol_sniff_already_exists_response">This switch already exists</string>
+    <string name="remoteblercprotocol_device_name">Device: %1$s</string>
+    <string name="remoteblercprotocol_scan_response">Scan complete, found %1$d device(s)</string>
+    <string name="remoteblercprotocol_ping_reponse">Welcome! Tap scan to search for bluetooth hosts. Note that scanning is done in bouts of 5 seconds.</string>
+    <string name="remoteblercprotocol_start_scan_reponse">Scanning</string>
+    <string name="remoteblercprotocol_start_sniff_response">Sniffing</string>
+    <string name="remoteblercprotocol_stop_sniff_response">Sniff ended</string>
+    <string name="remoteblercprotocol_sniff_on_response">Sniffed on code</string>
+    <string name="remoteblercprotocol_sniff_off_response">Sniffed off code</string>
+    <string name="remoteblercprotocol_sniff_already_exists_response">This switch already exists</string>
 </resources>

@@ -17,6 +17,7 @@ public class Payload implements Serializable {
 
     private String key;
     private String data;
+    private String action;
     private String response;
     private Set<String> commands = new LinkedHashSet<>();
 
@@ -26,6 +27,10 @@ public class Payload implements Serializable {
 
     public String getData() {
         return data;
+    }
+
+    public String getAction() {
+        return action;
     }
 
     public String getResponse() {
@@ -62,6 +67,11 @@ public class Payload implements Serializable {
 
         public Builder setData(String data) {
             payload.data = data;
+            return this;
+        }
+
+        public Builder setAction(String action) {
+            payload.action = action;
             return this;
         }
 

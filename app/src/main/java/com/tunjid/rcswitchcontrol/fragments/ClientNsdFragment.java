@@ -7,6 +7,8 @@ import android.content.IntentFilter;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.Snackbar;
+import android.support.transition.AutoTransition;
+import android.support.transition.TransitionManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -19,10 +21,11 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 
-import com.tunjid.rcswitchcontrol.ServiceConnection;
 import com.tunjid.rcswitchcontrol.R;
+import com.tunjid.rcswitchcontrol.ServiceConnection;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
 import com.tunjid.rcswitchcontrol.adapters.ChatAdapter;
@@ -32,6 +35,7 @@ import com.tunjid.rcswitchcontrol.model.Payload;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
 import com.tunjid.rcswitchcontrol.nsd.nsdprotocols.BleRcProtocol;
 import com.tunjid.rcswitchcontrol.nsd.nsdprotocols.CommsProtocol;
+import com.tunjid.rcswitchcontrol.services.ClientBleService;
 import com.tunjid.rcswitchcontrol.services.ClientNsdService;
 
 import java.util.ArrayList;
@@ -52,6 +56,8 @@ public class ClientNsdFragment extends BaseFragment
 
     private boolean isDeleting;
 
+    private View progressBar;
+    private Button sniffButton;
     private TextView connectionStatus;
     private RecyclerView switchList;
     private RecyclerView commandsView;
@@ -93,11 +99,20 @@ public class ClientNsdFragment extends BaseFragment
 
                     swapAdapter(isBleRc);
 
-                    if (isBleRc) {
-                        if (payload.getData() != null) {
-                            switches.clear();
-                            switches.addAll(RcSwitch.deserialize(payload.getData()));
-                            switchList.getAdapter().notifyDataSetChanged();
+                    if (isBleRc && payload.getAction() != null) {
+                        switch (payload.getAction()) {
+                            case ClientBleService.ACTION_TRANSMITTER:
+                                switches.clear();
+                                switches.addAll(RcSwitch.deserialize(payload.getData()));
+                                switchList.getAdapter().notifyDataSetChanged();
+                                break;
+                            case ClientBleService.ACTION_CONTROL:
+                                toggleProgress(payload.getData().equals("0"));
+                                break;
+                            case ClientBleService.ACTION_SNIFFER:
+                                toggleSniffButton(payload.getData());
+                                toggleProgress(false);
+                                break;
                         }
                         //Snackbar.make(switchList, payload.getResponse(), Snackbar.LENGTH_SHORT).show();
                     }
@@ -148,9 +163,14 @@ public class ClientNsdFragment extends BaseFragment
 
         View rootView = inflater.inflate(R.layout.fragment_nsd_client, container, false);
 
+        sniffButton = (Button) rootView.findViewById(R.id.sniff);
+        progressBar = rootView.findViewById(R.id.progress_bar);
+
         connectionStatus = (TextView) rootView.findViewById(R.id.connection_status);
         switchList = (RecyclerView) rootView.findViewById(R.id.switch_list);
         commandsView = (RecyclerView) rootView.findViewById(R.id.commands);
+
+        sniffButton.setOnClickListener(this);
 
         swapAdapter(false);
         switchList.setLayoutManager(new LinearLayoutManager(getActivity()));
@@ -241,6 +261,8 @@ public class ClientNsdFragment extends BaseFragment
         // Do not receive broadcasts when view is destroyed
         LocalBroadcastManager.getInstance(getContext()).unregisterReceiver(nsdUpdateReceiver);
 
+        progressBar = null;
+        sniffButton = null;
         switchList = null;
         connectionStatus = null;
 
@@ -304,7 +326,21 @@ public class ClientNsdFragment extends BaseFragment
         connectionStatus.setText(getResources().getString(R.string.connection_state, text));
     }
 
+    private void toggleSniffButton(String state) {
+        String text = state.equals(RcSwitch.ON_CODE) ? getString(R.string.on) : getString(R.string.off);
+        sniffButton.setText(getResources().getString(R.string.sniff_code, text));
+    }
+
+    private void toggleProgress(boolean show) {
+        TransitionManager.beginDelayedTransition((ViewGroup) sniffButton.getParent(), new AutoTransition());
+
+        sniffButton.setVisibility(show ? View.INVISIBLE : View.VISIBLE);
+        progressBar.setVisibility(show ? View.VISIBLE : View.INVISIBLE);
+    }
+
     private void swapAdapter(boolean isSwitchAdapter) {
+        commandsView.setVisibility(isSwitchAdapter ? View.GONE : View.VISIBLE);
+
         Object adapter = switchList.getAdapter();
 
         if (isSwitchAdapter && adapter instanceof RemoteSwitchAdapter) return;

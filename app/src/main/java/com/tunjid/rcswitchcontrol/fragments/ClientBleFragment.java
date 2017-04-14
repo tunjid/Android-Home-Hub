@@ -99,10 +99,10 @@ public class ClientBleFragment extends BaseFragment
                     byte[] rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_SNIFFER);
 
                     switch (switchCreator.getState()) {
-                        case ON_CODE:
+                        case RcSwitch.ON_CODE:
                             switchCreator.withOnCode(rawData);
                             break;
-                        case OFF_CODE:
+                        case RcSwitch.OFF_CODE:
                             RcSwitch rcSwitch = switchCreator.withOffCode(rawData);
                             rcSwitch.setName("Switch " + (switches.size() + 1));
 
@@ -401,7 +401,7 @@ public class ClientBleFragment extends BaseFragment
     }
 
     private void toggleSniffButton() {
-        String state = switchCreator.getState() == RcSwitch.State.ON_CODE
+        String state = switchCreator.getState().equals(RcSwitch.ON_CODE)
                 ? getString(R.string.on)
                 : getString(R.string.off);
         sniffButton.setText(getResources().getString(R.string.sniff_code, state));

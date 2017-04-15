@@ -114,7 +114,7 @@ public class ClientNsdFragment extends BaseFragment
                                 toggleProgress(false);
                                 break;
                         }
-                        //Snackbar.make(switchList, payload.getResponse(), Snackbar.LENGTH_SHORT).show();
+                        Snackbar.make(switchList, payload.getResponse(), Snackbar.LENGTH_SHORT).show();
                     }
                     else {
                         messageHistory.add(payload.getResponse());
@@ -279,6 +279,10 @@ public class ClientNsdFragment extends BaseFragment
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.sniff:
+                if (nsdConnection.isBound()) {
+                    nsdConnection.getBoundService()
+                            .sendMessage(getString(R.string.scanblercprotocol_sniff));
+                }
                 break;
         }
     }
@@ -339,6 +343,7 @@ public class ClientNsdFragment extends BaseFragment
     }
 
     private void swapAdapter(boolean isSwitchAdapter) {
+        sniffButton.setVisibility(isSwitchAdapter ? View.VISIBLE : View.GONE);
         commandsView.setVisibility(isSwitchAdapter ? View.GONE : View.VISIBLE);
 
         Object adapter = switchList.getAdapter();

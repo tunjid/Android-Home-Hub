@@ -4,6 +4,7 @@ package com.tunjid.rcswitchcontrol.nsd.nsdprotocols;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.res.Resources;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -45,7 +46,7 @@ public class BleRcProtocol extends CommsProtocol {
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
             Payload.Builder builder = Payload.builder();
-            builder.setKey(getClass().getSimpleName());
+            builder.setKey(BleRcProtocol.this.getClass().getName());
 
             switch (action) {
                 case ClientBleService.ACTION_GATT_CONNECTED:
@@ -93,7 +94,6 @@ public class BleRcProtocol extends CommsProtocol {
                     break;
                 }
             }
-
             Log.i(TAG, "Received data for: " + action);
         }
     };
@@ -114,6 +114,18 @@ public class BleRcProtocol extends CommsProtocol {
 
         pushHandler = new Handler(pushThread.getLooper());
         bleConnection = new ServiceConnection<>(ClientBleService.class);
+        bleConnection.with(appContext).bind();
+
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(ClientBleService.ACTION_GATT_CONNECTED);
+        intentFilter.addAction(ClientBleService.ACTION_GATT_CONNECTING);
+        intentFilter.addAction(ClientBleService.ACTION_GATT_DISCONNECTED);
+        intentFilter.addAction(ClientBleService.ACTION_GATT_SERVICES_DISCOVERED);
+        intentFilter.addAction(ClientBleService.ACTION_CONTROL);
+        intentFilter.addAction(ClientBleService.ACTION_SNIFFER);
+        intentFilter.addAction(ClientBleService.DATA_AVAILABLE_UNKNOWN);
+
+        LocalBroadcastManager.getInstance(appContext).registerReceiver(gattUpdateReceiver, intentFilter);
     }
 
     @Override
@@ -169,7 +181,7 @@ public class BleRcProtocol extends CommsProtocol {
 
     private void onConnectionStateChanged(String newState) {
         Payload.Builder builder = Payload.builder();
-        builder.setKey(getClass().getSimpleName());
+        builder.setKey(getClass().getName());
         builder.addCommand(RESET);
 
         switch (newState) {

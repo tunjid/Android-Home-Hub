@@ -1,7 +1,9 @@
 package com.tunjid.rcswitchcontrol.fragments;
 
+import android.app.Activity;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.view.WindowManager;
 
 import com.tunjid.rcswitchcontrol.ServiceConnection;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
@@ -27,12 +29,17 @@ public class ThingsFragment extends BaseFragment {
         // Request permission for location to enable ble scanning
         requestPermissions(new String[]{ACCESS_COARSE_LOCATION}, 0);
 
-        nsdConnection.with(getActivity()).bind();
+        Activity activity = getActivity();
+
+        nsdConnection.with(activity).bind();
+
+        // Prevent Android things device from sleeping.
+        activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if(nsdConnection.isBound())nsdConnection.unbindService();
+        if (nsdConnection.isBound()) nsdConnection.unbindService();
     }
 }

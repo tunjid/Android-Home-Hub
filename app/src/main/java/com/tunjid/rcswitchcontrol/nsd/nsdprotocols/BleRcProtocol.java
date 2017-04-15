@@ -122,24 +122,37 @@ public class BleRcProtocol extends CommsProtocol {
         }
         else if (action.equals(RENAME)) {
             RcSwitch rcSwitch = RcSwitch.deserialize(input.getData());
+            int position = switches.indexOf(rcSwitch);
+
             // Switches are equal based on their codes, not thier names.
             // Remove the switch with the old name, and add the switch with the new name.
-            switches.remove(rcSwitch);
-            switches.add(rcSwitch);
-            RcSwitch.saveSwitches(switches);
+            if (position != -1) {
+                RcSwitch oldSwitch = switches.get(position);
+                builder.setResponse(resources.getString(R.string.blercprotocol_renamed_response, oldSwitch.getName(), rcSwitch.getName()));
+                switches.remove(position);
+                switches.add(rcSwitch);
+                RcSwitch.saveSwitches(switches);
+            }
+            else {
+                builder.setResponse(resources.getString(R.string.blercprotocol_no_such_switch_response));
+            }
 
-            builder.setAction(action).setData(RcSwitch.serializedSavedSwitches());
+            builder.setAction(action).setData(RcSwitch.serializedSavedSwitches())
+            .addCommand(SNIFF);
         }
         else if (action.equals(DELETE)) {
             RcSwitch rcSwitch = RcSwitch.deserialize(input.getData());
-            switches.remove(rcSwitch);
-            RcSwitch.saveSwitches(switches);
+            String response = switches.remove(rcSwitch)
+                    ? resources.getString(R.string.blercprotocol_deleted_response, rcSwitch.getName())
+                    : resources.getString(R.string.blercprotocol_no_such_switch_response);
 
-            builder.setAction(action).setData(RcSwitch.serializedSavedSwitches());
+            builder.setResponse(response).setAction(action)
+                    .setData(RcSwitch.serializedSavedSwitches()).addCommand(SNIFF);
+            RcSwitch.saveSwitches(switches);
         }
         else if (action.equals(ClientBleService.ACTION_TRANSMITTER)) {
             builder.setResponse(resources.getString(R.string.blercprotocol_transmission_response))
-                    .addCommand(REFRESH_SWITCHES);
+                    .addCommand(SNIFF).addCommand(REFRESH_SWITCHES);
 
             Intent intent = new Intent(ClientBleService.ACTION_TRANSMITTER);
             intent.putExtra(ClientBleService.DATA_AVAILABLE_TRANSMITTER, input.getData());
@@ -157,7 +170,7 @@ public class BleRcProtocol extends CommsProtocol {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            Payload.Builder builder = Payload.builder();
+            final Payload.Builder builder = Payload.builder();
             builder.setKey(BleRcProtocol.this.getClass().getName());
 
             switch (action) {
@@ -213,18 +226,14 @@ public class BleRcProtocol extends CommsProtocol {
                     break;
                 }
             }
-            pushData(builder.build());
-            Log.i(TAG, "Received data for: " + action);
-        }
-
-        private void pushData(final Payload payload) {
             pushHandler.post(new Runnable() {
                 @Override
                 public void run() {
                     assert printWriter != null;
-                    printWriter.println(payload.serialize());
+                    printWriter.println(builder.build().serialize());
                 }
             });
+            Log.i(TAG, "Received data for: " + action);
         }
     }
 }

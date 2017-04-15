@@ -406,7 +406,7 @@ public class ClientNsdFragment extends BaseFragment
 
         @Override
         public void onDismissed(Snackbar snackbar, int event) {
-            if (nsdConnection.isBound()) {
+            if (nsdConnection.isBound() && !deletedItems.isEmpty()) {
                 nsdConnection.getBoundService().sendMessage(
                         Payload.builder().setAction(getString(R.string.blercprotocol_delete_command))
                                 .setData(pop().serialize())

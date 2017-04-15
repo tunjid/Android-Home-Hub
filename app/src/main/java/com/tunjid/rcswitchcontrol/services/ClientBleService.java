@@ -50,8 +50,11 @@ import static com.tunjid.rcswitchcontrol.model.RcSwitch.SWITCH_PREFS;
  */
 public class ClientBleService extends Service implements ClientStartedBoundService {
 
+    private final static String TAG = ClientBleService.class.getSimpleName();
+
     public static final byte STATE_SNIFFING = 0;
     public static final int NOTIFICATION_ID = 1;
+
     // Services
     public static final String CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb";
     // Characteristics
@@ -59,6 +62,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
     //public static final String DATA_TRANSCEIVER_SERVICE = "195ae58a-437a-489b-b0cd-b7c9c394bae4";
     public static final String C_HANDLE_SNIFFER = "21819ab0-c937-4188-b0db-b9621e1696cd";
     public static final String C_HANDLE_TRANSMITTER = "3c79909b-cc1c-4bb9-8595-f99fa98c6503";
+
     // Keys for data
     public final static String BLUETOOTH_DEVICE = "BLUETOOTH_DEVICE";
     public static final String LAST_PAIRED_DEVICE = "LAST_PAIRED_DEVICE";
@@ -74,21 +78,25 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
     public final static String DATA_AVAILABLE_TRANSMITTER = "DATA_AVAILABLE_TRANSMITTER";
     public final static String DATA_AVAILABLE_UNKNOWN = "ACTION_DATA_AVAILABLE";
     public final static String EXTRA_DATA = "EXTRA_DATA";
-    private final static String TAG = ClientBleService.class.getSimpleName();
+
     private final IBinder binder = new Binder();
     private final IntentFilter nsdIntentFilter = new IntentFilter();
     private final ServiceConnection<ServerNsdService> serverConnection = new ServiceConnection<>(ServerNsdService.class);
+
     private boolean isUserInApp;
+
     private String connectionState = ACTION_GATT_DISCONNECTED;
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothGatt bluetoothGatt;
     private BluetoothDevice connectedDevice;
+
     // Queue for reading multiple characteristics due to delay induced by callback.
     private Queue<BluetoothGattCharacteristic> readQueue = new LinkedList<>();
     // Queue for writing multiple descriptors due to delay induced by callback.
     private Queue<BluetoothGattDescriptor> writeQueue = new LinkedList<>();
     // Map of characteristics of interest
     private Map<String, BluetoothGattCharacteristic> characteristicMap = new HashMap<>();
+
     private final BroadcastReceiver nsdUpdateReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -284,7 +292,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
         Log.i(TAG, "Initialized BLE connection");
 
         if (getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE).getBoolean(ServerNsdService.SERVER_FLAG, false)) {
-            serverConnection.startService(this);
+            serverConnection.with(this).start();
             serverConnection.with(this).bind();
 
             Log.i(TAG, "Binding to NSD server");
@@ -549,9 +557,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
 
         resumeIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
         resumeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
         resumeIntent.putExtra(BLUETOOTH_DEVICE, connectedDevice);
-        resumeIntent.putExtra(MainActivity.GO_TO_SCAN, !isConnected());
 
         PendingIntent activityPendingIntent = PendingIntent.getActivity(
                 this, 0, resumeIntent, PendingIntent.FLAG_CANCEL_CURRENT);

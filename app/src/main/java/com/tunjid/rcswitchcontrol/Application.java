@@ -4,6 +4,8 @@ import android.app.ActivityManager;
 import android.app.Service;
 import android.content.Context;
 
+import com.google.android.things.pio.PeripheralManagerService;
+
 import java.util.List;
 
 /**
@@ -36,5 +38,15 @@ public class Application extends android.app.Application {
             }
         }
         return false;
+    }
+
+    public static boolean isAndroidThings() {
+        try {
+            new PeripheralManagerService();
+            return true;
+        }
+        catch (NoClassDefFoundError e) { // Thrown on non Android things devices
+            return false;
+        }
     }
 }

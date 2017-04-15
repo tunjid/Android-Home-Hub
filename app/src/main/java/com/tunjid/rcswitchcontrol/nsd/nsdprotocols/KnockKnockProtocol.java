@@ -1,5 +1,8 @@
 package com.tunjid.rcswitchcontrol.nsd.nsdprotocols;
 
+import android.content.res.Resources;
+
+import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.model.Payload;
 
 import java.io.IOException;
@@ -10,81 +13,85 @@ import java.io.IOException;
  * Created by tj.dahunsi on 2/5/17.
  */
 
-class KnockKnockProtocol implements CommsProtocol {
+class KnockKnockProtocol extends CommsProtocol {
     private static final int WAITING = 0;
     private static final int SENTKNOCKKNOCK = 1;
     private static final int SENTCLUE = 2;
     private static final int ANOTHER = 3;
 
-    private static final int NUMJOKES = 5;
+    private final int numJokes;
 
     private int state = WAITING;
     private int currentJoke = 0;
 
-    private String[] clues = {"Turnip", "Little Old Lady", "Atch", "Who", "Who"};
-    private String[] answers = {"Turnip the heat, it's cold in here!",
-            "I didn't know you could yodel!",
-            "Bless you!",
-            "Is there an owl in here?",
-            "Is there an echo in here?"};
+    private final String[] clues;
+    private final String[] answers;
+
+    KnockKnockProtocol() {
+        super();
+        clues = appContext.getResources().getStringArray(R.array.knockknockProtocol_clues);
+        answers = appContext.getResources().getStringArray(R.array.knockknockProtocol_answers);
+        numJokes = clues.length;
+    }
 
     @Override
-    public Payload processInput(String input) {
+    public Payload processInput(Payload input) {
+        Resources resources = appContext.getResources();
         Payload.Builder builder = Payload.builder();
         builder.setKey(getClass().getName());
         builder.addCommand(RESET);
 
-        if (input == null) input = RESET;
+        String action = input.getAction();
 
-        if (input.equals(RESET)) {
+        if (action.equals(PING) || action.equals(RESET)) {
             state = WAITING;
             currentJoke = 0;
         }
 
         if (state == WAITING) {
-            builder.setResponse("Knock! Knock!");
-            builder.addCommand("Who's there?");
+            builder.setResponse(appContext.getString(R.string.knockknockprotocol_joke_start));
+            builder.addCommand(appContext.getString(R.string.knockknockprotocol_whos_there));
             state = SENTKNOCKKNOCK;
         }
         else if (state == SENTKNOCKKNOCK) {
-            if (input.trim().equalsIgnoreCase("Who's there?")) {
+            if (action.trim().equalsIgnoreCase(appContext.getString(R.string.knockknockprotocol_whos_there))) {
                 builder.setResponse(clues[currentJoke]);
-                builder.addCommand(clues[currentJoke] + " who?");
+                builder.addCommand(resources.getString(R.string.knockknockprotocol_who, clues[currentJoke]));
                 state = SENTCLUE;
             }
             else {
-                builder.setResponse("You're supposed to say \"Who's there?\"! " +
-                        "Try again. Knock! Knock!");
-                builder.addCommand("Who's there?");
+                String formatString = appContext.getString(R.string.knockknockprotocol_whos_there);
+                String response = resources.getString(R.string.knockknockprotocol_wrong_answer, formatString);
+                builder.setResponse(response);
+                builder.addCommand(appContext.getString(R.string.knockknockprotocol_whos_there));
             }
         }
         else if (state == SENTCLUE) {
-            if (input.equalsIgnoreCase(clues[currentJoke] + " who?")) {
-                builder.setResponse(answers[currentJoke] + " Want another? (y/n)");
-                builder.addCommand("y");
-                builder.addCommand("n");
+            if (action.equalsIgnoreCase(resources.getString(R.string.knockknockprotocol_who, clues[currentJoke]))) {
+                builder.setResponse(resources.getString(R.string.knockknockprotocol_want_another, answers[currentJoke]))
+                        .addCommand(resources.getString(R.string.knockknockprotocol_no))
+                        .addCommand(resources.getString(R.string.knockknockprotocol_yes));
                 state = ANOTHER;
             }
             else {
-                builder.setResponse("You're supposed to say \"" +
-                        clues[currentJoke] +
-                        " who?\"" +
-                        "! Try again. Knock! Knock!");
-                builder.addCommand("Who's there?");
+                String formatString = resources.getString(R.string.knockknockprotocol_who, clues[currentJoke]);
+                String response = resources.getString(R.string.knockknockprotocol_wrong_answer, formatString);
+                builder.setResponse(response);
+                builder.addCommand(appContext.getString(R.string.knockknockprotocol_whos_there));
                 state = SENTKNOCKKNOCK;
             }
         }
         else if (state == ANOTHER) {
-            if (input.equalsIgnoreCase("y")) {
-                builder.setResponse("Knock! Knock!");
-                builder.addCommand("Who's there?");
+            if (action.equalsIgnoreCase(resources.getString(R.string.knockknockprotocol_yes))) {
+                builder.setResponse(appContext.getString(R.string.knockknockprotocol_joke_start));
+                builder.addCommand(appContext.getString(R.string.knockknockprotocol_whos_there));
 
-                if (currentJoke == (NUMJOKES - 1)) currentJoke = 0;
+                if (currentJoke == (numJokes - 1)) currentJoke = 0;
                 else currentJoke++;
                 state = SENTKNOCKKNOCK;
             }
             else {
-                builder.setResponse("Bye.");
+                builder.setResponse(resources.getString(R.string.commsprotocol_bye));
                 state = WAITING;
             }
         }

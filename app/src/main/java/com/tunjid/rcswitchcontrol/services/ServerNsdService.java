@@ -32,6 +32,7 @@ import static com.tunjid.rcswitchcontrol.model.RcSwitch.SWITCH_PREFS;
 public class ServerNsdService extends BaseNsdService {
 
     private static final String TAG = ServerNsdService.class.getSimpleName();
+
     public static final String SERVER_FLAG = "com.tunjid.rcswitchcontrol.ServerNsdService.services.server.flag";
     public static final String ACTION_STOP = "com.tunjid.rcswitchcontrol.ServerNsdService.services.server.stop";
     public static final String SERVICE_NAME_KEY = "com.tunjid.rcswitchcontrol.ServerNsdService.services.server.serviceName";
@@ -218,9 +219,9 @@ public class ServerNsdService extends BaseNsdService {
             if (socket != null && socket.isConnected()) {
                 CommsProtocol commsProtocol = null;
                 try {
-                    commsProtocol = new ProxyProtocol();
                     BufferedReader in = createBufferedReader(socket);
                     PrintWriter out = createPrintWriter(socket);
+                    commsProtocol = new ProxyProtocol(out);
 
                     String inputLine, outputLine;
 

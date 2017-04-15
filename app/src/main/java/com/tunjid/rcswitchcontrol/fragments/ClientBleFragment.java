@@ -99,10 +99,10 @@ public class ClientBleFragment extends BaseFragment
                     byte[] rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_SNIFFER);
 
                     switch (switchCreator.getState()) {
-                        case ON_CODE:
+                        case RcSwitch.ON_CODE:
                             switchCreator.withOnCode(rawData);
                             break;
-                        case OFF_CODE:
+                        case RcSwitch.OFF_CODE:
                             RcSwitch rcSwitch = switchCreator.withOffCode(rawData);
                             rcSwitch.setName("Switch " + (switches.size() + 1));
 
@@ -238,7 +238,7 @@ public class ClientBleFragment extends BaseFragment
         bleConnection.with(activity).setExtras(extras).bind();
 
         if (activity.getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE).getBoolean(ServerNsdService.SERVER_FLAG, false)) {
-            serverConnection.startService(activity);
+            serverConnection.with(activity).start();
             serverConnection.with(activity).bind();
             getActivity().invalidateOptionsMenu();
         }
@@ -379,7 +379,7 @@ public class ClientBleFragment extends BaseFragment
                 .edit().putString(SERVICE_NAME_KEY, name)
                 .putBoolean(ServerNsdService.SERVER_FLAG, true).apply();
 
-        serverConnection.startService(activity);
+        serverConnection.with(activity).start();
         serverConnection.with(activity).bind();
     }
 
@@ -401,7 +401,7 @@ public class ClientBleFragment extends BaseFragment
     }
 
     private void toggleSniffButton() {
-        String state = switchCreator.getState() == RcSwitch.State.ON_CODE
+        String state = switchCreator.getState().equals(RcSwitch.ON_CODE)
                 ? getString(R.string.on)
                 : getString(R.string.off);
         sniffButton.setText(getResources().getString(R.string.sniff_code, state));

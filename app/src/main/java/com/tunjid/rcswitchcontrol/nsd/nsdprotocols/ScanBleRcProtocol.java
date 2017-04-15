@@ -31,7 +31,7 @@ import java.util.Map;
 import static android.content.Context.MODE_PRIVATE;
 
 /**
- * A protocol for Android Things Devices without a screen
+ * A protocol for scanning for BLE devices for remote devices
  * <p>
  * Created by tj.dahunsi on 4/12/17.
  */
@@ -73,18 +73,27 @@ class ScanBleRcProtocol extends CommsProtocol implements BLEScanner.BleScanCallb
         }
     };
 
-    private final BroadcastReceiver gattUpdateReceiver = new BroadcastReceiver() {
+    private final BroadcastReceiver bleUpdateReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
+            Payload.Builder builder = Payload.builder();
+            builder.setKey(getClass().getSimpleName()).addCommand(RESET);
             switch (action) {
                 case ClientBleService.ACTION_GATT_CONNECTED:
+                    builder.setResponse(appContext.getString(R.string.connected))
+                            .addCommand(DISCONNECT);
+                    break;
                 case ClientBleService.ACTION_GATT_CONNECTING:
+                    builder.setResponse(appContext.getString(R.string.connecting));
+                    break;
                 case ClientBleService.ACTION_GATT_DISCONNECTED:
-                    onConnectionStateChanged(action);
+                    builder.setResponse(appContext.getString(R.string.disconnected))
+                            .addCommand(CONNECT);
                     break;
             }
-            Log.i(TAG, "Received data for: " + action);
+            pushData(builder.build());
+            Log.d(TAG, "Received data for: " + action);
         }
     };
 
@@ -110,7 +119,7 @@ class ScanBleRcProtocol extends CommsProtocol implements BLEScanner.BleScanCallb
         intentFilter.addAction(ClientBleService.ACTION_SNIFFER);
         intentFilter.addAction(ClientBleService.DATA_AVAILABLE_UNKNOWN);
 
-        LocalBroadcastManager.getInstance(appContext).registerReceiver(gattUpdateReceiver, intentFilter);
+        LocalBroadcastManager.getInstance(appContext).registerReceiver(bleUpdateReceiver, intentFilter);
 
         BluetoothManager bluetoothManager = (BluetoothManager) appContext.getSystemService(Context.BLUETOOTH_SERVICE);
         BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
@@ -178,31 +187,10 @@ class ScanBleRcProtocol extends CommsProtocol implements BLEScanner.BleScanCallb
 
     @Override
     public void close() throws IOException {
-        LocalBroadcastManager.getInstance(appContext).unregisterReceiver(gattUpdateReceiver);
+        LocalBroadcastManager.getInstance(appContext).unregisterReceiver(bleUpdateReceiver);
         scanThread.quitSafely();
 
         if (bleConnection.isBound()) bleConnection.unbindService();
-    }
-
-    private void onConnectionStateChanged(String newState) {
-        Payload.Builder builder = Payload.builder();
-        builder.setKey(getClass().getSimpleName());
-        builder.addCommand(RESET);
-
-        switch (newState) {
-            case ClientBleService.ACTION_GATT_CONNECTED:
-                builder.setResponse(appContext.getString(R.string.connected))
-                        .addCommand(DISCONNECT);
-                break;
-            case ClientBleService.ACTION_GATT_CONNECTING:
-                builder.setResponse(appContext.getString(R.string.connecting));
-                break;
-            case ClientBleService.ACTION_GATT_DISCONNECTED:
-                builder.setResponse(appContext.getString(R.string.disconnected))
-                        .addCommand(CONNECT);
-                break;
-        }
-        pushData(builder.build());
     }
 
     private void pushData(final Payload payload) {

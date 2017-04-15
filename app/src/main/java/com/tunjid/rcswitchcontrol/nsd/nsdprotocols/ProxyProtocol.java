@@ -89,7 +89,7 @@ public class ProxyProtocol extends CommsProtocol {
             result += "\n";
             result += "\n";
 
-            Payload payload = commsProtocol.processInput(input);
+            Payload payload = commsProtocol.processInput(PING);
 
             builder.setKey(payload.getKey());
             builder.setData(payload.getData());

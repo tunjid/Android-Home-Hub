@@ -24,8 +24,15 @@ public class ThingsFragment extends BaseFragment {
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
+        // Request permission for location to enable ble scanning
         requestPermissions(new String[]{ACCESS_COARSE_LOCATION}, 0);
 
         nsdConnection.with(getActivity()).bind();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if(nsdConnection.isBound())nsdConnection.unbindService();
     }
 }

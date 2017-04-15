@@ -380,6 +380,11 @@ public class ClientNsdFragment extends BaseFragment
                 int position = viewHolder.getAdapterPosition();
                 DeletionHandler deletionHandler = new DeletionHandler(position, switches.size());
                 deletionHandler.push(switches.get(position));
+
+                Snackbar.make(rootView, R.string.deleted_switch, Snackbar.LENGTH_LONG)
+                        .addCallback(deletionHandler)
+                        .setAction(R.string.undo, deletionHandler)
+                        .show();
             }
         }
     };

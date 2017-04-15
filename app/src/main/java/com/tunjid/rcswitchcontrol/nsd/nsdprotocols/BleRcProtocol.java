@@ -146,9 +146,11 @@ public class BleRcProtocol extends CommsProtocol {
                     ? resources.getString(R.string.blercprotocol_deleted_response, rcSwitch.getName())
                     : resources.getString(R.string.blercprotocol_no_such_switch_response);
 
+            // Save switches before sending them
+            RcSwitch.saveSwitches(switches);
+
             builder.setResponse(response).setAction(action)
                     .setData(RcSwitch.serializedSavedSwitches()).addCommand(SNIFF);
-            RcSwitch.saveSwitches(switches);
         }
         else if (action.equals(ClientBleService.ACTION_TRANSMITTER)) {
             builder.setResponse(resources.getString(R.string.blercprotocol_transmission_response))

@@ -3,15 +3,18 @@ package com.tunjid.rcswitchcontrol.model;
 import android.content.SharedPreferences;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.support.annotation.StringDef;
 
 import com.google.gson.Gson;
 import com.tunjid.rcswitchcontrol.Application;
 
+import java.lang.annotation.Retention;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import static android.content.Context.MODE_PRIVATE;
+import static java.lang.annotation.RetentionPolicy.SOURCE;
 
 /**
  * A model representing an RF switch
@@ -20,10 +23,18 @@ import static android.content.Context.MODE_PRIVATE;
  */
 
 public class RcSwitch implements Parcelable {
+    private static final String SWITCHES_KEY = "Switches";
 
     // Shared preference key
     public static final String SWITCH_PREFS = "SwitchPrefs";
-    private static final String SWITCHES_KEY = "Switches";
+
+    public static final String ON_CODE = "on";
+    public static final String OFF_CODE = "off";
+
+    @Retention(SOURCE)
+    @StringDef({ON_CODE, OFF_CODE})
+    @interface SwitchCode {
+    }
 
     private static final Gson gson = new Gson();
 
@@ -45,13 +56,13 @@ public class RcSwitch implements Parcelable {
                 .getString(SWITCHES_KEY, "");
     }
 
-    public static ArrayList<RcSwitch> deserialize(String serialized) {
+    public static ArrayList<RcSwitch> deserializeSavedSwitches(String serialized) {
         RcSwitch[] array = gson.fromJson(serialized, RcSwitch[].class);
         return array == null ? new ArrayList<RcSwitch>() : new ArrayList<>(Arrays.asList(array));
     }
 
     public static ArrayList<RcSwitch> getSavedSwitches() {
-        return deserialize(serializedSavedSwitches());
+        return deserializeSavedSwitches(serializedSavedSwitches());
     }
 
     public static void saveSwitches(List<RcSwitch> switches) {
@@ -67,7 +78,7 @@ public class RcSwitch implements Parcelable {
         this.name = name;
     }
 
-    public byte[] getTransmission(boolean state){
+    public byte[] getTransmission(boolean state) {
         byte[] transmission = new byte[10];
 
         System.arraycopy(state ? onCode : offCode, 0, transmission, 0, onCode.length);
@@ -78,6 +89,15 @@ public class RcSwitch implements Parcelable {
         return transmission;
     }
 
+    public String serialize() {
+        return gson.toJson(this);
+    }
+
+    public static RcSwitch deserialize(String input) {
+        return gson.fromJson(input, RcSwitch.class);
+    }
+
+    // Equalys considers the code only, not the name
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -133,15 +153,15 @@ public class RcSwitch implements Parcelable {
     };
 
     public static final class SwitchCreator {
-        State state;
+        @SwitchCode String state;
         RcSwitch rcSwitch;
 
         public SwitchCreator() {
-            state = State.ON_CODE;
+            state = ON_CODE;
         }
 
         public void withOnCode(byte[] code) {
-            state = State.OFF_CODE;
+            state = OFF_CODE;
 
             rcSwitch = new RcSwitch();
 
@@ -153,18 +173,15 @@ public class RcSwitch implements Parcelable {
         }
 
         public RcSwitch withOffCode(byte[] code) {
-            state = State.ON_CODE;
+            state = ON_CODE;
             System.arraycopy(code, 0, rcSwitch.offCode, 0, 4);
             return rcSwitch;
         }
 
 
-        public State getState() {
+        @SwitchCode
+        public String getState() {
             return state;
         }
-    }
-
-    public enum State {
-        ON_CODE, OFF_CODE
     }
 }

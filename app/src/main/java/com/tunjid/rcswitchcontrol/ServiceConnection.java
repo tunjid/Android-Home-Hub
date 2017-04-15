@@ -55,10 +55,6 @@ public class ServiceConnection<T extends Service> implements android.content.Ser
         return boundService != null;
     }
 
-    public void startService(Context context) {
-        context.startService(new Intent(context, serviceClass));
-    }
-
     public Binding<T> with(Context context) {
         bindingContext = context;
         return new Binding<>(context, this);
@@ -111,6 +107,10 @@ public class ServiceConnection<T extends Service> implements android.content.Ser
 
         public boolean bind() {
             return context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+        }
+
+        public void start() {
+            context.startService(intent);
         }
     }
 }

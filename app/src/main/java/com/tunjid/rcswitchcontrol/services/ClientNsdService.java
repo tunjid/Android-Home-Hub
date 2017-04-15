@@ -18,6 +18,7 @@ import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.ServiceConnection;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
 import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService;
+import com.tunjid.rcswitchcontrol.model.Payload;
 import com.tunjid.rcswitchcontrol.nsd.abstractclasses.BaseNsdService;
 
 import java.io.BufferedReader;
@@ -181,8 +182,8 @@ public class ClientNsdService extends BaseNsdService
         LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(connectionState));
     }
 
-    public void sendMessage(String message) {
-        messageQueue.add(message);
+    public void sendMessage(Payload payload) {
+        messageQueue.add(payload.serialize());
         if (messageThread != null) messageThread.send(messageQueue.remove());
     }
 

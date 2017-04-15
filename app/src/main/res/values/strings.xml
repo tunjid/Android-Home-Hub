@@ -85,6 +85,10 @@
     <string name="blercprotocol_refresh_response">Updated available switches</string>
     <string name="blercprotocol_transmission_response">Sending transmission</string>
     <string name="blercprotocol_refresh_switches_command">Refresh Switches</string>
+    <string name="blercprotocol_sniff_off_response">Sniffed off code</string>
+    <string name="blercprotocol_sniff_on_response">Sniffed on code</string>
+    <string name="blercprotocol_delete_command">Delete</string>
+    <string name="blercprotocol_rename_command">Rename</string>
     <string name="scanblercprotocol_device_name">Device: %1$s</string>
     <string name="scanblercprotocol_scan_response">Scan complete, found %1$d device(s)</string>
     <string name="scanblercprotocol_ping_reponse">Welcome! Tap scan to search for bluetooth hosts. Note that scanning is done in bouts of 5 seconds.</string>
@@ -92,7 +96,5 @@
     <string name="scanblercprotocol_start_scan_reponse">Scanning</string>
     <string name="scanblercprotocol_start_sniff_response">Sniffing</string>
     <string name="scanblercprotocol_stop_sniff_response">Sniff ended</string>
-    <string name="scanblercprotocol_sniff_on_response">Sniffed on code</string>
-    <string name="scanblercprotocol_sniff_off_response">Sniffed off code</string>
     <string name="scanblercprotocol_sniff_already_exists_response">This switch already exists</string>
 </resources>

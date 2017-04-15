@@ -471,7 +471,7 @@ void my_ble_evt_attributes_value(const struct ble_msg_attributes_value_evt_t *ms
 
         stateCallback[0] = STATE_SNIFFING;
         // Send indication acknowledging the write
-        //ble112.ble_cmd_attributes_write(GATT_HANDLE_C_STATE_TOGGLE, 0, 1, stateCallback);
+        ble112.ble_cmd_attributes_write(GATT_HANDLE_C_STATE_TOGGLE, 0, 1, stateCallback);
 
         DEBUG_PRINT("Current state is: ");
         DEBUG_PRINTLN(state);

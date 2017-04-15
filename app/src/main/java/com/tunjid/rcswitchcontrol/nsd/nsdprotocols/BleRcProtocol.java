@@ -56,11 +56,12 @@ public class BleRcProtocol extends CommsProtocol {
                     break;
                 case ClientBleService.ACTION_CONTROL: {
                     byte[] rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_CONTROL);
-
-                    builder.setResponse(appContext.getString(R.string.scanblercprotocol_stop_sniff_response))
-                            .setAction(action).setData(String.valueOf(rawData[0]))
-                            .addCommand(SNIFF).addCommand(RESET);
-                    pushData(builder.build());
+                    if (rawData[0] == 1) {
+                        builder.setResponse(appContext.getString(R.string.scanblercprotocol_stop_sniff_response))
+                                .setAction(action).setData(String.valueOf(rawData[0]))
+                                .addCommand(SNIFF).addCommand(RESET);
+                        pushData(builder.build());
+                    }
                     break;
                 }
                 case ClientBleService.ACTION_SNIFFER: {
@@ -70,7 +71,7 @@ public class BleRcProtocol extends CommsProtocol {
                     switch (switchCreator.getState()) {
                         case RcSwitch.ON_CODE:
                             switchCreator.withOnCode(rawData);
-                            builder.setResponse(appContext.getString(R.string.scanblercprotocol_sniff_on_response))
+                            builder.setResponse(appContext.getString(R.string.blercprotocol_sniff_on_response))
                                     .setAction(action).addCommand(SNIFF).addCommand(RESET);
                             pushData(builder.build());
                             break;
@@ -78,12 +79,14 @@ public class BleRcProtocol extends CommsProtocol {
                             RcSwitch rcSwitch = switchCreator.withOffCode(rawData);
                             rcSwitch.setName("Switch " + (switches.size() + 1));
 
-                            builder.addCommand(SNIFF).setAction(action).addCommand(RESET);
+                            builder.setAction(action).addCommand(SNIFF)
+                                    .addCommand(REFRESH_SWITCHES).addCommand(RESET);
 
                             if (!switches.contains(rcSwitch)) {
                                 switches.add(rcSwitch);
                                 RcSwitch.saveSwitches(switches);
-                                builder.setResponse(appContext.getString(R.string.scanblercprotocol_sniff_off_response));
+                                builder.setResponse(appContext.getString(R.string.blercprotocol_sniff_off_response))
+                                        .setAction(ClientBleService.ACTION_TRANSMITTER).setData(RcSwitch.serializedSavedSwitches());
                             }
                             else {
                                 builder.setResponse(appContext.getString(R.string.scanblercprotocol_sniff_already_exists_response));
@@ -146,11 +149,12 @@ public class BleRcProtocol extends CommsProtocol {
         if (input.equals(PING) || input.equals(REFRESH_SWITCHES)) {
             builder.setResponse(resources.getString(R.string.blercprotocol_refresh_response))
                     .setAction(ClientBleService.ACTION_TRANSMITTER)
-                    .setData(RcSwitch.serializedSavedSwitches()).addCommand(REFRESH_SWITCHES);
+                    .setData(RcSwitch.serializedSavedSwitches())
+                    .addCommand(SNIFF).addCommand(REFRESH_SWITCHES);
         }
         else if (input.equals(SNIFF)) {
             builder.setResponse(appContext.getString(R.string.scanblercprotocol_start_sniff_response))
-                    .addCommand(SNIFF).addCommand(DISCONNECT);
+                    .addCommand(RESET).addCommand(DISCONNECT);
 
             if (bleConnection.isBound()) {
                 bleConnection.getBoundService().writeCharacteristicArray(
@@ -159,6 +163,7 @@ public class BleRcProtocol extends CommsProtocol {
             }
         }
         else {
+            // Asuume its a transmission command, send it to the BLE Service
             builder.setResponse(resources.getString(R.string.blercprotocol_transmission_response))
                     .addCommand(REFRESH_SWITCHES);
 

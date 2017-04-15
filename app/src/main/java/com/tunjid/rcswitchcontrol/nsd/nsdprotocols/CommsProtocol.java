@@ -10,7 +10,7 @@ import java.io.Closeable;
 import java.io.PrintWriter;
 
 /**
- * Interface for Server communication with input from client
+ * Class for Server communication with input from client
  * <p>
  * Created by tj.dahunsi on 2/6/17.
  */
@@ -18,7 +18,7 @@ import java.io.PrintWriter;
 public abstract class CommsProtocol implements Closeable {
 
     public static final String PING = "Ping";
-     static final String RESET = "Reset";
+    static final String RESET = "Reset";
 
     final Context appContext;
 
@@ -34,6 +34,14 @@ public abstract class CommsProtocol implements Closeable {
         appContext = Application.getInstance();
     }
 
-    public abstract Payload processInput(String input);
+    public final Payload processInput(@Nullable String input) {
+        return (input == null || input.equals(PING))
+                ? processInput(Payload.builder().setAction(PING).build())
+                : input.equals(RESET)
+                ? processInput(Payload.builder().setAction(RESET).build())
+                : processInput(Payload.deserialize(input));
+    }
+
+    protected abstract Payload processInput(Payload payload);
 
 }

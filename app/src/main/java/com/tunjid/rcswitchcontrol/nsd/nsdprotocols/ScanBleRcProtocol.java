@@ -133,41 +133,39 @@ class ScanBleRcProtocol extends CommsProtocol implements BLEScanner.BleScanCallb
     }
 
     @Override
-    public Payload processInput(String input) {
+    public Payload processInput(Payload input) {
         Resources resources = appContext.getResources();
         Payload.Builder builder = Payload.builder();
         builder.setKey(getClass().getName());
         builder.addCommand(RESET);
 
-        if (input == null) input = PING;
+        String action = input.getAction();
 
-        if (input.equals(PING) || input.equals(RESET)) {
-            return builder.setResponse(resources.getString(R.string.scanblercprotocol_ping_reponse))
+        if (action.equals(PING) || action.equals(RESET)) {
+             builder.setResponse(resources.getString(R.string.scanblercprotocol_ping_reponse))
                     .addCommand(SCAN).build();
         }
-        else if (input.equals(SCAN)) {
+        else if (action.equals(SCAN)) {
             deviceMap.clear();
             scanner.startScan();
             scanHandler.postDelayed(scanCompleteRunnable, SCAN_DURATION);
 
             builder.setResponse(resources.getString(R.string.scanblercprotocol_start_scan_reponse));
-
-            return builder.build();
         }
-        else if (input.equals(CONNECT) && bleConnection.isBound()) {
+        else if (action.equals(CONNECT) && bleConnection.isBound()) {
             bleConnection.getBoundService().connect(currentDevice);
         }
-        else if (input.equals(DISCONNECT) && bleConnection.isBound()) {
+        else if (action.equals(DISCONNECT) && bleConnection.isBound()) {
             bleConnection.getBoundService().disconnect();
         }
-        else if (deviceMap.containsKey(input)) {
+        else if (deviceMap.containsKey(action)) {
             Bundle extras = new Bundle();
-            extras.putParcelable(ClientBleService.BLUETOOTH_DEVICE, deviceMap.get(input));
+            extras.putParcelable(ClientBleService.BLUETOOTH_DEVICE, deviceMap.get(action));
 
             bleConnection.with(appContext).setExtras(extras).start();
             bleConnection.with(appContext).setExtras(extras).bind();
 
-            Log.i(TAG, "Started ClientBleService, device: " + input);
+            Log.i(TAG, "Started ClientBleService, device: " + action);
         }
         return builder.build();
     }

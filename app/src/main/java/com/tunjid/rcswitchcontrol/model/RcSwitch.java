@@ -23,7 +23,6 @@ import static java.lang.annotation.RetentionPolicy.SOURCE;
  */
 
 public class RcSwitch implements Parcelable {
-
     private static final String SWITCHES_KEY = "Switches";
 
     // Shared preference key
@@ -57,13 +56,13 @@ public class RcSwitch implements Parcelable {
                 .getString(SWITCHES_KEY, "");
     }
 
-    public static ArrayList<RcSwitch> deserialize(String serialized) {
+    public static ArrayList<RcSwitch> deserializeSavedSwitches(String serialized) {
         RcSwitch[] array = gson.fromJson(serialized, RcSwitch[].class);
         return array == null ? new ArrayList<RcSwitch>() : new ArrayList<>(Arrays.asList(array));
     }
 
     public static ArrayList<RcSwitch> getSavedSwitches() {
-        return deserialize(serializedSavedSwitches());
+        return deserializeSavedSwitches(serializedSavedSwitches());
     }
 
     public static void saveSwitches(List<RcSwitch> switches) {
@@ -90,6 +89,15 @@ public class RcSwitch implements Parcelable {
         return transmission;
     }
 
+    public String serialize() {
+        return gson.toJson(this);
+    }
+
+    public static RcSwitch deserialize(String input) {
+        return gson.fromJson(input, RcSwitch.class);
+    }
+
+    // Equalys considers the code only, not the name
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

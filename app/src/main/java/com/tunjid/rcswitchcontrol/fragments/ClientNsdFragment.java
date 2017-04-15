@@ -71,7 +71,9 @@ public class ClientNsdFragment extends BaseFragment
             switch (action) {
                 case ClientNsdService.ACTION_SOCKET_CONNECTED:
                     if (commands.isEmpty() && nsdConnection.isBound()) {
-                        nsdConnection.getBoundService().sendMessage(CommsProtocol.PING);
+                        nsdConnection.getBoundService().sendMessage(
+                                Payload.builder().setAction(CommsProtocol.PING).build()
+                        );
                     }
                     onConnectionStateChanged(action);
                     getActivity().invalidateOptionsMenu();
@@ -95,16 +97,21 @@ public class ClientNsdFragment extends BaseFragment
                     swapAdapter(isBleRc);
 
                     if (isBleRc && payload.getAction() != null) {
-                        switch (payload.getAction()) {
-                            case ClientBleService.ACTION_TRANSMITTER:
-                                switches.clear();
-                                switches.addAll(RcSwitch.deserialize(payload.getData()));
-                                switchList.getAdapter().notifyDataSetChanged();
-                                break;
-                            case ClientBleService.ACTION_CONTROL:
-                                break;
-                            case ClientBleService.ACTION_SNIFFER:
-                                break;
+                        if (payload.getAction().equals(ClientBleService.ACTION_TRANSMITTER)) {
+                            switches.clear();
+                            switches.addAll(RcSwitch.deserializeSavedSwitches(payload.getData()));
+                            switchList.getAdapter().notifyDataSetChanged();
+
+                        }
+//                        else if (payload.getAction().equals(ClientBleService.ACTION_CONTROL)) {
+//                        }
+//                        else if (payload.getAction().equals(ClientBleService.ACTION_SNIFFER)) {
+//                        }
+                        else if (payload.getAction().equals(getString(R.string.blercprotocol_delete_command))
+                                || payload.getAction().equals(getString(R.string.blercprotocol_rename_command))) {
+                            switches.clear();
+                            switches.addAll(RcSwitch.deserializeSavedSwitches(payload.getData()));
+                            switchList.getAdapter().notifyDataSetChanged();
                         }
                         Snackbar.make(switchList, payload.getResponse(), Snackbar.LENGTH_SHORT).show();
                     }
@@ -126,7 +133,9 @@ public class ClientNsdFragment extends BaseFragment
                 @Override
                 public void onServiceBound(ClientNsdService service) {
                     onConnectionStateChanged(service.getConnectionState());
-                    if (commands.isEmpty()) service.sendMessage(CommsProtocol.PING);
+                    if (commands.isEmpty()) service.sendMessage(
+                            Payload.builder().setAction(CommsProtocol.PING).build()
+                    );
                 }
             });
 
@@ -265,8 +274,9 @@ public class ClientNsdFragment extends BaseFragment
         switch (v.getId()) {
             case R.id.sniff:
                 if (nsdConnection.isBound()) {
-                    nsdConnection.getBoundService()
-                            .sendMessage(getString(R.string.scanblercprotocol_sniff));
+                    nsdConnection.getBoundService().sendMessage(
+                            Payload.builder().setAction(getString(R.string.scanblercprotocol_sniff)).build()
+                    );
                 }
                 break;
         }
@@ -274,24 +284,38 @@ public class ClientNsdFragment extends BaseFragment
 
     @Override
     public void onTextClicked(String text) {
-        if (nsdConnection.isBound()) nsdConnection.getBoundService().sendMessage(text);
+        if (nsdConnection.isBound()) {
+            nsdConnection.getBoundService().sendMessage(Payload.builder().setAction(text).build());
+        }
     }
 
     @Override
     public void onLongClicked(RcSwitch rcSwitch) {
-        Snackbar.make(commandsView, "Not supported yet, change the name on the server device",
-                Snackbar.LENGTH_SHORT).show();
+        RenameSwitchDialogFragment.newInstance(rcSwitch).show(getChildFragmentManager(), "");
     }
 
     @Override
     public void onSwitchToggled(RcSwitch rcSwitch, boolean state) {
-        if (!nsdConnection.isBound()) return;
-        nsdConnection.getBoundService().sendMessage(Base64.encodeToString(rcSwitch.getTransmission(state), Base64.DEFAULT));
+        if (nsdConnection.isBound()) {
+            nsdConnection.getBoundService().sendMessage(
+                    Payload.builder().setAction(ClientBleService.ACTION_TRANSMITTER)
+                            .setData(Base64.encodeToString(rcSwitch.getTransmission(state), Base64.DEFAULT))
+                            .build()
+            );
+        }
     }
 
     @Override
     public void onSwitchRenamed(RcSwitch rcSwitch) {
-        // Not implemented yet.
+        switchList.getAdapter().notifyItemChanged(switches.indexOf(rcSwitch));
+
+        if (nsdConnection.isBound()) {
+            nsdConnection.getBoundService().sendMessage(
+                    Payload.builder().setAction(getString(R.string.blercprotocol_rename_command))
+                            .setData(rcSwitch.serialize())
+                            .build()
+            );
+        }
     }
 
     private void onConnectionStateChanged(String newState) {
@@ -355,16 +379,7 @@ public class ClientNsdFragment extends BaseFragment
             if (rootView != null) {
                 int position = viewHolder.getAdapterPosition();
                 DeletionHandler deletionHandler = new DeletionHandler(position, switches.size());
-
                 deletionHandler.push(switches.get(position));
-                switches.remove(position);
-
-                switchList.getAdapter().notifyItemRemoved(position);
-
-                Snackbar.make(rootView, R.string.deleted_switch, Snackbar.LENGTH_LONG)
-                        .addCallback(deletionHandler)
-                        .setAction(R.string.undo, deletionHandler)
-                        .show();
             }
         }
     };
@@ -386,8 +401,14 @@ public class ClientNsdFragment extends BaseFragment
 
         @Override
         public void onDismissed(Snackbar snackbar, int event) {
+            if (nsdConnection.isBound()) {
+                nsdConnection.getBoundService().sendMessage(
+                        Payload.builder().setAction(getString(R.string.blercprotocol_delete_command))
+                                .setData(pop().serialize())
+                                .build()
+                );
+            }
             isDeleting = false;
-            RcSwitch.saveSwitches(switches);
         }
 
         @Override

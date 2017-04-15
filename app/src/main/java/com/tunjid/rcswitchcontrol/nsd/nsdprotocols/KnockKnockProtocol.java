@@ -29,14 +29,14 @@ class KnockKnockProtocol extends CommsProtocol {
             "Is there an echo in here?"};
 
     @Override
-    public Payload processInput(String input) {
+    public Payload processInput(Payload input) {
         Payload.Builder builder = Payload.builder();
         builder.setKey(getClass().getName());
         builder.addCommand(RESET);
 
-        if (input == null) input = RESET;
+        String action = input.getAction();
 
-        if (input.equals(RESET)) {
+        if (action.equals(PING) || action.equals(RESET)) {
             state = WAITING;
             currentJoke = 0;
         }
@@ -47,7 +47,7 @@ class KnockKnockProtocol extends CommsProtocol {
             state = SENTKNOCKKNOCK;
         }
         else if (state == SENTKNOCKKNOCK) {
-            if (input.trim().equalsIgnoreCase("Who's there?")) {
+            if (action.trim().equalsIgnoreCase("Who's there?")) {
                 builder.setResponse(clues[currentJoke]);
                 builder.addCommand(clues[currentJoke] + " who?");
                 state = SENTCLUE;
@@ -59,7 +59,7 @@ class KnockKnockProtocol extends CommsProtocol {
             }
         }
         else if (state == SENTCLUE) {
-            if (input.equalsIgnoreCase(clues[currentJoke] + " who?")) {
+            if (action.equalsIgnoreCase(clues[currentJoke] + " who?")) {
                 builder.setResponse(answers[currentJoke] + " Want another? (y/n)");
                 builder.addCommand("y");
                 builder.addCommand("n");
@@ -75,7 +75,7 @@ class KnockKnockProtocol extends CommsProtocol {
             }
         }
         else if (state == ANOTHER) {
-            if (input.equalsIgnoreCase("y")) {
+            if (action.equalsIgnoreCase("y")) {
                 builder.setResponse("Knock! Knock!");
                 builder.addCommand("Who's there?");
 

@@ -132,27 +132,27 @@ public class BleRcProtocol extends CommsProtocol {
     }
 
     @Override
-    public Payload processInput(String input) {
+    public Payload processInput(Payload input) {
         Resources resources = appContext.getResources();
         Payload.Builder builder = Payload.builder();
         builder.setKey(getClass().getName());
         builder.addCommand(RESET);
 
-        if (input == null) {
-            builder.setResponse(resources.getString(R.string.blercprotocol_ping_response));
-            builder.setData(RcSwitch.serializedSavedSwitches());
-            builder.addCommand(REFRESH_SWITCHES);
+        String action = input.getAction();
 
-            return builder.build();
+        if (action.equals(PING)) {
+            builder.setResponse(resources.getString(R.string.blercprotocol_ping_response))
+                    .setAction(ClientBleService.ACTION_TRANSMITTER)
+                    .setData(RcSwitch.serializedSavedSwitches())
+                    .addCommand(REFRESH_SWITCHES);
         }
-
-        if (input.equals(PING) || input.equals(REFRESH_SWITCHES)) {
+        else if (action.equals(REFRESH_SWITCHES)) {
             builder.setResponse(resources.getString(R.string.blercprotocol_refresh_response))
                     .setAction(ClientBleService.ACTION_TRANSMITTER)
                     .setData(RcSwitch.serializedSavedSwitches())
                     .addCommand(SNIFF).addCommand(REFRESH_SWITCHES);
         }
-        else if (input.equals(SNIFF)) {
+        else if (action.equals(SNIFF)) {
             builder.setResponse(appContext.getString(R.string.scanblercprotocol_start_sniff_response))
                     .addCommand(RESET).addCommand(DISCONNECT);
 
@@ -162,13 +162,28 @@ public class BleRcProtocol extends CommsProtocol {
                         new byte[]{ClientBleService.STATE_SNIFFING});
             }
         }
-        else {
-            // Asuume its a transmission command, send it to the BLE Service
+        else if (action.equals(appContext.getString(R.string.blercprotocol_rename_command))) {
+            RcSwitch rcSwitch = RcSwitch.deserialize(input.getData());
+            switches.remove(rcSwitch);
+            switches.add(rcSwitch);
+            RcSwitch.saveSwitches(switches);
+
+            builder.setAction(action).setData(RcSwitch.serializedSavedSwitches());
+        }
+        else if (action.equals(appContext.getString(R.string.blercprotocol_delete_command))) {
+            RcSwitch rcSwitch = RcSwitch.deserialize(input.getData());
+            switches.remove(rcSwitch);
+            RcSwitch.saveSwitches(switches);
+
+            builder.setAction(action).setData(RcSwitch.serializedSavedSwitches());
+        }
+        else if (action.equals(ClientBleService.ACTION_TRANSMITTER)) {
+            // Assume its a transmission command, send it to the BLE Service
             builder.setResponse(resources.getString(R.string.blercprotocol_transmission_response))
                     .addCommand(REFRESH_SWITCHES);
 
             Intent intent = new Intent(ClientBleService.ACTION_TRANSMITTER);
-            intent.putExtra(ClientBleService.DATA_AVAILABLE_TRANSMITTER, input);
+            intent.putExtra(ClientBleService.DATA_AVAILABLE_TRANSMITTER, input.getData());
 
             LocalBroadcastManager.getInstance(appContext).sendBroadcast(intent);
         }

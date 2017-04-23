@@ -62,10 +62,14 @@ public class MainActivity extends BaseActivity {
         }
 
         if (!isSavedInstance) {
-            if (Application.isAndroidThings()) showFragment(ThingsFragment.newInstance());
-            else if (isNsdClient) showFragment(ClientNsdFragment.newInstance());
-            else if (isNullDevice) showFragment(StartFragment.newInstance());
-            else showFragment(ClientBleFragment.newInstance(device));
+            showFragment(Application.isAndroidThings()
+                    ? ThingsFragment.newInstance()
+                    : isNsdClient
+                    ? ClientNsdFragment.newInstance()
+                    : isNullDevice
+                    ? StartFragment.newInstance()
+                    : ClientBleFragment.newInstance(device)
+            );
         }
     }
 

@@ -17,7 +17,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.tunjid.rcswitchcontrol.R;
-import com.tunjid.rcswitchcontrol.ServiceConnection;
+import com.tunjid.androidbootstrap.core.components.ServiceConnection;
 import com.tunjid.rcswitchcontrol.bluetooth.BLEScanner;
 import com.tunjid.rcswitchcontrol.model.Payload;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;

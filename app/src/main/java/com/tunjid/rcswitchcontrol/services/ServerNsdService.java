@@ -9,7 +9,7 @@ import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
-import com.tunjid.rcswitchcontrol.ServiceConnection;
+import com.tunjid.androidbootstrap.core.components.ServiceConnection;
 import com.tunjid.rcswitchcontrol.nsd.abstractclasses.BaseNsdService;
 import com.tunjid.rcswitchcontrol.nsd.abstractclasses.RegistrationListener;
 import com.tunjid.rcswitchcontrol.nsd.nsdprotocols.CommsProtocol;

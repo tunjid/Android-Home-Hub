@@ -15,7 +15,7 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.tunjid.rcswitchcontrol.R;
-import com.tunjid.rcswitchcontrol.ServiceConnection;
+import com.tunjid.androidbootstrap.core.components.ServiceConnection;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
 import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService;
 import com.tunjid.rcswitchcontrol.model.Payload;

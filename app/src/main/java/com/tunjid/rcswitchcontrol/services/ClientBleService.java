@@ -30,7 +30,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.tunjid.rcswitchcontrol.R;
-import com.tunjid.rcswitchcontrol.ServiceConnection;
+import com.tunjid.androidbootstrap.core.components.ServiceConnection;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
 import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;

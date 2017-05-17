@@ -37,7 +37,7 @@ dependencies {
 
     provided 'com.google.android.things:androidthings:0.3-devpreview'
     compile 'com.tunjid.android-bootstrap:core:0.0.1'
-    compile 'com.tunjid.android-bootstrap:communications:0.0.1-SNAPSHOT'
+    compile 'com.tunjid.android-bootstrap:communications:0.0.1'
 
     compile 'com.android.support:design:25.3.1'
     compile 'com.android.support:appcompat-v7:25.3.1'

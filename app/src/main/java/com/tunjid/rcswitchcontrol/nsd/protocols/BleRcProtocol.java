@@ -1,4 +1,4 @@
-package com.tunjid.rcswitchcontrol.nsd.nsdprotocols;
+package com.tunjid.rcswitchcontrol.nsd.protocols;
 
 
 import android.content.BroadcastReceiver;

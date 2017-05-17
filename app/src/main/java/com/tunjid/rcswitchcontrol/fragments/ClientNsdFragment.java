@@ -30,8 +30,8 @@ import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter;
 import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment;
 import com.tunjid.rcswitchcontrol.model.Payload;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
-import com.tunjid.rcswitchcontrol.nsd.nsdprotocols.BleRcProtocol;
-import com.tunjid.rcswitchcontrol.nsd.nsdprotocols.CommsProtocol;
+import com.tunjid.rcswitchcontrol.nsd.protocols.BleRcProtocol;
+import com.tunjid.rcswitchcontrol.nsd.protocols.CommsProtocol;
 import com.tunjid.rcswitchcontrol.services.ClientBleService;
 import com.tunjid.rcswitchcontrol.services.ClientNsdService;
 

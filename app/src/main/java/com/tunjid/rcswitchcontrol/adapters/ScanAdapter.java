@@ -3,12 +3,12 @@ package com.tunjid.rcswitchcontrol.adapters;
 import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.support.v7.widget.RecyclerView;
-import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.tunjid.androidbootstrap.communications.bluetooth.ScanResultCompat;
 import com.tunjid.rcswitchcontrol.R;
 
 import java.util.List;
@@ -20,12 +20,12 @@ public class ScanAdapter extends RecyclerView.Adapter<ScanAdapter.ViewHolder> {
 
     private static final int BLE_DEVICE = 1;
 
-    private List<BluetoothDevice> bleDevices;
+    private List<ScanResultCompat> scanResults;
     private AdapterListener adapterListener;
 
-    public ScanAdapter(AdapterListener adapterListener, List<BluetoothDevice> bleDevices) {
+    public ScanAdapter(AdapterListener adapterListener, List<ScanResultCompat> scanResults) {
         this.adapterListener = adapterListener;
-        this.bleDevices = bleDevices;
+        this.scanResults = scanResults;
     }
 
     @Override
@@ -38,7 +38,7 @@ public class ScanAdapter extends RecyclerView.Adapter<ScanAdapter.ViewHolder> {
 
     @Override
     public void onBindViewHolder(ViewHolder viewHolder, final int position) {
-        viewHolder.bind(bleDevices.get(position), adapterListener);
+        viewHolder.bind(scanResults.get(position), adapterListener);
     }
 
     @Override
@@ -48,24 +48,18 @@ public class ScanAdapter extends RecyclerView.Adapter<ScanAdapter.ViewHolder> {
 
     @Override
     public int getItemCount() {
-        return bleDevices.size();
+        return scanResults.size();
     }
 
     // ViewHolder for actual content
     static class ViewHolder extends RecyclerView.ViewHolder
             implements
-            Runnable,
             View.OnClickListener {
-
-        private static final int MAX_NAME_CHECKS = 3;
-        private static final int NAME_CHECK_PERIOD = 1000;
-
-        int nameChecks;
 
         TextView deviceName;
         TextView deviceAddress;
 
-        BluetoothDevice device;
+        ScanResultCompat result;
         AdapterListener adapterListener;
 
         ViewHolder(View itemView) {
@@ -76,44 +70,20 @@ public class ScanAdapter extends RecyclerView.Adapter<ScanAdapter.ViewHolder> {
             itemView.setOnClickListener(this);
         }
 
-        void bind(BluetoothDevice device, AdapterListener adapterListener) {
-            this.device = device;
+        void bind(ScanResultCompat result, AdapterListener adapterListener) {
+            this.result = result;
             this.adapterListener = adapterListener;
 
-            deviceAddress.setText(device.getAddress());
-            resolveName();
+            deviceAddress.setText(result.getScanRecord() != null ? result.getScanRecord().getDeviceName() : "");
+            deviceName.setText(result.getDevice() != null ? result.getDevice().getAddress() : "");
         }
 
         @Override
         public void onClick(View v) {
             switch ((v.getId())) {
                 case R.id.row_parent:
-                    adapterListener.onBluetoothDeviceClicked(device);
+                    adapterListener.onBluetoothDeviceClicked(result.getDevice());
                     break;
-            }
-        }
-
-        @Override
-        public void run() {
-            resolveName();
-        }
-
-        /**
-         * Checks for the device name, for a maximum of {@link ViewHolder#MAX_NAME_CHECKS}
-         * as the name may not have been resolved at binding.
-         */
-        private void resolveName() {
-            if (device != null) {
-                String name = device.getName();
-                boolean isEmptyName = TextUtils.isEmpty(name);
-
-                if (isEmptyName) deviceName.setText(R.string.unknown_device);
-                else deviceName.setText(name);
-
-                // Check later if device name is resolved
-                if (nameChecks++ < MAX_NAME_CHECKS && isEmptyName) {
-                    itemView.postDelayed(this, NAME_CHECK_PERIOD);
-                }
             }
         }
     }

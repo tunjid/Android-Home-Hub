@@ -23,6 +23,7 @@
     <!-- Scan Fragment -->
     <string name="button_scan">Scan</string>
     <string name="unknown_device">Unknown Device</string>
+    <string name="device_name_address">%1$s\n%2$s</string>
 
     <!-- Control Fragment -->
     <string name="switches">Switches</string>

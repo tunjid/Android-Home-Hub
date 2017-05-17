@@ -57,9 +57,9 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
 
     // Services
     public static final String CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb";
+    public static final String DATA_TRANSCEIVER_SERVICE = "195ae58a-437a-489b-b0cd-b7c9c394bae4";
     // Characteristics
     public static final String C_HANDLE_CONTROL = "5fc569a0-74a9-4fa4-b8b7-8354c86e45a4";
-    //public static final String DATA_TRANSCEIVER_SERVICE = "195ae58a-437a-489b-b0cd-b7c9c394bae4";
     public static final String C_HANDLE_SNIFFER = "21819ab0-c937-4188-b0db-b9621e1696cd";
     public static final String C_HANDLE_TRANSMITTER = "3c79909b-cc1c-4bb9-8595-f99fa98c6503";
 

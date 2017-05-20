@@ -13,12 +13,14 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.tunjid.rcswitchcontrol.nsd.NsdHelper;
-import com.tunjid.rcswitchcontrol.nsd.abstractclasses.DiscoveryListener;
-import com.tunjid.rcswitchcontrol.nsd.abstractclasses.ResolveListener;
+import com.tunjid.androidbootstrap.communications.nsd.DiscoveryListener;
+import com.tunjid.androidbootstrap.communications.nsd.NsdHelper;
+import com.tunjid.androidbootstrap.communications.nsd.ResolveListener;
 import com.tunjid.rcswitchcontrol.services.ClientBleService;
 import com.tunjid.rcswitchcontrol.services.ClientNsdService;
 import com.tunjid.rcswitchcontrol.services.ServerNsdService;
+
+import java.util.concurrent.atomic.AtomicReference;
 
 import static android.content.Context.MODE_PRIVATE;
 import static android.content.Context.WIFI_SERVICE;
@@ -72,43 +74,51 @@ public class WifiStatusReceiver extends BroadcastReceiver {
 
         if (TextUtils.isEmpty(lastServer)) return;
 
-        final NsdHelper nsdHelper = new NsdHelper(context);
+        final AtomicReference<NsdHelper> helperReference = new AtomicReference<>();
 
-        final ResolveListener resolveListener = new ResolveListener() {
-            @Override
-            public void onServiceResolved(NsdServiceInfo service) {
-                if (service.getServiceName().equals(lastServer)) {
-                    Intent intent = new Intent(context, ClientNsdService.class);
-                    intent.putExtra(ClientNsdService.NSD_SERVICE_INFO_KEY, service);
-                    context.startService(intent);
+        NsdHelper nsdHelper = NsdHelper.getBuilder(context)
+                .setDiscoveryListener(
+                        new DiscoveryListener() {
+                            @Override
+                            public void onServiceFound(NsdServiceInfo service) {
+                                super.onServiceFound(service);
+                                if (helperReference.get() == null) return;
+                                try {
+                                    helperReference.get().resolveService(service);
+                                }
+                                catch (IllegalArgumentException e) {
+                                    Log.i(TAG, "IllegalArgumentException trying to resolve NSD service");
+                                }
+                            }
+                        }
+                )
+                .setResolveListener(
+                        new ResolveListener() {
+                            @Override
+                            public void onServiceResolved(NsdServiceInfo service) {
+                                if (helperReference.get() == null) return;
+                                if (service.getServiceName().equals(lastServer)) {
+                                    Intent intent = new Intent(context, ClientNsdService.class);
+                                    intent.putExtra(ClientNsdService.NSD_SERVICE_INFO_KEY, service);
+                                    context.startService(intent);
 
-                    nsdHelper.tearDown();
-                    isSearching = false;
-                }
-            }
-        };
+                                    helperReference.get().tearDown();
+                                    isSearching = false;
+                                }
+                            }
+                        }
+                )
+                .build();
 
-        final DiscoveryListener discoveryListener = new DiscoveryListener() {
-            @Override
-            public void onServiceFound(NsdServiceInfo service) {
-                super.onServiceFound(service);
-                try {
-                    nsdHelper.getNsdManager().resolveService(service, resolveListener);
-                }
-                catch (IllegalArgumentException e) {
-                    Log.i(TAG, "IllegalArgumentException trying to resolve NSD service");
-                }
-            }
-        };
-
-        nsdHelper.initializeDiscoveryListener(discoveryListener);
+        helperReference.set(nsdHelper);
         nsdHelper.discoverServices();
         isSearching = true;
 
         new Handler(Looper.myLooper()).postDelayed(new Runnable() {
             @Override
             public void run() {
-                nsdHelper.tearDown();
+                if (helperReference.get() == null) return;
+                helperReference.get().tearDown();
                 isSearching = false;
             }
         }, SEARCH_LENGTH_MILLIS);
@@ -119,8 +129,8 @@ public class WifiStatusReceiver extends BroadcastReceiver {
         if (Application.isServiceRunning(ClientNsdService.class)) {
             broadcastManager.sendBroadcast(new Intent(ClientNsdService.ACTION_STOP));
         }
-        if (Application.isServiceRunning(ServerNsdService.class)) {
-            broadcastManager.sendBroadcast(new Intent(ServerNsdService.ACTION_STOP));
-        }
+//        if (Application.isServiceRunning(ServerNsdService.class)) {
+//            broadcastManager.sendBroadcast(new Intent(ServerNsdService.ACTION_STOP));
+//        }
     }
 }

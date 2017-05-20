@@ -1,4 +1,4 @@
-package com.tunjid.rcswitchcontrol.nsd.nsdprotocols;
+package com.tunjid.rcswitchcontrol.nsd.protocols;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -12,13 +12,17 @@ import android.content.res.Resources;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.ParcelUuid;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.tunjid.androidbootstrap.communications.bluetooth.BLEScanner;
+import com.tunjid.androidbootstrap.communications.bluetooth.ScanFilterCompat;
+import com.tunjid.androidbootstrap.communications.bluetooth.ScanRecordCompat;
+import com.tunjid.androidbootstrap.communications.bluetooth.ScanResultCompat;
+import com.tunjid.androidbootstrap.core.components.ServiceConnection;
 import com.tunjid.rcswitchcontrol.R;
-import com.tunjid.rcswitchcontrol.ServiceConnection;
-import com.tunjid.rcswitchcontrol.bluetooth.BLEScanner;
 import com.tunjid.rcswitchcontrol.model.Payload;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
 import com.tunjid.rcswitchcontrol.services.ClientBleService;
@@ -27,6 +31,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import static android.content.Context.MODE_PRIVATE;
 
@@ -126,7 +131,13 @@ class ScanBleRcProtocol extends CommsProtocol implements BLEScanner.BleScanCallb
 
         if (!bluetoothAdapter.isEnabled()) bluetoothAdapter.enable();
 
-        scanner = new BLEScanner(this, bluetoothAdapter);
+        UUID serviceUUID = UUID.fromString(ClientBleService.DATA_TRANSCEIVER_SERVICE);
+        scanner = BLEScanner.getBuilder(bluetoothAdapter)
+                .addFilter(ScanFilterCompat.getBuilder()
+                        .setServiceUuid(new ParcelUuid(serviceUUID))
+                        .build())
+                .withCallBack(this)
+                .build();
 
         SharedPreferences preferences = appContext.getSharedPreferences(RcSwitch.SWITCH_PREFS, MODE_PRIVATE);
         String lastConnectedDevice = preferences.getString(ClientBleService.LAST_PAIRED_DEVICE, "");
@@ -151,7 +162,7 @@ class ScanBleRcProtocol extends CommsProtocol implements BLEScanner.BleScanCallb
         String action = input.getAction();
 
         if (action.equals(PING) || action.equals(RESET)) {
-             builder.setResponse(resources.getString(R.string.scanblercprotocol_ping_reponse))
+            builder.setResponse(resources.getString(R.string.scanblercprotocol_ping_reponse))
                     .addCommand(SCAN).build();
         }
         else if (action.equals(SCAN)) {
@@ -180,9 +191,10 @@ class ScanBleRcProtocol extends CommsProtocol implements BLEScanner.BleScanCallb
     }
 
     @Override
-    public void onDeviceFound(BluetoothDevice device) {
-        device.getName();
-        deviceMap.put(device.getName(), device);
+    public void onDeviceFound(ScanResultCompat result) {
+        ScanRecordCompat record = result.getScanRecord();
+        BluetoothDevice device = result.getDevice();
+        if (record != null) deviceMap.put(record.getDeviceName(), device);
     }
 
     @Override

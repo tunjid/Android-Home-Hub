@@ -2,6 +2,7 @@ package com.tunjid.rcswitchcontrol.services;
 
 import android.app.Notification;
 import android.app.PendingIntent;
+import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -14,12 +15,12 @@ import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import com.tunjid.androidbootstrap.communications.nsd.NsdHelper;
+import com.tunjid.androidbootstrap.core.components.ServiceConnection;
 import com.tunjid.rcswitchcontrol.R;
-import com.tunjid.rcswitchcontrol.ServiceConnection;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
 import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService;
 import com.tunjid.rcswitchcontrol.model.Payload;
-import com.tunjid.rcswitchcontrol.nsd.abstractclasses.BaseNsdService;
 
 import java.io.BufferedReader;
 import java.io.Closeable;
@@ -30,11 +31,13 @@ import java.net.Socket;
 import java.util.LinkedList;
 import java.util.Queue;
 
+import static com.tunjid.androidbootstrap.communications.nsd.NsdHelper.createBufferedReader;
+import static com.tunjid.androidbootstrap.communications.nsd.NsdHelper.createPrintWriter;
 import static com.tunjid.rcswitchcontrol.model.RcSwitch.SWITCH_PREFS;
 import static java.lang.annotation.RetentionPolicy.SOURCE;
 
 
-public class ClientNsdService extends BaseNsdService
+public class ClientNsdService extends Service
         implements ClientStartedBoundService {
 
     public static final int NOTIFICATION_ID = 2;
@@ -53,6 +56,7 @@ public class ClientNsdService extends BaseNsdService
     public static final String DATA_SERVER_RESPONSE = "service_response";
 
     private boolean isUserInApp;
+    private NsdHelper nsdHelper;
     private NsdServiceInfo currentService;
 
     @ConnectionState
@@ -86,6 +90,7 @@ public class ClientNsdService extends BaseNsdService
     @Override
     public void onCreate() {
         super.onCreate();
+        nsdHelper = NsdHelper.getBuilder(this).build();
         intentFilter.addAction(ACTION_STOP);
         LocalBroadcastManager.getInstance(this).registerReceiver(broadcastReceiver, intentFilter);
     }
@@ -136,6 +141,7 @@ public class ClientNsdService extends BaseNsdService
     public void onDestroy() {
         super.onDestroy();
         LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver);
+        tearDown();
     }
 
     public String getConnectionState() {
@@ -188,7 +194,7 @@ public class ClientNsdService extends BaseNsdService
     }
 
     protected void tearDown() {
-        super.tearDown();
+        nsdHelper.tearDown();
 
         Log.e(TAG, "Tearing down ClientServer");
 

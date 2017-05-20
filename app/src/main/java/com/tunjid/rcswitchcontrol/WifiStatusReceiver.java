@@ -129,8 +129,8 @@ public class WifiStatusReceiver extends BroadcastReceiver {
         if (Application.isServiceRunning(ClientNsdService.class)) {
             broadcastManager.sendBroadcast(new Intent(ClientNsdService.ACTION_STOP));
         }
-        if (Application.isServiceRunning(ServerNsdService.class)) {
-            broadcastManager.sendBroadcast(new Intent(ServerNsdService.ACTION_STOP));
-        }
+//        if (Application.isServiceRunning(ServerNsdService.class)) {
+//            broadcastManager.sendBroadcast(new Intent(ServerNsdService.ACTION_STOP));
+//        }
     }
 }

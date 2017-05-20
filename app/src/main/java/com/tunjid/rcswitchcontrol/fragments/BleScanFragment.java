@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.ParcelUuid;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
@@ -22,14 +23,19 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
-import com.tunjid.rcswitchcontrol.bluetooth.BLEScanner;
-import com.tunjid.rcswitchcontrol.services.ClientBleService;
+import com.tunjid.androidbootstrap.communications.bluetooth.BLEScanner;
+import com.tunjid.androidbootstrap.communications.bluetooth.ScanFilterCompat;
+import com.tunjid.androidbootstrap.communications.bluetooth.ScanResultCompat;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
 import com.tunjid.rcswitchcontrol.adapters.ScanAdapter;
+import com.tunjid.rcswitchcontrol.services.ClientBleService;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
 import static android.os.Build.VERSION.SDK_INT;
@@ -48,7 +54,8 @@ public class BleScanFragment extends BaseFragment
     private RecyclerView recyclerView;
 
     private BLEScanner scanner;
-    private List<BluetoothDevice> bleDevices = new ArrayList<>();
+    private List<ScanResultCompat> scanResults = new ArrayList<>();
+    private Set<BluetoothDevice> devices = new HashSet<>();
 
     public static BleScanFragment newInstance() {
         BleScanFragment fragment = new BleScanFragment();
@@ -69,7 +76,7 @@ public class BleScanFragment extends BaseFragment
         View rootView = inflater.inflate(R.layout.fragment_ble_scan, container, false);
 
         recyclerView = (RecyclerView) rootView.findViewById(R.id.list);
-        recyclerView.setAdapter(new ScanAdapter(this, bleDevices));
+        recyclerView.setAdapter(new ScanAdapter(this, scanResults));
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.addItemDecoration(new DividerItemDecoration(getActivity(), DividerItemDecoration.VERTICAL));
 
@@ -95,7 +102,13 @@ public class BleScanFragment extends BaseFragment
             activity.onBackPressed();
         }
 
-        scanner = new BLEScanner(this, bluetoothAdapter);
+        UUID serviceUUID = UUID.fromString(ClientBleService.DATA_TRANSCEIVER_SERVICE);
+        scanner = BLEScanner.getBuilder(bluetoothAdapter)
+                .addFilter(ScanFilterCompat.getBuilder()
+                        .setServiceUuid(new ParcelUuid(serviceUUID))
+                        .build())
+                .withCallBack(this)
+                .build();
     }
 
 
@@ -121,7 +134,7 @@ public class BleScanFragment extends BaseFragment
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menu_scan:
-                bleDevices.clear();
+                scanResults.clear();
                 recyclerView.getAdapter().notifyDataSetChanged();
                 scanLeDevice(true);
                 break;
@@ -135,7 +148,7 @@ public class BleScanFragment extends BaseFragment
     @Override
     public void onPause() {
         super.onPause();
-        bleDevices.clear();
+        scanResults.clear();
         scanLeDevice(false);
     }
 
@@ -199,9 +212,10 @@ public class BleScanFragment extends BaseFragment
     }
 
     @Override
-    public void onDeviceFound(final BluetoothDevice device) {
-        if (!bleDevices.contains(device)) {
-            bleDevices.add(device);
+    public void onDeviceFound(ScanResultCompat scanResult) {
+        if (!devices.contains(scanResult.getDevice())) {
+            devices.add(scanResult.getDevice());
+            scanResults.add(scanResult);
             recyclerView.getAdapter().notifyDataSetChanged();
         }
     }

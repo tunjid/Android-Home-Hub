@@ -6,8 +6,8 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.tunjid.rcswitchcontrol.R;
-import com.tunjid.rcswitchcontrol.abstractclasses.BaseRecyclerViewAdapter;
-import com.tunjid.rcswitchcontrol.abstractclasses.BaseViewHolder;
+import com.tunjid.androidbootstrap.core.abstractclasses.BaseRecyclerViewAdapter;
+import com.tunjid.androidbootstrap.core.abstractclasses.BaseViewHolder;
 
 import java.util.List;
 

@@ -16,12 +16,12 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.tunjid.androidbootstrap.communications.nsd.DiscoveryListener;
+import com.tunjid.androidbootstrap.communications.nsd.NsdHelper;
+import com.tunjid.androidbootstrap.communications.nsd.ResolveListener;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
 import com.tunjid.rcswitchcontrol.adapters.NSDAdapter;
-import com.tunjid.rcswitchcontrol.nsd.NsdHelper;
-import com.tunjid.rcswitchcontrol.nsd.abstractclasses.DiscoveryListener;
-import com.tunjid.rcswitchcontrol.nsd.abstractclasses.ResolveListener;
 import com.tunjid.rcswitchcontrol.services.ClientNsdService;
 
 import java.util.ArrayList;
@@ -62,37 +62,38 @@ public class NsdScanFragment extends BaseFragment
         @Override
         public void onServiceFound(NsdServiceInfo service) {
             super.onServiceFound(service);
-            nsdHelper.getNsdManager().resolveService(service, getResolveListener());
+            nsdHelper.resolveService(service);
         }
     };
 
 
-    private ResolveListener getResolveListener() {
-        return new ResolveListener() {
-            @Override
-            public void onServiceResolved(NsdServiceInfo service) {
-                super.onServiceResolved(service);
+    private ResolveListener resolveListener = new ResolveListener() {
+        @Override
+        public void onServiceResolved(NsdServiceInfo service) {
+            super.onServiceResolved(service);
 
-                if (!services.contains(service)) services.add(service);
+            if (!services.contains(service)) services.add(service);
 
-                // Runs on a diifferent thread, post here
-                if (recyclerView != null) recyclerView.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        recyclerView.getAdapter().notifyDataSetChanged();
-                    }
-                });
-            }
-        };
-    }
+            // Runs on a diifferent thread, post here
+            if (recyclerView != null) recyclerView.post(new Runnable() {
+                @Override
+                public void run() {
+                    recyclerView.getAdapter().notifyDataSetChanged();
+                }
+            });
+        }
+    };
+
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
 
-        nsdHelper = new NsdHelper(getContext());
-        nsdHelper.initializeDiscoveryListener(discoveryListener);
+        nsdHelper = NsdHelper.getBuilder(getContext())
+                .setDiscoveryListener(discoveryListener)
+                .setResolveListener(resolveListener)
+                .build();
     }
 
     @Override

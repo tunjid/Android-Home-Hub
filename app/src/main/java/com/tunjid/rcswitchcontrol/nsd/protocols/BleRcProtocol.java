@@ -1,4 +1,4 @@
-package com.tunjid.rcswitchcontrol.nsd.nsdprotocols;
+package com.tunjid.rcswitchcontrol.nsd.protocols;
 
 
 import android.content.BroadcastReceiver;
@@ -12,7 +12,7 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.tunjid.rcswitchcontrol.R;
-import com.tunjid.rcswitchcontrol.ServiceConnection;
+import com.tunjid.androidbootstrap.core.components.ServiceConnection;
 import com.tunjid.rcswitchcontrol.model.Payload;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
 import com.tunjid.rcswitchcontrol.services.ClientBleService;

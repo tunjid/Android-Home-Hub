@@ -1,5 +1,6 @@
 package com.tunjid.rcswitchcontrol.services;
 
+import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -9,11 +10,11 @@ import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
-import com.tunjid.rcswitchcontrol.ServiceConnection;
-import com.tunjid.rcswitchcontrol.nsd.abstractclasses.BaseNsdService;
-import com.tunjid.rcswitchcontrol.nsd.abstractclasses.RegistrationListener;
-import com.tunjid.rcswitchcontrol.nsd.nsdprotocols.CommsProtocol;
-import com.tunjid.rcswitchcontrol.nsd.nsdprotocols.ProxyProtocol;
+import com.tunjid.androidbootstrap.communications.nsd.NsdHelper;
+import com.tunjid.androidbootstrap.communications.nsd.RegistrationListener;
+import com.tunjid.androidbootstrap.core.components.ServiceConnection;
+import com.tunjid.rcswitchcontrol.nsd.protocols.CommsProtocol;
+import com.tunjid.rcswitchcontrol.nsd.protocols.ProxyProtocol;
 
 import java.io.BufferedReader;
 import java.io.Closeable;
@@ -24,12 +25,14 @@ import java.net.Socket;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static com.tunjid.androidbootstrap.communications.nsd.NsdHelper.createBufferedReader;
+import static com.tunjid.androidbootstrap.communications.nsd.NsdHelper.createPrintWriter;
 import static com.tunjid.rcswitchcontrol.model.RcSwitch.SWITCH_PREFS;
 
 /**
  * Service hosting a {@link CommsProtocol} on network service discovery
  */
-public class ServerNsdService extends BaseNsdService {
+public class ServerNsdService extends Service {
 
     private static final String TAG = ServerNsdService.class.getSimpleName();
 
@@ -38,6 +41,7 @@ public class ServerNsdService extends BaseNsdService {
     public static final String SERVICE_NAME_KEY = "com.tunjid.rcswitchcontrol.ServerNsdService.services.server.serviceName";
     public static final String WIRELESS_SWITCH_SERVICE = "Wireless Switch Service";
 
+    private NsdHelper nsdHelper;
     private ServerThread serverThread;
 //    private String serviceName;
 
@@ -89,16 +93,16 @@ public class ServerNsdService extends BaseNsdService {
 //        return serviceName;
 //    }
 
-    @Override
-    protected void tearDown() {
-        super.tearDown();
+    private void tearDown() {
         serverThread.close();
+        nsdHelper.tearDown();
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
         LocalBroadcastManager.getInstance(this).unregisterReceiver(nsdUpdateReceiver);
+        tearDown();
     }
 
     public boolean isRunning() {
@@ -106,7 +110,6 @@ public class ServerNsdService extends BaseNsdService {
     }
 
     public void restart() {
-        serverThread.close();
         tearDown();
         initialize();
     }
@@ -119,7 +122,7 @@ public class ServerNsdService extends BaseNsdService {
         // used, just grab an avaialable one and advertise it via Nsd.
         try {
             ServerSocket serverSocket = new ServerSocket(0);
-            nsdHelper.initializeRegistrationListener(registrationListener);
+            nsdHelper = NsdHelper.getBuilder(this).setRegistrationListener(registrationListener).build();
             nsdHelper.registerService(serverSocket.getLocalPort(), initialServicename);
 
             serverThread = new ServerThread(serverSocket);

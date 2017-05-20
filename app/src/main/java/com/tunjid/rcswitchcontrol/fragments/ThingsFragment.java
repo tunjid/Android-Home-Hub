@@ -5,7 +5,7 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.view.WindowManager;
 
-import com.tunjid.rcswitchcontrol.ServiceConnection;
+import com.tunjid.androidbootstrap.core.components.ServiceConnection;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
 import com.tunjid.rcswitchcontrol.services.ServerNsdService;
 

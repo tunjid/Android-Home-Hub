@@ -4,9 +4,12 @@ import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
 import android.app.Service;
 import android.content.Context;
+import android.content.IntentFilter;
+import android.net.wifi.WifiManager;
 import android.util.Log;
 
 import com.google.android.things.pio.PeripheralManager;
+import com.tunjid.rcswitchcontrol.services.ClientNsdService;
 
 import java.util.List;
 
@@ -24,6 +27,14 @@ public class App extends android.app.Application {
     public void onCreate() {
         super.onCreate();
         instance = this;
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(ClientNsdService.ACTION_START_NSD_DISCOVERY);
+        filter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
+        filter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
+        filter.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION);
+
+        registerReceiver(new WifiStatusReceiver(), filter);
     }
 
     public static App getInstance() {

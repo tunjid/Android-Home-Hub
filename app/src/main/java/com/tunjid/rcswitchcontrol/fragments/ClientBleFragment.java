@@ -19,7 +19,9 @@ import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.snackbar.Snackbar;
 import com.tunjid.androidbootstrap.core.components.ServiceConnection;
 import com.tunjid.androidbootstrap.view.animator.ViewHider;
+import com.tunjid.rcswitchcontrol.utils.DeletionHandler;
 import com.tunjid.rcswitchcontrol.R;
+import com.tunjid.rcswitchcontrol.utils.Utils;
 import com.tunjid.rcswitchcontrol.abstractclasses.BroadcastReceiverFragment;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
 import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter;
@@ -32,7 +34,6 @@ import com.tunjid.rcswitchcontrol.services.ServerNsdService;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.Stack;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -114,7 +115,7 @@ public class ClientBleFragment extends BroadcastReceiverFragment
 
         View rootView = inflater.inflate(R.layout.fragment_ble_client, container, false);
         AppBarLayout appBarLayout = rootView.findViewById(R.id.app_bar_layout);
-        ItemTouchHelper helper = new ItemTouchHelper(swipeCallBack);
+        ItemTouchHelper helper = new ItemTouchHelper(Utils.callback(this::getSwipeDirection, this::onDelete));
 
         sniffButton = rootView.findViewById(R.id.sniff);
         progressBar = rootView.findViewById(R.id.progress_bar);
@@ -402,87 +403,37 @@ public class ClientBleFragment extends BroadcastReceiverFragment
         Log.i(TAG, "Received data for: " + action);
     }
 
-    private ItemTouchHelper.SimpleCallback swipeCallBack = new ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP | ItemTouchHelper.DOWN, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+    private int getSwipeDirection() {
+        return isDeleting ? 0 : ItemTouchHelper.SimpleCallback.makeMovementFlags(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT);
+    }
 
-        @Override
-        public int getDragDirs(@NonNull RecyclerView recyclerView,
-                               @NonNull RecyclerView.ViewHolder viewHolder) {
-            return 0;
-        }
+    private void onDelete(RecyclerView.ViewHolder viewHolder) {
+        if (isDeleting) return;
+        isDeleting = true;
 
-        @Override
-        public int getSwipeDirs(@NonNull RecyclerView recyclerView,
-                                @NonNull RecyclerView.ViewHolder viewHolder) {
-            if (isDeleting) return 0;
-            return super.getSwipeDirs(recyclerView, viewHolder);
-        }
+        View root = getView();
 
-        @Override
-        public boolean onMove(@NonNull RecyclerView recyclerView,
-                              @NonNull RecyclerView.ViewHolder viewHolder,
-                              @NonNull RecyclerView.ViewHolder target) {
-            return false;
-        }
+        if (root == null) return;
+        int position = viewHolder.getAdapterPosition();
 
-        @Override
-        public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
-            if (isDeleting) return;
-            isDeleting = true;
-
-            View root = getView();
-            if (root == null) return;
-
-            int position = viewHolder.getAdapterPosition();
-            DeletionHandler deletionHandler = new DeletionHandler(position, switches.size());
-
-            deletionHandler.push(switches.get(position));
-            switches.remove(position);
-
-            getAdapter().notifyItemRemoved(position);
-
-            Snackbar.make(root, R.string.deleted_switch, Snackbar.LENGTH_LONG)
-                    .addCallback(deletionHandler)
-                    .setAction(R.string.undo, deletionHandler)
-                    .show();
-        }
-    };
-
-    /**
-     * Handles queued deletion of a Switch
-     */
-    private class DeletionHandler extends Snackbar.Callback implements View.OnClickListener {
-
-        int originalPosition;
-        int originalListSize;
-
-        private Stack<RcSwitch> deletedItems = new Stack<>();
-
-        DeletionHandler(int originalPosition, int originalListSize) {
-            this.originalPosition = originalPosition;
-            this.originalListSize = originalListSize;
-        }
-
-        @Override
-        public void onDismissed(Snackbar snackbar, int event) {
+        DeletionHandler<RcSwitch> deletionHandler = new DeletionHandler<>(position, () -> {
             isDeleting = false;
             RcSwitch.saveSwitches(switches);
-        }
+        });
 
-        @Override
-        public void onClick(View v) {
-            if (!deletedItems.isEmpty()) {
-                switches.add(originalPosition, pop());
-                getAdapter().notifyItemInserted(originalPosition);
-            }
-            isDeleting = false;
-        }
+        deletionHandler.push(switches.get(position));
 
-        RcSwitch push(RcSwitch item) {
-            return deletedItems.push(item);
-        }
+        Snackbar.make(root, R.string.deleted_switch, Snackbar.LENGTH_LONG)
+                .addCallback(deletionHandler)
+                .setAction(R.string.undo, view -> {
+                    if (!deletionHandler.hasItems()) return;
 
-        RcSwitch pop() {
-            return deletedItems.pop();
-        }
+                    int deletedAt = deletionHandler.getDeletedPosition();
+                    switches.add(deletedAt, deletionHandler.pop());
+                    getAdapter().notifyItemInserted(deletedAt);
+
+                    isDeleting = false;
+                })
+                .show();
     }
 }

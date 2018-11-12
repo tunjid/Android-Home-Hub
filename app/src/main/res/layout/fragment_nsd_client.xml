@@ -9,7 +9,6 @@
         android:layout_height="match_parent"
         android:layout_marginLeft="@dimen/single_margin"
         android:layout_marginRight="@dimen/single_margin"
-        android:paddingBottom="@dimen/triple_and_half_margin"
         app:layout_behavior="@string/appbar_scrolling_view_behavior"
         app:layout_constraintBottom_toTopOf="@+id/sniff" />
 
@@ -40,7 +39,6 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"
         android:layout_marginTop="@dimen/single_margin"
-        android:paddingLeft="@dimen/single_margin"
-        android:paddingRight="@dimen/single_margin"
+        android:padding="@dimen/half_margin"
         app:layout_behavior="com.tunjid.rcswitchcontrol.SnackBarBehavior" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -9,5 +9,5 @@
     android:layout_gravity="center_vertical"
     android:layout_margin="@dimen/half_margin"
     android:textAllCaps="false"
-    android:textSize="@dimen/small_text"
+    android:textSize="@dimen/regular_text"
     tools:text="I'm a chip" />

@@ -4,12 +4,10 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.os.Bundle;
-
-import androidx.annotation.Nullable;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.util.List;
+
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 /**
  * A Fragment listening to broadcast from the {@link LocalBroadcastManager}
@@ -28,13 +26,8 @@ public abstract class BroadcastReceiverFragment extends BaseFragment {
 
     @Override public void onAttach(Context context) {
         super.onAttach(context);
-        LocalBroadcastManager.getInstance(context).registerReceiver(receiver, intentFilter);
-    }
-
-    @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
         for (String filter : filters()) intentFilter.addAction(filter);
+        LocalBroadcastManager.getInstance(context).registerReceiver(receiver, intentFilter);
     }
 
     @Override

@@ -25,8 +25,7 @@ public class ChatAdapter extends InteractiveAdapter<ChatAdapter.TextViewHolder, 
 
     @NonNull @Override
     public TextViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.viewholder_responses, parent, false);
-        return new TextViewHolder(view);
+        return new TextViewHolder(getItemView(R.layout.viewholder_responses, parent));
     }
 
     @Override

@@ -13,6 +13,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.google.android.flexbox.AlignItems;
+import com.google.android.flexbox.FlexDirection;
+import com.google.android.flexbox.FlexboxLayoutManager;
+import com.google.android.flexbox.JustifyContent;
 import com.google.android.material.snackbar.Snackbar;
 import com.tunjid.androidbootstrap.core.components.ServiceConnection;
 import com.tunjid.rcswitchcontrol.R;
@@ -62,27 +66,7 @@ public class ClientNsdFragment extends BroadcastReceiverFragment
     private List<String> commands = new ArrayList<>();
     private List<String> messageHistory = new ArrayList<>();
 
-    @Override protected List<String> filters() {
-        return Arrays.asList(
-                ClientNsdService.ACTION_SOCKET_CONNECTED,
-                ClientNsdService.ACTION_SOCKET_CONNECTING,
-                ClientNsdService.ACTION_SOCKET_DISCONNECTED,
-                ClientNsdService.ACTION_SERVER_RESPONSE
-        );
-    }
-
-    private RecyclerView.Adapter getAdapter() {
-        return switchList.getAdapter();
-    }
-
-    private final ServiceConnection<ClientNsdService> nsdConnection = new ServiceConnection<>(
-            ClientNsdService.class,
-            service -> {
-                onConnectionStateChanged(service.getConnectionState());
-                if (commands.isEmpty()) service.sendMessage(
-                        Payload.builder().setAction(CommsProtocol.PING).build()
-                );
-            });
+    private ServiceConnection<ClientNsdService> nsdConnection;
 
     public static ClientNsdFragment newInstance() {
         ClientNsdFragment fragment = new ClientNsdFragment();
@@ -96,6 +80,7 @@ public class ClientNsdFragment extends BroadcastReceiverFragment
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
+        nsdConnection = new ServiceConnection<>(ClientNsdService.class, this::onServiceConnected);
     }
 
     @Nullable
@@ -105,16 +90,23 @@ public class ClientNsdFragment extends BroadcastReceiverFragment
                              @Nullable Bundle savedInstanceState) {
 
         View root = inflater.inflate(R.layout.fragment_nsd_client, container, false);
+        Context context = root.getContext();
 
-        connectionStatus = root.findViewById(R.id.connection_status);
         switchList = root.findViewById(R.id.switch_list);
         commandsView = root.findViewById(R.id.commands);
+        connectionStatus = root.findViewById(R.id.connection_status);
 
         swapAdapter(false);
-        switchList.setLayoutManager(new LinearLayoutManager(requireActivity()));
+
+        FlexboxLayoutManager layoutManager = new FlexboxLayoutManager(context);
+        layoutManager.setAlignItems(AlignItems.CENTER);
+        layoutManager.setFlexDirection(FlexDirection.ROW);
+        layoutManager.setJustifyContent(JustifyContent.FLEX_START);
+
+        switchList.setLayoutManager(new LinearLayoutManager(context));
 
         commandsView.setAdapter(new ChatAdapter(this, commands));
-        commandsView.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
+        commandsView.setLayoutManager(layoutManager);
 
         ItemTouchHelper helper = new ItemTouchHelper(swipeCallBack);
         helper.attachToRecyclerView(switchList);
@@ -202,14 +194,11 @@ public class ClientNsdFragment extends BroadcastReceiverFragment
 
     @Override
     public void onClick(View v) {
-        switch (v.getId()) {
-            case R.id.sniff:
-                if (nsdConnection.isBound()) {
-                    nsdConnection.getBoundService().sendMessage(
-                            Payload.builder().setAction(getString(R.string.scanblercprotocol_sniff)).build()
-                    );
-                }
-                break;
+        if (v.getId() != R.id.sniff) return;
+        if (nsdConnection.isBound()) {
+            nsdConnection.getBoundService().sendMessage(
+                    Payload.builder().setAction(getString(R.string.scanblercprotocol_sniff)).build()
+            );
         }
     }
 
@@ -227,26 +216,28 @@ public class ClientNsdFragment extends BroadcastReceiverFragment
 
     @Override
     public void onSwitchToggled(RcSwitch rcSwitch, boolean state) {
-        if (nsdConnection.isBound()) {
-            nsdConnection.getBoundService().sendMessage(
-                    Payload.builder().setAction(ClientBleService.ACTION_TRANSMITTER)
-                            .setData(Base64.encodeToString(rcSwitch.getTransmission(state), Base64.DEFAULT))
-                            .build()
-            );
-        }
+        if (nsdConnection.isBound()) nsdConnection.getBoundService().sendMessage(
+                Payload.builder().setAction(ClientBleService.ACTION_TRANSMITTER)
+                        .setData(Base64.encodeToString(rcSwitch.getTransmission(state), Base64.DEFAULT))
+                        .build()
+        );
     }
 
     @Override
     public void onSwitchRenamed(RcSwitch rcSwitch) {
         getAdapter().notifyItemChanged(switches.indexOf(rcSwitch));
+        if (nsdConnection.isBound()) nsdConnection.getBoundService().sendMessage(
+                Payload.builder().setAction(getString(R.string.blercprotocol_rename_command))
+                        .setData(rcSwitch.serialize())
+                        .build()
+        );
+    }
 
-        if (nsdConnection.isBound()) {
-            nsdConnection.getBoundService().sendMessage(
-                    Payload.builder().setAction(getString(R.string.blercprotocol_rename_command))
-                            .setData(rcSwitch.serialize())
-                            .build()
-            );
-        }
+    private void onServiceConnected(ClientNsdService service) {
+        onConnectionStateChanged(service.getConnectionState());
+        if (commands.isEmpty()) service.sendMessage(
+                Payload.builder().setAction(CommsProtocol.PING).build()
+        );
     }
 
     private void onConnectionStateChanged(String newState) {
@@ -281,17 +272,29 @@ public class ClientNsdFragment extends BroadcastReceiverFragment
                 : new ChatAdapter(null, messageHistory));
     }
 
+    private RecyclerView.Adapter getAdapter() {
+        return switchList.getAdapter();
+    }
+
+    @Override protected List<String> filters() {
+        return Arrays.asList(
+                ClientNsdService.ACTION_SOCKET_CONNECTED,
+                ClientNsdService.ACTION_SOCKET_CONNECTING,
+                ClientNsdService.ACTION_SOCKET_DISCONNECTED,
+                ClientNsdService.ACTION_SERVER_RESPONSE
+        );
+    }
+
     @Override protected void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
         if (action == null) return;
 
         switch (action) {
             case ClientNsdService.ACTION_SOCKET_CONNECTED:
-                if (commands.isEmpty() && nsdConnection.isBound()) {
+                if (commands.isEmpty() && nsdConnection.isBound())
                     nsdConnection.getBoundService().sendMessage(
                             Payload.builder().setAction(CommsProtocol.PING).build()
                     );
-                }
                 onConnectionStateChanged(action);
                 requireActivity().invalidateOptionsMenu();
                 break;

@@ -37,7 +37,7 @@
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/commands"
         android:layout_width="wrap_content"
-        android:layout_height="@dimen/triple_and_half_margin"
+        android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"
         android:layout_marginTop="@dimen/single_margin"
         android:paddingLeft="@dimen/single_margin"

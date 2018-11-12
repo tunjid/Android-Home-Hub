@@ -3,6 +3,8 @@ package com.tunjid.rcswitchcontrol.fragments;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.transition.AutoTransition;
+import android.transition.TransitionManager;
 import android.util.Base64;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -19,9 +21,7 @@ import com.google.android.flexbox.FlexboxLayoutManager;
 import com.google.android.flexbox.JustifyContent;
 import com.google.android.material.snackbar.Snackbar;
 import com.tunjid.androidbootstrap.core.components.ServiceConnection;
-import com.tunjid.rcswitchcontrol.utils.DeletionHandler;
 import com.tunjid.rcswitchcontrol.R;
-import com.tunjid.rcswitchcontrol.utils.Utils;
 import com.tunjid.rcswitchcontrol.abstractclasses.BroadcastReceiverFragment;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
 import com.tunjid.rcswitchcontrol.adapters.ChatAdapter;
@@ -33,6 +33,8 @@ import com.tunjid.rcswitchcontrol.nsd.protocols.BleRcProtocol;
 import com.tunjid.rcswitchcontrol.nsd.protocols.CommsProtocol;
 import com.tunjid.rcswitchcontrol.services.ClientBleService;
 import com.tunjid.rcswitchcontrol.services.ClientNsdService;
+import com.tunjid.rcswitchcontrol.utils.DeletionHandler;
+import com.tunjid.rcswitchcontrol.utils.Utils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -41,9 +43,11 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.view.ViewKt;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import kotlin.Unit;
 
 import static android.content.Context.MODE_PRIVATE;
 import static com.tunjid.rcswitchcontrol.model.RcSwitch.SWITCH_PREFS;
@@ -61,7 +65,7 @@ public class ClientNsdFragment extends BroadcastReceiverFragment
     private boolean isDeleting;
 
     private TextView connectionStatus;
-    private RecyclerView switchList;
+    private RecyclerView commandHistory;
     private RecyclerView commandsView;
 
     private List<RcSwitch> switches = new ArrayList<>();
@@ -94,7 +98,7 @@ public class ClientNsdFragment extends BroadcastReceiverFragment
         View root = inflater.inflate(R.layout.fragment_nsd_client, container, false);
         Context context = root.getContext();
 
-        switchList = root.findViewById(R.id.switch_list);
+        commandHistory = root.findViewById(R.id.switch_list);
         commandsView = root.findViewById(R.id.commands);
         connectionStatus = root.findViewById(R.id.connection_status);
 
@@ -105,13 +109,13 @@ public class ClientNsdFragment extends BroadcastReceiverFragment
         layoutManager.setFlexDirection(FlexDirection.ROW);
         layoutManager.setJustifyContent(JustifyContent.FLEX_START);
 
-        switchList.setLayoutManager(new LinearLayoutManager(context));
+        commandHistory.setLayoutManager(new LinearLayoutManager(context));
 
         commandsView.setAdapter(new ChatAdapter(this, commands));
         commandsView.setLayoutManager(layoutManager);
 
         ItemTouchHelper helper = new ItemTouchHelper(Utils.callback(this::getSwipeDirection, this::onDelete));
-        helper.attachToRecyclerView(switchList);
+        helper.attachToRecyclerView(commandHistory);
 
         return root;
     }
@@ -183,7 +187,7 @@ public class ClientNsdFragment extends BroadcastReceiverFragment
 
     @Override
     public void onDestroyView() {
-        switchList = null;
+        commandHistory = null;
         connectionStatus = null;
         super.onDestroyView();
     }
@@ -256,6 +260,16 @@ public class ClientNsdFragment extends BroadcastReceiverFragment
                 commands.clear();
                 commands.addAll(payload.getCommands());
                 requireNonNull(commandsView.getAdapter()).notifyDataSetChanged();
+                TransitionManager.beginDelayedTransition((ViewGroup) commandHistory.getParent(), new AutoTransition()
+                        .addTarget(commandHistory)
+                        .addTarget(commandsView));
+                ViewKt.doOnNextLayout(commandsView, view -> {
+                    ViewKt.updateLayoutParams(commandHistory, layoutParams -> {
+                        ((ViewGroup.MarginLayoutParams) layoutParams).bottomMargin = commandsView.getHeight();
+                        return Unit.INSTANCE;
+                    });
+                    return Unit.INSTANCE;
+                });
 
                 String key = payload.getKey();
                 boolean isBleRc = key.equals(BleRcProtocol.class.getName());
@@ -269,21 +283,19 @@ public class ClientNsdFragment extends BroadcastReceiverFragment
                         getAdapter().notifyDataSetChanged();
 
                     }
-//                        else if (payload.getAction().equals(ClientBleService.ACTION_CONTROL)) {
-//                        }
-//                        else if (payload.getAction().equals(ClientBleService.ACTION_SNIFFER)) {
-//                        }
                     else if (payload.getAction().equals(getString(R.string.blercprotocol_delete_command))
                             || payload.getAction().equals(getString(R.string.blercprotocol_rename_command))) {
                         switches.clear();
                         switches.addAll(RcSwitch.deserializeSavedSwitches(payload.getData()));
                         getAdapter().notifyDataSetChanged();
                     }
-                    Snackbar.make(switchList, payload.getResponse(), Snackbar.LENGTH_SHORT).show();
+                    Snackbar.make(commandHistory, payload.getResponse(), Snackbar.LENGTH_SHORT).show();
                 }
                 else {
                     messageHistory.add(payload.getResponse());
-                    getAdapter().notifyDataSetChanged();
+                    int position = messageHistory.size() - 1;
+                    getAdapter().notifyItemInserted(position);
+                    commandHistory.post(() -> commandHistory.smoothScrollToPosition(position));
                 }
 
                 break;
@@ -324,13 +336,13 @@ public class ClientNsdFragment extends BroadcastReceiverFragment
         if (isSwitchAdapter && adapter instanceof RemoteSwitchAdapter) return;
         if (!isSwitchAdapter && adapter instanceof ChatAdapter) return;
 
-        switchList.setAdapter(isSwitchAdapter
+        commandHistory.setAdapter(isSwitchAdapter
                 ? new RemoteSwitchAdapter(this, switches)
                 : new ChatAdapter(null, messageHistory));
     }
 
     private RecyclerView.Adapter getAdapter() {
-        return switchList.getAdapter();
+        return commandHistory.getAdapter();
     }
 
     private void sendMessage(Payload message) {

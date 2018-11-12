@@ -39,7 +39,7 @@ public class MainActivity extends BaseActivity {
         BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
         Intent startIntent = getIntent();
 
-        // Retreive device from notification intent or shared preferences
+        // Retrieve device from notification intent or shared preferences
         BluetoothDevice device = startIntent.hasExtra(BLUETOOTH_DEVICE)
                 ? (BluetoothDevice) startIntent.getParcelableExtra(BLUETOOTH_DEVICE)
                 : !TextUtils.isEmpty(lastConnectedDevice) && bluetoothAdapter != null && bluetoothAdapter.isEnabled()
@@ -60,15 +60,12 @@ public class MainActivity extends BaseActivity {
             sendBroadcast(new Intent(ClientNsdService.ACTION_START_NSD_DISCOVERY));
         }
 
-        if (!isSavedInstance) {
-            showFragment(App.isAndroidThings()
-                    ? ThingsFragment.newInstance()
-                    : isNsdClient
-                    ? ClientNsdFragment.newInstance()
-                    : isNullDevice
-                    ? StartFragment.newInstance()
-                    : ClientBleFragment.newInstance(device)
-            );
-        }
+        if (!isSavedInstance) showFragment(App.isAndroidThings()
+                ? ThingsFragment.newInstance()
+                : isNsdClient
+                ? ClientNsdFragment.newInstance()
+                : isNullDevice
+                ? StartFragment.newInstance()
+                : ClientBleFragment.newInstance(device));
     }
 }

@@ -8,7 +8,6 @@ import android.net.NetworkInfo;
 import android.net.wifi.WifiManager;
 import android.os.Handler;
 import android.os.Looper;
-import android.text.TextUtils;
 
 import com.tunjid.androidbootstrap.communications.nsd.NsdHelper;
 import com.tunjid.rcswitchcontrol.services.ClientBleService;
@@ -71,17 +70,18 @@ public class WifiStatusReceiver extends BroadcastReceiver {
 
         final String lastServer = preferences.getString(ClientNsdService.LAST_CONNECTED_SERVICE, "");
 
-        if (TextUtils.isEmpty(lastServer)) return;
+        if (lastServer == null) return;
 
         final AtomicReference<NsdHelper> helperReference = new AtomicReference<>();
 
         NsdHelper nsdHelper = NsdHelper.getBuilder(context)
                 .setServiceFoundConsumer(service -> {
                     NsdHelper same = helperReference.get();
-                    if (same != null) same.resolveService(service);
+                    if (same != null && !lastServer.equals(service.getServiceName()))
+                        same.resolveService(service);
                 })
                 .setResolveSuccessConsumer(service -> {
-                    if (!service.getServiceName().equals(lastServer)) return;
+                    if (!lastServer.equals(service.getServiceName())) return;
                     Intent intent = new Intent(context, ClientNsdService.class);
                     intent.putExtra(ClientNsdService.NSD_SERVICE_INFO_KEY, service);
                     context.startService(intent);

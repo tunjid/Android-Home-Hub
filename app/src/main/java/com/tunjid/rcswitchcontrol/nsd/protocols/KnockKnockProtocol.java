@@ -5,8 +5,6 @@ import android.content.res.Resources;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.model.Payload;
 
-import java.io.IOException;
-
 /**
  * Simple communications protoclol for testing, tells knock knock jokes.
  * <p>
@@ -15,8 +13,8 @@ import java.io.IOException;
 
 class KnockKnockProtocol extends CommsProtocol {
     private static final int WAITING = 0;
-    private static final int SENTKNOCKKNOCK = 1;
-    private static final int SENTCLUE = 2;
+    private static final int SENT_KNOCK_KNOCK = 1;
+    private static final int SENT_CLUE = 2;
     private static final int ANOTHER = 3;
 
     private final int numJokes;
@@ -51,13 +49,13 @@ class KnockKnockProtocol extends CommsProtocol {
         if (state == WAITING) {
             builder.setResponse(appContext.getString(R.string.knockknockprotocol_joke_start));
             builder.addCommand(appContext.getString(R.string.knockknockprotocol_whos_there));
-            state = SENTKNOCKKNOCK;
+            state = SENT_KNOCK_KNOCK;
         }
-        else if (state == SENTKNOCKKNOCK) {
+        else if (state == SENT_KNOCK_KNOCK) {
             if (action.trim().equalsIgnoreCase(appContext.getString(R.string.knockknockprotocol_whos_there))) {
                 builder.setResponse(clues[currentJoke]);
                 builder.addCommand(resources.getString(R.string.knockknockprotocol_who, clues[currentJoke]));
-                state = SENTCLUE;
+                state = SENT_CLUE;
             }
             else {
                 String formatString = appContext.getString(R.string.knockknockprotocol_whos_there);
@@ -66,7 +64,7 @@ class KnockKnockProtocol extends CommsProtocol {
                 builder.addCommand(appContext.getString(R.string.knockknockprotocol_whos_there));
             }
         }
-        else if (state == SENTCLUE) {
+        else if (state == SENT_CLUE) {
             if (action.equalsIgnoreCase(resources.getString(R.string.knockknockprotocol_who, clues[currentJoke]))) {
                 builder.setResponse(resources.getString(R.string.knockknockprotocol_want_another, answers[currentJoke]))
                         .addCommand(resources.getString(R.string.knockknockprotocol_no))
@@ -78,7 +76,7 @@ class KnockKnockProtocol extends CommsProtocol {
                 String response = resources.getString(R.string.knockknockprotocol_wrong_answer, formatString);
                 builder.setResponse(response);
                 builder.addCommand(appContext.getString(R.string.knockknockprotocol_whos_there));
-                state = SENTKNOCKKNOCK;
+                state = SENT_KNOCK_KNOCK;
             }
         }
         else if (state == ANOTHER) {
@@ -88,7 +86,7 @@ class KnockKnockProtocol extends CommsProtocol {
 
                 if (currentJoke == (numJokes - 1)) currentJoke = 0;
                 else currentJoke++;
-                state = SENTKNOCKKNOCK;
+                state = SENT_KNOCK_KNOCK;
             }
             else {
                 builder.setResponse(resources.getString(R.string.commsprotocol_bye));
@@ -99,7 +97,7 @@ class KnockKnockProtocol extends CommsProtocol {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         state = WAITING;
     }
 }

@@ -1,7 +1,6 @@
 package com.tunjid.rcswitchcontrol.adapters;
 
 import android.content.Context;
-import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,9 +12,10 @@ import com.tunjid.rcswitchcontrol.model.RcSwitch;
 
 import java.util.List;
 
-/**
- * Adapter for BLE devices found while sacnning
- */
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
+
+
 public class RemoteSwitchAdapter extends RecyclerView.Adapter<RemoteSwitchAdapter.ViewHolder> {
 
     private static final int BLE_DEVICE = 1;
@@ -28,8 +28,8 @@ public class RemoteSwitchAdapter extends RecyclerView.Adapter<RemoteSwitchAdapte
         this.switches = switches;
     }
 
-    @Override
-    public ViewHolder onCreateViewHolder(ViewGroup viewGroup, int viewType) {
+    @NonNull @Override
+    public ViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int viewType) {
         Context context = viewGroup.getContext();
         View itemView = LayoutInflater.from(context).inflate(R.layout.viewholder_remote_switch, viewGroup, false);
 
@@ -37,7 +37,7 @@ public class RemoteSwitchAdapter extends RecyclerView.Adapter<RemoteSwitchAdapte
     }
 
     @Override
-    public void onBindViewHolder(ViewHolder viewHolder, final int position) {
+    public void onBindViewHolder(@NonNull ViewHolder viewHolder, final int position) {
         viewHolder.bind(switches.get(position), switchListener);
     }
 
@@ -66,8 +66,8 @@ public class RemoteSwitchAdapter extends RecyclerView.Adapter<RemoteSwitchAdapte
         ViewHolder(View itemView) {
             super(itemView);
 
-            deviceName = (TextView) itemView.findViewById(R.id.switch_name);
-            toggle = (Switch) itemView.findViewById(R.id.switch_toggle);
+            deviceName = itemView.findViewById(R.id.switch_name);
+            toggle = itemView.findViewById(R.id.switch_toggle);
 
             toggle.setOnClickListener(this);
             itemView.setOnLongClickListener(this);

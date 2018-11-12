@@ -2,7 +2,7 @@ package com.tunjid.rcswitchcontrol.nsd.protocols;
 
 import android.util.Log;
 
-import com.tunjid.rcswitchcontrol.Application;
+import com.tunjid.rcswitchcontrol.App;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.model.Payload;
 
@@ -55,7 +55,7 @@ public class ProxyProtocol extends CommsProtocol {
 
                 choosing = true;
                 builder.setResponse(appContext.getString(R.string.proxyprotocol_ping_response));
-                if (Application.isAndroidThings()) builder.addCommand(CONNECT_RC_REMOTE);
+                if (App.isAndroidThings()) builder.addCommand(CONNECT_RC_REMOTE);
                 builder.addCommand(KNOCK_KNOCK);
                 builder.addCommand(RC_REMOTE);
                 builder.addCommand(RESET);
@@ -76,7 +76,7 @@ public class ProxyProtocol extends CommsProtocol {
                     break;
                 default:
                     builder.setResponse("Invalid command. Please choose the server you want, Knock Knock jokes, or an RC Remote");
-                    if (Application.isAndroidThings()) builder.addCommand(CONNECT_RC_REMOTE);
+                    if (App.isAndroidThings()) builder.addCommand(CONNECT_RC_REMOTE);
                     builder.addCommand(KNOCK_KNOCK);
                     builder.addCommand(RC_REMOTE);
                     builder.addCommand(RESET);

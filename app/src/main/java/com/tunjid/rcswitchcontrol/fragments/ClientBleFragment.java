@@ -2,20 +2,9 @@ package com.tunjid.rcswitchcontrol.fragments;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothDevice;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Bundle;
-import android.support.annotation.Nullable;
-import android.support.design.widget.AppBarLayout;
-import android.support.design.widget.Snackbar;
-import android.support.transition.AutoTransition;
-import android.support.transition.TransitionManager;
-import android.support.v4.content.LocalBroadcastManager;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.helper.ItemTouchHelper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -26,10 +15,12 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
-import com.tunjid.rcswitchcontrol.R;
+import com.google.android.material.appbar.AppBarLayout;
+import com.google.android.material.snackbar.Snackbar;
 import com.tunjid.androidbootstrap.core.components.ServiceConnection;
-import com.tunjid.rcswitchcontrol.ViewHider;
-import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
+import com.tunjid.androidbootstrap.view.animator.ViewHider;
+import com.tunjid.rcswitchcontrol.R;
+import com.tunjid.rcswitchcontrol.abstractclasses.BroadcastReceiverFragment;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
 import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter;
 import com.tunjid.rcswitchcontrol.dialogfragments.NameServiceDialogFragment;
@@ -38,18 +29,30 @@ import com.tunjid.rcswitchcontrol.model.RcSwitch;
 import com.tunjid.rcswitchcontrol.services.ClientBleService;
 import com.tunjid.rcswitchcontrol.services.ServerNsdService;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Stack;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import androidx.recyclerview.widget.ItemTouchHelper;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.transition.AutoTransition;
+import androidx.transition.TransitionManager;
+
 import static android.content.Context.MODE_PRIVATE;
-import static com.tunjid.rcswitchcontrol.Application.isServiceRunning;
+import static com.tunjid.rcswitchcontrol.App.isServiceRunning;
 import static com.tunjid.rcswitchcontrol.model.RcSwitch.SWITCH_PREFS;
 import static com.tunjid.rcswitchcontrol.services.ClientBleService.ACTION_CONTROL;
 import static com.tunjid.rcswitchcontrol.services.ClientBleService.ACTION_SNIFFER;
 import static com.tunjid.rcswitchcontrol.services.ClientBleService.BLUETOOTH_DEVICE;
 import static com.tunjid.rcswitchcontrol.services.ServerNsdService.SERVICE_NAME_KEY;
+import static java.util.Objects.requireNonNull;
 
-public class ClientBleFragment extends BaseFragment
+public class ClientBleFragment extends BroadcastReceiverFragment
         implements
         //ServiceConnection,
         View.OnClickListener,
@@ -63,8 +66,6 @@ public class ClientBleFragment extends BaseFragment
     private boolean isDeleting;
 
     private BluetoothDevice bluetoothDevice;
-    //private ClientBleService clientBleService;
-    //private ServerNsdService serverNsdService;
 
     private View progressBar;
     private Button sniffButton;
@@ -77,72 +78,14 @@ public class ClientBleFragment extends BaseFragment
 
     private RcSwitch.SwitchCreator switchCreator;
 
-    private final IntentFilter intentFilter = new IntentFilter();
-    private final BroadcastReceiver gattUpdateReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-
-            switch (action) {
-                case ClientBleService.ACTION_GATT_CONNECTED:
-                case ClientBleService.ACTION_GATT_CONNECTING:
-                case ClientBleService.ACTION_GATT_DISCONNECTED:
-                    onConnectionStateChanged(action);
-                    break;
-                case ACTION_CONTROL: {
-                    byte[] rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_CONTROL);
-
-                    toggleProgress(rawData[0] == 0);
-                    break;
-                }
-                case ACTION_SNIFFER: {
-                    byte[] rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_SNIFFER);
-
-                    switch (switchCreator.getState()) {
-                        case RcSwitch.ON_CODE:
-                            switchCreator.withOnCode(rawData);
-                            break;
-                        case RcSwitch.OFF_CODE:
-                            RcSwitch rcSwitch = switchCreator.withOffCode(rawData);
-                            rcSwitch.setName("Switch " + (switches.size() + 1));
-
-                            if (!switches.contains(rcSwitch)) {
-                                switches.add(rcSwitch);
-                                switchList.getAdapter().notifyDataSetChanged();
-
-                                RcSwitch.saveSwitches(switches);
-                            }
-                            break;
-                    }
-
-                    toggleSniffButton();
-                    toggleProgress(false);
-                    break;
-                }
-            }
-
-            Log.i(TAG, "Received data for: " + action);
-        }
-    };
-
     private final ServiceConnection<ClientBleService> bleConnection = new ServiceConnection<>(
             ClientBleService.class,
-            new ServiceConnection.BindCallback<ClientBleService>() {
-                @Override
-                public void onServiceBound(ClientBleService service) {
-                    onConnectionStateChanged(service.getConnectionState());
-                }
-            }
+            service -> onConnectionStateChanged(service.getConnectionState())
     );
 
     private final ServiceConnection<ServerNsdService> serverConnection = new ServiceConnection<>(
             ServerNsdService.class,
-            new ServiceConnection.BindCallback<ServerNsdService>() {
-                @Override
-                public void onServiceBound(ServerNsdService service) {
-                    getActivity().invalidateOptionsMenu();
-                }
-            }
+            service -> requireActivity().invalidateOptionsMenu()
     );
 
     public static ClientBleFragment newInstance(BluetoothDevice bluetoothDevice) {
@@ -157,71 +100,55 @@ public class ClientBleFragment extends BaseFragment
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
-
-        bluetoothDevice = getArguments().getParcelable(BLUETOOTH_DEVICE);
-
-        intentFilter.addAction(ClientBleService.ACTION_GATT_CONNECTED);
-        intentFilter.addAction(ClientBleService.ACTION_GATT_CONNECTING);
-        intentFilter.addAction(ClientBleService.ACTION_GATT_DISCONNECTED);
-        intentFilter.addAction(ClientBleService.ACTION_GATT_SERVICES_DISCOVERED);
-        intentFilter.addAction(ClientBleService.ACTION_CONTROL);
-        intentFilter.addAction(ClientBleService.ACTION_SNIFFER);
-        intentFilter.addAction(ClientBleService.DATA_AVAILABLE_UNKNOWN);
+        bluetoothDevice = Objects.requireNonNull(getArguments()).getParcelable(BLUETOOTH_DEVICE);
     }
 
     @Nullable
     @Override
-    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
 
         switchCreator = new RcSwitch.SwitchCreator();
         switches = RcSwitch.getSavedSwitches();
 
         View rootView = inflater.inflate(R.layout.fragment_ble_client, container, false);
-        AppBarLayout appBarLayout = (AppBarLayout) rootView.findViewById(R.id.app_bar_layout);
+        AppBarLayout appBarLayout = rootView.findViewById(R.id.app_bar_layout);
+        ItemTouchHelper helper = new ItemTouchHelper(swipeCallBack);
 
-        sniffButton = (Button) rootView.findViewById(R.id.sniff);
+        sniffButton = rootView.findViewById(R.id.sniff);
         progressBar = rootView.findViewById(R.id.progress_bar);
 
-        connectionStatus = (TextView) rootView.findViewById(R.id.connection_status);
-        switchList = (RecyclerView) rootView.findViewById(R.id.switch_list);
+        connectionStatus = rootView.findViewById(R.id.connection_status);
+        switchList = rootView.findViewById(R.id.switch_list);
 
-        viewHider = new ViewHider(rootView.findViewById(R.id.button_container));
+        viewHider = ViewHider.of(rootView.findViewById(R.id.button_container))
+                .setDuration(ViewHider.BOTTOM).build();
 
         sniffButton.setOnClickListener(this);
 
+        helper.attachToRecyclerView(switchList);
         switchList.setAdapter(new RemoteSwitchAdapter(this, switches));
         switchList.setLayoutManager(new LinearLayoutManager(getActivity()));
         switchList.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
-            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
                 if (dy == 0) return;
-                if (dy > 0) viewHider.hideTranslate();
-                else viewHider.showTranslate();
+                if (dy > 0) viewHider.hide();
+                else viewHider.show();
             }
         });
 
-        ItemTouchHelper helper = new ItemTouchHelper(swipeCallBack);
-        helper.attachToRecyclerView(switchList);
+        appBarLayout.addOnOffsetChangedListener((appBarLayout1, verticalOffset) -> {
+            if (verticalOffset == 0) return;
+            if (verticalOffset > lastOffSet) viewHider.hide();
+            else viewHider.show();
 
-        appBarLayout.addOnOffsetChangedListener(new AppBarLayout.OnOffsetChangedListener() {
-            @Override
-            public void onOffsetChanged(AppBarLayout appBarLayout, int verticalOffset) {
-                if (verticalOffset == 0) return;
-                if (verticalOffset > lastOffSet) viewHider.hideTranslate();
-                else viewHider.showTranslate();
-
-                lastOffSet = verticalOffset;
-            }
+            lastOffSet = verticalOffset;
         });
 
         toggleSniffButton();
         return rootView;
-    }
-
-    @Override
-    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        LocalBroadcastManager.getInstance(getContext()).registerReceiver(gattUpdateReceiver, intentFilter);
     }
 
     @Override
@@ -230,17 +157,17 @@ public class ClientBleFragment extends BaseFragment
 
         getToolBar().setTitle(R.string.switches);
 
-        Activity activity = getActivity();
+        Activity activity = requireActivity();
 
         Bundle extras = new Bundle();
-        extras.putParcelable(BLUETOOTH_DEVICE, getArguments().getParcelable(BLUETOOTH_DEVICE));
+        extras.putParcelable(BLUETOOTH_DEVICE, requireNonNull(getArguments()).getParcelable(BLUETOOTH_DEVICE));
 
         bleConnection.with(activity).setExtras(extras).bind();
 
         if (activity.getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE).getBoolean(ServerNsdService.SERVER_FLAG, false)) {
             serverConnection.with(activity).start();
             serverConnection.with(activity).bind();
-            getActivity().invalidateOptionsMenu();
+            activity.invalidateOptionsMenu();
         }
     }
 
@@ -287,23 +214,25 @@ public class ClientBleFragment extends BaseFragment
                     if (serverConnection.isBound()) serverConnection.getBoundService().restart();
                     break;
                 case R.id.menu_forget:
-                    LocalBroadcastManager.getInstance(getActivity()).sendBroadcast(new Intent(ServerNsdService.ACTION_STOP));
+                    Activity activity = requireActivity();
+                    LocalBroadcastManager.getInstance(activity)
+                            .sendBroadcast(new Intent(ServerNsdService.ACTION_STOP));
 
                     ClientBleService clientBleService = bleConnection.getBoundService();
 
                     clientBleService.disconnect();
                     clientBleService.close();
 
-                    getActivity().getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE).edit()
+                    activity.getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE).edit()
                             .remove(ClientBleService.LAST_PAIRED_DEVICE)
                             .remove(ServerNsdService.SERVER_FLAG).apply();
 
-                    Intent intent = new Intent(getActivity(), MainActivity.class);
+                    Intent intent = new Intent(activity, MainActivity.class);
                     intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
                     startActivity(intent);
-                    getActivity().finish();
+                    activity.finish();
                     return true;
             }
         }
@@ -318,9 +247,6 @@ public class ClientBleFragment extends BaseFragment
 
     @Override
     public void onDestroyView() {
-        // Do not receive broadcasts when view is destroyed
-        LocalBroadcastManager.getInstance(getContext()).unregisterReceiver(gattUpdateReceiver);
-
         switchList = null;
         progressBar = null;
         sniffButton = null;
@@ -367,13 +293,13 @@ public class ClientBleFragment extends BaseFragment
 
     @Override
     public void onSwitchRenamed(RcSwitch rcSwitch) {
-        switchList.getAdapter().notifyItemChanged(switches.indexOf(rcSwitch));
+        getAdapter().notifyItemChanged(switches.indexOf(rcSwitch));
         RcSwitch.saveSwitches(switches);
     }
 
     @Override
     public void onServiceNamed(String name) {
-        Activity activity = getActivity();
+        Activity activity = requireActivity();
 
         activity.getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE)
                 .edit().putString(SERVICE_NAME_KEY, name)
@@ -384,7 +310,7 @@ public class ClientBleFragment extends BaseFragment
     }
 
     private void onConnectionStateChanged(String newState) {
-        getActivity().invalidateOptionsMenu();
+        requireActivity().invalidateOptionsMenu();
         String text = null;
         switch (newState) {
             case ClientBleService.ACTION_GATT_CONNECTED:
@@ -414,46 +340,110 @@ public class ClientBleFragment extends BaseFragment
         progressBar.setVisibility(show ? View.VISIBLE : View.INVISIBLE);
     }
 
+    @NonNull
+    private RecyclerView.Adapter getAdapter() {
+        return Objects.requireNonNull(switchList.getAdapter());
+    }
+
+    @Override protected List<String> filters() {
+        return Arrays.asList(
+                ClientBleService.ACTION_GATT_CONNECTED,
+                ClientBleService.ACTION_GATT_CONNECTING,
+                ClientBleService.ACTION_GATT_DISCONNECTED,
+                ClientBleService.ACTION_GATT_SERVICES_DISCOVERED,
+                ClientBleService.ACTION_CONTROL,
+                ClientBleService.ACTION_SNIFFER,
+                ClientBleService.DATA_AVAILABLE_UNKNOWN
+        );
+    }
+
+    @Override protected void onReceive(Context context, Intent intent) {
+        String action = intent.getAction();
+        if (action == null) return;
+
+        switch (action) {
+            case ClientBleService.ACTION_GATT_CONNECTED:
+            case ClientBleService.ACTION_GATT_CONNECTING:
+            case ClientBleService.ACTION_GATT_DISCONNECTED:
+                onConnectionStateChanged(action);
+                break;
+            case ACTION_CONTROL: {
+                byte[] rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_CONTROL);
+
+                toggleProgress(rawData[0] == 0);
+                break;
+            }
+            case ACTION_SNIFFER: {
+                byte[] rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_SNIFFER);
+
+                switch (switchCreator.getState()) {
+                    case RcSwitch.ON_CODE:
+                        switchCreator.withOnCode(rawData);
+                        break;
+                    case RcSwitch.OFF_CODE:
+                        RcSwitch rcSwitch = switchCreator.withOffCode(rawData);
+                        rcSwitch.setName("Switch " + (switches.size() + 1));
+
+                        if (switches.contains(rcSwitch)) return;
+                        switches.add(rcSwitch);
+                        getAdapter().notifyDataSetChanged();
+
+                        RcSwitch.saveSwitches(switches);
+
+                        break;
+                }
+
+                toggleSniffButton();
+                toggleProgress(false);
+                break;
+            }
+        }
+
+        Log.i(TAG, "Received data for: " + action);
+    }
+
     private ItemTouchHelper.SimpleCallback swipeCallBack = new ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP | ItemTouchHelper.DOWN, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
 
         @Override
-        public int getDragDirs(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
+        public int getDragDirs(@NonNull RecyclerView recyclerView,
+                               @NonNull RecyclerView.ViewHolder viewHolder) {
             return 0;
         }
 
         @Override
-        public int getSwipeDirs(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
+        public int getSwipeDirs(@NonNull RecyclerView recyclerView,
+                                @NonNull RecyclerView.ViewHolder viewHolder) {
             if (isDeleting) return 0;
             return super.getSwipeDirs(recyclerView, viewHolder);
         }
 
         @Override
-        public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
+        public boolean onMove(@NonNull RecyclerView recyclerView,
+                              @NonNull RecyclerView.ViewHolder viewHolder,
+                              @NonNull RecyclerView.ViewHolder target) {
             return false;
         }
 
         @Override
-        public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
-
+        public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
             if (isDeleting) return;
             isDeleting = true;
 
-            View rootView = getView();
+            View root = getView();
+            if (root == null) return;
 
-            if (rootView != null) {
-                int position = viewHolder.getAdapterPosition();
-                DeletionHandler deletionHandler = new DeletionHandler(position, switches.size());
+            int position = viewHolder.getAdapterPosition();
+            DeletionHandler deletionHandler = new DeletionHandler(position, switches.size());
 
-                deletionHandler.push(switches.get(position));
-                switches.remove(position);
+            deletionHandler.push(switches.get(position));
+            switches.remove(position);
 
-                switchList.getAdapter().notifyItemRemoved(position);
+            getAdapter().notifyItemRemoved(position);
 
-                Snackbar.make(rootView, R.string.deleted_switch, Snackbar.LENGTH_LONG)
-                        .addCallback(deletionHandler)
-                        .setAction(R.string.undo, deletionHandler)
-                        .show();
-            }
+            Snackbar.make(root, R.string.deleted_switch, Snackbar.LENGTH_LONG)
+                    .addCallback(deletionHandler)
+                    .setAction(R.string.undo, deletionHandler)
+                    .show();
         }
     };
 
@@ -482,7 +472,7 @@ public class ClientBleFragment extends BaseFragment
         public void onClick(View v) {
             if (!deletedItems.isEmpty()) {
                 switches.add(originalPosition, pop());
-                switchList.getAdapter().notifyItemInserted(originalPosition);
+                getAdapter().notifyItemInserted(originalPosition);
             }
             isDeleting = false;
         }

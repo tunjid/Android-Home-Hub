@@ -1,15 +1,15 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion "25.0.2"
+    compileSdkVersion 28
+    buildToolsVersion "28.0.3"
     defaultConfig {
         applicationId "com.tunjid.rcswitchcontrol"
-        minSdkVersion 18
-        targetSdkVersion 25
+        minSdkVersion 21
+        targetSdkVersion 28
         versionCode 1
         versionName "1.0"
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
     }
     signingConfigs {
@@ -30,29 +30,34 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
 }
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
 
-    provided 'com.google.android.things:androidthings:0.3-devpreview'
-    compile 'com.tunjid.android-bootstrap:core:0.0.1'
-    compile 'com.tunjid.android-bootstrap:communications:0.0.1'
+    provided 'com.google.android.things:androidthings:1.0'
+    compile 'com.tunjid.android-bootstrap:communications:3.0.1'
+    compile 'com.tunjid.android-bootstrap:core:3.0.1'
+    compile 'com.tunjid.android-bootstrap:view:3.0.1'
 
-    compile 'com.android.support:design:25.3.1'
-    compile 'com.android.support:appcompat-v7:25.3.1'
-    compile 'com.android.support:cardview-v7:25.3.1'
-    compile 'com.android.support:recyclerview-v7:25.3.1'
-    compile 'com.android.support:transition:25.3.1'
-    compile 'com.android.support.constraint:constraint-layout:1.0.2'
+    compile 'com.google.android.material:material:1.0.0'
+    compile 'androidx.appcompat:appcompat:1.0.2'
+    compile 'androidx.cardview:cardview:1.0.0'
+    compile 'androidx.recyclerview:recyclerview:1.0.0'
+    compile 'androidx.transition:transition:1.0.1'
+    compile 'androidx.constraintlayout:constraintlayout:1.1.3'
 
-    compile 'com.google.code.gson:gson:2.8.0'
+    compile 'com.google.code.gson:gson:2.8.2'
 
     testCompile 'junit:junit:4.12'
-    testCompile 'org.mockito:mockito-core:2.7.9'
+    testCompile 'org.mockito:mockito-core:2.7.22'
 
-    androidTestCompile 'org.mockito:mockito-core:2.7.9'
-    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+    androidTestCompile 'org.mockito:mockito-core:2.7.22'
+    androidTestCompile('androidx.test.espresso:espresso-core:3.1.0', {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
 }

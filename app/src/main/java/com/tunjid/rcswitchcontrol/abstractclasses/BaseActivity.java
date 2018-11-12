@@ -1,6 +1,7 @@
 package com.tunjid.rcswitchcontrol.abstractclasses;
 
-import android.support.v7.widget.Toolbar;
+
+import androidx.appcompat.widget.Toolbar;
 
 /**
  * Base Activity class
@@ -9,7 +10,5 @@ public abstract class BaseActivity extends com.tunjid.androidbootstrap.core.abst
 
     protected Toolbar toolbar;
 
-    public Toolbar getToolbar() {
-        return toolbar;
-    }
+    public Toolbar getToolbar() { return toolbar; }
 }

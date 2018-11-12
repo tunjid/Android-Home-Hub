@@ -1,9 +1,9 @@
 package com.tunjid.rcswitchcontrol.nsd.protocols;
 
 import android.content.Context;
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
-import com.tunjid.rcswitchcontrol.Application;
+import com.tunjid.rcswitchcontrol.App;
 import com.tunjid.rcswitchcontrol.model.Payload;
 
 import java.io.Closeable;
@@ -31,7 +31,7 @@ public abstract class CommsProtocol implements Closeable {
 
     CommsProtocol(@Nullable PrintWriter printWriter) {
         this.printWriter = printWriter;
-        appContext = Application.getInstance();
+        appContext = App.getInstance();
     }
 
     public final Payload processInput(@Nullable String input) {

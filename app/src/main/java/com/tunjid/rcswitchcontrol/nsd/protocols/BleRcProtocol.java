@@ -8,18 +8,19 @@ import android.content.IntentFilter;
 import android.content.res.Resources;
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
-import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.androidbootstrap.core.components.ServiceConnection;
+import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.model.Payload;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
 import com.tunjid.rcswitchcontrol.services.ClientBleService;
 
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.List;
+import java.util.Objects;
+
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 /**
  * A protocol for communicating with RF 433 MhZ devices
@@ -80,7 +81,7 @@ public class BleRcProtocol extends CommsProtocol {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         LocalBroadcastManager.getInstance(appContext).unregisterReceiver(bleReceiver);
 
         pushThread.quitSafely();
@@ -138,7 +139,7 @@ public class BleRcProtocol extends CommsProtocol {
             }
 
             builder.setAction(action).setData(RcSwitch.serializedSavedSwitches())
-            .addCommand(SNIFF);
+                    .addCommand(SNIFF);
         }
         else if (action.equals(DELETE)) {
             RcSwitch rcSwitch = RcSwitch.deserialize(input.getData());
@@ -172,6 +173,8 @@ public class BleRcProtocol extends CommsProtocol {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
+            if (action == null) return;
+
             final Payload.Builder builder = Payload.builder();
             builder.setKey(BleRcProtocol.this.getClass().getName());
 
@@ -228,13 +231,7 @@ public class BleRcProtocol extends CommsProtocol {
                     break;
                 }
             }
-            pushHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    assert printWriter != null;
-                    printWriter.println(builder.build().serialize());
-                }
-            });
+            pushHandler.post(() -> Objects.requireNonNull(printWriter).println(builder.build().serialize()));
             Log.i(TAG, "Received data for: " + action);
         }
     }

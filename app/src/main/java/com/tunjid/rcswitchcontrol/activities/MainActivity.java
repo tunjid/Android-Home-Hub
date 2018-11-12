@@ -7,10 +7,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 
-import com.tunjid.rcswitchcontrol.Application;
+import com.tunjid.rcswitchcontrol.App;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseActivity;
 import com.tunjid.rcswitchcontrol.fragments.ClientBleFragment;
@@ -30,7 +29,7 @@ public class MainActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        toolbar = (Toolbar) findViewById(R.id.toolbar);
+        toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
         SharedPreferences preferences = getSharedPreferences(RcSwitch.SWITCH_PREFS, MODE_PRIVATE);
@@ -40,7 +39,7 @@ public class MainActivity extends BaseActivity {
         BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
         Intent startIntent = getIntent();
 
-        // Retreive device from notification intent or shared preferences
+        // Retrieve device from notification intent or shared preferences
         BluetoothDevice device = startIntent.hasExtra(BLUETOOTH_DEVICE)
                 ? (BluetoothDevice) startIntent.getParcelableExtra(BLUETOOTH_DEVICE)
                 : !TextUtils.isEmpty(lastConnectedDevice) && bluetoothAdapter != null && bluetoothAdapter.isEnabled()
@@ -61,15 +60,12 @@ public class MainActivity extends BaseActivity {
             sendBroadcast(new Intent(ClientNsdService.ACTION_START_NSD_DISCOVERY));
         }
 
-        if (!isSavedInstance) {
-            showFragment(Application.isAndroidThings()
-                    ? ThingsFragment.newInstance()
-                    : isNsdClient
-                    ? ClientNsdFragment.newInstance()
-                    : isNullDevice
-                    ? StartFragment.newInstance()
-                    : ClientBleFragment.newInstance(device)
-            );
-        }
+        if (!isSavedInstance) showFragment(App.isAndroidThings()
+                ? ThingsFragment.newInstance()
+                : isNsdClient
+                ? ClientNsdFragment.newInstance()
+                : isNullDevice
+                ? StartFragment.newInstance()
+                : ClientBleFragment.newInstance(device));
     }
 }

@@ -1,13 +1,16 @@
 package com.tunjid.rcswitchcontrol;
 
 import android.content.Context;
-import android.support.design.widget.CoordinatorLayout;
-import android.support.design.widget.Snackbar;
-import android.support.v4.view.ViewCompat;
-import android.support.v4.view.animation.FastOutSlowInInterpolator;
+
+import androidx.annotation.NonNull;
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
+import androidx.core.view.ViewCompat;
+import androidx.interpolator.view.animation.FastOutSlowInInterpolator;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.animation.Interpolator;
+
+import com.google.android.material.snackbar.Snackbar;
 
 import java.util.List;
 
@@ -28,12 +31,16 @@ public class SnackBarBehavior extends CoordinatorLayout.Behavior<View> {
     }
 
     @Override
-    public boolean layoutDependsOn(CoordinatorLayout parent, View child, View dependency) {
+    public boolean layoutDependsOn(@NonNull CoordinatorLayout parent,
+                                   @NonNull View child,
+                                   @NonNull View dependency) {
         return dependency instanceof Snackbar.SnackbarLayout;
     }
 
     @Override
-    public boolean onDependentViewChanged(CoordinatorLayout parent, View child, View dependency) {
+    public boolean onDependentViewChanged(@NonNull CoordinatorLayout parent,
+                                          @NonNull View child,
+                                          @NonNull View dependency) {
         if (child.getVisibility() == View.VISIBLE) {
             float translationY = this.getViewTranslationYForSnackbar(parent, child);
             ViewCompat.setTranslationY(child, translationY);
@@ -42,7 +49,9 @@ public class SnackBarBehavior extends CoordinatorLayout.Behavior<View> {
     }
 
     @Override
-    public void onDependentViewRemoved(CoordinatorLayout parent, View child, View dependency) {
+    public void onDependentViewRemoved(@NonNull CoordinatorLayout parent,
+                                       @NonNull View child,
+                                       @NonNull View dependency) {
         if (dependency instanceof Snackbar.SnackbarLayout && ViewCompat.getTranslationY(child) != 0.0F) {
             ViewCompat.animate(child).translationY(0.0F).scaleX(1.0F).scaleY(1.0F).alpha(1.0F)
                     .setInterpolator(fastOutSlowInInterpolator);

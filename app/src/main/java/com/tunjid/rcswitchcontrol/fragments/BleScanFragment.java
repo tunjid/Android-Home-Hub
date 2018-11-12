@@ -9,12 +9,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.ParcelUuid;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v4.app.ActivityCompat;
-import android.support.v7.widget.DividerItemDecoration;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -36,6 +30,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
+import androidx.fragment.app.FragmentActivity;
+import androidx.recyclerview.widget.DividerItemDecoration;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
 import static android.os.Build.VERSION.SDK_INT;
@@ -72,15 +74,18 @@ public class BleScanFragment extends BaseFragment
 
     @Nullable
     @Override
-    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View rootView = inflater.inflate(R.layout.fragment_ble_scan, container, false);
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+        View root = inflater.inflate(R.layout.fragment_ble_scan, container, false);
+        Context context = root.getContext();
 
-        recyclerView = (RecyclerView) rootView.findViewById(R.id.list);
+        recyclerView = root.findViewById(R.id.list);
         recyclerView.setAdapter(new ScanAdapter(this, scanResults));
-        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        recyclerView.addItemDecoration(new DividerItemDecoration(getActivity(), DividerItemDecoration.VERTICAL));
+        recyclerView.setLayoutManager(new LinearLayoutManager(context));
+        recyclerView.addItemDecoration(new DividerItemDecoration(context, DividerItemDecoration.VERTICAL));
 
-        return rootView;
+        return root;
     }
 
     @Override
@@ -89,7 +94,7 @@ public class BleScanFragment extends BaseFragment
 
         getToolBar().setTitle(R.string.button_scan);
 
-        Activity activity = getActivity();
+        Activity activity = requireActivity();
 
         boolean hasBle = activity.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE);
         BluetoothManager bluetoothManager = (BluetoothManager) activity.getSystemService(Context.BLUETOOTH_SERVICE);
@@ -135,7 +140,7 @@ public class BleScanFragment extends BaseFragment
         switch (item.getItemId()) {
             case R.id.menu_scan:
                 scanResults.clear();
-                recyclerView.getAdapter().notifyDataSetChanged();
+                getAdapter().notifyDataSetChanged();
                 scanLeDevice(true);
                 break;
             case R.id.menu_stop:
@@ -143,6 +148,10 @@ public class BleScanFragment extends BaseFragment
                 break;
         }
         return true;
+    }
+
+    private RecyclerView.Adapter getAdapter() {
+        return recyclerView.getAdapter();
     }
 
     @Override
@@ -163,7 +172,7 @@ public class BleScanFragment extends BaseFragment
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         }
 
-        boolean noPermit = SDK_INT >= M && ActivityCompat.checkSelfPermission(getActivity(),
+        boolean noPermit = SDK_INT >= M && ActivityCompat.checkSelfPermission(requireActivity(),
                 ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED;
 
         if (noPermit) requestPermissions(new String[]{ACCESS_COARSE_LOCATION}, REQUEST_ENABLE_BT);
@@ -188,7 +197,7 @@ public class BleScanFragment extends BaseFragment
 
         // User chose not to enable Bluetooth.
         if (requestCode == REQUEST_ENABLE_BT && resultCode == Activity.RESULT_CANCELED) {
-            getActivity().onBackPressed();
+            requireActivity().onBackPressed();
         }
     }
 
@@ -203,10 +212,11 @@ public class BleScanFragment extends BaseFragment
         if (bluetoothDevice == null) return;
         if (isScanning) scanLeDevice(false);
 
-        final Intent bleServiceIntent = new Intent(getActivity(), ClientBleService.class);
+        FragmentActivity activity = requireActivity();
+        final Intent bleServiceIntent = new Intent(activity, ClientBleService.class);
 
         bleServiceIntent.putExtra(ClientBleService.BLUETOOTH_DEVICE, bluetoothDevice);
-        getActivity().startService(bleServiceIntent);
+        activity.startService(bleServiceIntent);
 
         showFragment(ClientBleFragment.newInstance(bluetoothDevice));
     }
@@ -216,7 +226,7 @@ public class BleScanFragment extends BaseFragment
         if (!devices.contains(scanResult.getDevice())) {
             devices.add(scanResult.getDevice());
             scanResults.add(scanResult);
-            recyclerView.getAdapter().notifyDataSetChanged();
+            getAdapter().notifyDataSetChanged();
         }
     }
 
@@ -227,18 +237,13 @@ public class BleScanFragment extends BaseFragment
         if (enable) scanner.startScan();
         else scanner.stopScan();
 
-        getActivity().invalidateOptionsMenu();
+        requireActivity().invalidateOptionsMenu();
 
         // Stops  after a pre-defined menu_ble_scan period.
-        if (enable) {
-            recyclerView.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    isScanning = false;
-                    scanner.stopScan();
-                    if (getActivity() != null) getActivity().invalidateOptionsMenu();
-                }
-            }, SCAN_PERIOD);
-        }
+        if (enable) recyclerView.postDelayed(() -> {
+            isScanning = false;
+            scanner.stopScan();
+            if (getActivity() != null) getActivity().invalidateOptionsMenu();
+        }, SCAN_PERIOD);
     }
 }

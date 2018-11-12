@@ -9,14 +9,11 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.nsd.NsdServiceInfo;
 import android.os.IBinder;
-import android.support.annotation.Nullable;
-import android.support.annotation.StringDef;
-import android.support.v4.app.NotificationCompat;
-import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.tunjid.androidbootstrap.communications.nsd.NsdHelper;
 import com.tunjid.androidbootstrap.core.components.ServiceConnection;
+import com.tunjid.rcswitchcontrol.App;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
 import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService;
@@ -30,6 +27,11 @@ import java.lang.annotation.Retention;
 import java.net.Socket;
 import java.util.LinkedList;
 import java.util.Queue;
+
+import androidx.annotation.Nullable;
+import androidx.annotation.StringDef;
+import androidx.core.app.NotificationCompat;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import static com.tunjid.androidbootstrap.communications.nsd.NsdHelper.createBufferedReader;
 import static com.tunjid.androidbootstrap.communications.nsd.NsdHelper.createPrintWriter;
@@ -76,13 +78,12 @@ public class ClientNsdService extends Service
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            switch (action) {
-                case ACTION_STOP:
-                    stopForeground(true);
-                    tearDown();
-                    stopSelf();
-                    break;
-            }
+            if (!ACTION_STOP.equals(action)) return;
+
+            stopForeground(true);
+            tearDown();
+            stopSelf();
+
             Log.i(TAG, "Received data for: " + action);
         }
     };
@@ -90,6 +91,8 @@ public class ClientNsdService extends Service
     @Override
     public void onCreate() {
         super.onCreate();
+        addChannel(R.string.switch_service, R.string.switch_service_description);
+
         nsdHelper = NsdHelper.getBuilder(this).build();
         intentFilter.addAction(ACTION_STOP);
         LocalBroadcastManager.getInstance(this).registerReceiver(broadcastReceiver, intentFilter);
@@ -197,13 +200,7 @@ public class ClientNsdService extends Service
         nsdHelper.tearDown();
 
         Log.e(TAG, "Tearing down ClientServer");
-
-        try {
-            if (messageThread != null) messageThread.close();
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-        }
+        if (messageThread != null) messageThread.close();
     }
 
     private Notification connectedNotification() {
@@ -218,7 +215,7 @@ public class ClientNsdService extends Service
         PendingIntent activityPendingIntent = PendingIntent.getActivity(
                 this, 0, resumeIntent, PendingIntent.FLAG_CANCEL_CURRENT);
 
-        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this)
+        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, NOTIFICATION_TYPE)
                 .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle(getText(R.string.connected))
                 .setContentText(getText(R.string.connected_to_server))
@@ -287,48 +284,28 @@ public class ClientNsdService extends Service
                 e.printStackTrace();
                 clientNsdService.setConnectionState(ACTION_SOCKET_DISCONNECTED);
             }
-            finally {
-                try {
-                    close();
-                }
-                catch (IOException ioe) {
-                    ioe.printStackTrace();
-                }
-            }
+            finally { close(); }
         }
 
         void send(final String message) {
             if (out == null) return;
 
             if (out.checkError()) {
-                try {
-                    close();
-                    Log.d(TAG, "Error writing to server, closing.");
-                }
-                catch (IOException e) {
-                    e.printStackTrace();
-                }
+                close();
+                Log.d(TAG, "Error writing to server, closing.");
+
             }
             else {
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        out.println(message);
-                        Log.d(TAG, "Connection sent message: " + message);
-                    }
+                new Thread(() -> {
+                    out.println(message);
+                    Log.d(TAG, "Connection sent message: " + message);
                 }).start();
             }
         }
 
         @Override
-        public void close() throws IOException {
-            try {
-                Log.d(TAG, "Exiting message thread.");
-                currentSocket.close();
-            }
-            catch (Exception e) {
-                e.printStackTrace();
-            }
+        public void close() {
+            App.catcher(TAG, "Exiting message thread", currentSocket::close);
             clientNsdService.setConnectionState(ACTION_SOCKET_DISCONNECTED);
         }
     }

@@ -77,7 +77,7 @@ public class WifiStatusReceiver extends BroadcastReceiver {
         NsdHelper nsdHelper = NsdHelper.getBuilder(context)
                 .setServiceFoundConsumer(service -> {
                     NsdHelper same = helperReference.get();
-                    if (same != null && !lastServer.equals(service.getServiceName()))
+                    if (same != null && lastServer.equals(service.getServiceName()))
                         same.resolveService(service);
                 })
                 .setResolveSuccessConsumer(service -> {

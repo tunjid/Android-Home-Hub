@@ -370,9 +370,8 @@ public class ClientNsdFragment extends BroadcastReceiverFragment
         AtomicReference<DeletionHandler<RcSwitch>> ref = new AtomicReference<>();
         DeletionHandler<RcSwitch> deletionHandler = new DeletionHandler<>(position, () -> {
             DeletionHandler<RcSwitch> self = ref.get();
-            if (self == null) return;
-
-            sendMessage(self::hasItems, Payload.builder().setAction(getString(R.string.blercprotocol_delete_command))
+            if (self != null && self.hasItems()) sendMessage(Payload.builder()
+                    .setAction(getString(R.string.blercprotocol_delete_command))
                     .setData(self.pop().serialize())
                     .build());
 

@@ -355,7 +355,8 @@ public class ClientNsdFragment extends BroadcastReceiverFragment
     }
 
     private int getSwipeDirection() {
-        return isDeleting ? 0 : ItemTouchHelper.SimpleCallback.makeMovementFlags(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT);
+        return isDeleting || getAdapter() instanceof ChatAdapter ? 0 :
+                ItemTouchHelper.SimpleCallback.makeMovementFlags(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT);
     }
 
     private void onDelete(RecyclerView.ViewHolder viewHolder) {

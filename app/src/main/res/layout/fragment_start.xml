@@ -26,11 +26,11 @@
         app:layout_constraintTop_toBottomOf="@+id/message"
         app:srcCompat="@drawable/ic_settings_remote_grey_24dp" />
 
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/server"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="?android:attr/selectableItemBackground"
         android:text="@string/server"
         android:textColor="@color/colorPrimary"
         android:textSize="@dimen/medium_text"
@@ -40,11 +40,11 @@
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toLeftOf="@+id/client" />
 
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/client"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="?android:attr/selectableItemBackground"
         android:text="@string/client"
         android:textColor="@color/colorPrimary"
         android:textSize="@dimen/medium_text"

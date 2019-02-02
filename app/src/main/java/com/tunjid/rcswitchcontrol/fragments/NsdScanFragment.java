@@ -3,6 +3,7 @@ package com.tunjid.rcswitchcontrol.fragments;
 
 import android.content.Context;
 import android.content.Intent;
+import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -66,6 +67,7 @@ public class NsdScanFragment extends BaseFragment
         nsdHelper = NsdHelper.getBuilder(getContext())
                 .setServiceFoundConsumer(this::onServiceFound)
                 .setResolveSuccessConsumer(this::onServiceResolved)
+                .setResolveErrorConsumer(this::onServiceResolutionFailed)
                 .build();
     }
 
@@ -159,6 +161,10 @@ public class NsdScanFragment extends BaseFragment
         if (recyclerView != null) recyclerView.post(getAdapter()::notifyDataSetChanged);
     }
 
+    private void onServiceResolutionFailed(NsdServiceInfo service, Integer reason) {
+        if (reason == NsdManager.FAILURE_ALREADY_ACTIVE) nsdHelper.resolveService(service);
+    }
+
     private void scanDevices(boolean enable) {
         isScanning = enable;
 
@@ -171,7 +177,7 @@ public class NsdScanFragment extends BaseFragment
         if (enable) recyclerView.postDelayed(() -> {
             isScanning = false;
             nsdHelper.stopServiceDiscovery();
-            if(isVisible())requireActivity().invalidateOptionsMenu();
+            if (isVisible()) requireActivity().invalidateOptionsMenu();
         }, SCAN_PERIOD);
     }
 

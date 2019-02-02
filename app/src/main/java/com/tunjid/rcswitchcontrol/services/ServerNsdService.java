@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.nsd.NsdServiceInfo;
 import android.os.IBinder;
 import android.util.Log;
 
@@ -23,6 +24,7 @@ import java.net.Socket;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import androidx.annotation.Nullable;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import static com.tunjid.androidbootstrap.communications.nsd.NsdHelper.createBufferedReader;
@@ -43,7 +45,7 @@ public class ServerNsdService extends Service {
 
     private NsdHelper nsdHelper;
     private ServerThread serverThread;
-//    private String serviceName;
+    private String serviceName;
 
     private final IntentFilter intentFilter = new IntentFilter();
     private final IBinder binder = new Binder();
@@ -73,10 +75,10 @@ public class ServerNsdService extends Service {
         return binder;
     }
 
-//    @Nullable
-//    public String getServiceName() {
-//        return serviceName;
-//    }
+    @Nullable
+    public String getServiceName() {
+        return serviceName;
+    }
 
     private void tearDown() {
         serverThread.close();
@@ -106,12 +108,11 @@ public class ServerNsdService extends Service {
         // Since discovery will happen via Nsd, we don't need to care which port is
         // used, just grab an avaialable one and advertise it via Nsd.
 
-        //            serviceName = serviceInfo.getServiceName();
-
         try {
             ServerSocket serverSocket = new ServerSocket(0);
             nsdHelper = NsdHelper.getBuilder(this)
-                    .setRegisterSuccessConsumer(service -> Log.i(TAG, "Registered data for: " + service.getServiceName()))
+                    .setRegisterSuccessConsumer(this::onNsdServiceRegistered)
+                    .setRegisterErrorConsumer((service, error) -> Log.i(TAG, "Could not register service " + service.getServiceName() + ". Error code: " + error))
                     .build();
             nsdHelper.registerService(serverSocket.getLocalPort(), initialServiceName);
 
@@ -121,6 +122,15 @@ public class ServerNsdService extends Service {
         catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private void onNsdServiceRegistered(NsdServiceInfo service) {
+        getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE).edit()
+                .putString(SERVICE_NAME_KEY, serviceName = service.getServiceName())
+                .putBoolean(ServerNsdService.SERVER_FLAG, true)
+                .apply();
+
+        Log.i(TAG, "Registered data for: " + serviceName);
     }
 
     /**
@@ -165,19 +175,20 @@ public class ServerNsdService extends Service {
                     Log.e(TAG, "Error creating client connection: ", e);
                 }
             }
+            Log.d(TAG, "ServerSocket Dead.");
         }
 
         @Override
         public void close() {
             isRunning = false;
 
-            for (Long key : connectionsMap.keySet()) {
+            for (Long key : connectionsMap.keySet())
                 App.catcher(TAG, "Closing server connection with id " + key, connectionsMap.get(key)::close);
-            }
 
             connectionsMap.clear();
 
-            if (serverSocket != null) App.catcher(TAG, "Closing server socket.", serverSocket::close);
+            if (serverSocket != null)
+                App.catcher(TAG, "Closing server socket.", serverSocket::close);
         }
     }
 
@@ -197,45 +208,41 @@ public class ServerNsdService extends Service {
 
         @Override
         public void run() {
-            if (socket != null && socket.isConnected()) {
-                CommsProtocol commsProtocol = null;
-                try {
-                    BufferedReader in = createBufferedReader(socket);
-                    PrintWriter out = createPrintWriter(socket);
-                    commsProtocol = new ProxyProtocol(out);
+            if (socket == null || !socket.isConnected()) return;
 
-                    String inputLine, outputLine;
+            CommsProtocol commsProtocol = null;
+            try {
+                BufferedReader in = createBufferedReader(socket);
+                PrintWriter out = createPrintWriter(socket);
+                commsProtocol = new ProxyProtocol(out);
 
-                    // Initiate conversation with client
-                    outputLine = commsProtocol.processInput(null).serialize();
+                String inputLine, outputLine;
 
+                // Initiate conversation with client
+                outputLine = commsProtocol.processInput(null).serialize();
+
+                out.println(outputLine);
+
+                while ((inputLine = in.readLine()) != null) {
+                    outputLine = commsProtocol.processInput(inputLine).serialize();
                     out.println(outputLine);
 
-                    while ((inputLine = in.readLine()) != null) {
-                        outputLine = commsProtocol.processInput(inputLine).serialize();
-                        out.println(outputLine);
+                    Log.d(TAG, "Read from client stream: " + inputLine);
 
-                        Log.d(TAG, "Read from client stream: " + inputLine);
-
-                        if (outputLine.equals("Bye.")) break;
-                    }
+                    if (outputLine.equals("Bye.")) break;
+                }
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+            finally {
+                try {
+                    if (commsProtocol != null) try { commsProtocol.close(); }
+                    catch (IOException e) { e.printStackTrace(); }
+                    close();
                 }
                 catch (IOException e) {
                     e.printStackTrace();
-                }
-                finally {
-                    try {
-                        if (commsProtocol != null) try {
-                            commsProtocol.close();
-                        }
-                        catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        close();
-                    }
-                    catch (IOException e) {
-                        e.printStackTrace();
-                    }
                 }
             }
         }

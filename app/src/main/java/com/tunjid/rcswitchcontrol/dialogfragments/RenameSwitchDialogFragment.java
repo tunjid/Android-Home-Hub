@@ -3,17 +3,20 @@ package com.tunjid.rcswitchcontrol.dialogfragments;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.content.DialogInterface;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v4.app.DialogFragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
 
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
+
+import java.util.Objects;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.DialogFragment;
+import androidx.fragment.app.FragmentActivity;
 
 
 @SuppressLint("InflateParams")
@@ -39,39 +42,31 @@ public class RenameSwitchDialogFragment extends DialogFragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        rcSwitch = getArguments().getParcelable(SWITCH);
+        rcSwitch = Objects.requireNonNull(getArguments()).getParcelable(SWITCH);
     }
 
     @Override
     @NonNull
     public Dialog onCreateDialog(Bundle savedInstanceState) {
-
         final SwitchNameListener listener = ((SwitchNameListener) getParentFragment());
 
-        final LayoutInflater inflater = getActivity().getLayoutInflater();
+        FragmentActivity activity = requireActivity();
+        final LayoutInflater inflater = activity.getLayoutInflater();
 
         final View view = inflater.inflate(R.layout.dialog_rename_switch, null);
-        final EditText editText = (EditText) view.findViewById(R.id.switch_name);
+        final EditText editText = view.findViewById(R.id.switch_name);
 
         editText.setText(rcSwitch.getName());
 
 
-        return new AlertDialog.Builder(getActivity()).setTitle(R.string.rename_switch)
+        return new AlertDialog.Builder(activity).setTitle(R.string.rename_switch)
                 .setView(view)
-                .setPositiveButton(R.string.rename, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int id) {
-                        rcSwitch.setName(editText.getText().toString());
-                        listener.onSwitchRenamed(rcSwitch);
-                        dismiss();
-                    }
+                .setPositiveButton(R.string.rename, (dialog, id) -> {
+                    rcSwitch.setName(editText.getText().toString());
+                    Objects.requireNonNull(listener).onSwitchRenamed(rcSwitch);
+                    dismiss();
                 })
-                .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int id) {
-                        dismiss();
-                    }
-                })
+                .setNegativeButton(R.string.cancel, (dialog, id) -> dismiss())
                 .create();
     }
 

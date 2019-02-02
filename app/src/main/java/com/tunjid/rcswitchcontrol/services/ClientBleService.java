@@ -22,15 +22,13 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
-import android.support.v4.app.NotificationCompat;
-import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.util.Base64;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.androidbootstrap.core.components.ServiceConnection;
+import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
 import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
@@ -41,6 +39,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.UUID;
+
+import androidx.core.app.NotificationCompat;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import static com.tunjid.rcswitchcontrol.model.RcSwitch.SWITCH_PREFS;
 
@@ -101,14 +102,11 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
+            if (!ACTION_TRANSMITTER.equals(action)) return;
 
-            switch (action) {
-                case ACTION_TRANSMITTER:
-                    String data = intent.getStringExtra(DATA_AVAILABLE_TRANSMITTER);
-                    byte[] transmission = Base64.decode(data, Base64.DEFAULT);
-                    writeCharacteristicArray(C_HANDLE_TRANSMITTER, transmission);
-                    break;
-            }
+            String data = intent.getStringExtra(DATA_AVAILABLE_TRANSMITTER);
+            byte[] transmission = Base64.decode(data, Base64.DEFAULT);
+            writeCharacteristicArray(C_HANDLE_TRANSMITTER, transmission);
 
             Log.i(TAG, "Received data for: " + action);
         }
@@ -236,6 +234,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
     @Override
     public void onCreate() {
         super.onCreate();
+        addChannel(R.string.switch_service, R.string.switch_service_description);
 
         nsdIntentFilter.addAction(ACTION_TRANSMITTER);
         LocalBroadcastManager.getInstance(this).registerReceiver(nsdUpdateReceiver, nsdIntentFilter);
@@ -271,7 +270,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
         SharedPreferences sharedPreferences = getSharedPreferences(RcSwitch.SWITCH_PREFS, MODE_PRIVATE);
         String lastConnectedDevice = sharedPreferences.getString(LAST_PAIRED_DEVICE, "");
 
-        BluetoothDevice bluetoothDevice = intent != null && intent.getExtras().containsKey(BLUETOOTH_DEVICE)
+        BluetoothDevice bluetoothDevice = intent != null && intent.hasExtra(BLUETOOTH_DEVICE)
                 ? (BluetoothDevice) intent.getParcelableExtra(BLUETOOTH_DEVICE)
                 : !TextUtils.isEmpty(lastConnectedDevice)
                 ? bluetoothAdapter.getRemoteDevice(lastConnectedDevice)
@@ -443,7 +442,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
     /**
      * Enables or disables notifications or indications on a given characteristic.
      *
-     * @param uuid UUID of the Characteristic to act on.
+     * @param uuid    UUID of the Characteristic to act on.
      * @param enabled If true, enable notification.  False otherwise.
      */
 
@@ -454,6 +453,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
         }
 
         BluetoothGattCharacteristic characteristic = characteristicMap.get(uuid);
+        if (characteristic == null) return;
 
         bluetoothGatt.setCharacteristicNotification(characteristic, enabled);
 
@@ -538,12 +538,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
                     case C_HANDLE_CONTROL:
                     case C_HANDLE_SNIFFER:
                     case C_HANDLE_TRANSMITTER:
-                        handler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                setCharacteristicIndication(uuid, true);
-                            }
-                        });
+                        handler.post(() -> setCharacteristicIndication(uuid, true));
                         break;
                 }
                 characteristicMap.put(uuid, gattCharacteristic);
@@ -562,7 +557,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
         PendingIntent activityPendingIntent = PendingIntent.getActivity(
                 this, 0, resumeIntent, PendingIntent.FLAG_CANCEL_CURRENT);
 
-        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this)
+        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, NOTIFICATION_TYPE)
                 .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle(getText(R.string.connected))
                 .setContentText(getText(serverConnection.isBound() && serverConnection.getBoundService().isRunning()

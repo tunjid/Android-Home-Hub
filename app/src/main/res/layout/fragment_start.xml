@@ -1,4 +1,4 @@
-<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -26,11 +26,11 @@
         app:layout_constraintTop_toBottomOf="@+id/message"
         app:srcCompat="@drawable/ic_settings_remote_grey_24dp" />
 
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/server"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="?android:attr/selectableItemBackground"
         android:text="@string/server"
         android:textColor="@color/colorPrimary"
         android:textSize="@dimen/medium_text"
@@ -40,11 +40,11 @@
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toLeftOf="@+id/client" />
 
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/client"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="?android:attr/selectableItemBackground"
         android:text="@string/client"
         android:textColor="@color/colorPrimary"
         android:textSize="@dimen/medium_text"
@@ -52,4 +52,4 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toRightOf="@+id/server"
         app:layout_constraintRight_toRightOf="parent" />
-</android.support.constraint.ConstraintLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,13 +1,14 @@
 package com.tunjid.rcswitchcontrol.abstractclasses;
 
-import android.support.v7.widget.Toolbar;
+
+import androidx.appcompat.widget.Toolbar;
 
 /**
  * Base fragment
  */
 public abstract class BaseFragment extends com.tunjid.androidbootstrap.core.abstractclasses.BaseFragment {
 
-    public Toolbar getToolBar() {
-        return ((BaseActivity) getActivity()).getToolbar();
+    protected Toolbar getToolBar() {
+        return ((BaseActivity) requireActivity()).getToolbar();
     }
 }

@@ -5,19 +5,16 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.tunjid.androidbootstrap.view.recyclerview.InteractiveAdapter;
+import com.tunjid.androidbootstrap.view.recyclerview.InteractiveViewHolder;
 import com.tunjid.rcswitchcontrol.R;
-import com.tunjid.androidbootstrap.core.abstractclasses.BaseRecyclerViewAdapter;
-import com.tunjid.androidbootstrap.core.abstractclasses.BaseViewHolder;
+
 
 import java.util.List;
 
-/**
- * Adapter for showing open NSD services
- * <p>
- * Created by tj.dahunsi on 2/4/17.
- */
+import androidx.annotation.NonNull;
 
-public class ChatAdapter extends BaseRecyclerViewAdapter<ChatAdapter.TextViewHolder, ChatAdapter.ChatAdapterListener> {
+public class ChatAdapter extends InteractiveAdapter<ChatAdapter.TextViewHolder, ChatAdapter.ChatAdapterListener> {
 
     private List<String> responses;
 
@@ -26,14 +23,13 @@ public class ChatAdapter extends BaseRecyclerViewAdapter<ChatAdapter.TextViewHol
         this.responses = list;
     }
 
-    @Override
-    public TextViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.viewholder_responses, parent, false);
-        return new TextViewHolder(view);
+    @NonNull @Override
+    public TextViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        return new TextViewHolder(getItemView(R.layout.viewholder_responses, parent));
     }
 
     @Override
-    public void onBindViewHolder(TextViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull TextViewHolder holder, int position) {
         holder.bind(responses.get(position), adapterListener);
     }
 
@@ -42,11 +38,11 @@ public class ChatAdapter extends BaseRecyclerViewAdapter<ChatAdapter.TextViewHol
         return responses.size();
     }
 
-    public interface ChatAdapterListener extends BaseRecyclerViewAdapter.AdapterListener {
+    public interface ChatAdapterListener extends InteractiveAdapter.AdapterListener {
         void onTextClicked(String text);
     }
 
-    static class TextViewHolder extends BaseViewHolder<ChatAdapterListener>
+    static class TextViewHolder extends InteractiveViewHolder<ChatAdapterListener>
             implements View.OnClickListener {
 
         String text;
@@ -54,7 +50,7 @@ public class ChatAdapter extends BaseRecyclerViewAdapter<ChatAdapter.TextViewHol
 
         TextViewHolder(View itemView) {
             super(itemView);
-            textView = (TextView) itemView.findViewById(R.id.text);
+            textView = itemView.findViewById(R.id.text);
             textView.setOnClickListener(this);
         }
 

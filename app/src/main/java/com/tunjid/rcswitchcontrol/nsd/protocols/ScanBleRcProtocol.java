@@ -13,7 +13,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.ParcelUuid;
-import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -27,11 +26,12 @@ import com.tunjid.rcswitchcontrol.model.Payload;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
 import com.tunjid.rcswitchcontrol.services.ClientBleService;
 
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import static android.content.Context.MODE_PRIVATE;
 
@@ -82,6 +82,8 @@ class ScanBleRcProtocol extends CommsProtocol implements BLEScanner.BleScanCallb
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
+            if (action == null) return;
+
             Payload.Builder builder = Payload.builder();
             builder.setKey(getClass().getSimpleName()).addCommand(RESET);
             switch (action) {
@@ -194,11 +196,13 @@ class ScanBleRcProtocol extends CommsProtocol implements BLEScanner.BleScanCallb
     public void onDeviceFound(ScanResultCompat result) {
         ScanRecordCompat record = result.getScanRecord();
         BluetoothDevice device = result.getDevice();
-        if (record != null) deviceMap.put(record.getDeviceName(), device);
+        String deviceName = record == null ? null : record.getDeviceName();
+
+        if (deviceName != null) deviceMap.put(deviceName, device);
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         LocalBroadcastManager.getInstance(appContext).unregisterReceiver(bleUpdateReceiver);
         scanThread.quitSafely();
 
@@ -206,12 +210,9 @@ class ScanBleRcProtocol extends CommsProtocol implements BLEScanner.BleScanCallb
     }
 
     private void pushData(final Payload payload) {
-        scanHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                assert printWriter != null;
-                printWriter.println(payload.serialize());
-            }
+        scanHandler.post(() -> {
+            assert printWriter != null;
+            printWriter.println(payload.serialize());
         });
     }
 }

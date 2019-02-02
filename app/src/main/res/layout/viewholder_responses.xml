@@ -1,14 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.chip.Chip xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/text"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:orientation="vertical">
-
-    <Button
-        android:id="@+id/text"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_vertical"
-        android:textAllCaps="false"
-        android:textSize="@dimen/small_text" />
-</LinearLayout>
+    android:layout_gravity="center_vertical"
+    android:layout_margin="@dimen/half_margin"
+    android:textAllCaps="false"
+    android:textSize="@dimen/medium_text"
+    tools:text="I'm a chip" />

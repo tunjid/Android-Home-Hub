@@ -3,10 +3,10 @@ package com.tunjid.rcswitchcontrol.model;
 import android.content.SharedPreferences;
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.support.annotation.StringDef;
+import androidx.annotation.StringDef;
 
 import com.google.gson.Gson;
-import com.tunjid.rcswitchcontrol.Application;
+import com.tunjid.rcswitchcontrol.App;
 
 import java.lang.annotation.Retention;
 import java.util.ArrayList;
@@ -52,13 +52,13 @@ public class RcSwitch implements Parcelable {
     }
 
     public static String serializedSavedSwitches() {
-        return Application.getInstance().getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE)
+        return App.getInstance().getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE)
                 .getString(SWITCHES_KEY, "");
     }
 
     public static ArrayList<RcSwitch> deserializeSavedSwitches(String serialized) {
         RcSwitch[] array = gson.fromJson(serialized, RcSwitch[].class);
-        return array == null ? new ArrayList<RcSwitch>() : new ArrayList<>(Arrays.asList(array));
+        return array == null ? new ArrayList<>() : new ArrayList<>(Arrays.asList(array));
     }
 
     public static ArrayList<RcSwitch> getSavedSwitches() {
@@ -66,7 +66,7 @@ public class RcSwitch implements Parcelable {
     }
 
     public static void saveSwitches(List<RcSwitch> switches) {
-        SharedPreferences preferences = Application.getInstance().getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE);
+        SharedPreferences preferences = App.getInstance().getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE);
         preferences.edit().putString(SWITCHES_KEY, gson.toJson(switches)).apply();
     }
 

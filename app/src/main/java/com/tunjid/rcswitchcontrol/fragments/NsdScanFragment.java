@@ -1,14 +1,11 @@
 package com.tunjid.rcswitchcontrol.fragments;
 
 
+import android.content.Context;
 import android.content.Intent;
+import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
 import android.os.Bundle;
-import android.support.annotation.Nullable;
-import android.support.v4.app.Fragment;
-import android.support.v7.widget.DividerItemDecoration;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -16,9 +13,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.tunjid.androidbootstrap.communications.nsd.DiscoveryListener;
 import com.tunjid.androidbootstrap.communications.nsd.NsdHelper;
-import com.tunjid.androidbootstrap.communications.nsd.ResolveListener;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
 import com.tunjid.rcswitchcontrol.adapters.NSDAdapter;
@@ -27,10 +22,16 @@ import com.tunjid.rcswitchcontrol.services.ClientNsdService;
 import java.util.ArrayList;
 import java.util.List;
 
-import static android.support.v7.widget.DividerItemDecoration.VERTICAL;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.recyclerview.widget.DividerItemDecoration;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import static androidx.recyclerview.widget.DividerItemDecoration.VERTICAL;
 
 /**
- * A {@link Fragment} listing supported NSD servers
+ * A {@link androidx.fragment.app.Fragment} listing supported NSD servers
  */
 public class NsdScanFragment extends BaseFragment
         implements
@@ -58,64 +59,38 @@ public class NsdScanFragment extends BaseFragment
         return fragment;
     }
 
-    private DiscoveryListener discoveryListener = new DiscoveryListener() {
-        @Override
-        public void onServiceFound(NsdServiceInfo service) {
-            super.onServiceFound(service);
-            nsdHelper.resolveService(service);
-        }
-    };
-
-
-    private ResolveListener resolveListener = new ResolveListener() {
-        @Override
-        public void onServiceResolved(NsdServiceInfo service) {
-            super.onServiceResolved(service);
-
-            if (!services.contains(service)) services.add(service);
-
-            // Runs on a diifferent thread, post here
-            if (recyclerView != null) recyclerView.post(new Runnable() {
-                @Override
-                public void run() {
-                    recyclerView.getAdapter().notifyDataSetChanged();
-                }
-            });
-        }
-    };
-
-
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
 
         nsdHelper = NsdHelper.getBuilder(getContext())
-                .setDiscoveryListener(discoveryListener)
-                .setResolveListener(resolveListener)
+                .setServiceFoundConsumer(this::onServiceFound)
+                .setResolveSuccessConsumer(this::onServiceResolved)
+                .setResolveErrorConsumer(this::onServiceResolutionFailed)
                 .build();
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             ViewGroup container,
                              Bundle savedInstanceState) {
+        View root = inflater.inflate(R.layout.fragment_nsd_scan, container, false);
+        Context context = root.getContext();
 
-        View rootView = inflater.inflate(R.layout.fragment_nsd_scan, container, false);
-
-        recyclerView = (RecyclerView) rootView.findViewById(R.id.list);
-
+        recyclerView = root.findViewById(R.id.list);
         recyclerView.setAdapter(new NSDAdapter(this, services));
-        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        recyclerView.addItemDecoration(new DividerItemDecoration(getActivity(), VERTICAL));
+        recyclerView.setLayoutManager(new LinearLayoutManager(context));
+        recyclerView.addItemDecoration(new DividerItemDecoration(context, VERTICAL));
 
-        return rootView;
+        return root;
     }
 
     @Override
     public void onResume() {
         super.onResume();
         scanDevices(true);
-        recyclerView.getAdapter().notifyDataSetChanged();
+        getAdapter().notifyDataSetChanged();
     }
 
     @Override
@@ -145,7 +120,7 @@ public class NsdScanFragment extends BaseFragment
         switch (item.getItemId()) {
             case R.id.menu_scan:
                 services.clear();
-                recyclerView.getAdapter().notifyDataSetChanged();
+                getAdapter().notifyDataSetChanged();
                 scanDevices(true);
                 return true;
             case R.id.menu_stop:
@@ -156,10 +131,16 @@ public class NsdScanFragment extends BaseFragment
     }
 
     @Override
+    public void onDestroy() {
+        super.onDestroy();
+        nsdHelper.tearDown();
+    }
+
+    @Override
     public void onServiceClicked(NsdServiceInfo serviceInfo) {
         Intent intent = new Intent(getContext(), ClientNsdService.class);
         intent.putExtra(ClientNsdService.NSD_SERVICE_INFO_KEY, serviceInfo);
-        getContext().startService(intent);
+        requireContext().startService(intent);
 
         showFragment(ClientNsdFragment.newInstance());
     }
@@ -169,10 +150,19 @@ public class NsdScanFragment extends BaseFragment
         return false;
     }
 
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        nsdHelper.tearDown();
+    private void onServiceFound(NsdServiceInfo service) {
+        nsdHelper.resolveService(service);
+    }
+
+    private void onServiceResolved(NsdServiceInfo service) {
+        if (!services.contains(service)) services.add(service);
+
+        // Runs on a different thread, post here
+        if (recyclerView != null) recyclerView.post(getAdapter()::notifyDataSetChanged);
+    }
+
+    private void onServiceResolutionFailed(NsdServiceInfo service, Integer reason) {
+        if (reason == NsdManager.FAILURE_ALREADY_ACTIVE) nsdHelper.resolveService(service);
     }
 
     private void scanDevices(boolean enable) {
@@ -181,18 +171,17 @@ public class NsdScanFragment extends BaseFragment
         if (enable) nsdHelper.discoverServices();
         else nsdHelper.stopServiceDiscovery();
 
-        getActivity().invalidateOptionsMenu();
+        requireActivity().invalidateOptionsMenu();
 
         // Stops  after a pre-defined scan period.
-        if (enable) {
-            recyclerView.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    isScanning = false;
-                    nsdHelper.stopServiceDiscovery();
-                    if (getActivity() != null) getActivity().invalidateOptionsMenu();
-                }
-            }, SCAN_PERIOD);
-        }
+        if (enable) recyclerView.postDelayed(() -> {
+            isScanning = false;
+            nsdHelper.stopServiceDiscovery();
+            if (isVisible()) requireActivity().invalidateOptionsMenu();
+        }, SCAN_PERIOD);
+    }
+
+    private RecyclerView.Adapter getAdapter() {
+        return recyclerView.getAdapter();
     }
 }

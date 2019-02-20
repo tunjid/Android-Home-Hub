@@ -10,13 +10,12 @@ import android.os.Handler;
 import android.os.Looper;
 
 import com.tunjid.androidbootstrap.communications.nsd.NsdHelper;
+import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster;
 import com.tunjid.rcswitchcontrol.services.ClientBleService;
 import com.tunjid.rcswitchcontrol.services.ClientNsdService;
 import com.tunjid.rcswitchcontrol.services.ServerNsdService;
 
 import java.util.concurrent.atomic.AtomicReference;
-
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import static android.content.Context.MODE_PRIVATE;
 import static android.content.Context.WIFI_SERVICE;
@@ -53,8 +52,9 @@ public class WifiStatusReceiver extends BroadcastReceiver {
                 flag = intent.getBooleanExtra(EXTRA_SUPPLICANT_CONNECTED, false);
                 break;
         }
+
         if (flag) connectLastNsdService(context);
-        else stopClient(context);
+        else stopClient();
     }
 
     private void connectLastNsdService(final Context context) {
@@ -102,10 +102,9 @@ public class WifiStatusReceiver extends BroadcastReceiver {
         }, SEARCH_LENGTH_MILLIS);
     }
 
-    private void stopClient(Context context) {
-        LocalBroadcastManager broadcastManager = LocalBroadcastManager.getInstance(context);
+    private void stopClient() {
         if (App.isServiceRunning(ClientNsdService.class)) {
-            broadcastManager.sendBroadcast(new Intent(ClientNsdService.ACTION_STOP));
+            Broadcaster.push(new Intent(ClientNsdService.ACTION_STOP));
         }
 //        if (App.isServiceRunning(ServerNsdService.class)) {
 //            broadcastManager.sendBroadcast(new Intent(ServerNsdService.ACTION_STOP));

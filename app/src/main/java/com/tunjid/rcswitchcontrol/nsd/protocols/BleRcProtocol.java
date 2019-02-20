@@ -1,10 +1,7 @@
 package com.tunjid.rcswitchcontrol.nsd.protocols;
 
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.res.Resources;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -12,6 +9,7 @@ import android.util.Log;
 
 import com.tunjid.androidbootstrap.core.components.ServiceConnection;
 import com.tunjid.rcswitchcontrol.R;
+import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster;
 import com.tunjid.rcswitchcontrol.model.Payload;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
 import com.tunjid.rcswitchcontrol.services.ClientBleService;
@@ -20,7 +18,7 @@ import java.io.PrintWriter;
 import java.util.List;
 import java.util.Objects;
 
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import io.reactivex.disposables.CompositeDisposable;
 
 /**
  * A protocol for communicating with RF 433 MhZ devices
@@ -44,7 +42,7 @@ public class BleRcProtocol extends CommsProtocol {
     private final HandlerThread pushThread;
     private final RcSwitch.SwitchCreator switchCreator;
     private final ServiceConnection<ClientBleService> bleConnection;
-    private final BleBroadcastReceiver bleReceiver;
+    private final CompositeDisposable disposable;
 
     BleRcProtocol(PrintWriter printWriter) {
         super(printWriter);
@@ -64,25 +62,25 @@ public class BleRcProtocol extends CommsProtocol {
 
         pushHandler = new Handler(pushThread.getLooper());
         bleConnection = new ServiceConnection<>(ClientBleService.class);
-        bleReceiver = new BleBroadcastReceiver();
+        disposable = new CompositeDisposable();
+        BleBroadcastReceiver bleReceiver = new BleBroadcastReceiver();
 
         bleConnection.with(appContext).bind();
 
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(ClientBleService.ACTION_GATT_CONNECTED);
-        intentFilter.addAction(ClientBleService.ACTION_GATT_CONNECTING);
-        intentFilter.addAction(ClientBleService.ACTION_GATT_DISCONNECTED);
-        intentFilter.addAction(ClientBleService.ACTION_GATT_SERVICES_DISCOVERED);
-        intentFilter.addAction(ClientBleService.ACTION_CONTROL);
-        intentFilter.addAction(ClientBleService.ACTION_SNIFFER);
-        intentFilter.addAction(ClientBleService.DATA_AVAILABLE_UNKNOWN);
-
-        LocalBroadcastManager.getInstance(appContext).registerReceiver(bleReceiver, intentFilter);
+        disposable.add(Broadcaster.listen(
+                ClientBleService.ACTION_GATT_CONNECTED,
+                ClientBleService.ACTION_GATT_CONNECTING,
+                ClientBleService.ACTION_GATT_DISCONNECTED,
+                ClientBleService.ACTION_GATT_SERVICES_DISCOVERED,
+                ClientBleService.ACTION_CONTROL,
+                ClientBleService.ACTION_SNIFFER,
+                ClientBleService.DATA_AVAILABLE_UNKNOWN)
+                .subscribe(bleReceiver::onReceive, Throwable::printStackTrace));
     }
 
     @Override
     public void close() {
-        LocalBroadcastManager.getInstance(appContext).unregisterReceiver(bleReceiver);
+        disposable.clear();
 
         pushThread.quitSafely();
         if (bleConnection.isBound()) bleConnection.unbindService();
@@ -160,7 +158,7 @@ public class BleRcProtocol extends CommsProtocol {
             Intent intent = new Intent(ClientBleService.ACTION_TRANSMITTER);
             intent.putExtra(ClientBleService.DATA_AVAILABLE_TRANSMITTER, input.getData());
 
-            LocalBroadcastManager.getInstance(appContext).sendBroadcast(intent);
+            Broadcaster.push(intent);
         }
 
         return builder.build();
@@ -169,9 +167,8 @@ public class BleRcProtocol extends CommsProtocol {
     /**
      * Processes the broadcasts from {@link ClientBleService}
      */
-    private class BleBroadcastReceiver extends BroadcastReceiver {
-        @Override
-        public void onReceive(Context context, Intent intent) {
+    private class BleBroadcastReceiver {
+        void onReceive(Intent intent) {
             String action = intent.getAction();
             if (action == null) return;
 

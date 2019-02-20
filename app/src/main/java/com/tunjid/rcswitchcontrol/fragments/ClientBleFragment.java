@@ -2,7 +2,6 @@ package com.tunjid.rcswitchcontrol.fragments;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothDevice;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
@@ -19,17 +18,18 @@ import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.snackbar.Snackbar;
 import com.tunjid.androidbootstrap.core.components.ServiceConnection;
 import com.tunjid.androidbootstrap.view.animator.ViewHider;
-import com.tunjid.rcswitchcontrol.utils.DeletionHandler;
 import com.tunjid.rcswitchcontrol.R;
-import com.tunjid.rcswitchcontrol.utils.Utils;
 import com.tunjid.rcswitchcontrol.abstractclasses.BroadcastReceiverFragment;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
 import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter;
+import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster;
 import com.tunjid.rcswitchcontrol.dialogfragments.NameServiceDialogFragment;
 import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
 import com.tunjid.rcswitchcontrol.services.ClientBleService;
 import com.tunjid.rcswitchcontrol.services.ServerNsdService;
+import com.tunjid.rcswitchcontrol.utils.DeletionHandler;
+import com.tunjid.rcswitchcontrol.utils.Utils;
 
 import java.util.Arrays;
 import java.util.List;
@@ -37,7 +37,6 @@ import java.util.Objects;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -216,9 +215,7 @@ public class ClientBleFragment extends BroadcastReceiverFragment
                     break;
                 case R.id.menu_forget:
                     Activity activity = requireActivity();
-                    LocalBroadcastManager.getInstance(activity)
-                            .sendBroadcast(new Intent(ServerNsdService.ACTION_STOP));
-
+                    Broadcaster.push(new Intent(ServerNsdService.ACTION_STOP));
                     ClientBleService clientBleService = bleConnection.getBoundService();
 
                     clientBleService.disconnect();
@@ -358,7 +355,7 @@ public class ClientBleFragment extends BroadcastReceiverFragment
         );
     }
 
-    @Override protected void onReceive(Context context, Intent intent) {
+    @Override protected void onReceive(Intent intent) {
         String action = intent.getAction();
         if (action == null) return;
 

@@ -3,10 +3,7 @@ package com.tunjid.rcswitchcontrol.services;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.net.nsd.NsdServiceInfo;
 import android.os.IBinder;
 import android.util.Log;
@@ -16,6 +13,7 @@ import com.tunjid.androidbootstrap.core.components.ServiceConnection;
 import com.tunjid.rcswitchcontrol.App;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
+import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster;
 import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService;
 import com.tunjid.rcswitchcontrol.model.Payload;
 
@@ -31,7 +29,7 @@ import java.util.Queue;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringDef;
 import androidx.core.app.NotificationCompat;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import io.reactivex.disposables.CompositeDisposable;
 
 import static com.tunjid.androidbootstrap.communications.nsd.NsdHelper.createBufferedReader;
 import static com.tunjid.androidbootstrap.communications.nsd.NsdHelper.createPrintWriter;
@@ -66,7 +64,7 @@ public class ClientNsdService extends Service
     private MessageThread messageThread;
     private Queue<String> messageQueue = new LinkedList<>();
 
-    private final IntentFilter intentFilter = new IntentFilter();
+    private final CompositeDisposable disposable = new CompositeDisposable();
     private final IBinder binder = new NsdClientBinder();
 
     @Retention(SOURCE)
@@ -74,28 +72,17 @@ public class ClientNsdService extends Service
     @interface ConnectionState {
     }
 
-    private final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if (!ACTION_STOP.equals(action)) return;
-
-            stopForeground(true);
-            tearDown();
-            stopSelf();
-
-            Log.i(TAG, "Received data for: " + action);
-        }
-    };
-
     @Override
     public void onCreate() {
         super.onCreate();
         addChannel(R.string.switch_service, R.string.switch_service_description);
 
         nsdHelper = NsdHelper.getBuilder(this).build();
-        intentFilter.addAction(ACTION_STOP);
-        LocalBroadcastManager.getInstance(this).registerReceiver(broadcastReceiver, intentFilter);
+        disposable.add(Broadcaster.listen(ACTION_STOP).subscribe(intent -> {
+            stopForeground(true);
+            tearDown();
+            stopSelf();
+        }, Throwable::printStackTrace));
     }
 
     @Override
@@ -143,8 +130,8 @@ public class ClientNsdService extends Service
     @Override
     public void onDestroy() {
         super.onDestroy();
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver);
         tearDown();
+        disposable.clear();
     }
 
     public String getConnectionState() {
@@ -188,7 +175,7 @@ public class ClientNsdService extends Service
                     .putString(LAST_CONNECTED_SERVICE, currentService.getServiceName()).apply();
         }
 
-        LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(connectionState));
+        Broadcaster.push(new Intent(connectionState));
     }
 
     public void sendMessage(Payload payload) {
@@ -272,7 +259,7 @@ public class ClientNsdService extends Service
                     serverResponse.setAction(ACTION_SERVER_RESPONSE);
                     serverResponse.putExtra(DATA_SERVER_RESPONSE, fromServer);
 
-                    LocalBroadcastManager.getInstance(clientNsdService).sendBroadcast(serverResponse);
+                    Broadcaster.push(serverResponse);
 
                     if (fromServer.equals("Bye.")) {
                         clientNsdService.connectionState = ACTION_SOCKET_DISCONNECTED;

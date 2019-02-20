@@ -238,7 +238,7 @@ public class ClientNsdFragment extends BroadcastReceiverFragment
         );
     }
 
-    @Override protected void onReceive(Context context, Intent intent) {
+    @Override protected void onReceive(Intent intent) {
         String action = intent.getAction();
         if (action == null) return;
 

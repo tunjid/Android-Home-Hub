@@ -13,10 +13,8 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Handler;
@@ -30,6 +28,7 @@ import android.widget.Toast;
 import com.tunjid.androidbootstrap.core.components.ServiceConnection;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
+import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster;
 import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
 
@@ -41,7 +40,7 @@ import java.util.Queue;
 import java.util.UUID;
 
 import androidx.core.app.NotificationCompat;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import io.reactivex.disposables.CompositeDisposable;
 
 import static com.tunjid.rcswitchcontrol.model.RcSwitch.SWITCH_PREFS;
 
@@ -81,7 +80,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
     public final static String EXTRA_DATA = "EXTRA_DATA";
 
     private final IBinder binder = new Binder();
-    private final IntentFilter nsdIntentFilter = new IntentFilter();
+    private final CompositeDisposable disposable = new CompositeDisposable();
     private final ServiceConnection<ServerNsdService> serverConnection = new ServiceConnection<>(ServerNsdService.class);
 
     private boolean isUserInApp;
@@ -98,19 +97,6 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
     // Map of characteristics of interest
     private Map<String, BluetoothGattCharacteristic> characteristicMap = new HashMap<>();
 
-    private final BroadcastReceiver nsdUpdateReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if (!ACTION_TRANSMITTER.equals(action)) return;
-
-            String data = intent.getStringExtra(DATA_AVAILABLE_TRANSMITTER);
-            byte[] transmission = Base64.decode(data, Base64.DEFAULT);
-            writeCharacteristicArray(C_HANDLE_TRANSMITTER, transmission);
-
-            Log.i(TAG, "Received data for: " + action);
-        }
-    };
     // Implements callback methods for GATT events that the app cares about.  For example,
     // connection change and services discovered.
     private final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
@@ -236,8 +222,11 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
         super.onCreate();
         addChannel(R.string.switch_service, R.string.switch_service_description);
 
-        nsdIntentFilter.addAction(ACTION_TRANSMITTER);
-        LocalBroadcastManager.getInstance(this).registerReceiver(nsdUpdateReceiver, nsdIntentFilter);
+        disposable.add(Broadcaster.listen(ACTION_TRANSMITTER).subscribe(intent -> {
+            String data = intent.getStringExtra(DATA_AVAILABLE_TRANSMITTER);
+            byte[] transmission = Base64.decode(data, Base64.DEFAULT);
+            writeCharacteristicArray(C_HANDLE_TRANSMITTER, transmission);
+        }, Throwable::printStackTrace));
     }
 
     @Override
@@ -334,7 +323,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
     public void onDestroy() {
         super.onDestroy();
         if (serverConnection.isBound()) serverConnection.unbindService();
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(nsdUpdateReceiver);
+        disposable.clear();
         close();
     }
 
@@ -360,7 +349,6 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
 
         // Previously connected device.  Try to reconnect.
         if (bluetoothDevice.equals(connectedDevice) && bluetoothGatt != null) {
-
             showToast(this, R.string.ble_service_reconnecting);
 
             if (bluetoothGatt.connect()) {
@@ -370,10 +358,9 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
                 showToast(this, R.string.connecting);
                 return true;
             }
-            else {
-                showToast(this, R.string.ble_service_failed_to_connect);
-                return false;
-            }
+
+            showToast(this, R.string.ble_service_failed_to_connect);
+            return false;
         }
 
         // Set the autoConnect parameter to true.
@@ -471,7 +458,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
      */
     private void broadcastUpdate(final String action) {
         final Intent intent = new Intent(action);
-        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+        Broadcaster.push(intent);
     }
 
     /**
@@ -504,7 +491,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
                     break;
             }
         }
-        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+        Broadcaster.push(intent);
     }
 
     /**

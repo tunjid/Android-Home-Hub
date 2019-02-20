@@ -5,7 +5,7 @@ import android.util.AttributeSet;
 import android.view.View;
 
 import com.google.android.material.snackbar.Snackbar;
-import com.tunjid.androidbootstrap.view.behavior.BottomTransientBarBehavior;
+import com.tunjid.androidbootstrap.material.behavior.BottomTransientBarBehavior;
 
 /**
  * Animates a {@link View} when a {@link Snackbar} appears.

@@ -52,7 +52,7 @@ public class RemoteSwitchAdapter extends RecyclerView.Adapter<RemoteSwitchAdapte
     }
 
     // ViewHolder for actual content
-    static class ViewHolder extends RecyclerView.ViewHolder
+    public static class ViewHolder extends RecyclerView.ViewHolder
             implements
             View.OnClickListener,
             View.OnLongClickListener {
@@ -98,6 +98,7 @@ public class RemoteSwitchAdapter extends RecyclerView.Adapter<RemoteSwitchAdapte
 
     public interface SwitchListener {
         void onLongClicked(RcSwitch rcSwitch);
+
         void onSwitchToggled(RcSwitch rcSwitch, boolean state);
     }
 

@@ -15,6 +15,10 @@ import android.widget.TextView;
 
 import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.snackbar.Snackbar;
+import com.tunjid.androidbootstrap.recyclerview.ListManager;
+import com.tunjid.androidbootstrap.recyclerview.ListManagerBuilder;
+import com.tunjid.androidbootstrap.recyclerview.ListPlaceholder;
+import com.tunjid.androidbootstrap.recyclerview.SwipeDragOptionsBuilder;
 import com.tunjid.androidbootstrap.view.animator.ViewHider;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
@@ -26,17 +30,14 @@ import com.tunjid.rcswitchcontrol.model.RcSwitch;
 import com.tunjid.rcswitchcontrol.services.ClientBleService;
 import com.tunjid.rcswitchcontrol.services.ServerNsdService;
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler;
-import com.tunjid.rcswitchcontrol.utils.Utils;
 import com.tunjid.rcswitchcontrol.viewmodels.BleClientViewModel;
 
 import java.util.List;
-import java.util.Objects;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.ViewModelProviders;
 import androidx.recyclerview.widget.ItemTouchHelper;
-import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.transition.AutoTransition;
 import androidx.transition.TransitionManager;
@@ -60,7 +61,7 @@ public class ClientBleFragment extends BaseFragment
     private View progressBar;
     private Button sniffButton;
     private TextView connectionStatus;
-    private RecyclerView switchList;
+    private ListManager<RemoteSwitchAdapter.ViewHolder, ListPlaceholder> listManager;
 
     private ViewHider viewHider;
     private BleClientViewModel viewModel;
@@ -86,32 +87,30 @@ public class ClientBleFragment extends BaseFragment
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
 
-        View rootView = inflater.inflate(R.layout.fragment_ble_client, container, false);
-        AppBarLayout appBarLayout = rootView.findViewById(R.id.app_bar_layout);
-        ItemTouchHelper helper = new ItemTouchHelper(Utils.callback(this::getSwipeDirection, this::onDelete));
+        View root = inflater.inflate(R.layout.fragment_ble_client, container, false);
+        AppBarLayout appBarLayout = root.findViewById(R.id.app_bar_layout);
 
-        sniffButton = rootView.findViewById(R.id.sniff);
-        progressBar = rootView.findViewById(R.id.progress_bar);
+        sniffButton = root.findViewById(R.id.sniff);
+        progressBar = root.findViewById(R.id.progress_bar);
+        connectionStatus = root.findViewById(R.id.connection_status);
 
-        connectionStatus = rootView.findViewById(R.id.connection_status);
-        switchList = rootView.findViewById(R.id.switch_list);
+        listManager = new ListManagerBuilder<RemoteSwitchAdapter.ViewHolder, ListPlaceholder>()
+                .withRecyclerView(root.findViewById(R.id.switch_list))
+                .withAdapter(new RemoteSwitchAdapter(this, viewModel.getSwitches()))
+                .withLinearLayoutManager()
+                .addScrollListener((dx, dy) -> {
+                    if (dy == 0) return;
+                    if (dy > 0) viewHider.hide();
+                    else viewHider.show();
+                })
+                .withSwipeDragOptions(new SwipeDragOptionsBuilder<RemoteSwitchAdapter.ViewHolder>()
+                        .setMovementFlagsFunction(holder -> getSwipeDirection())
+                        .setSwipeConsumer(((viewHolder, direction) -> onDelete(viewHolder)))
+                        .build())
+                .build();
 
-        viewHider = ViewHider.of(rootView.findViewById(R.id.button_container))
+        viewHider = ViewHider.of(root.findViewById(R.id.button_container))
                 .setDuration(ViewHider.BOTTOM).build();
-
-        sniffButton.setOnClickListener(this);
-
-        helper.attachToRecyclerView(switchList);
-        switchList.setAdapter(new RemoteSwitchAdapter(this, viewModel.getSwitches()));
-        switchList.setLayoutManager(new LinearLayoutManager(getActivity()));
-        switchList.addOnScrollListener(new RecyclerView.OnScrollListener() {
-            @Override
-            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
-                if (dy == 0) return;
-                if (dy > 0) viewHider.hide();
-                else viewHider.show();
-            }
-        });
 
         appBarLayout.addOnOffsetChangedListener((appBarLayout1, verticalOffset) -> {
             if (verticalOffset == 0) return;
@@ -121,8 +120,10 @@ public class ClientBleFragment extends BaseFragment
             lastOffSet = verticalOffset;
         });
 
+        sniffButton.setOnClickListener(this);
+
         updateSniffButton();
-        return rootView;
+        return root;
     }
 
     @Override
@@ -185,7 +186,8 @@ public class ClientBleFragment extends BaseFragment
 
     @Override
     public void onDestroyView() {
-        switchList = null;
+        listManager.clear();
+        listManager = null;
         progressBar = null;
         sniffButton = null;
         connectionStatus = null;
@@ -215,7 +217,7 @@ public class ClientBleFragment extends BaseFragment
 
     @Override
     public void onSwitchRenamed(RcSwitch rcSwitch) {
-        getAdapter().notifyItemChanged(viewModel.onSwitchUpdated(rcSwitch));
+        listManager.notifyItemChanged(viewModel.onSwitchUpdated(rcSwitch));
     }
 
     @Override
@@ -235,11 +237,6 @@ public class ClientBleFragment extends BaseFragment
         progressBar.setVisibility(show ? View.VISIBLE : View.INVISIBLE);
     }
 
-    @NonNull
-    private RecyclerView.Adapter getAdapter() {
-        return Objects.requireNonNull(switchList.getAdapter());
-    }
-
     private void onReceive(Intent intent) {
         String action = intent.getAction();
         if (action == null) return;
@@ -251,7 +248,7 @@ public class ClientBleFragment extends BaseFragment
                 break;
             case ACTION_SNIFFER: {
                 updateSniffButton();
-                getAdapter().notifyDataSetChanged();
+                listManager.notifyDataSetChanged();
                 toggleProgress(false);
                 break;
             }
@@ -290,7 +287,7 @@ public class ClientBleFragment extends BaseFragment
 
                     int deletedAt = deletionHandler.getDeletedPosition();
                     switches.add(deletedAt, deletionHandler.pop());
-                    getAdapter().notifyItemInserted(deletedAt);
+                    listManager.notifyItemInserted(deletedAt);
 
                     isDeleting = false;
                 })

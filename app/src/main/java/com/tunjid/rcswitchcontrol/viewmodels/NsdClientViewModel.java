@@ -1,23 +1,32 @@
 package com.tunjid.rcswitchcontrol.viewmodels;
 
 import android.app.Application;
+import android.content.Context;
 import android.content.Intent;
-import android.util.Pair;
 
 import com.tunjid.androidbootstrap.core.components.ServiceConnection;
 import com.tunjid.androidbootstrap.functions.Supplier;
+import com.tunjid.androidbootstrap.functions.collections.Lists;
+import com.tunjid.rcswitchcontrol.R;
+import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster;
 import com.tunjid.rcswitchcontrol.model.Payload;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
+import com.tunjid.rcswitchcontrol.nsd.protocols.BleRcProtocol;
 import com.tunjid.rcswitchcontrol.nsd.protocols.CommsProtocol;
+import com.tunjid.rcswitchcontrol.services.ClientBleService;
 import com.tunjid.rcswitchcontrol.services.ClientNsdService;
-import com.tunjid.rcswitchcontrol.utils.Utils;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
+import io.reactivex.Flowable;
+import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.processors.PublishProcessor;
+
+import static android.content.Context.MODE_PRIVATE;
+import static com.tunjid.rcswitchcontrol.model.RcSwitch.SWITCH_PREFS;
 
 public class NsdClientViewModel extends AndroidViewModel {
 
@@ -25,8 +34,10 @@ public class NsdClientViewModel extends AndroidViewModel {
     private final List<String> commands;
     private final List<RcSwitch> switches;
 
+    private final CompositeDisposable disposable;
+    private final PublishProcessor<Payload> payloads;
+    private final PublishProcessor<String> connectionState;
     private final ServiceConnection<ClientNsdService> nsdConnection;
-    private final PublishProcessor<Pair<String, Intent>> processor;
 
     public NsdClientViewModel(@NonNull Application application) {
         super(application);
@@ -35,11 +46,22 @@ public class NsdClientViewModel extends AndroidViewModel {
         commands = new ArrayList<>();
         switches = new ArrayList<>();
 
-        processor = PublishProcessor.create();
+        disposable = new CompositeDisposable();
+        payloads = PublishProcessor.create();
+        connectionState = PublishProcessor.create();
         nsdConnection = new ServiceConnection<>(ClientNsdService.class, this::onServiceConnected);
+        nsdConnection.with(application).bind();
+
+        disposable.add(Broadcaster.listen(
+                ClientNsdService.ACTION_SOCKET_CONNECTED,
+                ClientNsdService.ACTION_SOCKET_CONNECTING,
+                ClientNsdService.ACTION_SOCKET_DISCONNECTED,
+                ClientNsdService.ACTION_SERVER_RESPONSE).subscribe(this::onIntentReceived, Throwable::printStackTrace));
     }
 
     @Override protected void onCleared() {
+        disposable.clear();
+        nsdConnection.getBoundService().onAppBackground();
         nsdConnection.unbindService();
         super.onCleared();
     }
@@ -50,16 +72,109 @@ public class NsdClientViewModel extends AndroidViewModel {
 
     public List<RcSwitch> getSwitches() { return switches; }
 
-    private void onServiceConnected(ClientNsdService service) {
-        //onConnectionStateChanged(service.getConnectionState());
-        sendMessage(commands::isEmpty, Payload.builder().setAction(CommsProtocol.PING).build());
+    public Flowable<Payload> listen() {
+        return payloads;
     }
+
+    public boolean isBound() { return nsdConnection.isBound(); }
+
+    public boolean isConnected() { return nsdConnection.isBound() && !nsdConnection.getBoundService().isConnected(); }
 
     public void sendMessage(Payload message) {
         sendMessage(() -> true, message);
     }
 
-    public void sendMessage(Supplier<Boolean> predicate, Payload message) {
-        if (nsdConnection.isBound() && predicate.get()) nsdConnection.getBoundService().sendMessage(message);
+    public void forgetService() {
+        // Don't call unbind, when the hosting activity is finished,
+        // onDestroy will be called and the connection unbound
+        if (nsdConnection.isBound()) nsdConnection.getBoundService().stopSelf();
+
+        getApplication().getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE).edit()
+                .remove(ClientNsdService.LAST_CONNECTED_SERVICE).apply();
+    }
+
+    public Flowable<String> connectionState() {
+        return connectionState.startWith(publisher -> {
+            boolean bound = nsdConnection.isBound();
+            if (bound) nsdConnection.getBoundService().onAppForeGround();
+
+            publisher.onNext(bound
+                    ? nsdConnection.getBoundService().getConnectionState()
+                    : ClientNsdService.ACTION_SOCKET_DISCONNECTED);
+            publisher.onComplete();
+        });
+    }
+
+    private void onServiceConnected(ClientNsdService service) {
+        onConnectionStateChanged(service.getConnectionState());
+        sendMessage(commands::isEmpty, Payload.builder().setAction(CommsProtocol.PING).build());
+    }
+
+    private void onIntentReceived(Intent intent) {
+        String action = intent.getAction();
+        if (action == null) return;
+
+        switch (action) {
+            case ClientNsdService.ACTION_SOCKET_CONNECTED:
+            case ClientNsdService.ACTION_SOCKET_CONNECTING:
+            case ClientNsdService.ACTION_SOCKET_DISCONNECTED:
+                onConnectionStateChanged(action);
+                break;
+            case ClientNsdService.ACTION_SERVER_RESPONSE:
+                String serverResponse = intent.getStringExtra(ClientNsdService.DATA_SERVER_RESPONSE);
+                Payload payload = Payload.deserialize(serverResponse);
+
+                commands.clear();
+                commands.addAll(payload.getCommands());
+
+                if (isSwitchPayload(payload))
+                    Lists.replace(switches, RcSwitch.deserializeSavedSwitches(payload.getData()));
+                else history.add(payload.getResponse());
+
+                payloads.onNext(payload);
+                break;
+        }
+    }
+
+    private void onConnectionStateChanged(String newState) {
+        String text = "";
+        Context context = getApplication();
+        boolean isBound = nsdConnection.isBound();
+
+        switch (newState) {
+            case ClientNsdService.ACTION_SOCKET_CONNECTED:
+                sendMessage(commands::isEmpty, Payload.builder().setAction(CommsProtocol.PING).build());
+                text = !isBound
+                        ? context.getString(R.string.connected)
+                        : context.getString(R.string.connected_to, nsdConnection.getBoundService().getServiceName());
+                break;
+            case ClientNsdService.ACTION_SOCKET_CONNECTING:
+                text = !isBound
+                        ? context.getString(R.string.connecting)
+                        : context.getString(R.string.connecting_to, nsdConnection.getBoundService().getServiceName());
+                break;
+            case ClientNsdService.ACTION_SOCKET_DISCONNECTED:
+                text = context.getString(R.string.disconnected);
+                break;
+        }
+        connectionState.onNext(text);
+    }
+
+    private void sendMessage(Supplier<Boolean> predicate, Payload message) {
+        if (nsdConnection.isBound() && predicate.get())
+            nsdConnection.getBoundService().sendMessage(message);
+    }
+
+    private boolean isSwitchPayload(Payload payload) {
+        String key = payload.getKey();
+        boolean isBleRc = key.equals(BleRcProtocol.class.getName());
+
+        if (!isBleRc || payload.getAction() == null) return true;
+
+        Context context = getApplication();
+
+        return !(payload.getAction().equals(ClientBleService.ACTION_TRANSMITTER)
+                || payload.getAction().equals(context.getString(R.string.blercprotocol_delete_command))
+                || payload.getAction().equals(context.getString(R.string.blercprotocol_rename_command)));
     }
 }

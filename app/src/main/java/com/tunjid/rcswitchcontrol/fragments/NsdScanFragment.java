@@ -11,8 +11,9 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.tunjid.androidbootstrap.recyclerview.ListManagerBuilder;
 import com.tunjid.androidbootstrap.recyclerview.ListPlaceholder;
-import com.tunjid.androidbootstrap.recyclerview.ScrollManager;
+import com.tunjid.androidbootstrap.recyclerview.ListManager;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
 import com.tunjid.rcswitchcontrol.adapters.NSDAdapter;
@@ -35,7 +36,7 @@ public class NsdScanFragment extends BaseFragment
 
     private boolean isScanning;
 
-    private ScrollManager<ListPlaceholder, NSDAdapter.NSDViewHolder> scrollManager;
+    private ListManager<NSDAdapter.NSDViewHolder, ListPlaceholder> scrollManager;
     private NsdScanViewModel viewModel;
 
     public static NsdScanFragment newInstance() {
@@ -57,8 +58,8 @@ public class NsdScanFragment extends BaseFragment
                              ViewGroup container,
                              Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_nsd_scan, container, false);
-        scrollManager = ScrollManager.<ListPlaceholder, NSDAdapter.NSDViewHolder>
-                withRecyclerView(root.findViewById(R.id.list))
+        scrollManager = new ListManagerBuilder<NSDAdapter.NSDViewHolder, ListPlaceholder>()
+                .withRecyclerView(root.findViewById(R.id.list))
                 .addDecoration(new DividerItemDecoration(requireActivity(), VERTICAL))
                 .withAdapter(new NSDAdapter(this, viewModel.getServices()))
                 .withLinearLayoutManager()

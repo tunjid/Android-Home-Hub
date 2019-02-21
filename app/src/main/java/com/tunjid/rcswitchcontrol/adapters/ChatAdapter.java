@@ -40,7 +40,7 @@ public class ChatAdapter extends InteractiveAdapter<ChatAdapter.TextViewHolder, 
         void onTextClicked(String text);
     }
 
-    static class TextViewHolder extends InteractiveViewHolder<ChatAdapterListener>
+    public static class TextViewHolder extends InteractiveViewHolder<ChatAdapterListener>
             implements View.OnClickListener {
 
         String text;

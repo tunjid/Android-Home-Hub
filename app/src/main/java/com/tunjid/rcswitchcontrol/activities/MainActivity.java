@@ -12,6 +12,7 @@ import android.text.TextUtils;
 import com.tunjid.rcswitchcontrol.App;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseActivity;
+import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster;
 import com.tunjid.rcswitchcontrol.fragments.ClientBleFragment;
 import com.tunjid.rcswitchcontrol.fragments.ClientNsdFragment;
 import com.tunjid.rcswitchcontrol.fragments.StartFragment;
@@ -51,14 +52,9 @@ public class MainActivity extends BaseActivity {
         boolean isNsdClient = startIntent.hasExtra(ClientNsdService.NSD_SERVICE_INFO_KEY)
                 || !TextUtils.isEmpty(preferences.getString(ClientNsdService.LAST_CONNECTED_SERVICE, ""));
 
-        if (!isNullDevice) {
-            Intent intent = new Intent(this, ClientBleService.class);
-            intent.putExtra(BLUETOOTH_DEVICE, device);
-            startService(intent);
-        }
-        if (isNsdClient) {
-            sendBroadcast(new Intent(ClientNsdService.ACTION_START_NSD_DISCOVERY));
-        }
+        if (!isNullDevice) startService(new Intent(this, ClientBleService.class)
+                .putExtra(BLUETOOTH_DEVICE, device));
+        if (isNsdClient) Broadcaster.push(new Intent(ClientNsdService.ACTION_START_NSD_DISCOVERY));
 
         if (!isSavedInstance) showFragment(App.isAndroidThings()
                 ? ThingsFragment.newInstance()

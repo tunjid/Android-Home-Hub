@@ -104,7 +104,8 @@ class ScanBleRcProtocol extends CommsProtocol implements BLEScanner.BleScanCallb
                 ClientBleService.ACTION_GATT_SERVICES_DISCOVERED,
                 ClientBleService.ACTION_CONTROL,
                 ClientBleService.ACTION_SNIFFER,
-                ClientBleService.DATA_AVAILABLE_UNKNOWN).subscribe(this::onBroadcastReceived, Throwable::printStackTrace));
+                ClientBleService.DATA_AVAILABLE_UNKNOWN)
+                .subscribe(this::onBroadcastReceived, Throwable::printStackTrace));
     }
 
     private void onScanComplete() {

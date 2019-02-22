@@ -82,10 +82,9 @@ public class WifiStatusReceiver extends BroadcastReceiver {
                 })
                 .setResolveSuccessConsumer(service -> {
                     if (!lastServer.equals(service.getServiceName())) return;
-                    Intent intent = new Intent(context, ClientNsdService.class);
-                    intent.putExtra(ClientNsdService.NSD_SERVICE_INFO_KEY, service);
-                    context.startService(intent);
 
+                    context.startService(new Intent(context, ClientNsdService.class)
+                            .putExtra(ClientNsdService.NSD_SERVICE_INFO_KEY, service));
                     helperReference.get().tearDown();
                     isSearching = false;
                 })

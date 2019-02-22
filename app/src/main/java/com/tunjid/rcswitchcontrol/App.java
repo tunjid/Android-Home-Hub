@@ -1,11 +1,13 @@
 package com.tunjid.rcswitchcontrol;
 
+import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
 import android.app.Service;
 import android.content.Context;
 import android.content.IntentFilter;
 import android.net.wifi.WifiManager;
+import android.os.Bundle;
 import android.util.Log;
 
 import com.google.android.things.pio.PeripheralManager;
@@ -23,18 +25,42 @@ public class App extends android.app.Application {
 
     private static App instance;
 
+    private boolean registeredWifiReceiver;
+
     @Override
     public void onCreate() {
         super.onCreate();
         instance = this;
 
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(ClientNsdService.ACTION_START_NSD_DISCOVERY);
-        filter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
-        filter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
-        filter.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION);
+        registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
+            @Override public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
+                // Necessary because of background restrictions, services may only be started in
+                // the foreground
+                if (registeredWifiReceiver) return;
 
-        registerReceiver(new WifiStatusReceiver(), filter);
+                IntentFilter filter = new IntentFilter();
+                filter.addAction(ClientNsdService.ACTION_START_NSD_DISCOVERY);
+                filter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
+                filter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
+                filter.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION);
+
+                registerReceiver(new WifiStatusReceiver(), filter);
+
+                registeredWifiReceiver = true;
+            }
+
+            @Override public void onActivityStarted(Activity activity) {}
+
+            @Override public void onActivityResumed(Activity activity) {}
+
+            @Override public void onActivityPaused(Activity activity) {}
+
+            @Override public void onActivityStopped(Activity activity) {}
+
+            @Override public void onActivitySaveInstanceState(Activity activity, Bundle outState) {}
+
+            @Override public void onActivityDestroyed(Activity activity) {}
+        });
     }
 
     public static App getInstance() {
@@ -64,7 +90,6 @@ public class App extends android.app.Application {
 
     @FunctionalInterface
     public interface Catchable {
-
         void run() throws Exception;
     }
 }

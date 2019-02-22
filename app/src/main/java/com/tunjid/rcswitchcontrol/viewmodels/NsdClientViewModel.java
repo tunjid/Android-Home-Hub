@@ -183,6 +183,16 @@ public class NsdClientViewModel extends AndroidViewModel {
             nsdConnection.getBoundService().sendMessage(message);
     }
 
+    private boolean hasSwitches(Payload payload) {
+        String action = payload.getAction();
+        if (action == null) return false;
+
+        Context context = getApplication();
+        return action.equals(ClientBleService.ACTION_TRANSMITTER)
+                || action.equals(context.getString(R.string.blercprotocol_delete_command))
+                || action.equals(context.getString(R.string.blercprotocol_rename_command));
+    }
+
     private boolean isSwitchPayload(Payload payload) {
         String key = payload.getKey();
         String payloadAction = payload.getAction();
@@ -200,7 +210,9 @@ public class NsdClientViewModel extends AndroidViewModel {
 
     private Diff<RcSwitch> diffSwitches(Payload payload) {
         return Diff.calculate(switches,
-                RcSwitch.deserializeSavedSwitches(payload.getData()),
+                hasSwitches(payload)
+                        ? RcSwitch.deserializeSavedSwitches(payload.getData())
+                        : Collections.emptyList(),
                 (current, server) -> {
                     if (!server.isEmpty()) Lists.replace(current, server);
                     return current;

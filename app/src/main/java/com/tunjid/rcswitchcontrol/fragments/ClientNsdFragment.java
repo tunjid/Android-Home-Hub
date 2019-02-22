@@ -113,7 +113,7 @@ public class ClientNsdFragment extends BaseFragment
     @Override
     public void onResume() {
         super.onResume();
-        disposables.add(viewModel.listen().subscribe(this::onReceive, Throwable::printStackTrace));
+        disposables.add(viewModel.listen().subscribe(this::onPayloadReceived, Throwable::printStackTrace));
         disposables.add(viewModel.connectionState().subscribe(this::onConnectionStateChanged, Throwable::printStackTrace));
     }
 
@@ -184,12 +184,12 @@ public class ClientNsdFragment extends BaseFragment
                 .build());
     }
 
-    private void onReceive(Payload payload) {
+    private void onPayloadReceived(Payload payload) {
         requireNonNull(commandsView.getAdapter()).notifyDataSetChanged();
 
         TransitionManager.beginDelayedTransition((ViewGroup) commandHistory.getParent(), new AutoTransition()
-                .addTarget(commandHistory)
-                .addTarget(commandsView));
+                .excludeTarget(commandHistory, true)
+                .excludeTarget(commandsView, true));
 
         ViewUtil.listenForLayout(commandsView, () -> ViewUtil.getLayoutParams(commandHistory).bottomMargin = commandsView.getHeight());
 
@@ -197,12 +197,21 @@ public class ClientNsdFragment extends BaseFragment
         boolean isSwitchPayload = key.equals(BleRcProtocol.class.getName());
 
         swapAdapter(isSwitchPayload);
-        mainListManager.notifyDataSetChanged();
 
-        if (isSwitchPayload)
+        if (isSwitchPayload && payload.getAction() != null) {
+            if (payload.getAction().equals(ClientBleService.ACTION_TRANSMITTER)) {
+                mainListManager.notifyDataSetChanged();
+            }
+            else if (payload.getAction().equals(getString(R.string.blercprotocol_delete_command))
+                    || payload.getAction().equals(getString(R.string.blercprotocol_rename_command))) {
+                mainListManager.notifyDataSetChanged();
+            }
             Snackbar.make(commandHistory, payload.getResponse(), Snackbar.LENGTH_SHORT).show();
-        else
+        }
+        else {
+            mainListManager.notifyDataSetChanged();
             commandsListManager.post(() -> commandsListManager.getRecyclerView().smoothScrollToPosition(viewModel.getHistory().size() - 1));
+        }
     }
 
     private void onConnectionStateChanged(String text) {
@@ -217,17 +226,16 @@ public class ClientNsdFragment extends BaseFragment
         if (isSwitchAdapter && currentAdapter instanceof RemoteSwitchAdapter) return;
         if (!isSwitchAdapter && currentAdapter instanceof ChatAdapter) return;
 
-        RecyclerView.Adapter<RecyclerView.ViewHolder> created = (RecyclerView.Adapter<RecyclerView.ViewHolder>) (isSwitchAdapter
-                ? new RemoteSwitchAdapter(this, viewModel.getSwitches())
-                : new ChatAdapter(null, viewModel.getHistory()));
-
         mainListManager = new ListManagerBuilder<RecyclerView.ViewHolder, ListPlaceholder>()
                 .withRecyclerView(commandHistory)
                 .withLinearLayoutManager()
-                .withAdapter(created)
+                .withAdapter(isSwitchAdapter
+                        ? new RemoteSwitchAdapter(this, viewModel.getSwitches())
+                        : new ChatAdapter(null, viewModel.getHistory()))
                 .withSwipeDragOptions(new SwipeDragOptionsBuilder<>()
+                        .setSwipeConsumer((viewHolder, direction) -> onDelete(viewHolder))
                         .setMovementFlagsFunction(holder -> getSwipeDirection())
-                        .setSwipeConsumer(((viewHolder, direction) -> onDelete(viewHolder)))
+                        .setItemViewSwipeSupplier(() -> true)
                         .build())
                 .build();
     }
@@ -282,7 +290,6 @@ public class ClientNsdFragment extends BaseFragment
             layoutManager.setAlignItems(AlignItems.CENTER);
             layoutManager.setFlexDirection(FlexDirection.ROW);
             layoutManager.setJustifyContent(JustifyContent.FLEX_START);
-
 
             return layoutManager;
         }

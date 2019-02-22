@@ -5,6 +5,8 @@ import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -38,12 +40,12 @@ public class InitializeFragment extends BaseFragment
 
     @Nullable
     @Override
-    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_pair, container, false);
 
-        infoText = (TextView) rootView.findViewById(R.id.bluetooth_prompt);
-        pairButton = (Button) rootView.findViewById(R.id.button_pair);
-        progressBar = (ProgressBar) rootView.findViewById(R.id.bluetooth_prompt_progressbar);
+        infoText = rootView.findViewById(R.id.bluetooth_prompt);
+        pairButton = rootView.findViewById(R.id.button_pair);
+        progressBar = rootView.findViewById(R.id.bluetooth_prompt_progressbar);
 
         infoText.setText(R.string.bt_attempt);
         pairButton.setOnClickListener(this);
@@ -58,7 +60,7 @@ public class InitializeFragment extends BaseFragment
         getToolBar().setTitle(R.string.initialize);
 
         BluetoothManager bluetoothManager =
-                (BluetoothManager) getActivity().getSystemService(Context.BLUETOOTH_SERVICE);
+                (BluetoothManager) requireActivity().getSystemService(Context.BLUETOOTH_SERVICE);
 
         BluetoothAdapter mBluetoothAdapter = bluetoothManager.getAdapter();
 

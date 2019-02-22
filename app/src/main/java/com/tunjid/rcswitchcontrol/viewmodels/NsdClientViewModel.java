@@ -27,6 +27,7 @@ import io.reactivex.processors.PublishProcessor;
 
 import static android.content.Context.MODE_PRIVATE;
 import static com.tunjid.rcswitchcontrol.model.RcSwitch.SWITCH_PREFS;
+import static io.reactivex.android.schedulers.AndroidSchedulers.mainThread;
 
 public class NsdClientViewModel extends AndroidViewModel {
 
@@ -59,7 +60,8 @@ public class NsdClientViewModel extends AndroidViewModel {
                 ClientNsdService.ACTION_SERVER_RESPONSE).subscribe(this::onIntentReceived, Throwable::printStackTrace));
     }
 
-    @Override protected void onCleared() {
+    @Override
+    protected void onCleared() {
         disposable.clear();
         nsdConnection.getBoundService().onAppBackground();
         nsdConnection.unbindService();
@@ -73,16 +75,14 @@ public class NsdClientViewModel extends AndroidViewModel {
     public List<RcSwitch> getSwitches() { return switches; }
 
     public Flowable<Payload> listen() {
-        return payloads;
+        return payloads.observeOn(mainThread());
     }
 
     public boolean isBound() { return nsdConnection.isBound(); }
 
     public boolean isConnected() { return nsdConnection.isBound() && !nsdConnection.getBoundService().isConnected(); }
 
-    public void sendMessage(Payload message) {
-        sendMessage(() -> true, message);
-    }
+    public void sendMessage(Payload message) { sendMessage(() -> true, message); }
 
     public void forgetService() {
         // Don't call unbind, when the hosting activity is finished,
@@ -98,15 +98,15 @@ public class NsdClientViewModel extends AndroidViewModel {
             boolean bound = nsdConnection.isBound();
             if (bound) nsdConnection.getBoundService().onAppForeGround();
 
-            publisher.onNext(bound
+            publisher.onNext(getConnectionText(bound
                     ? nsdConnection.getBoundService().getConnectionState()
-                    : ClientNsdService.ACTION_SOCKET_DISCONNECTED);
+                    : ClientNsdService.ACTION_SOCKET_DISCONNECTED));
             publisher.onComplete();
-        });
+        }).observeOn(mainThread());
     }
 
     private void onServiceConnected(ClientNsdService service) {
-        onConnectionStateChanged(service.getConnectionState());
+        connectionState.onNext(getConnectionText(service.getConnectionState()));
         sendMessage(commands::isEmpty, Payload.builder().setAction(CommsProtocol.PING).build());
     }
 
@@ -118,14 +118,13 @@ public class NsdClientViewModel extends AndroidViewModel {
             case ClientNsdService.ACTION_SOCKET_CONNECTED:
             case ClientNsdService.ACTION_SOCKET_CONNECTING:
             case ClientNsdService.ACTION_SOCKET_DISCONNECTED:
-                onConnectionStateChanged(action);
+                connectionState.onNext(getConnectionText(action));
                 break;
             case ClientNsdService.ACTION_SERVER_RESPONSE:
                 String serverResponse = intent.getStringExtra(ClientNsdService.DATA_SERVER_RESPONSE);
                 Payload payload = Payload.deserialize(serverResponse);
 
-                commands.clear();
-                commands.addAll(payload.getCommands());
+                Lists.replace(commands, payload.getCommands());
 
                 if (isSwitchPayload(payload))
                     Lists.replace(switches, RcSwitch.deserializeSavedSwitches(payload.getData()));
@@ -136,7 +135,7 @@ public class NsdClientViewModel extends AndroidViewModel {
         }
     }
 
-    private void onConnectionStateChanged(String newState) {
+    private String getConnectionText(String newState) {
         String text = "";
         Context context = getApplication();
         boolean isBound = nsdConnection.isBound();
@@ -157,7 +156,7 @@ public class NsdClientViewModel extends AndroidViewModel {
                 text = context.getString(R.string.disconnected);
                 break;
         }
-        connectionState.onNext(text);
+        return text;
     }
 
     private void sendMessage(Supplier<Boolean> predicate, Payload message) {
@@ -166,6 +165,8 @@ public class NsdClientViewModel extends AndroidViewModel {
     }
 
     private boolean isSwitchPayload(Payload payload) {
+        if (payload.getAction() == null) return false;
+
         String key = payload.getKey();
         boolean isBleRc = key.equals(BleRcProtocol.class.getName());
 
@@ -173,8 +174,12 @@ public class NsdClientViewModel extends AndroidViewModel {
 
         Context context = getApplication();
 
-        return !(payload.getAction().equals(ClientBleService.ACTION_TRANSMITTER)
-                || payload.getAction().equals(context.getString(R.string.blercprotocol_delete_command))
-                || payload.getAction().equals(context.getString(R.string.blercprotocol_rename_command)));
+        return switchesChanged(context, payload.getAction());
+    }
+
+    private boolean switchesChanged(Context context, String payloadAction) {
+        return payloadAction.equals(ClientBleService.ACTION_TRANSMITTER)
+                || payloadAction.equals(context.getString(R.string.blercprotocol_delete_command))
+                || payloadAction.equals(context.getString(R.string.blercprotocol_rename_command));
     }
 }

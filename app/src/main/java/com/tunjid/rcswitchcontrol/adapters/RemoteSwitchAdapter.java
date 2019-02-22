@@ -52,10 +52,7 @@ public class RemoteSwitchAdapter extends RecyclerView.Adapter<RemoteSwitchAdapte
     }
 
     // ViewHolder for actual content
-    public static class ViewHolder extends RecyclerView.ViewHolder
-            implements
-            View.OnClickListener,
-            View.OnLongClickListener {
+    public static class ViewHolder extends RecyclerView.ViewHolder {
 
         TextView deviceName;
         Switch toggle;
@@ -65,12 +62,8 @@ public class RemoteSwitchAdapter extends RecyclerView.Adapter<RemoteSwitchAdapte
 
         ViewHolder(View itemView) {
             super(itemView);
-
             deviceName = itemView.findViewById(R.id.switch_name);
             toggle = itemView.findViewById(R.id.switch_toggle);
-
-            toggle.setOnClickListener(this);
-            itemView.setOnLongClickListener(this);
         }
 
         void bind(RcSwitch rcSwitch, SwitchListener switchListener) {
@@ -78,21 +71,12 @@ public class RemoteSwitchAdapter extends RecyclerView.Adapter<RemoteSwitchAdapte
             this.switchListener = switchListener;
 
             deviceName.setText(rcSwitch.getName());
-        }
 
-        @Override
-        public void onClick(View v) {
-            switch ((v.getId())) {
-                case R.id.switch_toggle:
-                    switchListener.onSwitchToggled(rcSwitch, toggle.isChecked());
-                    break;
-            }
-        }
-
-        @Override
-        public boolean onLongClick(View v) {
-            switchListener.onLongClicked(rcSwitch);
-            return true;
+            toggle.setOnClickListener(view -> switchListener.onSwitchToggled(rcSwitch, toggle.isChecked()));
+            itemView.setOnLongClickListener(view -> {
+                switchListener.onLongClicked(rcSwitch);
+                return true;
+            });
         }
     }
 

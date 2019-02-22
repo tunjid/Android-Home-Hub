@@ -1,6 +1,5 @@
 package com.tunjid.rcswitchcontrol.viewmodels;
 
-import android.app.Activity;
 import android.app.Application;
 import android.bluetooth.BluetoothDevice;
 import android.content.Context;
@@ -30,6 +29,7 @@ import static com.tunjid.rcswitchcontrol.services.ClientBleService.ACTION_CONTRO
 import static com.tunjid.rcswitchcontrol.services.ClientBleService.ACTION_SNIFFER;
 import static com.tunjid.rcswitchcontrol.services.ClientBleService.BLUETOOTH_DEVICE;
 import static com.tunjid.rcswitchcontrol.services.ClientBleService.C_HANDLE_CONTROL;
+import static com.tunjid.rcswitchcontrol.services.ClientBleService.C_HANDLE_TRANSMITTER;
 import static com.tunjid.rcswitchcontrol.services.ClientBleService.STATE_SNIFFING;
 import static com.tunjid.rcswitchcontrol.services.ServerNsdService.SERVICE_NAME_KEY;
 
@@ -113,9 +113,9 @@ public class BleClientViewModel extends AndroidViewModel {
             boolean bound = bleConnection.isBound();
             if (bound) bleConnection.getBoundService().onAppForeGround();
 
-            publisher.onNext(bound
+            publisher.onNext(getConnectionText((bound
                     ? bleConnection.getBoundService().getConnectionState()
-                    : ClientNsdService.ACTION_SOCKET_DISCONNECTED);
+                    : ClientNsdService.ACTION_SOCKET_DISCONNECTED)));
             publisher.onComplete();
         });
     }
@@ -135,19 +135,19 @@ public class BleClientViewModel extends AndroidViewModel {
 
     public void toggleSwitch(RcSwitch rcSwitch, boolean state) {
         if (bleConnection.isBound()) bleConnection.getBoundService()
-                .writeCharacteristicArray(ClientBleService.C_HANDLE_TRANSMITTER, rcSwitch.getTransmission(state));
+                .writeCharacteristicArray(C_HANDLE_TRANSMITTER, rcSwitch.getTransmission(state));
     }
 
     public int onSwitchUpdated(RcSwitch rcSwitch) {
         RcSwitch.saveSwitches(switches);
-        return  switches.indexOf(rcSwitch);
+        return switches.indexOf(rcSwitch);
     }
 
     public String getSniffButtonText() {
         Context context = getApplication();
         return context.getString(R.string.sniff_code, context.getString(switchCreator.getState().equals(RcSwitch.ON_CODE)
                 ? R.string.on
-                :R.string.off));
+                : R.string.off));
     }
 
     public void forgetBluetoothDevice() {
@@ -178,7 +178,7 @@ public class BleClientViewModel extends AndroidViewModel {
     }
 
     private void onBleServiceConnected(ClientBleService service) {
-        onConnectionStateChanged(service.getConnectionState());
+        getConnectionText(service.getConnectionState());
     }
 
     private void onIntentReceived(Intent intent) {
@@ -189,7 +189,7 @@ public class BleClientViewModel extends AndroidViewModel {
             case ClientBleService.ACTION_GATT_CONNECTED:
             case ClientBleService.ACTION_GATT_CONNECTING:
             case ClientBleService.ACTION_GATT_DISCONNECTED:
-                onConnectionStateChanged(action);
+                connectionState.onNext(getConnectionText(action));
                 break;
             case ACTION_CONTROL:
                 intents.onNext(intent);
@@ -215,18 +215,17 @@ public class BleClientViewModel extends AndroidViewModel {
         }
     }
 
-    private void onConnectionStateChanged(String newState) {
+    private String getConnectionText(String newState) {
         Context context = getApplication();
         switch (newState) {
             case ClientBleService.ACTION_GATT_CONNECTED:
-                connectionState.onNext(context.getString(R.string.connected));
-                break;
+                return context.getString(R.string.connected);
             case ClientBleService.ACTION_GATT_CONNECTING:
-                connectionState.onNext(context.getString(R.string.connecting));
-                break;
+                return context.getString(R.string.connecting);
             case ClientBleService.ACTION_GATT_DISCONNECTED:
-                connectionState.onNext(context.getString(R.string.disconnected));
-                break;
+                return context.getString(R.string.disconnected);
+            default:
+                return "";
         }
     }
 }

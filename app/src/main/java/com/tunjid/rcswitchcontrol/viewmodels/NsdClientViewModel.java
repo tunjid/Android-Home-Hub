@@ -7,6 +7,8 @@ import android.content.Intent;
 import com.tunjid.androidbootstrap.core.components.ServiceConnection;
 import com.tunjid.androidbootstrap.functions.Supplier;
 import com.tunjid.androidbootstrap.functions.collections.Lists;
+import com.tunjid.androidbootstrap.recyclerview.diff.Diff;
+import com.tunjid.androidbootstrap.recyclerview.diff.Differentiable;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster;
 import com.tunjid.rcswitchcontrol.model.Payload;
@@ -17,17 +19,22 @@ import com.tunjid.rcswitchcontrol.services.ClientBleService;
 import com.tunjid.rcswitchcontrol.services.ClientNsdService;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import androidx.annotation.NonNull;
+import androidx.core.util.Pair;
 import androidx.lifecycle.AndroidViewModel;
+import androidx.recyclerview.widget.DiffUtil.DiffResult;
 import io.reactivex.Flowable;
+import io.reactivex.Single;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.processors.PublishProcessor;
 
 import static android.content.Context.MODE_PRIVATE;
 import static com.tunjid.rcswitchcontrol.model.RcSwitch.SWITCH_PREFS;
 import static io.reactivex.android.schedulers.AndroidSchedulers.mainThread;
+import static io.reactivex.schedulers.Schedulers.io;
 
 public class NsdClientViewModel extends AndroidViewModel {
 
@@ -36,8 +43,8 @@ public class NsdClientViewModel extends AndroidViewModel {
     private final List<RcSwitch> switches;
 
     private final CompositeDisposable disposable;
-    private final PublishProcessor<Payload> payloads;
     private final PublishProcessor<String> connectionState;
+    private final PublishProcessor<Pair<String, DiffResult>> payloads;
     private final ServiceConnection<ClientNsdService> nsdConnection;
 
     public NsdClientViewModel(@NonNull Application application) {
@@ -57,7 +64,9 @@ public class NsdClientViewModel extends AndroidViewModel {
                 ClientNsdService.ACTION_SOCKET_CONNECTED,
                 ClientNsdService.ACTION_SOCKET_CONNECTING,
                 ClientNsdService.ACTION_SOCKET_DISCONNECTED,
-                ClientNsdService.ACTION_SERVER_RESPONSE).subscribe(this::onIntentReceived, Throwable::printStackTrace));
+                ClientNsdService.ACTION_SERVER_RESPONSE,
+                ClientNsdService.ACTION_START_NSD_DISCOVERY)
+                .subscribe(this::onIntentReceived, Throwable::printStackTrace));
     }
 
     @Override
@@ -74,13 +83,17 @@ public class NsdClientViewModel extends AndroidViewModel {
 
     public List<RcSwitch> getSwitches() { return switches; }
 
-    public Flowable<Payload> listen() {
+    public Flowable<Pair<String, DiffResult>> listen() {
         return payloads.observeOn(mainThread());
     }
 
     public boolean isBound() { return nsdConnection.isBound(); }
 
     public boolean isConnected() { return nsdConnection.isBound() && !nsdConnection.getBoundService().isConnected(); }
+
+    public int getLatestHistoryIndex() {
+        return history.size() - 1;
+    }
 
     public void sendMessage(Payload message) { sendMessage(() -> true, message); }
 
@@ -120,17 +133,21 @@ public class NsdClientViewModel extends AndroidViewModel {
             case ClientNsdService.ACTION_SOCKET_DISCONNECTED:
                 connectionState.onNext(getConnectionText(action));
                 break;
+            case ClientNsdService.ACTION_START_NSD_DISCOVERY:
+                connectionState.onNext(getConnectionText(ClientNsdService.ACTION_SOCKET_CONNECTING));
+                break;
             case ClientNsdService.ACTION_SERVER_RESPONSE:
                 String serverResponse = intent.getStringExtra(ClientNsdService.DATA_SERVER_RESPONSE);
                 Payload payload = Payload.deserialize(serverResponse);
+                boolean isSwitchPayload = isSwitchPayload(payload);
 
                 Lists.replace(commands, payload.getCommands());
+                Single<DiffResult> diff = isSwitchPayload
+                        ? diff(switches, () -> diffSwitches(payload))
+                        : diff(history, () -> diffHistory(payload));
 
-                if (isSwitchPayload(payload))
-                    Lists.replace(switches, RcSwitch.deserializeSavedSwitches(payload.getData()));
-                else history.add(payload.getResponse());
-
-                payloads.onNext(payload);
+                diff.map(diffResult -> new Pair<>(isSwitchPayload ? payload.getResponse() : null, diffResult))
+                        .subscribe(payloads::onNext, Throwable::printStackTrace);
                 break;
         }
     }
@@ -165,21 +182,45 @@ public class NsdClientViewModel extends AndroidViewModel {
     }
 
     private boolean isSwitchPayload(Payload payload) {
-        if (payload.getAction() == null) return false;
-
         String key = payload.getKey();
+        String payloadAction = payload.getAction();
+
         boolean isBleRc = key.equals(BleRcProtocol.class.getName());
 
-        if (!isBleRc || payload.getAction() == null) return true;
+        if (isBleRc) return true;
+        if (payloadAction == null) return false;
 
         Context context = getApplication();
-
-        return switchesChanged(context, payload.getAction());
-    }
-
-    private boolean switchesChanged(Context context, String payloadAction) {
         return payloadAction.equals(ClientBleService.ACTION_TRANSMITTER)
                 || payloadAction.equals(context.getString(R.string.blercprotocol_delete_command))
                 || payloadAction.equals(context.getString(R.string.blercprotocol_rename_command));
+    }
+
+    private Diff<RcSwitch> diffSwitches(Payload payload) {
+        return Diff.calculate(switches,
+                RcSwitch.deserializeSavedSwitches(payload.getData()),
+                (current, server) -> {
+                    if (!server.isEmpty()) Lists.replace(current, server);
+                    return current;
+                },
+                rcSwitch -> Differentiable.fromCharSequence(rcSwitch::serialize));
+    }
+
+    private Diff<String> diffHistory(Payload payload) {
+        return Diff.calculate(history,
+                Collections.singletonList(payload.getResponse()),
+                (current, server) -> {
+                    current.addAll(server);
+                    return current;
+                },
+                response -> Differentiable.fromCharSequence(response::toString));
+    }
+
+    private <T> Single<DiffResult> diff(List<T> list, Supplier<Diff<T>> diffSupplier) {
+        return Single.fromCallable(diffSupplier::get)
+                .subscribeOn(io())
+                .observeOn(mainThread())
+                .doOnSuccess(diff -> Lists.replace(list, diff.cumulative))
+                .map(diff -> diff.result);
     }
 }

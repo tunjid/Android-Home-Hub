@@ -32,7 +32,6 @@ import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster;
 import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment;
 import com.tunjid.rcswitchcontrol.model.Payload;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
-import com.tunjid.rcswitchcontrol.nsd.protocols.BleRcProtocol;
 import com.tunjid.rcswitchcontrol.services.ClientBleService;
 import com.tunjid.rcswitchcontrol.services.ClientNsdService;
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler;
@@ -43,7 +42,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.util.Pair;
 import androidx.lifecycle.ViewModelProviders;
+import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -62,8 +63,7 @@ public class ClientNsdFragment extends BaseFragment
     private TextView connectionStatus;
     private RecyclerView commandHistory;
     private RecyclerView commandsView;
-    private ListManager<RecyclerView.ViewHolder, ListPlaceholder> mainListManager;
-    private ListManager<ChatAdapter.TextViewHolder, ListPlaceholder> commandsListManager;
+    private ListManager<RecyclerView.ViewHolder, ListPlaceholder> listManager;
 
     private NsdClientViewModel viewModel;
 
@@ -95,8 +95,7 @@ public class ClientNsdFragment extends BaseFragment
         commandsView = root.findViewById(R.id.commands);
 
         swapAdapter(false);
-
-        commandsListManager = new Builder()
+        new Builder()
                 .withRecyclerView(commandsView)
                 .withAdapter(new ChatAdapter(this, viewModel.getCommands()))
                 .build();
@@ -131,7 +130,6 @@ public class ClientNsdFragment extends BaseFragment
         switch (item.getItemId()) {
             case R.id.menu_connect:
                 Broadcaster.push(new Intent(ClientNsdService.ACTION_START_NSD_DISCOVERY));
-                onConnectionStateChanged(ClientNsdService.ACTION_SOCKET_CONNECTING);
                 return true;
             case R.id.menu_forget:
                 viewModel.forgetService();
@@ -178,40 +176,30 @@ public class ClientNsdFragment extends BaseFragment
 
     @Override
     public void onSwitchRenamed(RcSwitch rcSwitch) {
-        mainListManager.notifyItemChanged(viewModel.getSwitches().indexOf(rcSwitch));
+        listManager.notifyItemChanged(viewModel.getSwitches().indexOf(rcSwitch));
         viewModel.sendMessage(Payload.builder().setAction(getString(R.string.blercprotocol_rename_command))
                 .setData(rcSwitch.serialize())
                 .build());
     }
 
-    private void onPayloadReceived(Payload payload) {
-        requireNonNull(commandsView.getAdapter()).notifyDataSetChanged();
-
+    private void onPayloadReceived(Pair<String, DiffUtil.DiffResult> payload) {
         TransitionManager.beginDelayedTransition((ViewGroup) commandHistory.getParent(), new AutoTransition()
                 .excludeTarget(commandHistory, true)
                 .excludeTarget(commandsView, true));
 
+        requireNonNull(commandsView.getAdapter()).notifyDataSetChanged();
         ViewUtil.listenForLayout(commandsView, () -> ViewUtil.getLayoutParams(commandHistory).bottomMargin = commandsView.getHeight());
 
-        String key = payload.getKey();
-        boolean isSwitchPayload = key.equals(BleRcProtocol.class.getName());
+        String message = payload.first;
+        DiffUtil.DiffResult result = payload.second;
+        boolean isSwitchPayload = message != null;
 
         swapAdapter(isSwitchPayload);
+        if (result != null) listManager.onDiff(result);
 
-        if (isSwitchPayload && payload.getAction() != null) {
-            if (payload.getAction().equals(ClientBleService.ACTION_TRANSMITTER)) {
-                mainListManager.notifyDataSetChanged();
-            }
-            else if (payload.getAction().equals(getString(R.string.blercprotocol_delete_command))
-                    || payload.getAction().equals(getString(R.string.blercprotocol_rename_command))) {
-                mainListManager.notifyDataSetChanged();
-            }
-            Snackbar.make(commandHistory, payload.getResponse(), Snackbar.LENGTH_SHORT).show();
-        }
-        else {
-            mainListManager.notifyDataSetChanged();
-            commandsListManager.post(() -> commandsListManager.getRecyclerView().smoothScrollToPosition(viewModel.getHistory().size() - 1));
-        }
+        if (isSwitchPayload) Snackbar.make(commandHistory, message, Snackbar.LENGTH_SHORT).show();
+        else listManager.post(() -> listManager.getRecyclerView()
+                .smoothScrollToPosition(viewModel.getLatestHistoryIndex()));
     }
 
     private void onConnectionStateChanged(String text) {
@@ -226,7 +214,7 @@ public class ClientNsdFragment extends BaseFragment
         if (isSwitchAdapter && currentAdapter instanceof RemoteSwitchAdapter) return;
         if (!isSwitchAdapter && currentAdapter instanceof ChatAdapter) return;
 
-        mainListManager = new ListManagerBuilder<RecyclerView.ViewHolder, ListPlaceholder>()
+        listManager = new ListManagerBuilder<RecyclerView.ViewHolder, ListPlaceholder>()
                 .withRecyclerView(commandHistory)
                 .withLinearLayoutManager()
                 .withAdapter(isSwitchAdapter
@@ -241,7 +229,7 @@ public class ClientNsdFragment extends BaseFragment
     }
 
     private int getSwipeDirection() {
-        return isDeleting || mainListManager.getRecyclerView().getAdapter() instanceof ChatAdapter ? 0 :
+        return isDeleting || listManager.getRecyclerView().getAdapter() instanceof ChatAdapter ? 0 :
                 makeMovementFlags(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT);
     }
 
@@ -275,7 +263,7 @@ public class ClientNsdFragment extends BaseFragment
                     if (deletionHandler.hasItems()) {
                         int deletedAt = deletionHandler.getDeletedPosition();
                         switches.add(deletedAt, deletionHandler.pop());
-                        mainListManager.notifyItemInserted(deletedAt);
+                        listManager.notifyItemInserted(deletedAt);
                     }
                     isDeleting = false;
                 })

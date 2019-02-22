@@ -23,7 +23,7 @@ import java.util.Collections;
 import java.util.List;
 
 import androidx.annotation.NonNull;
-import androidx.core.util.Pair;
+import androidx.annotation.Nullable;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.recyclerview.widget.DiffUtil.DiffResult;
 import io.reactivex.Flowable;
@@ -43,8 +43,8 @@ public class NsdClientViewModel extends AndroidViewModel {
     private final List<RcSwitch> switches;
 
     private final CompositeDisposable disposable;
-    private final PublishProcessor<String> connectionState;
-    private final PublishProcessor<Pair<String, DiffResult>> payloads;
+    private final PublishProcessor<State> stateProcessor;
+    private final PublishProcessor<String> connectionStateProcessor;
     private final ServiceConnection<ClientNsdService> nsdConnection;
 
     public NsdClientViewModel(@NonNull Application application) {
@@ -54,10 +54,12 @@ public class NsdClientViewModel extends AndroidViewModel {
         commands = new ArrayList<>();
         switches = new ArrayList<>();
 
+        stateProcessor = PublishProcessor.create();
+        connectionStateProcessor = PublishProcessor.create();
+
         disposable = new CompositeDisposable();
-        payloads = PublishProcessor.create();
-        connectionState = PublishProcessor.create();
         nsdConnection = new ServiceConnection<>(ClientNsdService.class, this::onServiceConnected);
+
         nsdConnection.with(application).bind();
 
         disposable.add(Broadcaster.listen(
@@ -83,8 +85,8 @@ public class NsdClientViewModel extends AndroidViewModel {
 
     public List<RcSwitch> getSwitches() { return switches; }
 
-    public Flowable<Pair<String, DiffResult>> listen() {
-        return payloads.observeOn(mainThread());
+    public Flowable<State> listen() {
+        return stateProcessor.observeOn(mainThread());
     }
 
     public boolean isBound() { return nsdConnection.isBound(); }
@@ -107,7 +109,7 @@ public class NsdClientViewModel extends AndroidViewModel {
     }
 
     public Flowable<String> connectionState() {
-        return connectionState.startWith(publisher -> {
+        return connectionStateProcessor.startWith(publisher -> {
             boolean bound = nsdConnection.isBound();
             if (bound) nsdConnection.getBoundService().onAppForeGround();
 
@@ -119,7 +121,7 @@ public class NsdClientViewModel extends AndroidViewModel {
     }
 
     private void onServiceConnected(ClientNsdService service) {
-        connectionState.onNext(getConnectionText(service.getConnectionState()));
+        connectionStateProcessor.onNext(getConnectionText(service.getConnectionState()));
         sendMessage(commands::isEmpty, Payload.builder().setAction(CommsProtocol.PING).build());
     }
 
@@ -131,10 +133,10 @@ public class NsdClientViewModel extends AndroidViewModel {
             case ClientNsdService.ACTION_SOCKET_CONNECTED:
             case ClientNsdService.ACTION_SOCKET_CONNECTING:
             case ClientNsdService.ACTION_SOCKET_DISCONNECTED:
-                connectionState.onNext(getConnectionText(action));
+                connectionStateProcessor.onNext(getConnectionText(action));
                 break;
             case ClientNsdService.ACTION_START_NSD_DISCOVERY:
-                connectionState.onNext(getConnectionText(ClientNsdService.ACTION_SOCKET_CONNECTING));
+                connectionStateProcessor.onNext(getConnectionText(ClientNsdService.ACTION_SOCKET_CONNECTING));
                 break;
             case ClientNsdService.ACTION_SERVER_RESPONSE:
                 String serverResponse = intent.getStringExtra(ClientNsdService.DATA_SERVER_RESPONSE);
@@ -146,8 +148,8 @@ public class NsdClientViewModel extends AndroidViewModel {
                         ? diff(switches, () -> diffSwitches(payload))
                         : diff(history, () -> diffHistory(payload));
 
-                diff.map(diffResult -> new Pair<>(isSwitchPayload ? payload.getResponse() : null, diffResult))
-                        .subscribe(payloads::onNext, Throwable::printStackTrace);
+                disposable.add(diff.map(diffResult -> new State(isSwitchPayload, payload.getResponse(), diffResult))
+                        .subscribe(stateProcessor::onNext, Throwable::printStackTrace));
                 break;
         }
     }
@@ -222,5 +224,18 @@ public class NsdClientViewModel extends AndroidViewModel {
                 .observeOn(mainThread())
                 .doOnSuccess(diff -> Lists.replace(list, diff.cumulative))
                 .map(diff -> diff.result);
+    }
+
+    public static final class State {
+
+        public final boolean isRc;
+        @Nullable public final String prompt;
+        @NonNull public final DiffResult result;
+
+        State(boolean isRc, @Nullable String prompt, @NonNull DiffResult result) {
+            this.isRc = isRc;
+            this.prompt = prompt;
+            this.result = result;
+        }
     }
 }

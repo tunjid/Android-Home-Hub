@@ -42,13 +42,13 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.util.Pair;
 import androidx.lifecycle.ViewModelProviders;
-import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
 
 import static androidx.recyclerview.widget.ItemTouchHelper.Callback.makeMovementFlags;
+import static com.google.android.material.snackbar.Snackbar.LENGTH_SHORT;
+import static com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel.*;
 import static java.util.Objects.requireNonNull;
 
 public class ClientNsdFragment extends BaseFragment
@@ -61,7 +61,7 @@ public class ClientNsdFragment extends BaseFragment
     private boolean isDeleting;
 
     private TextView connectionStatus;
-    private RecyclerView commandHistory;
+    private RecyclerView mainList;
     private RecyclerView commandsView;
     private ListManager<RecyclerView.ViewHolder, ListPlaceholder> listManager;
 
@@ -91,7 +91,7 @@ public class ClientNsdFragment extends BaseFragment
         View root = inflater.inflate(R.layout.fragment_nsd_client, container, false);
 
         connectionStatus = root.findViewById(R.id.connection_status);
-        commandHistory = root.findViewById(R.id.switch_list);
+        mainList = root.findViewById(R.id.switch_list);
         commandsView = root.findViewById(R.id.commands);
 
         swapAdapter(false);
@@ -146,7 +146,7 @@ public class ClientNsdFragment extends BaseFragment
 
     @Override
     public void onDestroyView() {
-        commandHistory = null;
+        mainList = null;
         connectionStatus = null;
         super.onDestroyView();
     }
@@ -182,22 +182,18 @@ public class ClientNsdFragment extends BaseFragment
                 .build());
     }
 
-    private void onPayloadReceived(Pair<String, DiffUtil.DiffResult> payload) {
-        TransitionManager.beginDelayedTransition((ViewGroup) commandHistory.getParent(), new AutoTransition()
-                .excludeTarget(commandHistory, true)
+    private void onPayloadReceived(State state) {
+        TransitionManager.beginDelayedTransition((ViewGroup) mainList.getParent(), new AutoTransition()
+                .excludeTarget(mainList, true)
                 .excludeTarget(commandsView, true));
 
         requireNonNull(commandsView.getAdapter()).notifyDataSetChanged();
-        ViewUtil.listenForLayout(commandsView, () -> ViewUtil.getLayoutParams(commandHistory).bottomMargin = commandsView.getHeight());
+        ViewUtil.listenForLayout(commandsView, () -> ViewUtil.getLayoutParams(mainList).bottomMargin = commandsView.getHeight());
 
-        String message = payload.first;
-        DiffUtil.DiffResult result = payload.second;
-        boolean isSwitchPayload = message != null;
+        swapAdapter(state.isRc);
+        listManager.onDiff(state.result);
 
-        swapAdapter(isSwitchPayload);
-        if (result != null) listManager.onDiff(result);
-
-        if (isSwitchPayload) Snackbar.make(commandHistory, message, Snackbar.LENGTH_SHORT).show();
+        if (state.prompt != null) Snackbar.make(mainList, state.prompt, LENGTH_SHORT).show();
         else listManager.post(() -> listManager.getRecyclerView()
                 .smoothScrollToPosition(viewModel.getLatestHistoryIndex()));
     }
@@ -209,13 +205,13 @@ public class ClientNsdFragment extends BaseFragment
 
     @SuppressWarnings("unchecked")
     private void swapAdapter(boolean isSwitchAdapter) {
-        Object currentAdapter = commandHistory.getAdapter();
+        RecyclerView.Adapter currentAdapter = mainList.getAdapter();
 
         if (isSwitchAdapter && currentAdapter instanceof RemoteSwitchAdapter) return;
         if (!isSwitchAdapter && currentAdapter instanceof ChatAdapter) return;
 
         listManager = new ListManagerBuilder<RecyclerView.ViewHolder, ListPlaceholder>()
-                .withRecyclerView(commandHistory)
+                .withRecyclerView(mainList)
                 .withLinearLayoutManager()
                 .withAdapter(isSwitchAdapter
                         ? new RemoteSwitchAdapter(this, viewModel.getSwitches())

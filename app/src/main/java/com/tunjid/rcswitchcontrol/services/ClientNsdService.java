@@ -280,14 +280,11 @@ public class ClientNsdService extends Service
             if (out.checkError()) {
                 close();
                 Log.d(TAG, "Error writing to server, closing.");
-
             }
-            else {
-                new Thread(() -> {
-                    out.println(message);
-                    Log.d(TAG, "Connection sent message: " + message);
-                }).start();
-            }
+            else new Thread(() -> {
+                out.println(message);
+                Log.d(TAG, "Connection sent message: " + message);
+            }).start();
         }
 
         @Override

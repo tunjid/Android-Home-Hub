@@ -2,7 +2,6 @@ package com.tunjid.rcswitchcontrol.nsd.protocols;
 
 
 import android.content.Intent;
-import android.content.res.Resources;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
@@ -19,6 +18,9 @@ import java.util.List;
 import java.util.Objects;
 
 import io.reactivex.disposables.CompositeDisposable;
+
+import static com.tunjid.rcswitchcontrol.services.ClientBleService.C_HANDLE_CONTROL;
+import static com.tunjid.rcswitchcontrol.services.ClientBleService.STATE_SNIFFING;
 
 /**
  * A protocol for communicating with RF 433 MhZ devices
@@ -37,7 +39,6 @@ public class BleRcProtocol extends CommsProtocol {
     private final String DISCONNECT;
     private final String REFRESH_SWITCHES;
 
-    private final List<RcSwitch> switches;
     private final Handler pushHandler;
     private final HandlerThread pushThread;
     private final RcSwitch.SwitchCreator switchCreator;
@@ -57,7 +58,6 @@ public class BleRcProtocol extends CommsProtocol {
         pushThread = new HandlerThread("PushThread");
         pushThread.start();
 
-        switches = RcSwitch.getSavedSwitches();
         switchCreator = new RcSwitch.SwitchCreator();
 
         pushHandler = new Handler(pushThread.getLooper());
@@ -88,62 +88,59 @@ public class BleRcProtocol extends CommsProtocol {
 
     @Override
     public Payload processInput(Payload input) {
-        Resources resources = appContext.getResources();
         Payload.Builder builder = Payload.builder();
         builder.setKey(getClass().getName()).addCommand(RESET);
 
         String action = input.getAction();
 
         if (action.equals(PING)) {
-            builder.setResponse(resources.getString(R.string.blercprotocol_ping_response))
+            builder.setResponse(getString(R.string.blercprotocol_ping_response))
                     .setAction(ClientBleService.ACTION_TRANSMITTER)
                     .setData(RcSwitch.serializedSavedSwitches())
                     .addCommand(REFRESH_SWITCHES).addCommand(SNIFF);
         }
         else if (action.equals(REFRESH_SWITCHES)) {
-            builder.setResponse(resources.getString(R.string.blercprotocol_refresh_response))
+            builder.setResponse(getString(R.string.blercprotocol_refresh_response))
                     .setAction(ClientBleService.ACTION_TRANSMITTER)
                     .setData(RcSwitch.serializedSavedSwitches())
                     .addCommand(SNIFF).addCommand(REFRESH_SWITCHES);
         }
         else if (action.equals(SNIFF)) {
-            builder.addCommand(RESET).addCommand(DISCONNECT);
+            builder.addCommand(RESET)
+                    .addCommand(DISCONNECT)
+                    .setResponse(appContext.getString(R.string.blercprotocol_start_sniff_response));
 
-            if (bleConnection.isBound()) {
-                builder.setResponse(appContext.getString(R.string.blercprotocol_start_sniff_response));
-                bleConnection.getBoundService().writeCharacteristicArray(
-                        ClientBleService.C_HANDLE_CONTROL,
-                        new byte[]{ClientBleService.STATE_SNIFFING});
-            }
-            else {
-                builder.setResponse(appContext.getString(R.string.blercprotocol_start_sniff_response));
-            }
+            if (bleConnection.isBound()) bleConnection.getBoundService()
+                    .writeCharacteristicArray(C_HANDLE_CONTROL, new byte[]{STATE_SNIFFING});
         }
         else if (action.equals(RENAME)) {
+            List<RcSwitch> switches = RcSwitch.getSavedSwitches();
             RcSwitch rcSwitch = RcSwitch.deserialize(input.getData());
+
             int position = switches.indexOf(rcSwitch);
+            boolean hasSwitch = position > -1;
 
             // Switches are equal based on their codes, not thier names.
             // Remove the switch with the old name, and add the switch with the new name.
-            if (position != -1) {
+            if (hasSwitch) {
                 RcSwitch oldSwitch = switches.get(position);
-                builder.setResponse(resources.getString(R.string.blercprotocol_renamed_response, oldSwitch.getName(), rcSwitch.getName()));
+                builder.setResponse(getString(R.string.blercprotocol_renamed_response, oldSwitch.getName(), rcSwitch.getName()));
                 switches.remove(position);
                 switches.add(rcSwitch);
                 RcSwitch.saveSwitches(switches);
             }
-            else {
-                builder.setResponse(resources.getString(R.string.blercprotocol_no_such_switch_response));
-            }
+            else builder.setResponse(getString(R.string.blercprotocol_no_such_switch_response));
 
-            builder.setAction(action).setData(RcSwitch.serializedSavedSwitches())
-                    .addCommand(SNIFF);
+            builder.setData(RcSwitch.serializedSavedSwitches())
+                    .addCommand(SNIFF)
+                    .setAction(action);
         }
         else if (action.equals(DELETE)) {
+            List<RcSwitch> switches = RcSwitch.getSavedSwitches();
             RcSwitch rcSwitch = RcSwitch.deserialize(input.getData());
             String response = switches.remove(rcSwitch)
-                    ? resources.getString(R.string.blercprotocol_deleted_response, rcSwitch.getName())
-                    : resources.getString(R.string.blercprotocol_no_such_switch_response);
+                    ? getString(R.string.blercprotocol_deleted_response, rcSwitch.getName())
+                    : getString(R.string.blercprotocol_no_such_switch_response);
 
             // Save switches before sending them
             RcSwitch.saveSwitches(switches);
@@ -153,13 +150,11 @@ public class BleRcProtocol extends CommsProtocol {
                     .addCommand(SNIFF);
         }
         else if (action.equals(ClientBleService.ACTION_TRANSMITTER)) {
-            builder.setResponse(resources.getString(R.string.blercprotocol_transmission_response))
+            builder.setResponse(getString(R.string.blercprotocol_transmission_response))
                     .addCommand(SNIFF).addCommand(REFRESH_SWITCHES);
 
-            Intent intent = new Intent(ClientBleService.ACTION_TRANSMITTER);
-            intent.putExtra(ClientBleService.DATA_AVAILABLE_TRANSMITTER, input.getData());
-
-            Broadcaster.push(intent);
+            Broadcaster.push(new Intent(ClientBleService.ACTION_TRANSMITTER)
+                    .putExtra(ClientBleService.DATA_AVAILABLE_TRANSMITTER, input.getData()));
         }
 
         return builder.build();
@@ -191,11 +186,10 @@ public class BleRcProtocol extends CommsProtocol {
                     break;
                 case ClientBleService.ACTION_CONTROL: {
                     byte[] rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_CONTROL);
-                    if (rawData[0] == 1) {
+                    if (rawData[0] == 1)
                         builder.setResponse(appContext.getString(R.string.blercprotocol_stop_sniff_response))
                                 .setAction(action).setData(String.valueOf(rawData[0]))
                                 .addCommand(SNIFF).addCommand(RESET);
-                    }
                     break;
                 }
                 case ClientBleService.ACTION_SNIFFER: {
@@ -209,6 +203,7 @@ public class BleRcProtocol extends CommsProtocol {
                                     .setAction(action).addCommand(SNIFF).addCommand(RESET);
                             break;
                         case RcSwitch.OFF_CODE:
+                            List<RcSwitch> switches = RcSwitch.getSavedSwitches();
                             RcSwitch rcSwitch = switchCreator.withOffCode(rawData);
                             rcSwitch.setName("Switch " + (switches.size() + 1));
 
@@ -221,9 +216,8 @@ public class BleRcProtocol extends CommsProtocol {
                                 builder.setResponse(appContext.getString(R.string.blercprotocol_sniff_off_response))
                                         .setAction(ClientBleService.ACTION_TRANSMITTER).setData(RcSwitch.serializedSavedSwitches());
                             }
-                            else {
+                            else
                                 builder.setResponse(appContext.getString(R.string.scanblercprotocol_sniff_already_exists_response));
-                            }
                             break;
                     }
                     break;

@@ -33,7 +33,9 @@ public class App extends android.app.Application {
         instance = this;
 
         registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
-            @Override public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
+            @Override public void onActivityCreated(Activity activity, Bundle savedInstanceState) {}
+
+            @Override public void onActivityStarted(Activity activity) {
                 // Necessary because of background restrictions, services may only be started in
                 // the foreground
                 if (registeredWifiReceiver) return;
@@ -48,8 +50,6 @@ public class App extends android.app.Application {
 
                 registeredWifiReceiver = true;
             }
-
-            @Override public void onActivityStarted(Activity activity) {}
 
             @Override public void onActivityResumed(Activity activity) {}
 

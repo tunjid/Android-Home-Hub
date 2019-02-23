@@ -19,8 +19,11 @@ import com.tunjid.rcswitchcontrol.services.ClientBleService;
 import com.tunjid.rcswitchcontrol.services.ClientNsdService;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -38,6 +41,7 @@ import static io.reactivex.schedulers.Schedulers.io;
 
 public class NsdClientViewModel extends AndroidViewModel {
 
+    private final Set<String> noisy;
     private final List<String> history;
     private final List<String> commands;
     private final List<RcSwitch> switches;
@@ -47,9 +51,10 @@ public class NsdClientViewModel extends AndroidViewModel {
     private final PublishProcessor<String> connectionStateProcessor;
     private final ServiceConnection<ClientNsdService> nsdConnection;
 
-    public NsdClientViewModel(@NonNull Application application) {
-        super(application);
+    public NsdClientViewModel(@NonNull Application app) {
+        super(app);
 
+        noisy = getNoisy(app);
         history = new ArrayList<>();
         commands = new ArrayList<>();
         switches = new ArrayList<>();
@@ -60,7 +65,7 @@ public class NsdClientViewModel extends AndroidViewModel {
         disposable = new CompositeDisposable();
         nsdConnection = new ServiceConnection<>(ClientNsdService.class, this::onServiceConnected);
 
-        nsdConnection.with(application).bind();
+        nsdConnection.with(app).bind();
 
         disposable.add(Broadcaster.listen(
                 ClientNsdService.ACTION_SOCKET_CONNECTED,
@@ -148,7 +153,7 @@ public class NsdClientViewModel extends AndroidViewModel {
                         ? diff(switches, () -> diffSwitches(payload))
                         : diff(history, () -> diffHistory(payload));
 
-                disposable.add(diff.map(diffResult -> new State(isSwitchPayload, payload.getResponse(), diffResult))
+                disposable.add(diff.map(diffResult -> new State(isSwitchPayload, getMessage(payload), diffResult))
                         .subscribe(stateProcessor::onNext, Throwable::printStackTrace));
                 break;
         }
@@ -181,6 +186,27 @@ public class NsdClientViewModel extends AndroidViewModel {
     private void sendMessage(Supplier<Boolean> predicate, Payload message) {
         if (nsdConnection.isBound() && predicate.get())
             nsdConnection.getBoundService().sendMessage(message);
+    }
+
+    @Nullable
+    private String getMessage(Payload payload) {
+        String response = payload.getResponse();
+        if (response == null) return null;
+
+        String action = payload.getAction();
+        action = action == null ? "" : action;
+
+        return noisy.contains(action) ? response : null;
+    }
+
+    private Set<String> getNoisy(@NonNull Application app) {
+        return new HashSet<>(Arrays.asList(
+                ClientBleService.ACTION_TRANSMITTER,
+                app.getString(R.string.scanblercprotocol_sniff),
+                app.getString(R.string.blercprotocol_rename_command),
+                app.getString(R.string.blercprotocol_delete_command),
+                app.getString(R.string.blercprotocol_refresh_switches_command)
+        ));
     }
 
     private boolean hasSwitches(Payload payload) {

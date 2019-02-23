@@ -28,9 +28,9 @@
 
     <Button
         android:id="@+id/button_pair"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="?android:attr/selectableItemBackground"
         android:gravity="center"
         android:text="@string/button_scan"
         android:textColor="@color/colorPrimary"

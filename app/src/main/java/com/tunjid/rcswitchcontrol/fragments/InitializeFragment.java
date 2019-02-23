@@ -41,7 +41,7 @@ public class InitializeFragment extends BaseFragment
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View rootView = inflater.inflate(R.layout.fragment_pair, container, false);
+        View rootView = inflater.inflate(R.layout.fragment_initialize, container, false);
 
         infoText = rootView.findViewById(R.id.bluetooth_prompt);
         pairButton = rootView.findViewById(R.id.button_pair);

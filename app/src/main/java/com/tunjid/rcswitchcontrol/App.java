@@ -1,5 +1,6 @@
 package com.tunjid.rcswitchcontrol;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
@@ -11,6 +12,7 @@ import android.os.Bundle;
 import android.util.Log;
 
 import com.google.android.things.pio.PeripheralManager;
+import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster;
 import com.tunjid.rcswitchcontrol.services.ClientNsdService;
 
 import java.util.List;
@@ -25,12 +27,17 @@ public class App extends android.app.Application {
 
     private static App instance;
 
-    private boolean registeredWifiReceiver;
+    private WifiStatusReceiver receiver;
 
-    @Override
+    @Override @SuppressLint("CheckResult")
     public void onCreate() {
         super.onCreate();
         instance = this;
+
+        //noinspection ResultOfMethodCallIgnored
+        Broadcaster.listen(ClientNsdService.ACTION_START_NSD_DISCOVERY)
+                .subscribe(intent -> { if (receiver != null) receiver.onReceive(this, intent); },
+                        Throwable::printStackTrace);
 
         registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
             @Override public void onActivityCreated(Activity activity, Bundle savedInstanceState) {}
@@ -38,17 +45,14 @@ public class App extends android.app.Application {
             @Override public void onActivityStarted(Activity activity) {
                 // Necessary because of background restrictions, services may only be started in
                 // the foreground
-                if (registeredWifiReceiver) return;
+                if (receiver != null) return;
 
                 IntentFilter filter = new IntentFilter();
-                filter.addAction(ClientNsdService.ACTION_START_NSD_DISCOVERY);
                 filter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
                 filter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
                 filter.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION);
 
-                registerReceiver(new WifiStatusReceiver(), filter);
-
-                registeredWifiReceiver = true;
+                registerReceiver(receiver = new WifiStatusReceiver(), filter);
             }
 
             @Override public void onActivityResumed(Activity activity) {}

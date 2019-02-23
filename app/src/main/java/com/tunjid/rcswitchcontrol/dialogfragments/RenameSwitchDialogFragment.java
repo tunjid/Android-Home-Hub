@@ -35,9 +35,7 @@ public class RenameSwitchDialogFragment extends DialogFragment {
         return fragment;
     }
 
-    public RenameSwitchDialogFragment() {
-
-    }
+    public RenameSwitchDialogFragment() { }
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -57,8 +55,9 @@ public class RenameSwitchDialogFragment extends DialogFragment {
 
         editText.setText(rcSwitch.getName());
 
-        return new AlertDialog.Builder(activity).setTitle(R.string.rename_switch)
+        return new AlertDialog.Builder(activity, R.style.DialogTheme)
                 .setView(view)
+                .setTitle(R.string.rename_switch)
                 .setPositiveButton(R.string.rename, (dialog, id) -> {
                     rcSwitch.setName(editText.getText().toString());
                     Objects.requireNonNull(listener).onSwitchRenamed(rcSwitch);

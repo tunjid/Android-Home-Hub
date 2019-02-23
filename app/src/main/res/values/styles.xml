@@ -9,4 +9,16 @@
         <item name="android:textColor">@color/text_color</item>
         <item name="android:textColorPrimary">@color/text_color</item>
     </style>
+
+    <style name="DialogTheme" parent="Theme.MaterialComponents.Dialog">
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowMinWidthMajor">90%</item>
+        <item name="android:windowMinWidthMinor">90%</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:textColor">@color/text_color</item>
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:windowTranslucentNavigation">true</item>
+        <item name="android:textColorPrimary">@color/text_color</item>
+        <item name="android:windowBackground">@color/app_background</item>
+    </style>
 </resources>

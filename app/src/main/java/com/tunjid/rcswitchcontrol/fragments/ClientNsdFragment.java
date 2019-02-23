@@ -214,7 +214,7 @@ public class ClientNsdFragment extends BaseFragment
                         .setMovementFlagsFunction(holder -> getSwipeDirection())
                         .setItemViewSwipeSupplier(() -> true)
                         .build())
-                .withInconsistencyHandler(__ -> listManager.notifyDataSetChanged())
+                .withInconsistencyHandler(__ -> requireActivity().recreate())
                 .build();
     }
 

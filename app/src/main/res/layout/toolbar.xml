@@ -5,4 +5,5 @@
     android:layout_height="wrap_content"
     android:background="@color/colorPrimary"
     app:popupTheme="@style/ThemeOverlay.MaterialComponents.Dark"
-    app:theme="@style/ThemeOverlay.MaterialComponents.Dark" />
+    app:theme="@style/ThemeOverlay.MaterialComponents.Dark"
+    app:titleTextColor="@color/text_color" />

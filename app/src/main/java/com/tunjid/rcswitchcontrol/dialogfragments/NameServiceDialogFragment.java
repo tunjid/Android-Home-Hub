@@ -28,9 +28,7 @@ public class NameServiceDialogFragment extends DialogFragment {
         return fragment;
     }
 
-    public NameServiceDialogFragment() {
-
-    }
+    public NameServiceDialogFragment() { }
 
     @Override
     @NonNull
@@ -43,8 +41,9 @@ public class NameServiceDialogFragment extends DialogFragment {
         final View view = inflater.inflate(R.layout.dialog_rename_switch, null);
         final EditText editText = view.findViewById(R.id.switch_name);
 
-        return new AlertDialog.Builder(activity).setTitle(R.string.name_nsd_service)
+        return new AlertDialog.Builder(activity, R.style.DialogTheme)
                 .setView(view)
+                .setTitle(R.string.name_nsd_service)
                 .setPositiveButton(R.string.ok, (dialog, id) -> {
                     requireNonNull(nameListener).onServiceNamed(editText.getText().toString());
                     dismiss();

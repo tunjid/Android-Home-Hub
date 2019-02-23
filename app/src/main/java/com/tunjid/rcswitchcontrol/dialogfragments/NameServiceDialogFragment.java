@@ -1,7 +1,6 @@
 package com.tunjid.rcswitchcontrol.dialogfragments;
 
 import android.annotation.SuppressLint;
-import android.app.AlertDialog;
 import android.app.Dialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -11,6 +10,7 @@ import android.widget.EditText;
 import com.tunjid.rcswitchcontrol.R;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.DialogFragment;
 
 import static java.util.Objects.requireNonNull;

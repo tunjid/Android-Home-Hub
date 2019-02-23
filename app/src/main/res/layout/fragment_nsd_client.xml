@@ -28,7 +28,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:padding="@dimen/single_margin"
-                android:textColor="@color/white"
+                android:textColor="@color/text_color"
                 android:textSize="@dimen/small_text" />
         </com.google.android.material.appbar.CollapsingToolbarLayout>
     </com.google.android.material.appbar.AppBarLayout>
@@ -38,7 +38,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:background="@color/white"
+        android:background="@color/card_background"
         android:elevation="@dimen/half_margin"
         android:padding="@dimen/half_margin"
         app:layout_behavior="com.tunjid.rcswitchcontrol.SnackBarBehavior" />

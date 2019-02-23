@@ -48,7 +48,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import static androidx.recyclerview.widget.ItemTouchHelper.Callback.makeMovementFlags;
 import static com.google.android.material.snackbar.Snackbar.LENGTH_SHORT;
-import static com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel.*;
+import static com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel.State;
 import static java.util.Objects.requireNonNull;
 
 public class ClientNsdFragment extends BaseFragment
@@ -214,6 +214,7 @@ public class ClientNsdFragment extends BaseFragment
                         .setMovementFlagsFunction(holder -> getSwipeDirection())
                         .setItemViewSwipeSupplier(() -> true)
                         .build())
+                .withInconsistencyHandler(__ -> listManager.notifyDataSetChanged())
                 .build();
     }
 
@@ -246,7 +247,7 @@ public class ClientNsdFragment extends BaseFragment
         ref.set(deletionHandler);
         deletionHandler.push(switches.get(position));
 
-        Snackbar.make(root, R.string.deleted_switch, Snackbar.LENGTH_LONG)
+        showSnackBar(snackBar -> snackBar.setText(R.string.deleted_switch)
                 .addCallback(deletionHandler)
                 .setAction(R.string.undo, view -> {
                     if (deletionHandler.hasItems()) {
@@ -256,7 +257,7 @@ public class ClientNsdFragment extends BaseFragment
                     }
                     isDeleting = false;
                 })
-                .show();
+        );
     }
 
     static class Builder extends ListManagerBuilder<ChatAdapter.TextViewHolder, ListPlaceholder> {

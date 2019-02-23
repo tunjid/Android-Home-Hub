@@ -11,11 +11,11 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.TextView;
 
 import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.snackbar.Snackbar;
+import com.tunjid.androidbootstrap.material.animator.FabExtensionAnimator;
 import com.tunjid.androidbootstrap.recyclerview.ListManager;
 import com.tunjid.androidbootstrap.recyclerview.ListManagerBuilder;
 import com.tunjid.androidbootstrap.recyclerview.ListPlaceholder;
@@ -51,7 +51,6 @@ import static java.util.Objects.requireNonNull;
 
 public class ClientBleFragment extends BaseFragment
         implements
-        View.OnClickListener,
         RemoteSwitchAdapter.SwitchListener,
         RenameSwitchDialogFragment.SwitchNameListener,
         NameServiceDialogFragment.ServiceNameListener {
@@ -60,7 +59,6 @@ public class ClientBleFragment extends BaseFragment
     private boolean isDeleting;
 
     private View progressBar;
-    private Button sniffButton;
     private TextView connectionStatus;
     private ListManager<RemoteSwitchAdapter.ViewHolder, ListPlaceholder> listManager;
 
@@ -96,7 +94,6 @@ public class ClientBleFragment extends BaseFragment
         View root = inflater.inflate(R.layout.fragment_ble_client, container, false);
         AppBarLayout appBarLayout = root.findViewById(R.id.app_bar_layout);
 
-        sniffButton = root.findViewById(R.id.sniff);
         progressBar = root.findViewById(R.id.progress_bar);
         connectionStatus = root.findViewById(R.id.connection_status);
 
@@ -126,9 +123,6 @@ public class ClientBleFragment extends BaseFragment
             lastOffSet = verticalOffset;
         });
 
-        sniffButton.setOnClickListener(this);
-
-        updateSniffButton();
         return root;
     }
 
@@ -195,20 +189,24 @@ public class ClientBleFragment extends BaseFragment
         listManager.clear();
         listManager = null;
         progressBar = null;
-        sniffButton = null;
         connectionStatus = null;
 
         super.onDestroyView();
     }
 
-    @Override
-    public void onClick(View v) {
-        switch (v.getId()) {
-            case R.id.sniff:
-                toggleProgress(true);
-                viewModel.sniffRcSwitch();
-                break;
-        }
+    @Override protected boolean showsFab() {
+        return true;
+    }
+
+    @Override protected FabExtensionAnimator.GlyphState getFabState() {
+        return viewModel.getFabState();
+    }
+
+    @Override protected View.OnClickListener getFabClickListener() {
+        return view -> {
+            toggleProgress(true);
+            viewModel.sniffRcSwitch();
+        };
     }
 
     @Override
@@ -237,10 +235,9 @@ public class ClientBleFragment extends BaseFragment
     }
 
     private void toggleProgress(boolean show) {
-        TransitionManager.beginDelayedTransition((ViewGroup) sniffButton.getParent(), new AutoTransition());
-
-        sniffButton.setVisibility(show ? View.INVISIBLE : View.VISIBLE);
+        TransitionManager.beginDelayedTransition((ViewGroup) progressBar.getParent(), new AutoTransition());
         progressBar.setVisibility(show ? View.VISIBLE : View.INVISIBLE);
+        togglePersistentUi();
     }
 
     private void onReceive(Intent intent) {
@@ -253,16 +250,11 @@ public class ClientBleFragment extends BaseFragment
                 toggleProgress(rawData[0] == 0);
                 break;
             case ACTION_SNIFFER: {
-                updateSniffButton();
                 listManager.notifyDataSetChanged();
                 toggleProgress(false);
                 break;
             }
         }
-    }
-
-    private void updateSniffButton() {
-        sniffButton.setText(viewModel.getSniffButtonText());
     }
 
     private int getSwipeDirection() {

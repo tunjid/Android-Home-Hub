@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.os.Bundle;
 
 import com.tunjid.androidbootstrap.core.components.ServiceConnection;
+import com.tunjid.androidbootstrap.material.animator.FabExtensionAnimator;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
@@ -18,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.lifecycle.AndroidViewModel;
 import io.reactivex.Flowable;
 import io.reactivex.disposables.CompositeDisposable;
@@ -143,11 +145,12 @@ public class BleClientViewModel extends AndroidViewModel {
         return switches.indexOf(rcSwitch);
     }
 
-    public String getSniffButtonText() {
+    public FabExtensionAnimator.GlyphState getFabState() {
         Context context = getApplication();
-        return context.getString(R.string.sniff_code, context.getString(switchCreator.getState().equals(RcSwitch.ON_CODE)
-                ? R.string.on
-                : R.string.off));
+
+        return switchCreator.getState().equals(RcSwitch.ON_CODE)
+                ? FabExtensionAnimator.newState(context.getString(R.string.sniff_code, context.getString(R.string.on)), ContextCompat.getDrawable(context, R.drawable.ic_on_24dp))
+                : FabExtensionAnimator.newState(context.getString(R.string.sniff_code, context.getString(R.string.off)), ContextCompat.getDrawable(context, R.drawable.ic_off_24dp));
     }
 
     public void forgetBluetoothDevice() {

@@ -2,6 +2,7 @@ package com.tunjid.rcswitchcontrol.fragments;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothDevice;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -75,10 +76,15 @@ public class ClientBleFragment extends BaseFragment
     }
 
     @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        viewModel = ViewModelProviders.of(requireActivity()).get(BleClientViewModel.class);
+    }
+
+    @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
-        viewModel = ViewModelProviders.of(this).get(BleClientViewModel.class);
     }
 
     @Nullable

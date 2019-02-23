@@ -53,7 +53,6 @@ import static java.util.Objects.requireNonNull;
 
 public class ClientNsdFragment extends BaseFragment
         implements
-        View.OnClickListener,
         ChatAdapter.ChatAdapterListener,
         RemoteSwitchAdapter.SwitchListener,
         RenameSwitchDialogFragment.SwitchNameListener {
@@ -149,12 +148,6 @@ public class ClientNsdFragment extends BaseFragment
         mainList = null;
         connectionStatus = null;
         super.onDestroyView();
-    }
-
-    @Override
-    public void onClick(View v) {
-        if (v.getId() != R.id.sniff) return;
-        viewModel.sendMessage(Payload.builder().setAction(getString(R.string.scanblercprotocol_sniff)).build());
     }
 
     @Override

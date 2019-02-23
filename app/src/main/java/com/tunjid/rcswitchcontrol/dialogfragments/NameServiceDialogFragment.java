@@ -12,6 +12,7 @@ import com.tunjid.rcswitchcontrol.R;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.DialogFragment;
+import androidx.fragment.app.FragmentActivity;
 
 import static java.util.Objects.requireNonNull;
 
@@ -35,13 +36,14 @@ public class NameServiceDialogFragment extends DialogFragment {
     @NonNull
     public Dialog onCreateDialog(Bundle savedInstanceState) {
 
+        final FragmentActivity activity = requireActivity();
         final ServiceNameListener nameListener = (ServiceNameListener) getParentFragment();
-        final LayoutInflater inflater = requireActivity().getLayoutInflater();
+        final LayoutInflater inflater = activity.getLayoutInflater();
 
         final View view = inflater.inflate(R.layout.dialog_rename_switch, null);
         final EditText editText = view.findViewById(R.id.switch_name);
 
-        return new AlertDialog.Builder(getActivity()).setTitle(R.string.name_nsd_service)
+        return new AlertDialog.Builder(activity).setTitle(R.string.name_nsd_service)
                 .setView(view)
                 .setPositiveButton(R.string.ok, (dialog, id) -> {
                     requireNonNull(nameListener).onServiceNamed(editText.getText().toString());

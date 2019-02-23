@@ -48,9 +48,8 @@ public class RenameSwitchDialogFragment extends DialogFragment {
     @Override
     @NonNull
     public Dialog onCreateDialog(Bundle savedInstanceState) {
+        final FragmentActivity activity = requireActivity();
         final SwitchNameListener listener = ((SwitchNameListener) getParentFragment());
-
-        FragmentActivity activity = requireActivity();
         final LayoutInflater inflater = activity.getLayoutInflater();
 
         final View view = inflater.inflate(R.layout.dialog_rename_switch, null);

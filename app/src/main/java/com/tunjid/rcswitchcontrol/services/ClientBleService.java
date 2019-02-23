@@ -13,10 +13,8 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Handler;
@@ -30,6 +28,7 @@ import android.widget.Toast;
 import com.tunjid.androidbootstrap.core.components.ServiceConnection;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
+import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster;
 import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
 
@@ -41,7 +40,7 @@ import java.util.Queue;
 import java.util.UUID;
 
 import androidx.core.app.NotificationCompat;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import io.reactivex.disposables.CompositeDisposable;
 
 import static com.tunjid.rcswitchcontrol.model.RcSwitch.SWITCH_PREFS;
 
@@ -81,7 +80,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
     public final static String EXTRA_DATA = "EXTRA_DATA";
 
     private final IBinder binder = new Binder();
-    private final IntentFilter nsdIntentFilter = new IntentFilter();
+    private final CompositeDisposable disposable = new CompositeDisposable();
     private final ServiceConnection<ServerNsdService> serverConnection = new ServiceConnection<>(ServerNsdService.class);
 
     private boolean isUserInApp;
@@ -98,19 +97,6 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
     // Map of characteristics of interest
     private Map<String, BluetoothGattCharacteristic> characteristicMap = new HashMap<>();
 
-    private final BroadcastReceiver nsdUpdateReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if (!ACTION_TRANSMITTER.equals(action)) return;
-
-            String data = intent.getStringExtra(DATA_AVAILABLE_TRANSMITTER);
-            byte[] transmission = Base64.decode(data, Base64.DEFAULT);
-            writeCharacteristicArray(C_HANDLE_TRANSMITTER, transmission);
-
-            Log.i(TAG, "Received data for: " + action);
-        }
-    };
     // Implements callback methods for GATT events that the app cares about.  For example,
     // connection change and services discovered.
     private final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
@@ -162,15 +148,10 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
 
         @Override
         public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
-            if (status == BluetoothGatt.GATT_SUCCESS) {
-                Log.i(TAG, "Callback: Wrote GATT Descriptor successfully.");
+            Log.i(TAG, "onDescriptorWrite: " + status);
 
-                // Remove the item that we just wrote
-                if (writeQueue.size() > 0) writeQueue.remove();
-            }
-            else {
-                Log.i(TAG, "onCharacteristicRead error: " + status);
-            }
+            // Remove the item that we just wrote
+            if (status == BluetoothGatt.GATT_SUCCESS && writeQueue.size() > 0) writeQueue.remove();
 
             // Read the top of the queue
             if (writeQueue.size() > 0) bluetoothGatt.writeDescriptor(writeQueue.element());
@@ -179,40 +160,31 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
         @Override
         // Checks queue for characteristics to be read and reads them
         public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+            Log.i(TAG, "onCharacteristicRead: " + status);
 
-            if (status == BluetoothGatt.GATT_SUCCESS) {
+            if (status != BluetoothGatt.GATT_SUCCESS) return;
+            if (readQueue.size() > 0) readQueue.remove();
 
-                // Remove the characterictic that was just read
-                if (readQueue.size() > 0) readQueue.remove();
-
-                String uuid = characteristic.getUuid().toString();
-
-                switch (uuid) {
-                    case C_HANDLE_CONTROL:
-                        broadcastUpdate(ACTION_CONTROL, characteristic);
-                        break;
-                    case C_HANDLE_SNIFFER:
-                        broadcastUpdate(DATA_AVAILABLE_SNIFFER, characteristic);
-                        break;
-                    case C_HANDLE_TRANSMITTER:
-                        broadcastUpdate(DATA_AVAILABLE_TRANSMITTER, characteristic);
-                        break;
-                    default:
-                        broadcastUpdate(DATA_AVAILABLE_UNKNOWN, characteristic);
-                        break;
-                }
-            }
-            else {
-                Log.i(TAG, "onCharacteristicRead error: " + status);
+            switch (characteristic.getUuid().toString()) {
+                case C_HANDLE_CONTROL:
+                    broadcastUpdate(ACTION_CONTROL, characteristic);
+                    break;
+                case C_HANDLE_SNIFFER:
+                    broadcastUpdate(DATA_AVAILABLE_SNIFFER, characteristic);
+                    break;
+                case C_HANDLE_TRANSMITTER:
+                    broadcastUpdate(DATA_AVAILABLE_TRANSMITTER, characteristic);
+                    break;
+                default:
+                    broadcastUpdate(DATA_AVAILABLE_UNKNOWN, characteristic);
+                    break;
             }
 
-            // Read the top of the queue
             if (readQueue.size() > 0) bluetoothGatt.readCharacteristic(readQueue.element());
         }
 
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
-
             switch (characteristic.getUuid().toString()) {
                 case C_HANDLE_CONTROL:
                     broadcastUpdate(ACTION_CONTROL, characteristic);
@@ -236,8 +208,11 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
         super.onCreate();
         addChannel(R.string.switch_service, R.string.switch_service_description);
 
-        nsdIntentFilter.addAction(ACTION_TRANSMITTER);
-        LocalBroadcastManager.getInstance(this).registerReceiver(nsdUpdateReceiver, nsdIntentFilter);
+        disposable.add(Broadcaster.listen(ACTION_TRANSMITTER).subscribe(intent -> {
+            String data = intent.getStringExtra(DATA_AVAILABLE_TRANSMITTER);
+            byte[] transmission = Base64.decode(data, Base64.DEFAULT);
+            writeCharacteristicArray(C_HANDLE_TRANSMITTER, transmission);
+        }, Throwable::printStackTrace));
     }
 
     @Override
@@ -255,17 +230,12 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
 
     @Override
     public void initialize(Intent intent) {
-
-        // We're already connected, return
         if (isConnected()) return;
 
         BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         bluetoothAdapter = bluetoothManager.getAdapter();
 
-        if (bluetoothAdapter == null) {
-            showToast(this, R.string.ble_service_adapter_uninitialized);
-            return;
-        }
+        if (bluetoothAdapter == null || ACTION_GATT_CONNECTING.equals(connectionState)) return;
 
         SharedPreferences sharedPreferences = getSharedPreferences(RcSwitch.SWITCH_PREFS, MODE_PRIVATE);
         String lastConnectedDevice = sharedPreferences.getString(LAST_PAIRED_DEVICE, "");
@@ -276,7 +246,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
                 ? bluetoothAdapter.getRemoteDevice(lastConnectedDevice)
                 : null;
 
-        if (bluetoothDevice == null) {
+        if (bluetoothDevice == null && connectedDevice == null) {
             // Service was restarted, but has no device to connect to. Close gatt and stop the service
             close();
             stopSelf();
@@ -284,7 +254,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
             return;
         }
 
-        this.connectedDevice = bluetoothDevice;
+        if (bluetoothDevice != null) this.connectedDevice = bluetoothDevice;
 
         connect(connectedDevice);
 
@@ -334,7 +304,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
     public void onDestroy() {
         super.onDestroy();
         if (serverConnection.isBound()) serverConnection.unbindService();
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(nsdUpdateReceiver);
+        disposable.clear();
         close();
     }
 
@@ -346,47 +316,34 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
      * Connects to the GATT server hosted on the Bluetooth LE device.
      *
      * @param bluetoothDevice The device to connect to.
-     * @return Return true if the connection is initiated successfully. The connection result
-     * is reported asynchronously through the
-     * {@code BluetoothGattCallback#onConnectionStateChange(android.bluetooth.BluetoothGatt, int, int)}
-     * callback.
+     *                        {@code BluetoothGattCallback#onConnectionStateChange(android.bluetooth.BluetoothGatt, int, int)}
+     *                        callback.
      */
     @TargetApi(Build.VERSION_CODES.M)
-    public boolean connect(final BluetoothDevice bluetoothDevice) {
+    public void connect(final BluetoothDevice bluetoothDevice) {
         if (bluetoothAdapter == null || bluetoothDevice == null) {
             showToast(this, R.string.ble_service_adapter_uninitialized);
-            return false;
+            return;
         }
 
         // Previously connected device.  Try to reconnect.
         if (bluetoothDevice.equals(connectedDevice) && bluetoothGatt != null) {
-
             showToast(this, R.string.ble_service_reconnecting);
 
-            if (bluetoothGatt.connect()) {
-                connectionState = ACTION_GATT_CONNECTING;
-
-                broadcastUpdate(connectionState);
-                showToast(this, R.string.connecting);
-                return true;
-            }
-            else {
-                showToast(this, R.string.ble_service_failed_to_connect);
-                return false;
-            }
+            if (bluetoothGatt.connect()) broadcastUpdate(connectionState = ACTION_GATT_CONNECTING);
+            else showToast(this, R.string.ble_service_failed_to_connect);
         }
+        else {
+            // Set the autoConnect parameter to true.
+            bluetoothGatt = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+                    ? bluetoothDevice.connectGatt(this, true, gattCallback, BluetoothDevice.TRANSPORT_LE)
+                    : bluetoothDevice.connectGatt(this, true, gattCallback);
 
-        // Set the autoConnect parameter to true.
-        bluetoothGatt = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
-                ? bluetoothDevice.connectGatt(this, true, gattCallback, BluetoothDevice.TRANSPORT_LE)
-                : bluetoothDevice.connectGatt(this, true, gattCallback);
+            connectionState = ACTION_GATT_CONNECTING;
 
-        connectionState = ACTION_GATT_CONNECTING;
-
-        broadcastUpdate(connectionState);
-        showToast(this, R.string.ble_service_new_connection);
-
-        return true;
+            broadcastUpdate(connectionState);
+            showToast(this, R.string.ble_service_new_connection);
+        }
     }
 
     /**
@@ -396,11 +353,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
      * callback.
      */
     public void disconnect() {
-        if (bluetoothAdapter == null || bluetoothGatt == null) {
-            showToast(this, R.string.ble_service_adapter_uninitialized);
-            return;
-        }
-        bluetoothGatt.disconnect();
+        withBluetooth(bluetoothGatt::disconnect);
     }
 
     /**
@@ -424,45 +377,33 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
     }
 
     public void writeCharacteristicArray(String uuid, byte[] values) {
-        if (bluetoothAdapter == null || bluetoothGatt == null) {
-            showToast(this, R.string.ble_service_adapter_uninitialized);
-            return;
-        }
-        BluetoothGattCharacteristic characteristic = characteristicMap.get(uuid);
+        withBluetooth(() -> {
+            BluetoothGattCharacteristic characteristic = characteristicMap.get(uuid);
 
-        if (characteristic == null) {
-            showToast(this, R.string.disconnected);
-            return;
-        }
+            if (characteristic == null) {
+                showToast(this, R.string.disconnected);
+                return;
+            }
 
-        characteristic.setValue(values);
-        bluetoothGatt.writeCharacteristic(characteristic);
+            characteristic.setValue(values);
+            bluetoothGatt.writeCharacteristic(characteristic);
+        });
     }
 
     /**
      * Enables or disables notifications or indications on a given characteristic.
      *
-     * @param uuid    UUID of the Characteristic to act on.
-     * @param enabled If true, enable notification.  False otherwise.
+     * @param uuid UUID of the Characteristic to act on.
      */
 
-    public void setCharacteristicIndication(String uuid, boolean enabled) {
-        if (bluetoothAdapter == null || bluetoothGatt == null) {
-            showToast(this, R.string.ble_service_adapter_uninitialized);
-            return;
-        }
-
+    private void setCharacteristicIndication(String uuid) {
         BluetoothGattCharacteristic characteristic = characteristicMap.get(uuid);
         if (characteristic == null) return;
 
-        bluetoothGatt.setCharacteristicNotification(characteristic, enabled);
-
+        bluetoothGatt.setCharacteristicNotification(characteristic, true);
         BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUID.fromString(CLIENT_CHARACTERISTIC_CONFIG));
 
-        descriptor.setValue(enabled
-                ? BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
-                : BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE);
-
+        descriptor.setValue(BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
         writeGattDescriptor(descriptor);
     }
 
@@ -470,8 +411,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
      * Used to send broadcasts that don't have attached data
      */
     private void broadcastUpdate(final String action) {
-        final Intent intent = new Intent(action);
-        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+        Broadcaster.push(new Intent(action));
     }
 
     /**
@@ -482,7 +422,6 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
         final byte[] rawData = characteristic.getValue();
 
         if (rawData != null && rawData.length > 0) {
-
             switch (characteristic.getUuid().toString()) {
                 case C_HANDLE_CONTROL:
                     intent.putExtra(DATA_AVAILABLE_CONTROL, rawData);
@@ -504,7 +443,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
                     break;
             }
         }
-        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+        Broadcaster.push(intent);
     }
 
     /**
@@ -518,17 +457,19 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
         return bluetoothGatt.getServices();
     }
 
-    private void findGattServices(List<BluetoothGattService> gattServices) {
+    private void withBluetooth(Runnable runnable) {
+        if (bluetoothAdapter != null && bluetoothGatt != null) runnable.run();
+        else showToast(this, R.string.ble_service_adapter_uninitialized);
+    }
 
+    private void findGattServices(List<BluetoothGattService> gattServices) {
         if (gattServices == null) return;
 
         HandlerThread handlerThread = new HandlerThread("IndicationSetThread");
         handlerThread.start();
-        Handler handler = new Handler(handlerThread.getLooper());
 
         // Loops through available GATT Services.
         for (BluetoothGattService gattService : gattServices) {
-
             List<BluetoothGattCharacteristic> gattCharacteristics = gattService.getCharacteristics();
 
             // Loops through available Characteristics and find the ones I'm interested in
@@ -538,7 +479,8 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
                     case C_HANDLE_CONTROL:
                     case C_HANDLE_SNIFFER:
                     case C_HANDLE_TRANSMITTER:
-                        handler.post(() -> setCharacteristicIndication(uuid, true));
+                        new Handler(handlerThread.getLooper())
+                                .post(() -> withBluetooth(() -> setCharacteristicIndication(uuid)));
                         break;
                 }
                 characteristicMap.put(uuid, gattCharacteristic);
@@ -547,7 +489,6 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
     }
 
     private Notification connectedNotification() {
-
         final Intent resumeIntent = new Intent(this, MainActivity.class);
 
         resumeIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);

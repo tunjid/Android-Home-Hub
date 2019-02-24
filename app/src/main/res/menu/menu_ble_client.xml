@@ -3,11 +3,13 @@
     xmlns:compat="http://schemas.android.com/apk/res-auto">
     <item
         android:id="@+id/menu_connect"
+        android:icon="@drawable/ic_connect_24dp"
         android:orderInCategory="100"
         android:title="@string/menu_connect"
         compat:showAsAction="ifRoom|withText" />
     <item
         android:id="@+id/menu_disconnect"
+        android:icon="@drawable/ic_disconnect_24dp"
         android:orderInCategory="101"
         android:title="@string/menu_disconnect"
         compat:showAsAction="ifRoom|withText" />

@@ -2,6 +2,7 @@ package com.tunjid.rcswitchcontrol.nsd.protocols;
 
 import android.content.Context;
 import androidx.annotation.Nullable;
+import androidx.annotation.StringRes;
 
 import com.tunjid.rcswitchcontrol.App;
 import com.tunjid.rcswitchcontrol.model.Payload;
@@ -40,6 +41,14 @@ public abstract class CommsProtocol implements Closeable {
                 : input.equals(RESET)
                 ? processInput(Payload.builder().setAction(RESET).build())
                 : processInput(Payload.deserialize(input));
+    }
+
+    protected String getString(@StringRes int id) {
+        return appContext.getString(id);
+    }
+
+    protected String getString(@StringRes int id, Object... args) {
+        return appContext.getString(id, args);
     }
 
     protected abstract Payload processInput(Payload payload);

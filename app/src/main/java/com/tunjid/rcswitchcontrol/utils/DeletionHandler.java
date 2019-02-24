@@ -1,6 +1,7 @@
 package com.tunjid.rcswitchcontrol.utils;
 
 import com.google.android.material.snackbar.Snackbar;
+import com.tunjid.androidbootstrap.functions.Consumer;
 
 import java.util.Stack;
 
@@ -10,19 +11,19 @@ import java.util.Stack;
 public class DeletionHandler<T> extends Snackbar.Callback {
 
     private final int originalPosition;
-    private final Runnable onDismissed;
+    private final Consumer<DeletionHandler<T>> onDismissed;
 
 
     private Stack<T> deletedItems = new Stack<>();
 
-   public DeletionHandler(int originalPosition, Runnable onDismissed) {
+   public DeletionHandler(int originalPosition, Consumer<DeletionHandler<T>> onDismissed) {
         this.originalPosition = originalPosition;
         this.onDismissed = onDismissed;
     }
 
     @Override
     public void onDismissed(Snackbar snackbar, int event) {
-        onDismissed.run();
+        onDismissed.accept(this);
     }
 
     public boolean hasItems() {

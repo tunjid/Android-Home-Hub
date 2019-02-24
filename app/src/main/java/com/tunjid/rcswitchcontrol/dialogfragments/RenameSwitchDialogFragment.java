@@ -1,7 +1,6 @@
 package com.tunjid.rcswitchcontrol.dialogfragments;
 
 import android.annotation.SuppressLint;
-import android.app.AlertDialog;
 import android.app.Dialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -15,6 +14,7 @@ import java.util.Objects;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.FragmentActivity;
 
@@ -35,9 +35,7 @@ public class RenameSwitchDialogFragment extends DialogFragment {
         return fragment;
     }
 
-    public RenameSwitchDialogFragment() {
-
-    }
+    public RenameSwitchDialogFragment() { }
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -48,9 +46,8 @@ public class RenameSwitchDialogFragment extends DialogFragment {
     @Override
     @NonNull
     public Dialog onCreateDialog(Bundle savedInstanceState) {
+        final FragmentActivity activity = requireActivity();
         final SwitchNameListener listener = ((SwitchNameListener) getParentFragment());
-
-        FragmentActivity activity = requireActivity();
         final LayoutInflater inflater = activity.getLayoutInflater();
 
         final View view = inflater.inflate(R.layout.dialog_rename_switch, null);
@@ -58,9 +55,9 @@ public class RenameSwitchDialogFragment extends DialogFragment {
 
         editText.setText(rcSwitch.getName());
 
-
-        return new AlertDialog.Builder(activity).setTitle(R.string.rename_switch)
+        return new AlertDialog.Builder(activity, R.style.DialogTheme)
                 .setView(view)
+                .setTitle(R.string.rename_switch)
                 .setPositiveButton(R.string.rename, (dialog, id) -> {
                     rcSwitch.setName(editText.getText().toString());
                     Objects.requireNonNull(listener).onSwitchRenamed(rcSwitch);

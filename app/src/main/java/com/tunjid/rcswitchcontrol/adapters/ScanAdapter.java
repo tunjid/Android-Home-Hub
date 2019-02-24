@@ -2,7 +2,10 @@ package com.tunjid.rcswitchcontrol.adapters;
 
 import android.bluetooth.BluetoothDevice;
 import android.content.Context;
+
+import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,8 +31,8 @@ public class ScanAdapter extends RecyclerView.Adapter<ScanAdapter.ViewHolder> {
         this.scanResults = scanResults;
     }
 
-    @Override
-    public ViewHolder onCreateViewHolder(ViewGroup viewGroup, int viewType) {
+    @NonNull @Override
+    public ViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int viewType) {
         Context context = viewGroup.getContext();
         View itemView = LayoutInflater.from(context).inflate(R.layout.viewholder_scan, viewGroup, false);
 
@@ -37,7 +40,7 @@ public class ScanAdapter extends RecyclerView.Adapter<ScanAdapter.ViewHolder> {
     }
 
     @Override
-    public void onBindViewHolder(ViewHolder viewHolder, final int position) {
+    public void onBindViewHolder(@NonNull ViewHolder viewHolder, final int position) {
         viewHolder.bind(scanResults.get(position), adapterListener);
     }
 
@@ -52,7 +55,7 @@ public class ScanAdapter extends RecyclerView.Adapter<ScanAdapter.ViewHolder> {
     }
 
     // ViewHolder for actual content
-    static class ViewHolder extends RecyclerView.ViewHolder
+    public static class ViewHolder extends RecyclerView.ViewHolder
             implements
             View.OnClickListener {
 
@@ -65,8 +68,8 @@ public class ScanAdapter extends RecyclerView.Adapter<ScanAdapter.ViewHolder> {
         ViewHolder(View itemView) {
             super(itemView);
 
-            deviceAddress = (TextView) itemView.findViewById(R.id.device_address);
-            deviceName = (TextView) itemView.findViewById(R.id.device_name);
+            deviceAddress = itemView.findViewById(R.id.device_address);
+            deviceName = itemView.findViewById(R.id.device_name);
             itemView.setOnClickListener(this);
         }
 

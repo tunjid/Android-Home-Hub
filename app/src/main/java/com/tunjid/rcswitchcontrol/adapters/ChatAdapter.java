@@ -1,14 +1,12 @@
 package com.tunjid.rcswitchcontrol.adapters;
 
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import com.tunjid.androidbootstrap.view.recyclerview.InteractiveAdapter;
-import com.tunjid.androidbootstrap.view.recyclerview.InteractiveViewHolder;
+import com.tunjid.androidbootstrap.recyclerview.InteractiveAdapter;
+import com.tunjid.androidbootstrap.recyclerview.InteractiveViewHolder;
 import com.tunjid.rcswitchcontrol.R;
-
 
 import java.util.List;
 
@@ -42,7 +40,7 @@ public class ChatAdapter extends InteractiveAdapter<ChatAdapter.TextViewHolder, 
         void onTextClicked(String text);
     }
 
-    static class TextViewHolder extends InteractiveViewHolder<ChatAdapterListener>
+    public static class TextViewHolder extends InteractiveViewHolder<ChatAdapterListener>
             implements View.OnClickListener {
 
         String text;

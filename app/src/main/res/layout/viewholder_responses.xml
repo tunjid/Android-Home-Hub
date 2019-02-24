@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.chip.Chip xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/text"
     android:layout_width="wrap_content"
@@ -7,5 +8,7 @@
     android:layout_gravity="center_vertical"
     android:layout_margin="@dimen/half_margin"
     android:textAllCaps="false"
+    android:textColor="@color/text_color"
     android:textSize="@dimen/medium_text"
+    app:chipBackgroundColor="@color/app_background"
     tools:text="I'm a chip" />

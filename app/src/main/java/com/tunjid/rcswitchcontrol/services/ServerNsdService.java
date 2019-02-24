@@ -1,10 +1,7 @@
 package com.tunjid.rcswitchcontrol.services;
 
 import android.app.Service;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.net.nsd.NsdServiceInfo;
 import android.os.IBinder;
 import android.util.Log;
@@ -12,6 +9,7 @@ import android.util.Log;
 import com.tunjid.androidbootstrap.communications.nsd.NsdHelper;
 import com.tunjid.androidbootstrap.core.components.ServiceConnection;
 import com.tunjid.rcswitchcontrol.App;
+import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster;
 import com.tunjid.rcswitchcontrol.nsd.protocols.CommsProtocol;
 import com.tunjid.rcswitchcontrol.nsd.protocols.ProxyProtocol;
 
@@ -25,7 +23,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import androidx.annotation.Nullable;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import io.reactivex.disposables.CompositeDisposable;
 
 import static com.tunjid.androidbootstrap.communications.nsd.NsdHelper.createBufferedReader;
 import static com.tunjid.androidbootstrap.communications.nsd.NsdHelper.createPrintWriter;
@@ -47,27 +45,19 @@ public class ServerNsdService extends Service {
     private ServerThread serverThread;
     private String serviceName;
 
-    private final IntentFilter intentFilter = new IntentFilter();
     private final IBinder binder = new Binder();
 
-    private final BroadcastReceiver nsdUpdateReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if (!ACTION_STOP.equals(action)) return;
-
-            tearDown();
-            stopSelf();
-            Log.i(TAG, "Received data for: " + action);
-        }
-    };
+    private final CompositeDisposable disposable = new CompositeDisposable();
 
     @Override
     public void onCreate() {
         super.onCreate();
         initialize();
-        intentFilter.addAction(ACTION_STOP);
-        LocalBroadcastManager.getInstance(this).registerReceiver(nsdUpdateReceiver, intentFilter);
+
+        disposable.add(Broadcaster.listen(ACTION_STOP).subscribe(intent -> {
+            tearDown();
+            stopSelf();
+        }, Throwable::printStackTrace));
     }
 
     @Override
@@ -88,7 +78,8 @@ public class ServerNsdService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(nsdUpdateReceiver);
+
+        disposable.clear();
         tearDown();
     }
 

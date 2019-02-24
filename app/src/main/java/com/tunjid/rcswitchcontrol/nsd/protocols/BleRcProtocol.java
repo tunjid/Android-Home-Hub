@@ -127,7 +127,7 @@ public class BleRcProtocol extends CommsProtocol {
             // Remove the switch with the old name, and add the switch with the new name.
             if (hasSwitch) {
                 switches.remove(position);
-                switches.add(rcSwitch);
+                switches.add(position, rcSwitch);
                 RcSwitch.saveSwitches(switches);
             }
 
@@ -214,7 +214,7 @@ public class BleRcProtocol extends CommsProtocol {
                             .addCommand(REFRESH_SWITCHES)
                             .addCommand(RESET)
                             .setResponse(getString(containsSwitch
-                                    ? R.string.blercprotocol_sniff_off_response
+                                    ? R.string.scanblercprotocol_sniff_already_exists_response
                                     : R.string.blercprotocol_sniff_off_response));
 
                     if (!containsSwitch) {

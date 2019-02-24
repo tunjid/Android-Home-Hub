@@ -271,12 +271,14 @@ public class ClientBleFragment extends BaseFragment
         int position = viewHolder.getAdapterPosition();
         List<RcSwitch> switches = viewModel.getSwitches();
 
-        DeletionHandler<RcSwitch> deletionHandler = new DeletionHandler<>(position, () -> {
+        DeletionHandler<RcSwitch> deletionHandler = new DeletionHandler<>(position, self -> {
             isDeleting = false;
             RcSwitch.saveSwitches(switches);
         });
 
         deletionHandler.push(switches.get(position));
+        switches.remove(position);
+        listManager.notifyItemRemoved(position);
 
         Snackbar.make(root, R.string.deleted_switch, Snackbar.LENGTH_LONG)
                 .addCallback(deletionHandler)

@@ -38,7 +38,6 @@ import com.tunjid.rcswitchcontrol.utils.DeletionHandler;
 import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -233,10 +232,8 @@ public class ClientNsdFragment extends BaseFragment
         int position = viewHolder.getAdapterPosition();
 
         List<RcSwitch> switches = viewModel.getSwitches();
-        AtomicReference<DeletionHandler<RcSwitch>> ref = new AtomicReference<>();
-        DeletionHandler<RcSwitch> deletionHandler = new DeletionHandler<>(position, () -> {
-            DeletionHandler<RcSwitch> self = ref.get();
-            if (self != null && self.hasItems()) viewModel.sendMessage(Payload.builder()
+        DeletionHandler<RcSwitch> deletionHandler = new DeletionHandler<>(position, self -> {
+            if (self.hasItems()) viewModel.sendMessage(Payload.builder()
                     .setAction(getString(R.string.blercprotocol_delete_command))
                     .setData(self.pop().serialize())
                     .build());
@@ -244,8 +241,9 @@ public class ClientNsdFragment extends BaseFragment
             isDeleting = false;
         });
 
-        ref.set(deletionHandler);
         deletionHandler.push(switches.get(position));
+        switches.remove(position);
+        listManager.notifyItemRemoved(position);
 
         showSnackBar(snackBar -> snackBar.setText(R.string.deleted_switch)
                 .addCallback(deletionHandler)

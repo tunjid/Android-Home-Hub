@@ -14,18 +14,24 @@
         android:title="@string/menu_disconnect"
         compat:showAsAction="ifRoom|withText" />
     <item
-        android:id="@+id/menu_start_nsd"
+        android:id="@+id/menu_refresh"
+        android:icon="@drawable/ic_refresh_24dp"
         android:orderInCategory="102"
+        android:title="@string/refresh"
+        compat:showAsAction="ifRoom|withText" />
+    <item
+        android:id="@+id/menu_start_nsd"
+        android:orderInCategory="103"
         android:title="@string/menu_start_nsd"
         compat:showAsAction="never" />
     <item
         android:id="@+id/menu_restart_nsd"
-        android:orderInCategory="103"
+        android:orderInCategory="104"
         android:title="@string/menu_restart_nsd"
         compat:showAsAction="never" />
     <item
         android:id="@+id/menu_forget"
-        android:orderInCategory="104"
+        android:orderInCategory="105"
         android:title="@string/menu_forget"
         compat:showAsAction="never" />
 </menu>

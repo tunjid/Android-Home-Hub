@@ -20,7 +20,6 @@ import com.tunjid.androidbootstrap.recyclerview.ListManager;
 import com.tunjid.androidbootstrap.recyclerview.ListManagerBuilder;
 import com.tunjid.androidbootstrap.recyclerview.ListPlaceholder;
 import com.tunjid.androidbootstrap.recyclerview.SwipeDragOptionsBuilder;
-import com.tunjid.androidbootstrap.view.animator.ViewHider;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment;
 import com.tunjid.rcswitchcontrol.activities.MainActivity;
@@ -28,9 +27,9 @@ import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter;
 import com.tunjid.rcswitchcontrol.dialogfragments.NameServiceDialogFragment;
 import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment;
 import com.tunjid.rcswitchcontrol.model.RcSwitch;
-import com.tunjid.rcswitchcontrol.services.ClientBleService;
 import com.tunjid.rcswitchcontrol.services.ServerNsdService;
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler;
+import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator;
 import com.tunjid.rcswitchcontrol.viewmodels.BleClientViewModel;
 
 import java.util.List;
@@ -43,9 +42,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.transition.AutoTransition;
 import androidx.transition.TransitionManager;
 
+import static androidx.recyclerview.widget.ItemTouchHelper.Callback.makeMovementFlags;
 import static com.tunjid.rcswitchcontrol.App.isServiceRunning;
-import static com.tunjid.rcswitchcontrol.services.ClientBleService.ACTION_CONTROL;
-import static com.tunjid.rcswitchcontrol.services.ClientBleService.ACTION_SNIFFER;
 import static com.tunjid.rcswitchcontrol.services.ClientBleService.BLUETOOTH_DEVICE;
 import static java.util.Objects.requireNonNull;
 
@@ -62,7 +60,6 @@ public class ClientBleFragment extends BaseFragment
     private TextView connectionStatus;
     private ListManager<RemoteSwitchAdapter.ViewHolder, ListPlaceholder> listManager;
 
-    private ViewHider viewHider;
     private BleClientViewModel viewModel;
 
     public static ClientBleFragment newInstance(BluetoothDevice bluetoothDevice) {
@@ -100,26 +97,17 @@ public class ClientBleFragment extends BaseFragment
         listManager = new ListManagerBuilder<RemoteSwitchAdapter.ViewHolder, ListPlaceholder>()
                 .withRecyclerView(root.findViewById(R.id.switch_list))
                 .withAdapter(new RemoteSwitchAdapter(this, viewModel.getSwitches()))
-                .withLinearLayoutManager()
-                .addScrollListener((dx, dy) -> {
-                    if (dy == 0) return;
-                    if (dy > 0) viewHider.hide();
-                    else viewHider.show();
-                })
+                .withGridLayoutManager(SpanCountCalculator.getSpanCount())
+                .addScrollListener((dx, dy) -> { if (dy != 0) toggleFab(dy < 0); })
                 .withSwipeDragOptions(new SwipeDragOptionsBuilder<RemoteSwitchAdapter.ViewHolder>()
                         .setMovementFlagsFunction(holder -> getSwipeDirection())
                         .setSwipeConsumer(((viewHolder, direction) -> onDelete(viewHolder)))
                         .build())
                 .build();
 
-        viewHider = ViewHider.of(root.findViewById(R.id.button_container))
-                .setDuration(ViewHider.BOTTOM).build();
-
         appBarLayout.addOnOffsetChangedListener((appBarLayout1, verticalOffset) -> {
             if (verticalOffset == 0) return;
-            if (verticalOffset > lastOffSet) viewHider.hide();
-            else viewHider.show();
-
+            toggleFab(verticalOffset < lastOffSet);
             lastOffSet = verticalOffset;
         });
 
@@ -132,7 +120,7 @@ public class ClientBleFragment extends BaseFragment
         getToolBar().setTitle(R.string.switches);
 
         BluetoothDevice device = requireNonNull(getArguments()).getParcelable(BLUETOOTH_DEVICE);
-        disposables.add(viewModel.listenBle(device).subscribe(this::onReceive, Throwable::printStackTrace));
+        disposables.add(viewModel.listenBle(device).subscribe(this::toggleProgress, Throwable::printStackTrace));
         disposables.add(viewModel.connectionState().subscribe(this::onConnectionStateChanged, Throwable::printStackTrace));
         disposables.add(viewModel.listenServer().subscribe(connected -> requireActivity().invalidateOptionsMenu(), Throwable::printStackTrace));
     }
@@ -141,13 +129,14 @@ public class ClientBleFragment extends BaseFragment
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         inflater.inflate(R.menu.menu_ble_client, menu);
 
-        menu.findItem(R.id.menu_start_nsd).setVisible(!isServiceRunning(ServerNsdService.class));
-        menu.findItem(R.id.menu_restart_nsd).setVisible(isServiceRunning(ServerNsdService.class));
+        boolean bleConnected = viewModel.isBleConnected();
+        boolean serviceRunning = isServiceRunning(ServerNsdService.class);
 
-        if (viewModel.isBleBound()) {
-            menu.findItem(R.id.menu_connect).setVisible(!viewModel.isBleConnected());
-            menu.findItem(R.id.menu_disconnect).setVisible(viewModel.isBleConnected());
-        }
+        menu.findItem(R.id.menu_refresh).setVisible(bleConnected);
+        menu.findItem(R.id.menu_connect).setVisible(!bleConnected);
+        menu.findItem(R.id.menu_disconnect).setVisible(bleConnected);
+        menu.findItem(R.id.menu_start_nsd).setVisible(!serviceRunning);
+        menu.findItem(R.id.menu_restart_nsd).setVisible(serviceRunning);
 
         super.onCreateOptionsMenu(menu, inflater);
     }
@@ -157,6 +146,10 @@ public class ClientBleFragment extends BaseFragment
         if (!viewModel.isBleBound()) return super.onOptionsItemSelected(item);
 
         switch (item.getItemId()) {
+            case R.id.menu_refresh:
+                viewModel.refreshSwitches();
+                listManager.notifyDataSetChanged();
+                return true;
             case R.id.menu_connect:
                 viewModel.reconnectBluetooth();
                 return true;
@@ -240,25 +233,8 @@ public class ClientBleFragment extends BaseFragment
         togglePersistentUi();
     }
 
-    private void onReceive(Intent intent) {
-        String action = intent.getAction();
-        if (action == null) return;
-
-        switch (action) {
-            case ACTION_CONTROL:
-                byte[] rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_CONTROL);
-                toggleProgress(rawData[0] == 0);
-                break;
-            case ACTION_SNIFFER: {
-                listManager.notifyDataSetChanged();
-                toggleProgress(false);
-                break;
-            }
-        }
-    }
-
     private int getSwipeDirection() {
-        return isDeleting ? 0 : ItemTouchHelper.SimpleCallback.makeMovementFlags(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT);
+        return isDeleting ? 0 : makeMovementFlags(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT);
     }
 
     private void onDelete(RecyclerView.ViewHolder viewHolder) {

@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.os.Bundle;
 
 import com.tunjid.androidbootstrap.core.components.ServiceConnection;
+import com.tunjid.androidbootstrap.functions.collections.Lists;
 import com.tunjid.androidbootstrap.material.animator.FabExtensionAnimator;
 import com.tunjid.rcswitchcontrol.R;
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster;
@@ -34,6 +35,7 @@ import static com.tunjid.rcswitchcontrol.services.ClientBleService.C_HANDLE_CONT
 import static com.tunjid.rcswitchcontrol.services.ClientBleService.C_HANDLE_TRANSMITTER;
 import static com.tunjid.rcswitchcontrol.services.ClientBleService.STATE_SNIFFING;
 import static com.tunjid.rcswitchcontrol.services.ServerNsdService.SERVICE_NAME_KEY;
+import static io.reactivex.android.schedulers.AndroidSchedulers.mainThread;
 
 public class BleClientViewModel extends AndroidViewModel {
 
@@ -42,26 +44,25 @@ public class BleClientViewModel extends AndroidViewModel {
     private final List<RcSwitch> switches;
     private final RcSwitch.SwitchCreator switchCreator;
     private final CompositeDisposable disposable;
-    private final PublishProcessor<Intent> intents;
-    private final PublishProcessor<String> connectionState;
-    private final PublishProcessor<Boolean> serverState;
+    private final PublishProcessor<String> bleConnectedProcessor;
+    private final PublishProcessor<Boolean> loadingProcessor;
+    private final PublishProcessor<Boolean> serverConnectedProcessor;
     private final ServiceConnection<ClientBleService> bleConnection;
     private final ServiceConnection<ServerNsdService> serverConnection;
 
     public BleClientViewModel(@NonNull Application application) {
         super(application);
 
-
         switchCreator = new RcSwitch.SwitchCreator();
         disposable = new CompositeDisposable();
 
-        intents = PublishProcessor.create();
-        connectionState = PublishProcessor.create();
-        serverState = PublishProcessor.create();
+        loadingProcessor = PublishProcessor.create();
+        bleConnectedProcessor = PublishProcessor.create();
+        serverConnectedProcessor = PublishProcessor.create();
 
         switches = new ArrayList<>(RcSwitch.getSavedSwitches());
         bleConnection = new ServiceConnection<>(ClientBleService.class, this::onBleServiceConnected);
-        serverConnection = new ServiceConnection<>(ServerNsdService.class, service -> serverState.onNext(true));
+        serverConnection = new ServiceConnection<>(ServerNsdService.class, service -> serverConnectedProcessor.onNext(true));
 
         bleConnection.with(application).bind();
 
@@ -79,21 +80,26 @@ public class BleClientViewModel extends AndroidViewModel {
     @Override protected void onCleared() {
         super.onCleared();
 
-        disposable.clear();
-        serverConnection.unbindService();
         if (bleConnection.isBound()) bleConnection.getBoundService().onAppBackground();
+        serverConnection.unbindService();
+        bleConnection.unbindService();
+
+        loadingProcessor.onComplete();
+        bleConnectedProcessor.onComplete();
+        serverConnectedProcessor.onComplete();
+        disposable.clear();
     }
 
     public List<RcSwitch> getSwitches() { return switches; }
 
-    public Flowable<Intent> listenBle(BluetoothDevice device) {
+    public Flowable<Boolean> listenBle(BluetoothDevice device) {
         this.device = device;
         Bundle extras = new Bundle();
         extras.putParcelable(BLUETOOTH_DEVICE, device);
 
         bleConnection.with(getApplication()).setExtras(extras).bind();
 
-        return intents;
+        return loadingProcessor.observeOn(mainThread());
     }
 
     public Flowable<Boolean> listenServer() {
@@ -103,7 +109,7 @@ public class BleClientViewModel extends AndroidViewModel {
             serverConnection.with(context).bind();
         }
 
-        return serverState.startWith(serverConnection.isBound());
+        return serverConnectedProcessor.startWith(serverConnection.isBound());
     }
 
     public boolean isBleBound() { return bleConnection.isBound(); }
@@ -111,7 +117,7 @@ public class BleClientViewModel extends AndroidViewModel {
     public boolean isBleConnected() { return bleConnection.isBound() && !bleConnection.getBoundService().isConnected(); }
 
     public Flowable<String> connectionState() {
-        return connectionState.startWith(publisher -> {
+        return bleConnectedProcessor.startWith(publisher -> {
             boolean bound = bleConnection.isBound();
             if (bound) bleConnection.getBoundService().onAppForeGround();
 
@@ -128,6 +134,10 @@ public class BleClientViewModel extends AndroidViewModel {
 
     public void disconnectBluetooth() {
         bleConnection.getBoundService().disconnect();
+    }
+
+    public void refreshSwitches() {
+        Lists.replace(switches, RcSwitch.getSavedSwitches());
     }
 
     public void sniffRcSwitch() {
@@ -188,17 +198,19 @@ public class BleClientViewModel extends AndroidViewModel {
         String action = intent.getAction();
         if (action == null) return;
 
+        byte[] rawData;
         switch (action) {
             case ClientBleService.ACTION_GATT_CONNECTED:
             case ClientBleService.ACTION_GATT_CONNECTING:
             case ClientBleService.ACTION_GATT_DISCONNECTED:
-                connectionState.onNext(getConnectionText(action));
+                bleConnectedProcessor.onNext(getConnectionText(action));
                 break;
             case ACTION_CONTROL:
-                intents.onNext(intent);
+                rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_CONTROL);
+                loadingProcessor.onNext(rawData[0] == 0);
                 break;
             case ACTION_SNIFFER: {
-                byte[] rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_SNIFFER);
+                rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_SNIFFER);
                 switch (switchCreator.getState()) {
                     case RcSwitch.ON_CODE:
                         switchCreator.withOnCode(rawData);
@@ -213,6 +225,7 @@ public class BleClientViewModel extends AndroidViewModel {
                         RcSwitch.saveSwitches(switches);
                         break;
                 }
+                loadingProcessor.onNext(false);
                 break;
             }
         }

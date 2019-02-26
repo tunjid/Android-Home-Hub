@@ -35,6 +35,7 @@ import com.tunjid.rcswitchcontrol.model.RcSwitch;
 import com.tunjid.rcswitchcontrol.services.ClientBleService;
 import com.tunjid.rcswitchcontrol.services.ClientNsdService;
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler;
+import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator;
 import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel;
 
 import java.util.List;
@@ -204,7 +205,7 @@ public class ClientNsdFragment extends BaseFragment
 
         listManager = new ListManagerBuilder<RecyclerView.ViewHolder, ListPlaceholder>()
                 .withRecyclerView(mainList)
-                .withLinearLayoutManager()
+                .withGridLayoutManager(SpanCountCalculator.getSpanCount())
                 .withAdapter(isSwitchAdapter
                         ? new RemoteSwitchAdapter(this, viewModel.getSwitches())
                         : new ChatAdapter(null, viewModel.getHistory()))

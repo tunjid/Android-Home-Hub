@@ -24,6 +24,7 @@ public class RemoteSwitchAdapter extends RecyclerView.Adapter<RemoteSwitchAdapte
     private SwitchListener switchListener;
 
     public RemoteSwitchAdapter(SwitchListener switchListener, List<RcSwitch> switches) {
+        setHasStableIds(true);
         this.switchListener = switchListener;
         this.switches = switches;
     }
@@ -49,6 +50,10 @@ public class RemoteSwitchAdapter extends RecyclerView.Adapter<RemoteSwitchAdapte
     @Override
     public int getItemCount() {
         return switches.size();
+    }
+
+    @Override public long getItemId(int position) {
+        return switches.get(position).hashCode();
     }
 
     // ViewHolder for actual content

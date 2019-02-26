@@ -143,7 +143,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
                 broadcastUpdate(connectionState);
             }
 
-            Log.i(TAG, "onServicesDiscovered staus: " + success);
+            Log.i(TAG, "onServicesDiscovered status: " + success);
         }
 
         @Override
@@ -285,8 +285,7 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
 
     @Override
     public void onAppForeGround() {
-        isUserInApp = true;
-        stopForeground(true);
+        stopForeground(isUserInApp = true);
     }
 
     @Override
@@ -368,14 +367,6 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
         bluetoothGatt = null;
     }
 
-    public void writeGattDescriptor(BluetoothGattDescriptor descriptor) {
-        //put the descriptor into the write queue
-        writeQueue.add(descriptor);
-
-        //if there is only 1 item in the queue, then write it.  If more than 1, we handle asynchronously in the callback above
-        if (writeQueue.size() > 0) bluetoothGatt.writeDescriptor(descriptor);
-    }
-
     public void writeCharacteristicArray(String uuid, byte[] values) {
         withBluetooth(() -> {
             BluetoothGattCharacteristic characteristic = characteristicMap.get(uuid);
@@ -388,23 +379,6 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
             characteristic.setValue(values);
             bluetoothGatt.writeCharacteristic(characteristic);
         });
-    }
-
-    /**
-     * Enables or disables notifications or indications on a given characteristic.
-     *
-     * @param uuid UUID of the Characteristic to act on.
-     */
-
-    private void setCharacteristicIndication(String uuid) {
-        BluetoothGattCharacteristic characteristic = characteristicMap.get(uuid);
-        if (characteristic == null) return;
-
-        bluetoothGatt.setCharacteristicNotification(characteristic, true);
-        BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUID.fromString(CLIENT_CHARACTERISTIC_CONFIG));
-
-        descriptor.setValue(BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
-        writeGattDescriptor(descriptor);
     }
 
     /**
@@ -468,6 +442,8 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
         HandlerThread handlerThread = new HandlerThread("IndicationSetThread");
         handlerThread.start();
 
+        Handler handler = new Handler(handlerThread.getLooper());
+
         // Loops through available GATT Services.
         for (BluetoothGattService gattService : gattServices) {
             List<BluetoothGattCharacteristic> gattCharacteristics = gattService.getCharacteristics();
@@ -479,13 +455,37 @@ public class ClientBleService extends Service implements ClientStartedBoundServi
                     case C_HANDLE_CONTROL:
                     case C_HANDLE_SNIFFER:
                     case C_HANDLE_TRANSMITTER:
-                        new Handler(handlerThread.getLooper())
-                                .post(() -> withBluetooth(() -> setCharacteristicIndication(uuid)));
+                        handler.post(() -> withBluetooth(() -> setCharacteristicIndication(uuid)));
                         break;
                 }
                 characteristicMap.put(uuid, gattCharacteristic);
             }
         }
+    }
+
+    /**
+     * Enables or disables notifications or indications on a given characteristic.
+     *
+     * @param uuid UUID of the Characteristic to act on.
+     */
+
+    private void setCharacteristicIndication(String uuid) {
+        BluetoothGattCharacteristic characteristic = characteristicMap.get(uuid);
+        if (characteristic == null) return;
+
+        bluetoothGatt.setCharacteristicNotification(characteristic, true);
+        BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUID.fromString(CLIENT_CHARACTERISTIC_CONFIG));
+
+        descriptor.setValue(BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
+        writeGattDescriptor(descriptor);
+    }
+
+    private void writeGattDescriptor(BluetoothGattDescriptor descriptor) {
+        //put the descriptor into the write queue
+        writeQueue.add(descriptor);
+
+        //if there is only 1 item in the queue, then write it.  If more than 1, we handle asynchronously in the callback above
+        if (writeQueue.size() > 0) bluetoothGatt.writeDescriptor(descriptor);
     }
 
     private Notification connectedNotification() {

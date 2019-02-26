@@ -97,7 +97,7 @@ public class RcSwitch implements Parcelable {
         return gson.fromJson(input, RcSwitch.class);
     }
 
-    // Equalys considers the code only, not the name
+    // Equals considers the code only, not the name
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -177,7 +177,6 @@ public class RcSwitch implements Parcelable {
             System.arraycopy(code, 0, rcSwitch.offCode, 0, 4);
             return rcSwitch;
         }
-
 
         @SwitchCode
         public String getState() {

@@ -41,5 +41,5 @@
         android:background="@color/card_background"
         android:elevation="@dimen/half_margin"
         android:padding="@dimen/half_margin"
-        app:layout_behavior="com.tunjid.rcswitchcontrol.SnackBarBehavior" />
+        app:layout_behavior="@string/bottom_transient_bar_behavior" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

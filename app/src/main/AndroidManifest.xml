@@ -25,12 +25,18 @@
             android:name="com.google.android.things"
             android:required="false" />
         <activity android:name=".activities.MainActivity">
+            <!-- Launch activity as default from Android Studio -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+
+            <!-- Launch activity automatically on boot, and re-launch if the app terminates. -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
+                <category android:name="android.intent.category.HOME" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.LAUNCHER" />
-                <category android:name="android.intent.category.IOT_LAUNCHER" />
             </intent-filter>
         </activity>
 

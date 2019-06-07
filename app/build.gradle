@@ -40,17 +40,17 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
     compileOnly 'com.google.android.things:androidthings:1.0'
-    implementation 'com.tunjid.android-bootstrap:communications:5.0.0-alpha2'
-    implementation 'com.tunjid.android-bootstrap:recyclerview:5.0.0-alpha2'
-    implementation 'com.tunjid.android-bootstrap:functions:1.0.3-alpha2'
-    implementation 'com.tunjid.android-bootstrap:material:5.0.0-alpha2'
-    implementation 'com.tunjid.android-bootstrap:core:5.0.0-alpha2'
-    implementation 'com.tunjid.android-bootstrap:view:5.0.0-alpha2'
+    implementation 'com.tunjid.android-bootstrap:communications:5.0.0'
+    implementation 'com.tunjid.android-bootstrap:recyclerview:5.0.0'
+    implementation 'com.tunjid.android-bootstrap:functions:1.0.3'
+    implementation 'com.tunjid.android-bootstrap:material:5.0.0'
+    implementation 'com.tunjid.android-bootstrap:core:5.0.0'
+    implementation 'com.tunjid.android-bootstrap:view:5.0.0'
 
     implementation 'com.google.android.material:material:1.0.0'
     implementation 'com.google.android:flexbox:1.1.0'
 
-    implementation 'androidx.core:core-ktx:1.0.1'
+    implementation 'androidx.core:core-ktx:1.0.2'
     implementation 'androidx.cardview:cardview:1.0.0'
     implementation 'androidx.appcompat:appcompat:1.0.2'
     implementation 'androidx.transition:transition:1.0.1'
@@ -60,8 +60,8 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-runtime:2.0.0'
     implementation 'androidx.lifecycle:lifecycle-extensions:2.0.0'
 
-    implementation 'io.reactivex.rxjava2:rxjava:2.1.7'
-    implementation 'io.reactivex.rxjava2:rxandroid:2.0.1'
+    implementation 'io.reactivex.rxjava2:rxjava:2.2.6'
+    implementation 'io.reactivex.rxjava2:rxandroid:2.1.1'
 
     implementation 'com.google.code.gson:gson:2.8.5'
 

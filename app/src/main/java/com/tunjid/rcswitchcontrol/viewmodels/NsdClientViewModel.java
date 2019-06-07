@@ -79,7 +79,6 @@ public class NsdClientViewModel extends AndroidViewModel {
     @Override
     protected void onCleared() {
         disposable.clear();
-        nsdConnection.getBoundService().onAppBackground();
         nsdConnection.unbindService();
         super.onCleared();
     }
@@ -103,6 +102,8 @@ public class NsdClientViewModel extends AndroidViewModel {
     }
 
     public void sendMessage(Payload message) { sendMessage(() -> true, message); }
+
+    public void onBackground() { nsdConnection.getBoundService().onAppBackground(); }
 
     public void forgetService() {
         // Don't call unbind, when the hosting activity is finished,

@@ -116,6 +116,19 @@ public class ClientNsdFragment extends BaseFragment
     }
 
     @Override
+    public void onPause() {
+        super.onPause();
+        viewModel.onBackground();
+    }
+
+    @Override
+    public void onDestroyView() {
+        mainList = null;
+        connectionStatus = null;
+        super.onDestroyView();
+    }
+
+    @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         inflater.inflate(R.menu.menu_fragment_nsd_client, menu);
         menu.findItem(R.id.menu_connect).setVisible(viewModel.isConnected());
@@ -141,13 +154,6 @@ public class ClientNsdFragment extends BaseFragment
         }
 
         return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    public void onDestroyView() {
-        mainList = null;
-        connectionStatus = null;
-        super.onDestroyView();
     }
 
     @Override
@@ -196,7 +202,6 @@ public class ClientNsdFragment extends BaseFragment
         connectionStatus.setText(getResources().getString(R.string.connection_state, text));
     }
 
-    @SuppressWarnings("unchecked")
     private void swapAdapter(boolean isSwitchAdapter) {
         RecyclerView.Adapter currentAdapter = mainList.getAdapter();
 

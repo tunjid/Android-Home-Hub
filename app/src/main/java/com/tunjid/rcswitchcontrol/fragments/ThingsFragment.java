@@ -1,16 +1,16 @@
 package com.tunjid.rcswitchcontrol.fragments;
 
 import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
 
-import androidx.annotation.NonNull;
+import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel;
+
 import androidx.annotation.Nullable;
+import androidx.lifecycle.ViewModelProviders;
 
 import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
 
 public class ThingsFragment extends ClientBleFragment {
+
 
     public static ThingsFragment newInstance() {
         ThingsFragment startFragment = new ThingsFragment();
@@ -19,9 +19,10 @@ public class ThingsFragment extends ClientBleFragment {
         return startFragment;
     }
 
-    @Nullable @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        return super.onCreateView(inflater, container, savedInstanceState);
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        ViewModelProviders.of(this).get(NsdClientViewModel.class);
     }
 
     @Override
@@ -30,12 +31,5 @@ public class ThingsFragment extends ClientBleFragment {
 
         // Request permission for location to enable ble scanning
         requestPermissions(new String[]{ACCESS_COARSE_LOCATION}, 0);
-
     }
-
-    @Override
-    protected boolean showsToolBar() {
-        return true;
-    }
-
 }

@@ -109,7 +109,7 @@ public class BleClientViewModel extends AndroidViewModel {
             serverConnection.with(context).bind();
         }
 
-        return serverConnectedProcessor.startWith(serverConnection.isBound());
+        return serverConnectedProcessor.startWith(serverConnection.isBound()).observeOn(mainThread());
     }
 
     public boolean isBleBound() { return bleConnection.isBound(); }
@@ -125,7 +125,7 @@ public class BleClientViewModel extends AndroidViewModel {
                     ? bleConnection.getBoundService().getConnectionState()
                     : ClientNsdService.ACTION_SOCKET_DISCONNECTED)));
             publisher.onComplete();
-        });
+        }).observeOn(mainThread());
     }
 
     public void reconnectBluetooth() {

@@ -4,7 +4,6 @@ import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Switch;
 import android.widget.TextView;
 
 import com.tunjid.rcswitchcontrol.R;
@@ -60,7 +59,8 @@ public class RemoteSwitchAdapter extends RecyclerView.Adapter<RemoteSwitchAdapte
     public static class ViewHolder extends RecyclerView.ViewHolder {
 
         TextView deviceName;
-        Switch toggle;
+        View offSwitch;
+        View onSwitch;
 
         RcSwitch rcSwitch;
         SwitchListener switchListener;
@@ -68,7 +68,8 @@ public class RemoteSwitchAdapter extends RecyclerView.Adapter<RemoteSwitchAdapte
         ViewHolder(View itemView) {
             super(itemView);
             deviceName = itemView.findViewById(R.id.switch_name);
-            toggle = itemView.findViewById(R.id.switch_toggle);
+            offSwitch = itemView.findViewById(R.id.off_switch);
+            onSwitch = itemView.findViewById(R.id.on_switch);
         }
 
         void bind(RcSwitch rcSwitch, SwitchListener switchListener) {
@@ -77,7 +78,8 @@ public class RemoteSwitchAdapter extends RecyclerView.Adapter<RemoteSwitchAdapte
 
             deviceName.setText(rcSwitch.getName());
 
-            toggle.setOnClickListener(view -> switchListener.onSwitchToggled(rcSwitch, toggle.isChecked()));
+            offSwitch.setOnClickListener(view -> switchListener.onSwitchToggled(rcSwitch, false));
+            onSwitch.setOnClickListener(view -> switchListener.onSwitchToggled(rcSwitch, true));
             itemView.setOnLongClickListener(view -> {
                 switchListener.onLongClicked(rcSwitch);
                 return true;

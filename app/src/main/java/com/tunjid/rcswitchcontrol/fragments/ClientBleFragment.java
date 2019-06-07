@@ -120,9 +120,9 @@ public class ClientBleFragment extends BaseFragment
         getToolBar().setTitle(R.string.switches);
 
         BluetoothDevice device = requireNonNull(getArguments()).getParcelable(BLUETOOTH_DEVICE);
-        disposables.add(viewModel.listenBle(device).subscribe(this::toggleProgress, Throwable::printStackTrace));
-        disposables.add(viewModel.connectionState().subscribe(this::onConnectionStateChanged, Throwable::printStackTrace));
-        disposables.add(viewModel.listenServer().subscribe(connected -> requireActivity().invalidateOptionsMenu(), Throwable::printStackTrace));
+        getDisposables().add(viewModel.listenBle(device).subscribe(this::toggleProgress, Throwable::printStackTrace));
+        getDisposables().add(viewModel.connectionState().subscribe(this::onConnectionStateChanged, Throwable::printStackTrace));
+        getDisposables().add(viewModel.listenServer().subscribe(connected -> requireActivity().invalidateOptionsMenu(), Throwable::printStackTrace));
     }
 
     @Override

@@ -179,7 +179,7 @@ public class BleScanFragment extends BaseFragment
     private void scanDevices(boolean enable) {
         isScanning = enable;
 
-        if (isScanning) disposables.add(viewModel.findDevices()
+        if (isScanning) getDisposables().add(viewModel.findDevices()
                 .doOnSubscribe(__ -> requireActivity().invalidateOptionsMenu())
                 .doFinally(this::onScanningStopped)
                 .subscribe(listManager::onDiff, Throwable::printStackTrace));

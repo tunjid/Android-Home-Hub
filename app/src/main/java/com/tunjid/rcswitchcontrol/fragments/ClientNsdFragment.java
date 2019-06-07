@@ -111,8 +111,8 @@ public class ClientNsdFragment extends BaseFragment
     @Override
     public void onResume() {
         super.onResume();
-        disposables.add(viewModel.listen().subscribe(this::onPayloadReceived, Throwable::printStackTrace));
-        disposables.add(viewModel.connectionState().subscribe(this::onConnectionStateChanged, Throwable::printStackTrace));
+        getDisposables().add(viewModel.listen().subscribe(this::onPayloadReceived, Throwable::printStackTrace));
+        getDisposables().add(viewModel.connectionState().subscribe(this::onConnectionStateChanged, Throwable::printStackTrace));
     }
 
     @Override

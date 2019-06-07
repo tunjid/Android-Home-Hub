@@ -19,7 +19,6 @@ import androidx.fragment.app.FragmentManager
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
 import com.tunjid.androidbootstrap.core.abstractclasses.BaseActivity
-import com.tunjid.androidbootstrap.functions.Consumer
 import com.tunjid.androidbootstrap.material.animator.FabExtensionAnimator
 import com.tunjid.androidbootstrap.view.animator.ViewHider
 import com.tunjid.androidbootstrap.view.util.ViewUtil
@@ -34,7 +33,7 @@ import com.tunjid.rcswitchcontrol.fragments.StartFragment
 import com.tunjid.rcswitchcontrol.fragments.ThingsFragment
 import com.tunjid.rcswitchcontrol.model.RcSwitch
 import com.tunjid.rcswitchcontrol.services.ClientBleService
-import com.tunjid.rcswitchcontrol.services.ClientBleService.BLUETOOTH_DEVICE
+import com.tunjid.rcswitchcontrol.services.ClientBleService.Companion.BLUETOOTH_DEVICE
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 
 class MainActivity : BaseActivity() {
@@ -52,7 +51,7 @@ class MainActivity : BaseActivity() {
     private lateinit var bottomInsetView: View
     private lateinit var keyboardPadding: View
 
-    var toolbar: Toolbar? = null
+    lateinit var toolbar: Toolbar
         private set
 
     private lateinit var fab: MaterialButton
@@ -107,7 +106,7 @@ class MainActivity : BaseActivity() {
         if (isNsdClient) Broadcaster.push(Intent(ClientNsdService.ACTION_START_NSD_DISCOVERY))
 
         if (!isSavedInstance) showFragment(when {
-            App.isAndroidThings() -> ThingsFragment.newInstance()
+            App.isAndroidThings -> ThingsFragment.newInstance()
             isNsdClient -> ClientNsdFragment.newInstance()
             device == null -> StartFragment.newInstance()
             else -> ClientBleFragment.newInstance(device)
@@ -160,12 +159,12 @@ class MainActivity : BaseActivity() {
     fun setFabClickListener(onClickListener: View.OnClickListener) =
             fab.setOnClickListener(onClickListener)
 
-    fun showSnackBar(consumer: Consumer<Snackbar>) {
+    fun showSnackBar(consumer: (snackbar: Snackbar) -> Unit) {
         val snackbar = Snackbar.make(coordinatorLayout, "", Snackbar.LENGTH_SHORT)
 
         // Necessary to remove snackBar padding for keyboard on older versions of Android
         setOnApplyWindowInsetsListener(snackbar.view) { _, insets -> insets }
-        consumer.accept(snackbar)
+        consumer.invoke(snackbar)
         snackbar.show()
     }
 

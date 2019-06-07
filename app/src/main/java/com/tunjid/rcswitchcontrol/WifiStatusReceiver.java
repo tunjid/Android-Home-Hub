@@ -23,6 +23,7 @@ import static android.net.wifi.WifiManager.EXTRA_NETWORK_INFO;
 import static android.net.wifi.WifiManager.EXTRA_SUPPLICANT_CONNECTED;
 import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
 import static com.tunjid.rcswitchcontrol.model.RcSwitch.SWITCH_PREFS;
+import static com.tunjid.rcswitchcontrol.services.ClientNsdService.LAST_CONNECTED_SERVICE;
 import static com.tunjid.rcswitchcontrol.services.ServerNsdService.SERVER_FLAG;
 
 public class WifiStatusReceiver extends BroadcastReceiver {
@@ -63,12 +64,12 @@ public class WifiStatusReceiver extends BroadcastReceiver {
         SharedPreferences preferences = context.getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE);
 
         // If we're running the BLE service, and we were designated as a NSD server, start it.
-        if (App.isServiceRunning(ClientBleService.class) && preferences.getBoolean(SERVER_FLAG, false)) {
+        if (App.Companion.isServiceRunning(ClientBleService.class) && preferences.getBoolean(SERVER_FLAG, false)) {
             context.startService(new Intent(context, ServerNsdService.class));
             return;
         }
 
-        final String lastServer = preferences.getString(ClientNsdService.LAST_CONNECTED_SERVICE, "");
+        final String lastServer = preferences.getString(LAST_CONNECTED_SERVICE, "");
 
         if (lastServer == null) return;
 
@@ -102,8 +103,8 @@ public class WifiStatusReceiver extends BroadcastReceiver {
     }
 
     private void stopClient() {
-        if (App.isServiceRunning(ClientNsdService.class)) {
-            Broadcaster.push(new Intent(ClientNsdService.ACTION_STOP));
+        if (App.Companion.isServiceRunning(ClientNsdService.class)) {
+            Broadcaster.Companion.push(new Intent(ClientNsdService.ACTION_STOP));
         }
 //        if (App.isServiceRunning(ServerNsdService.class)) {
 //            broadcastManager.sendBroadcast(new Intent(ServerNsdService.ACTION_STOP));

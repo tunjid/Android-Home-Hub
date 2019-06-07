@@ -34,7 +34,7 @@ class RemoteSwitchAdapter(
     class ViewHolder internal constructor(
             itemView: View,
             listener: SwitchListener
-    ) : InteractiveViewHolder<SwitchListener>(itemView) {
+    ) : InteractiveViewHolder<SwitchListener>(itemView, listener) {
 
         private var deviceName: TextView = itemView.findViewById(R.id.switch_name)
         private var offSwitch: View = itemView.findViewById(R.id.off_switch)

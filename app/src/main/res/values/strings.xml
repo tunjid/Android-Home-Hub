@@ -85,6 +85,7 @@
     <!-- Protocol strings -->
     <string name="commsprotocol_bye">Bye</string>
     <string name="proxyprotocol_ping_response">Please choose an option;\n1. Set up a remote device to connect to the ble sniffer\n2. Control a remote device to find and toggle switches\n3. Knock-Knock jokes</string>
+    <string name="proxyprotocol_invalid_command">Invalid command. Please choose the server you want, Knock Knock jokes, or an RC Remote</string>
     <string name="blercprotocol_ping_response">Welcome! Tap any of the switches to control them</string>
     <string name="blercprotocol_no_such_switch_response">Switch does not exist</string>
     <string name="blercprotocol_refresh_response">Updated available switches</string>

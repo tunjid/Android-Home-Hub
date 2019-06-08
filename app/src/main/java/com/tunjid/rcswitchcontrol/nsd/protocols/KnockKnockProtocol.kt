@@ -37,48 +37,60 @@ internal class KnockKnockProtocol(printWriter: PrintWriter) : CommsProtocol(prin
         when (state) {
             WAITING -> {
                 builder.setResponse(appContext.getString(R.string.knockknockprotocol_joke_start))
-                builder.addCommand(appContext.getString(R.string.knockknockprotocol_whos_there))
+                        .addCommand(appContext.getString(R.string.knockknockprotocol_whos_there))
                 state = SENT_KNOCK_KNOCK
             }
-            SENT_KNOCK_KNOCK -> if (action.trim { it <= ' ' }.equals(appContext.getString(R.string.knockknockprotocol_whos_there), ignoreCase = true)) {
-                builder.setResponse(clues[currentJoke])
-                builder.addCommand(resources.getString(R.string.knockknockprotocol_who, clues[currentJoke]))
-                state = SENT_CLUE
-            } else {
-                val formatString = appContext.getString(R.string.knockknockprotocol_whos_there)
-                val response = resources.getString(R.string.knockknockprotocol_wrong_answer, formatString)
-                builder.setResponse(response)
-                builder.addCommand(appContext.getString(R.string.knockknockprotocol_whos_there))
+            SENT_KNOCK_KNOCK -> state = when {
+                action.trim { it <= ' ' }.equals(appContext.getString(R.string.knockknockprotocol_whos_there), ignoreCase = true) -> {
+                    builder.setResponse(clues[currentJoke])
+                            .addCommand(resources.getString(R.string.knockknockprotocol_who, clues[currentJoke]))
+
+                     SENT_CLUE
+                }
+                else -> {
+                    val formatString = appContext.getString(R.string.knockknockprotocol_whos_there)
+                    val response = resources.getString(R.string.knockknockprotocol_wrong_answer, formatString)
+                    builder.setResponse(response)
+                            .addCommand(appContext.getString(R.string.knockknockprotocol_whos_there))
+
+                    state
+                }
             }
             SENT_CLUE -> state = when {
                 action.equals(resources.getString(R.string.knockknockprotocol_who, clues[currentJoke]), ignoreCase = true) -> {
                     builder.setResponse(resources.getString(R.string.knockknockprotocol_want_another, answers[currentJoke]))
                             .addCommand(resources.getString(R.string.knockknockprotocol_no))
                             .addCommand(resources.getString(R.string.knockknockprotocol_yes))
+
                     ANOTHER
                 }
                 else -> {
                     val formatString = resources.getString(R.string.knockknockprotocol_who, clues[currentJoke])
                     val response = resources.getString(R.string.knockknockprotocol_wrong_answer, formatString)
                     builder.setResponse(response)
-                    builder.addCommand(appContext.getString(R.string.knockknockprotocol_whos_there))
+                            .addCommand(appContext.getString(R.string.knockknockprotocol_whos_there))
+
                     SENT_KNOCK_KNOCK
                 }
             }
-            ANOTHER -> if (action.equals(resources.getString(R.string.knockknockprotocol_yes), ignoreCase = true)) {
-                builder.setResponse(appContext.getString(R.string.knockknockprotocol_joke_start))
-                builder.addCommand(appContext.getString(R.string.knockknockprotocol_whos_there))
+            ANOTHER -> state = when {
+                action.equals(resources.getString(R.string.knockknockprotocol_yes), ignoreCase = true) -> {
+                    builder.setResponse(appContext.getString(R.string.knockknockprotocol_joke_start))
+                    builder.addCommand(appContext.getString(R.string.knockknockprotocol_whos_there))
 
-                if (currentJoke == numJokes - 1)
-                    currentJoke = 0
-                else
-                    currentJoke++
-                state = SENT_KNOCK_KNOCK
-            } else {
-                builder.setResponse(resources.getString(R.string.commsprotocol_bye))
-                state = WAITING
+                    if (currentJoke == numJokes - 1) currentJoke = 0
+                    else currentJoke++
+
+                    SENT_KNOCK_KNOCK
+                }
+                else -> {
+                    builder.setResponse(resources.getString(R.string.commsprotocol_bye))
+
+                    WAITING
+                }
             }
         }
+
         return builder.build()
     }
 

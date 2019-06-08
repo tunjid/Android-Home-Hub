@@ -51,8 +51,8 @@ internal class ScanBleRcProtocol(printWriter: PrintWriter) : CommsProtocol(print
     init {
 
         scanThread.start()
-
         scanHandler = Handler(scanThread.looper)
+
         bleConnection = ServiceConnection(ClientBleService::class.java)
 
         val bluetoothManager = appContext.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
@@ -108,9 +108,9 @@ internal class ScanBleRcProtocol(printWriter: PrintWriter) : CommsProtocol(print
 
     private fun onBroadcastReceived(intent: Intent) {
         val action = intent.action ?: return
-
         val builder = Payload.builder()
         builder.setKey(javaClass.simpleName).addCommand(RESET)
+
         when (action) {
             ClientBleService.ACTION_GATT_CONNECTED -> builder.setResponse(appContext.getString(R.string.connected))
                     .addCommand(DISCONNECT)
@@ -118,6 +118,7 @@ internal class ScanBleRcProtocol(printWriter: PrintWriter) : CommsProtocol(print
             ClientBleService.ACTION_GATT_DISCONNECTED -> builder.setResponse(appContext.getString(R.string.disconnected))
                     .addCommand(CONNECT)
         }
+
         pushData(builder.build())
     }
 

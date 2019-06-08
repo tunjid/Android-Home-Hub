@@ -20,11 +20,11 @@ abstract class CommsProtocol internal constructor(internal val printWriter: Prin
 
     val appContext: Context = App.instance
 
-    fun processInput(input: String?): Payload = when (input) {
-        null, PING -> processInput(Payload.builder().setAction(PING).build())
-        RESET -> processInput(Payload.builder().setAction(RESET).build())
-        else -> processInput(Payload.deserialize(input))
-    }
+    fun processInput(input: String?): Payload = processInput(when (input) {
+        null, PING -> Payload.builder().setAction(PING).build()
+        RESET -> Payload.builder().setAction(RESET).build()
+        else -> Payload.deserialize(input)
+    })
 
     protected fun getString(@StringRes id: Int): String = appContext.getString(id)
 

@@ -76,68 +76,75 @@ class BleRcProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
 
         val action = payload.action
 
-        if (action == PING) {
-            builder.setResponse(getString(R.string.blercprotocol_ping_response))
+        when (action) {
+            PING -> builder.setResponse(getString(R.string.blercprotocol_ping_response))
                     .setAction(ClientBleService.ACTION_TRANSMITTER)
                     .setData(RcSwitch.serializedSavedSwitches())
                     .addCommand(REFRESH_SWITCHES).addCommand(SNIFF)
-        } else if (action == REFRESH_SWITCHES) {
-            builder.setResponse(getString(R.string.blercprotocol_refresh_response))
+
+            REFRESH_SWITCHES -> builder.setResponse(getString(R.string.blercprotocol_refresh_response))
                     .setAction(ClientBleService.ACTION_TRANSMITTER)
                     .setData(RcSwitch.serializedSavedSwitches())
                     .addCommand(SNIFF).addCommand(REFRESH_SWITCHES)
-        } else if (action == SNIFF) {
-            builder.addCommand(RESET)
-                    .addCommand(DISCONNECT)
-                    .setResponse(appContext.getString(R.string.blercprotocol_start_sniff_response))
 
-            if (bleConnection.isBound)
-                bleConnection.boundService
+            SNIFF -> {
+                builder.addCommand(RESET)
+                        .addCommand(DISCONNECT)
+                        .setResponse(appContext.getString(R.string.blercprotocol_start_sniff_response))
+
+                if (bleConnection.isBound) bleConnection.boundService
                         .writeCharacteristicArray(C_HANDLE_CONTROL, byteArrayOf(STATE_SNIFFING))
-        } else if (action == RENAME) {
-            val switches = RcSwitch.savedSwitches
-            val rcSwitch = RcSwitch.deserialize(payload.data)
-
-            val position = switches.indexOf(rcSwitch)
-            val hasSwitch = position > -1
-
-            builder.setResponse(if (hasSwitch)
-                getString(R.string.blercprotocol_renamed_response, switches[position].name, rcSwitch.name)
-            else
-                getString(R.string.blercprotocol_no_such_switch_response))
-
-            // Switches are equal based on their codes, not their names.
-            // Remove the switch with the old name, and add the switch with the new name.
-            if (hasSwitch) {
-                switches.removeAt(position)
-                switches.add(position, rcSwitch)
-                RcSwitch.saveSwitches(switches)
             }
 
-            builder.setData(RcSwitch.serializedSavedSwitches())
-                    .addCommand(SNIFF)
-                    .setAction(action)
-        } else if (action == DELETE) {
-            val switches = RcSwitch.savedSwitches
-            val rcSwitch = RcSwitch.deserialize(payload.data)
-            val response = if (switches.remove(rcSwitch))
-                getString(R.string.blercprotocol_deleted_response, rcSwitch.name)
-            else
-                getString(R.string.blercprotocol_no_such_switch_response)
+            RENAME -> {
+                val switches = RcSwitch.savedSwitches
+                val rcSwitch = RcSwitch.deserialize(payload.data)
 
-            // Save switches before sending them
-            RcSwitch.saveSwitches(switches)
+                val position = switches.indexOf(rcSwitch)
+                val hasSwitch = position > -1
 
-            builder.setResponse(response).setAction(action)
-                    .setData(RcSwitch.serializedSavedSwitches())
-                    .addCommand(SNIFF)
-        } else if (action == ClientBleService.ACTION_TRANSMITTER) {
-            builder.setResponse(getString(R.string.blercprotocol_transmission_response))
-                    .addCommand(SNIFF)
-                    .addCommand(REFRESH_SWITCHES)
+                builder.setResponse(if (hasSwitch)
+                    getString(R.string.blercprotocol_renamed_response, switches[position].name, rcSwitch.name)
+                else
+                    getString(R.string.blercprotocol_no_such_switch_response))
 
-            Broadcaster.push(Intent(ClientBleService.ACTION_TRANSMITTER)
-                    .putExtra(ClientBleService.DATA_AVAILABLE_TRANSMITTER, payload.data))
+                // Switches are equal based on their codes, not their names.
+                // Remove the switch with the old name, and add the switch with the new name.
+                if (hasSwitch) {
+                    switches.removeAt(position)
+                    switches.add(position, rcSwitch)
+                    RcSwitch.saveSwitches(switches)
+                }
+
+                builder.setData(RcSwitch.serializedSavedSwitches())
+                        .addCommand(SNIFF)
+                        .setAction(action)
+            }
+
+            DELETE -> {
+                val switches = RcSwitch.savedSwitches
+                val rcSwitch = RcSwitch.deserialize(payload.data)
+                val response = if (switches.remove(rcSwitch))
+                    getString(R.string.blercprotocol_deleted_response, rcSwitch.name)
+                else
+                    getString(R.string.blercprotocol_no_such_switch_response)
+
+                // Save switches before sending them
+                RcSwitch.saveSwitches(switches)
+
+                builder.setResponse(response).setAction(action)
+                        .setData(RcSwitch.serializedSavedSwitches())
+                        .addCommand(SNIFF)
+            }
+
+            ClientBleService.ACTION_TRANSMITTER -> {
+                builder.setResponse(getString(R.string.blercprotocol_transmission_response))
+                        .addCommand(SNIFF)
+                        .addCommand(REFRESH_SWITCHES)
+
+                Broadcaster.push(Intent(ClientBleService.ACTION_TRANSMITTER)
+                        .putExtra(ClientBleService.DATA_AVAILABLE_TRANSMITTER, payload.data))
+            }
         }
 
         return builder.build()
@@ -153,9 +160,12 @@ class BleRcProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
             ClientBleService.ACTION_GATT_CONNECTED -> builder.addCommand(SNIFF)
                     .addCommand(DISCONNECT)
                     .setResponse(appContext.getString(R.string.connected))
+
             ClientBleService.ACTION_GATT_CONNECTING -> builder.setResponse(appContext.getString(R.string.connecting))
+
             ClientBleService.ACTION_GATT_DISCONNECTED -> builder.addCommand(CONNECT)
                     .setResponse(appContext.getString(R.string.disconnected))
+
             ClientBleService.ACTION_CONTROL -> {
                 val rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_CONTROL)
                 if (rawData[0].toInt() == 1)
@@ -165,6 +175,7 @@ class BleRcProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
                             .addCommand(SNIFF)
                             .addCommand(RESET)
             }
+
             ClientBleService.ACTION_SNIFFER -> {
                 val rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_SNIFFER)
                 builder.setData(switchCreator.state)
@@ -186,10 +197,10 @@ class BleRcProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
                             .addCommand(SNIFF)
                             .addCommand(REFRESH_SWITCHES)
                             .addCommand(RESET)
-                            .setResponse(getString(if (containsSwitch)
-                                R.string.scanblercprotocol_sniff_already_exists_response
-                            else
-                                R.string.blercprotocol_sniff_off_response))
+                            .setResponse(getString(
+                                    if (containsSwitch) R.string.scanblercprotocol_sniff_already_exists_response
+                                    else R.string.blercprotocol_sniff_off_response)
+                            )
 
                     if (!containsSwitch) {
                         switches.add(rcSwitch)
@@ -200,6 +211,7 @@ class BleRcProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
                 }
             }
         }
+
         pushHandler.post { Objects.requireNonNull(printWriter).println(builder.build().serialize()) }
         Log.i(TAG, "Received data for: $action")
     }

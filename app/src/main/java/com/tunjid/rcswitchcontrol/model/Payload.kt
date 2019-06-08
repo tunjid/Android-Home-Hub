@@ -24,9 +24,7 @@ class Payload : Serializable {
 
     val commands = LinkedHashSet<String>()
 
-    fun serialize(): String {
-        return GSON.toJson(this)
-    }
+    fun serialize(): String = GSON.toJson(this)
 
     class Builder {
         private var payload = Payload()
@@ -64,13 +62,9 @@ class Payload : Serializable {
     companion object {
         private val GSON = Gson()
 
-        fun deserialize(input: String): Payload {
-            return GSON.fromJson(input, Payload::class.java)
-        }
+        fun deserialize(input: String): Payload = GSON.fromJson(input, Payload::class.java)
 
-        fun builder(): Builder {
-            return Builder()
-        }
+        fun builder(): Builder = Builder()
     }
 
 }

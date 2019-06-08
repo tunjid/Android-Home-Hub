@@ -23,7 +23,6 @@ import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
 import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel
-import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel.State
 
 class NsdSwitchFragment : BaseFragment(), RemoteSwitchAdapter.SwitchListener, RenameSwitchDialogFragment.SwitchNameListener {
 
@@ -64,7 +63,7 @@ class NsdSwitchFragment : BaseFragment(), RemoteSwitchAdapter.SwitchListener, Re
 
     override fun onResume() {
         super.onResume()
-        disposables.add(viewModel.listen().subscribe(this::onPayloadReceived, Throwable::printStackTrace))
+        disposables.add(viewModel.listen { it.isRc }.subscribe({ listManager.onDiff(it.result) }, Throwable::printStackTrace))
     }
 
     override fun onDestroyView() {
@@ -85,11 +84,6 @@ class NsdSwitchFragment : BaseFragment(), RemoteSwitchAdapter.SwitchListener, Re
         viewModel.sendMessage(Payload.builder().setAction(getString(R.string.blercprotocol_rename_command))
                 .setData(rcSwitch.serialize())
                 .build())
-    }
-
-    private fun onPayloadReceived(state: State) {
-        if (!state.isRc) return
-        listManager.onDiff(state.result)
     }
 
     private fun onDelete(viewHolder: RecyclerView.ViewHolder) {

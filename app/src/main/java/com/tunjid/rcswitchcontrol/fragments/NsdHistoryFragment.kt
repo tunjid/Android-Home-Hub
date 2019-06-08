@@ -47,7 +47,7 @@ class NsdHistoryFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
 
     override fun onResume() {
         super.onResume()
-        disposables.add(viewModel.listen().subscribe(this::onPayloadReceived, Throwable::printStackTrace))
+        disposables.add(viewModel.listen { true }.subscribe(this::onPayloadReceived, Throwable::printStackTrace))
     }
 
     override fun onDestroyView() {
@@ -59,8 +59,6 @@ class NsdHistoryFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
             viewModel.sendMessage(Payload.builder().setAction(text).build())
 
     private fun onPayloadReceived(state: State) {
-        if (state.isRc) return
-
         listManager.onDiff(state.result)
         listManager.post {
             listManager.recyclerView.smoothScrollToPosition(viewModel.latestHistoryIndex)

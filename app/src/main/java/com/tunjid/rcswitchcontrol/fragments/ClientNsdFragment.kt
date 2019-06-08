@@ -55,7 +55,7 @@ class ClientNsdFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
 
         val root = inflater.inflate(R.layout.fragment_nsd_client, container, false)
         pager = root.findViewById(R.id.pager)
-        pager.adapter = Adapter(childFragmentManager)
+        pager.adapter = adapter(childFragmentManager)
 
         connectionStatus = root.findViewById(R.id.connection_status)
 
@@ -79,7 +79,7 @@ class ClientNsdFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
 
     override fun onResume() {
         super.onResume()
-        disposables.add(viewModel.listen().subscribe(this::onPayloadReceived, Throwable::printStackTrace))
+        disposables.add(viewModel.listen { true }.subscribe(this::onPayloadReceived, Throwable::printStackTrace))
         disposables.add(viewModel.connectionState().subscribe(this::onConnectionStateChanged, Throwable::printStackTrace))
     }
 
@@ -135,13 +135,16 @@ class ClientNsdFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
                     AutoTransition().excludeTarget(RecyclerView::class.java, true))
         }
 
-        pager.currentItem = if (state.isRc) 1 else 0
+        pager.currentItem = if (state.isRc) SWITCHES else HISTORY
         listManager.notifyDataSetChanged()
 
         if (state.prompt != null) Snackbar.make(pager, state.prompt, LENGTH_SHORT).show()
     }
 
     companion object {
+
+        const val HISTORY = 0
+        const val SWITCHES = 1
 
         fun newInstance(): ClientNsdFragment {
             val fragment = ClientNsdFragment()
@@ -150,16 +153,16 @@ class ClientNsdFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
             fragment.arguments = bundle
             return fragment
         }
+
+        fun adapter(fragmentManager: FragmentManager) = object : FragmentStatePagerAdapter(fragmentManager) {
+
+            override fun getItem(position: Int): Fragment = when (position) {
+                HISTORY -> NsdHistoryFragment.newInstance()
+                SWITCHES -> NsdSwitchFragment.newInstance()
+                else -> throw IllegalArgumentException("invalid index")
+            }
+
+            override fun getCount(): Int = 2
+        }
     }
-}
-
-class Adapter(fragmentManager: FragmentManager) : FragmentStatePagerAdapter(fragmentManager) {
-
-    override fun getItem(position: Int): Fragment = when (position) {
-        0 -> NsdHistoryFragment.newInstance()
-        1 -> NsdSwitchFragment.newInstance()
-        else -> throw IllegalArgumentException("invalid index")
-    }
-
-    override fun getCount(): Int = 2
 }

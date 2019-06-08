@@ -71,7 +71,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
         super.onCleared()
     }
 
-    fun listen(): Flowable<State> = stateProcessor.observeOn(mainThread())
+    fun listen(predicate: (state: State) -> Boolean): Flowable<State> = stateProcessor.filter(predicate).observeOn(mainThread())
 
     fun sendMessage(message: Payload) = sendMessage(Supplier { true }, message)
 

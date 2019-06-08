@@ -71,7 +71,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
         super.onCleared()
     }
 
-    fun listen(): Flowable<State> = stateProcessor.observeOn(mainThread())
+    fun listen(predicate: (state: State) -> Boolean): Flowable<State> = stateProcessor.filter(predicate).observeOn(mainThread())
 
     fun sendMessage(message: Payload) = sendMessage(Supplier { true }, message)
 
@@ -113,12 +113,10 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
                 val payload = Payload.deserialize(serverResponse)
                 val isSwitchPayload = isSwitchPayload(payload)
 
-                Lists.replace(commands, payload.commands)
-
                 val diffSingle: Single<DiffResult> = when {
                     isSwitchPayload -> diff(switches, Supplier { diffSwitches(payload) })
                     else -> diff(history, Supplier { diffHistory(payload) })
-                }
+                }.doAfterSuccess { Lists.replace(commands, payload.commands) }
 
                 disposable.add(diffSingle.map { State(isSwitchPayload, getMessage(payload), it) }
                         .subscribe(stateProcessor::onNext, Throwable::printStackTrace))

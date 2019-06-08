@@ -3,6 +3,7 @@ package com.tunjid.rcswitchcontrol.model
 import android.content.Context.MODE_PRIVATE
 import android.os.Parcel
 import android.os.Parcelable
+import android.util.Base64
 import androidx.annotation.StringDef
 import com.google.gson.Gson
 import com.tunjid.rcswitchcontrol.App
@@ -52,7 +53,10 @@ class RcSwitch() : Parcelable {
         return transmission
     }
 
-    fun serialize(): String = gson.toJson(this)
+    fun getEncodedTransmission(state: Boolean): String =
+        Base64.encodeToString(getTransmission(state), Base64.DEFAULT)
+
+        fun serialize(): String = gson.toJson(this)
 
     // Equals considers the code only, not the name
     override fun equals(other: Any?): Boolean {

@@ -2,9 +2,6 @@ package com.tunjid.rcswitchcontrol.fragments
 
 import android.content.Intent
 import android.os.Bundle
-import android.transition.AutoTransition
-import android.transition.TransitionManager
-import android.util.Base64
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
@@ -12,10 +9,14 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentManager
+import androidx.fragment.app.FragmentStatePagerAdapter
 import androidx.lifecycle.ViewModelProviders
-import androidx.recyclerview.widget.ItemTouchHelper
-import androidx.recyclerview.widget.ItemTouchHelper.Callback.makeMovementFlags
 import androidx.recyclerview.widget.RecyclerView
+import androidx.transition.AutoTransition
+import androidx.transition.TransitionManager
+import androidx.viewpager.widget.ViewPager
 import com.google.android.flexbox.AlignItems
 import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.FlexboxLayoutManager
@@ -24,40 +25,23 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
 import com.tunjid.androidbootstrap.recyclerview.ListManager
 import com.tunjid.androidbootstrap.recyclerview.ListManagerBuilder
-import com.tunjid.androidbootstrap.recyclerview.ListPlaceholder
-import com.tunjid.androidbootstrap.recyclerview.SwipeDragOptionsBuilder
-import com.tunjid.androidbootstrap.view.util.ViewUtil
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.activities.MainActivity
 import com.tunjid.rcswitchcontrol.adapters.ChatAdapter
-import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
 import com.tunjid.rcswitchcontrol.model.Payload
-import com.tunjid.rcswitchcontrol.model.RcSwitch
-import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
-import com.tunjid.rcswitchcontrol.utils.DeletionHandler
-import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
 import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel.State
-import java.util.Objects.requireNonNull
 
-class ClientNsdFragment : BaseFragment(), ChatAdapter.ChatAdapterListener, RemoteSwitchAdapter.SwitchListener, RenameSwitchDialogFragment.SwitchNameListener {
+class ClientNsdFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
 
-    private var isDeleting: Boolean = false
-
+    private lateinit var pager: ViewPager
     private lateinit var connectionStatus: TextView
-    private lateinit var mainList: RecyclerView
-    private lateinit var commandsView: RecyclerView
-    private lateinit var listManager: ListManager<RecyclerView.ViewHolder, ListPlaceholder<*>>
+    private lateinit var listManager: ListManager<ChatAdapter.TextViewHolder, Unit>
 
     private lateinit var viewModel: NsdClientViewModel
-
-    private val swipeDirection: Int
-        get() = if (isDeleting || listManager.recyclerView.adapter is ChatAdapter) 0
-        else makeMovementFlags(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -70,15 +54,19 @@ class ClientNsdFragment : BaseFragment(), ChatAdapter.ChatAdapterListener, Remot
                               savedInstanceState: Bundle?): View? {
 
         val root = inflater.inflate(R.layout.fragment_nsd_client, container, false)
+        pager = root.findViewById(R.id.pager)
+        pager.adapter = adapter(childFragmentManager)
 
         connectionStatus = root.findViewById(R.id.connection_status)
-        mainList = root.findViewById(R.id.switch_list)
-        commandsView = root.findViewById(R.id.commands)
 
-        swapAdapter(false)
-        Builder()
-                .withRecyclerView(commandsView)
-                .withAdapter(ChatAdapter(this, viewModel.commands))
+        listManager = ListManagerBuilder<ChatAdapter.TextViewHolder, Unit>()
+                .withRecyclerView(root.findViewById(R.id.commands))
+                .withAdapter(ChatAdapter(viewModel.commands, this))
+                .withCustomLayoutManager(FlexboxLayoutManager(inflater.context).apply {
+                    alignItems = AlignItems.CENTER
+                    flexDirection = FlexDirection.ROW
+                    justifyContent = JustifyContent.FLEX_START
+                })
                 .build()
 
         return root
@@ -91,7 +79,7 @@ class ClientNsdFragment : BaseFragment(), ChatAdapter.ChatAdapterListener, Remot
 
     override fun onResume() {
         super.onResume()
-        disposables.add(viewModel.listen().subscribe(this::onPayloadReceived, Throwable::printStackTrace))
+        disposables.add(viewModel.listen { true }.subscribe(this::onPayloadReceived, Throwable::printStackTrace))
         disposables.add(viewModel.connectionState().subscribe(this::onConnectionStateChanged, Throwable::printStackTrace))
     }
 
@@ -101,8 +89,7 @@ class ClientNsdFragment : BaseFragment(), ChatAdapter.ChatAdapterListener, Remot
     }
 
     override fun onDestroyView() {
-//        mainList = null
-//        connectionStatus = null
+        listManager.clear()
         super.onDestroyView()
     }
 
@@ -134,126 +121,30 @@ class ClientNsdFragment : BaseFragment(), ChatAdapter.ChatAdapterListener, Remot
         return super.onOptionsItemSelected(item)
     }
 
-    override fun onTextClicked(text: String) {
-        viewModel.sendMessage(Payload.builder().setAction(text).build())
-    }
-
-    override fun onLongClicked(rcSwitch: RcSwitch) {
-        RenameSwitchDialogFragment.newInstance(rcSwitch).show(childFragmentManager, "")
-    }
-
-    override fun onSwitchToggled(rcSwitch: RcSwitch, state: Boolean) {
-        viewModel.sendMessage(Payload.builder().setAction(ClientBleService.ACTION_TRANSMITTER)
-                .setData(Base64.encodeToString(rcSwitch.getTransmission(state), Base64.DEFAULT))
-                .build())
-    }
-
-    override fun onSwitchRenamed(rcSwitch: RcSwitch) {
-        listManager.notifyItemChanged(viewModel.switches.indexOf(rcSwitch))
-        viewModel.sendMessage(Payload.builder().setAction(getString(R.string.blercprotocol_rename_command))
-                .setData(rcSwitch.serialize())
-                .build())
-    }
-
-    private fun onPayloadReceived(state: State) {
-        TransitionManager.beginDelayedTransition(mainList.parent as ViewGroup, AutoTransition()
-                .excludeTarget(mainList, true)
-                .excludeTarget(commandsView, true))
-
-        requireNonNull<RecyclerView.Adapter<*>>(commandsView.adapter).notifyDataSetChanged()
-        ViewUtil.listenForLayout(commandsView) { ViewUtil.getLayoutParams(mainList).bottomMargin = commandsView.height }
-
-        swapAdapter(state.isRc)
-        listManager.onDiff(state.result)
-
-        if (state.prompt != null)
-            Snackbar.make(mainList, state.prompt, LENGTH_SHORT).show()
-        else
-            listManager.post {
-                listManager.recyclerView
-                        .smoothScrollToPosition(viewModel.latestHistoryIndex)
-            }
-    }
+    override fun onTextClicked(text: String) =
+            viewModel.sendMessage(Payload.builder().setAction(text).build())
 
     private fun onConnectionStateChanged(text: String) {
         requireActivity().invalidateOptionsMenu()
         connectionStatus.text = resources.getString(R.string.connection_state, text)
     }
 
-    private fun swapAdapter(isSwitchAdapter: Boolean) {
-        val currentAdapter = mainList.adapter
-
-        if (isSwitchAdapter && currentAdapter is RemoteSwitchAdapter) return
-        if (!isSwitchAdapter && currentAdapter is ChatAdapter) return
-
-        listManager = ListManagerBuilder<RecyclerView.ViewHolder, ListPlaceholder<*>>()
-                .withRecyclerView(mainList)
-                .withGridLayoutManager(SpanCountCalculator.spanCount)
-                .withAdapter(if (isSwitchAdapter)
-                    RemoteSwitchAdapter(this, viewModel.switches)
-                else
-                    ChatAdapter(object : ChatAdapter.ChatAdapterListener {
-                        override fun onTextClicked(text: String) {}
-                    }, viewModel.history))
-                .withSwipeDragOptions(SwipeDragOptionsBuilder<RecyclerView.ViewHolder>()
-                        .setSwipeConsumer { viewHolder, _ -> onDelete(viewHolder) }
-                        .setMovementFlagsFunction { swipeDirection }
-                        .setItemViewSwipeSupplier { true }
-                        .build())
-                .withInconsistencyHandler { requireActivity().recreate() }
-                .build()
-    }
-
-    private fun onDelete(viewHolder: RecyclerView.ViewHolder) {
-        if (isDeleting) return
-        isDeleting = true
-
-        if (view == null) return
-
-        val position = viewHolder.adapterPosition
-
-        val switches = viewModel.switches
-        val deletionHandler = DeletionHandler<RcSwitch>(position) { self ->
-            if (self.hasItems())
-                viewModel.sendMessage(Payload.builder()
-                        .setAction(getString(R.string.blercprotocol_delete_command))
-                        .setData(self.pop().serialize())
-                        .build())
-
-            isDeleting = false
+    private fun onPayloadReceived(state: State) {
+        view?.apply {
+            TransitionManager.beginDelayedTransition(this as ViewGroup,
+                    AutoTransition().excludeTarget(RecyclerView::class.java, true))
         }
 
-        deletionHandler.push(switches[position])
-        switches.removeAt(position)
-        listManager.notifyItemRemoved(position)
+        pager.currentItem = if (state.isRc) SWITCHES else HISTORY
+        listManager.notifyDataSetChanged()
 
-        showSnackBar { snackBar ->
-            snackBar.setText(R.string.deleted_switch)
-                    .addCallback(deletionHandler)
-                    .setAction(R.string.undo) {
-                        if (deletionHandler.hasItems()) {
-                            val deletedAt = deletionHandler.deletedPosition
-                            switches.add(deletedAt, deletionHandler.pop())
-                            listManager.notifyItemInserted(deletedAt)
-                        }
-                        isDeleting = false
-                    }
-        }
-    }
-
-    internal class Builder : ListManagerBuilder<ChatAdapter.TextViewHolder, ListPlaceholder<*>>() {
-
-        override fun buildLayoutManager(): RecyclerView.LayoutManager {
-            val layoutManager = FlexboxLayoutManager(recyclerView.context)
-            layoutManager.alignItems = AlignItems.CENTER
-            layoutManager.flexDirection = FlexDirection.ROW
-            layoutManager.justifyContent = JustifyContent.FLEX_START
-
-            return layoutManager
-        }
+        if (state.prompt != null) Snackbar.make(pager, state.prompt, LENGTH_SHORT).show()
     }
 
     companion object {
+
+        const val HISTORY = 0
+        const val SWITCHES = 1
 
         fun newInstance(): ClientNsdFragment {
             val fragment = ClientNsdFragment()
@@ -261,6 +152,17 @@ class ClientNsdFragment : BaseFragment(), ChatAdapter.ChatAdapterListener, Remot
 
             fragment.arguments = bundle
             return fragment
+        }
+
+        fun adapter(fragmentManager: FragmentManager) = object : FragmentStatePagerAdapter(fragmentManager) {
+
+            override fun getItem(position: Int): Fragment = when (position) {
+                HISTORY -> NsdHistoryFragment.newInstance()
+                SWITCHES -> NsdSwitchFragment.newInstance()
+                else -> throw IllegalArgumentException("invalid index")
+            }
+
+            override fun getCount(): Int = 2
         }
     }
 }

@@ -46,7 +46,8 @@ class App : android.app.Application() {
                 filter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION)
                 filter.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION)
 
-                registerReceiver(WifiStatusReceiver(), filter)
+                receiver = WifiStatusReceiver()
+                registerReceiver(receiver, filter)
             }
 
             override fun onActivityResumed(activity: Activity) {}

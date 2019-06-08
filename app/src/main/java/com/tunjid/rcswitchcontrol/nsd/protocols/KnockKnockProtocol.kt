@@ -38,10 +38,11 @@ internal class KnockKnockProtocol(printWriter: PrintWriter) : CommsProtocol(prin
             WAITING -> {
                 builder.setResponse(appContext.getString(R.string.knockknockprotocol_joke_start))
                         .addCommand(appContext.getString(R.string.knockknockprotocol_whos_there))
+
                 state = SENT_KNOCK_KNOCK
             }
             SENT_KNOCK_KNOCK -> state = when {
-                action.trim { it <= ' ' }.equals(appContext.getString(R.string.knockknockprotocol_whos_there), ignoreCase = true) -> {
+                action?.trim { it <= ' ' }.equals(appContext.getString(R.string.knockknockprotocol_whos_there), ignoreCase = true) -> {
                     builder.setResponse(clues[currentJoke])
                             .addCommand(resources.getString(R.string.knockknockprotocol_who, clues[currentJoke]))
 

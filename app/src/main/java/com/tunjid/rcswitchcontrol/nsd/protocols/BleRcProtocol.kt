@@ -74,9 +74,7 @@ class BleRcProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
         val builder = Payload.builder()
         builder.setKey(javaClass.name).addCommand(RESET)
 
-        val action = payload.action
-
-        when (action) {
+        when (val action = payload.action) {
             PING -> builder.setResponse(getString(R.string.blercprotocol_ping_response))
                     .setAction(ClientBleService.ACTION_TRANSMITTER)
                     .setData(RcSwitch.serializedSavedSwitches())
@@ -98,19 +96,19 @@ class BleRcProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
 
             RENAME -> {
                 val switches = RcSwitch.savedSwitches
-                val rcSwitch = RcSwitch.deserialize(payload.data)
+                val rcSwitch = payload.data?.let { RcSwitch.deserialize(it) }
 
                 val position = switches.indexOf(rcSwitch)
                 val hasSwitch = position > -1
 
-                builder.setResponse(if (hasSwitch)
+                builder.setResponse(if (hasSwitch && rcSwitch != null)
                     getString(R.string.blercprotocol_renamed_response, switches[position].name, rcSwitch.name)
                 else
                     getString(R.string.blercprotocol_no_such_switch_response))
 
                 // Switches are equal based on their codes, not their names.
                 // Remove the switch with the old name, and add the switch with the new name.
-                if (hasSwitch) {
+                if (hasSwitch && rcSwitch != null) {
                     switches.removeAt(position)
                     switches.add(position, rcSwitch)
                     RcSwitch.saveSwitches(switches)
@@ -123,11 +121,11 @@ class BleRcProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
 
             DELETE -> {
                 val switches = RcSwitch.savedSwitches
-                val rcSwitch = RcSwitch.deserialize(payload.data)
-                val response = if (switches.remove(rcSwitch))
-                    getString(R.string.blercprotocol_deleted_response, rcSwitch.name)
-                else
+                val rcSwitch = payload.data?.let { RcSwitch.deserialize(it) }
+                val response = if (rcSwitch == null || !switches.remove(rcSwitch))
                     getString(R.string.blercprotocol_no_such_switch_response)
+                else
+                    getString(R.string.blercprotocol_deleted_response, rcSwitch.name)
 
                 // Save switches before sending them
                 RcSwitch.saveSwitches(switches)

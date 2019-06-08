@@ -19,7 +19,6 @@ import java.io.PrintWriter
 class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
     private var choosing: Boolean = false
-
     private var protocol: CommsProtocol? = null
 
     override fun processInput(payload: Payload): Payload {
@@ -28,77 +27,66 @@ class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
         val action = payload.action
 
-        // First connection, return here
         when (action) {
-            PING -> {
-                // Ping the existing protocol, otherwise fall through
-                if (protocol != null) return protocol!!.processInput(payload)
-                try {
-                    if (protocol != null) protocol!!.close()
-                } catch (e: IOException) {
-                    Log.e(TAG, "Failed to close current CommsProtocol in ProxyProtocol", e)
-                }
+            PING -> return if (protocol != null) protocol!!.processInput(payload)
+            else closeAndChoose(builder)
 
-                choosing = true
-                builder.setResponse(appContext.getString(R.string.proxyprotocol_ping_response))
-                if (App.isAndroidThings) builder.addCommand(CONNECT_RC_REMOTE)
-                builder.addCommand(KNOCK_KNOCK)
-                builder.addCommand(RC_REMOTE)
-                builder.addCommand(RESET)
-                return builder.build()
-            }
-            RESET, CHOOSER -> {
-                try {
-                    if (protocol != null) protocol!!.close()
-                } catch (e: IOException) {
-                    Log.e(TAG, "Failed to close current CommsProtocol in ProxyProtocol", e)
-                }
-
-                choosing = true
-                builder.setResponse(appContext.getString(R.string.proxyprotocol_ping_response))
-                if (App.isAndroidThings) builder.addCommand(CONNECT_RC_REMOTE)
-                builder.addCommand(KNOCK_KNOCK)
-                builder.addCommand(RC_REMOTE)
-                builder.addCommand(RESET)
-                return builder.build()
-            }
+            RESET, CHOOSER -> return closeAndChoose(builder)
         }
+
+        if (!choosing) return protocol?.processInput(payload) ?: closeAndChoose(builder)
 
         // Choose the protocol to proxy through
-        if (choosing) {
-            when (action) {
-                CONNECT_RC_REMOTE -> protocol = ScanBleRcProtocol(printWriter)
-                RC_REMOTE -> protocol = BleRcProtocol(printWriter)
-                KNOCK_KNOCK -> protocol = KnockKnockProtocol(printWriter)
-                else -> {
-                    builder.setResponse("Invalid command. Please choose the server you want, Knock Knock jokes, or an RC Remote")
-                    if (App.isAndroidThings) builder.addCommand(CONNECT_RC_REMOTE)
-                    builder.addCommand(KNOCK_KNOCK)
-                    builder.addCommand(RC_REMOTE)
-                    builder.addCommand(RESET)
-                    return builder.build()
-                }
+        when (action) {
+            CONNECT_RC_REMOTE -> protocol = ScanBleRcProtocol(printWriter)
+            RC_REMOTE -> protocol = BleRcProtocol(printWriter)
+            KNOCK_KNOCK -> protocol = KnockKnockProtocol(printWriter)
+            else -> return builder.let {
+                it.setResponse(getString(R.string.proxyprotocol_invalid_command))
+                if (App.isAndroidThings) it.addCommand(CONNECT_RC_REMOTE)
+
+                it.addCommand(KNOCK_KNOCK)
+                        .addCommand(RC_REMOTE)
+                        .addCommand(RESET)
+                        .build()
             }
-
-            choosing = false
-
-            var result = "Chose Protocol: " + protocol!!.javaClass.simpleName
-            result += "\n"
-            result += "\n"
-
-            val toDeploy = protocol!!.processInput(PING)
-
-            builder.setKey(toDeploy.key)
-            builder.setData(toDeploy.data)
-            builder.setResponse(result + toDeploy.response)
-
-            for (command in toDeploy.commands) builder.addCommand(command)
-            builder.addCommand(RESET)
-
-            return builder.build()
         }
 
-        return protocol!!.processInput(payload)
+        choosing = false
+
+        var result = "Chose Protocol: " + protocol!!.javaClass.simpleName
+        result += "\n"
+        result += "\n"
+
+        val delegatedPayload = protocol!!.processInput(PING)
+
+        delegatedPayload.key?.let { builder.setKey(it) }
+        delegatedPayload.data?.let { builder.setData(it) }
+        builder.setResponse(result + delegatedPayload.response)
+
+        for (command in delegatedPayload.commands) builder.addCommand(command)
+        builder.addCommand(RESET)
+
+        return builder.build()
+    }
+
+    private fun closeAndChoose(builder: Payload.Builder): Payload {
+        try {
+            close()
+        } catch (e: IOException) {
+            Log.e(TAG, "Failed to close current CommsProtocol in ProxyProtocol", e)
+        }
+
+        choosing = true
+
+        builder.setResponse(appContext.getString(R.string.proxyprotocol_ping_response))
+                .addCommand(KNOCK_KNOCK)
+                .addCommand(RC_REMOTE)
+                .addCommand(RESET)
+
+        if (App.isAndroidThings) builder.addCommand(CONNECT_RC_REMOTE)
+
+        return builder.build()
     }
 
     @Throws(IOException::class)

@@ -67,10 +67,12 @@ class BleScanViewModel(application: Application) : AndroidViewModel(application)
 
         // Clear list first, then start scanning.
         return Flowable.fromCallable {
-            Diff.calculate(scanResults,
+            Diff.calculate(
+                    scanResults,
                     emptyList(),
                     { _, _ -> emptyList() },
-                    { result -> Differentiable.fromCharSequence { result.device.address } })
+                    { result -> Differentiable.fromCharSequence { result.device.address } }
+            )
         }
                 .concatWith(processor.take(SCAN_PERIOD, TimeUnit.SECONDS, Schedulers.io()))
                 .subscribeOn(Schedulers.io())

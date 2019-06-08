@@ -30,7 +30,16 @@ class RcSwitch() : Parcelable {
 
     @Retention(SOURCE)
     @StringDef(ON_CODE, OFF_CODE)
-    internal annotation class SwitchCode
+    internal annotation class SwitchCode {}
+
+    private constructor(`in`: Parcel) : this() {
+        name = `in`.readString()!!
+        protocol = `in`.readByte()
+        bitLength = `in`.readByte()
+        onCode = `in`.createByteArray()!!
+        offCode = `in`.createByteArray()!!
+        pulseLength = `in`.createByteArray()!!
+    }
 
     fun getTransmission(state: Boolean): ByteArray {
         val transmission = ByteArray(10)
@@ -60,15 +69,6 @@ class RcSwitch() : Parcelable {
         var result = Arrays.hashCode(onCode)
         result = 31 * result + Arrays.hashCode(offCode)
         return result
-    }
-
-    protected constructor(`in`: Parcel) : this() {
-        name = `in`.readString()
-        protocol = `in`.readByte()
-        bitLength = `in`.readByte()
-        onCode = `in`.createByteArray()
-        offCode = `in`.createByteArray()
-        pulseLength = `in`.createByteArray()
     }
 
     override fun describeContents(): Int {

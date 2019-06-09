@@ -10,7 +10,7 @@ import com.tunjid.androidbootstrap.communications.nsd.NsdHelper
 import com.tunjid.androidbootstrap.communications.nsd.NsdHelper.createBufferedReader
 import com.tunjid.androidbootstrap.communications.nsd.NsdHelper.createPrintWriter
 import com.tunjid.androidbootstrap.core.components.ServiceConnection
-import com.tunjid.rcswitchcontrol.App
+import com.tunjid.rcswitchcontrol.App.Companion.catcher
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
 import com.tunjid.rcswitchcontrol.model.RcSwitch.Companion.SWITCH_PREFS
 import com.tunjid.rcswitchcontrol.nsd.protocols.CommsProtocol
@@ -27,8 +27,8 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class ServerNsdService : Service() {
 
-    private var nsdHelper: NsdHelper? = null
-    private var serverThread: ServerThread? = null
+    private lateinit var nsdHelper: NsdHelper
+    private lateinit var serverThread: ServerThread
     var serviceName: String? = null
         private set
 
@@ -37,7 +37,7 @@ class ServerNsdService : Service() {
     private val disposable = CompositeDisposable()
 
     val isRunning: Boolean
-        get() = serverThread != null && serverThread!!.isRunning
+        get() = serverThread.isRunning
 
     override fun onCreate() {
         super.onCreate()
@@ -54,8 +54,8 @@ class ServerNsdService : Service() {
     }
 
     private fun tearDown() {
-        serverThread!!.close()
-        nsdHelper!!.tearDown()
+        serverThread.close()
+        nsdHelper.tearDown()
     }
 
     override fun onDestroy() {
@@ -82,13 +82,12 @@ class ServerNsdService : Service() {
             nsdHelper = NsdHelper.getBuilder(this)
                     .setRegisterSuccessConsumer(this::onNsdServiceRegistered)
                     .setRegisterErrorConsumer { service, error -> Log.i(TAG, "Could not register service " + service.serviceName + ". Error code: " + error) }
-                    .build()
-            nsdHelper!!.registerService(serverSocket.localPort, initialServiceName)
+                    .build().apply { registerService(serverSocket.localPort, initialServiceName) }
 
-            serverThread = ServerThread(serverSocket)
-            serverThread!!.start()
+            serverThread = ServerThread(serverSocket).apply { start() }
         } catch (e: Exception) {
             e.printStackTrace()
+            stopSelf()
         }
 
     }
@@ -129,8 +128,7 @@ class ServerNsdService : Service() {
             while (isRunning) {
                 try {
                     // Create new connection for every new client
-                    val connection = Connection(serverSocket!!.accept(), connectionsMap)
-                    connection.start()
+                    val connection = Connection(serverSocket!!.accept(), connectionsMap).apply { start() }
                     connectionsMap[connection.id] = connection
 
                     Log.d(TAG, "Client connected. Number of clients: " + connectionsMap.size)
@@ -145,20 +143,20 @@ class ServerNsdService : Service() {
         override fun close() {
             isRunning = false
 
-            for (key in connectionsMap.keys)
-                App.catcher(TAG, "Closing server connection with id $key") { connectionsMap[key]!!.close() }
+            for (key in connectionsMap.keys) catcher(TAG, "Closing server connection with id $key") { connectionsMap[key]?.close() }
 
             connectionsMap.clear()
-
-            if (serverSocket != null)
-                App.catcher(TAG, "Closing server socket.") { serverSocket.close() }
+            if (serverSocket != null) catcher(TAG, "Closing server socket.") { serverSocket.close() }
         }
     }
 
     /**
      * Connection between [ServerNsdService] and it's clients
      */
-    private class Connection internal constructor(private val socket: Socket?, private val connectionMap: MutableMap<Long, Connection>) : Thread(), Closeable {
+    private class Connection internal constructor(
+            private val socket: Socket?,
+            private val connectionMap: MutableMap<Long, Connection>
+    ) : Thread(), Closeable {
 
         init {
             Log.d(TAG, "Connected to new client")

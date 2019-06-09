@@ -44,12 +44,20 @@
 
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
+    <View
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@color/card_background"
+        app:layout_constraintBottom_toBottomOf="@+id/commands"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/commands" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/commands"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:background="@color/card_background"
         android:elevation="@dimen/half_margin"
         android:padding="@dimen/half_margin"
         app:layout_behavior="@string/bottom_transient_bar_behavior"

@@ -135,19 +135,13 @@ class MainActivity : BaseActivity() {
         setOnApplyWindowInsetsListener(this.constraintLayout) { _, insets -> consumeSystemInsets(insets) }
     }
 
-    fun toggleToolbar(show: Boolean) {
-        if (show)
-            toolbarHider.show()
-        else
-            toolbarHider.hide()
-    }
+    fun toggleToolbar(show: Boolean) =
+            if (show) toolbarHider.show()
+            else toolbarHider.hide()
 
-    fun toggleFab(show: Boolean) {
-        if (show)
-            this.fabHider.show()
-        else
-            this.fabHider.hide()
-    }
+    fun toggleFab(show: Boolean) =
+            if (show) this.fabHider.show()
+            else this.fabHider.hide()
 
     fun setFabExtended(extended: Boolean) {
         fabExtensionAnimator.isExtended = extended

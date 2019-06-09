@@ -39,7 +39,7 @@ class NsdHistoryFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
                 .withAdapter(ChatAdapter(viewModel.history, object : ChatAdapter.ChatAdapterListener {
                     override fun onTextClicked(text: String) {}
                 }))
-                .withInconsistencyHandler { requireActivity().recreate() }
+                .withInconsistencyHandler(this::onInconsistentList)
                 .build()
 
         return root
@@ -60,7 +60,8 @@ class NsdHistoryFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
 
     private fun onPayloadReceived(state: State) {
         listManager.onDiff(state.result)
-        listManager.post {
+
+        if (viewModel.history.isNotEmpty()) listManager.post {
             listManager.recyclerView.smoothScrollToPosition(viewModel.latestHistoryIndex)
         }
     }

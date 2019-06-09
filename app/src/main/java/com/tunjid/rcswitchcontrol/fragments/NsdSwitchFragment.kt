@@ -55,7 +55,7 @@ class NsdSwitchFragment : BaseFragment(), RemoteSwitchAdapter.SwitchListener, Re
                         .setMovementFlagsFunction { swipeDirection }
                         .setItemViewSwipeSupplier { true }
                         .build())
-                .withInconsistencyHandler { requireActivity().recreate() }
+                .withInconsistencyHandler (this::onInconsistentList)
                 .build()
 
         return root

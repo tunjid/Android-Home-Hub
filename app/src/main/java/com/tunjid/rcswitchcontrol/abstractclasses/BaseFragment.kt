@@ -10,6 +10,7 @@ import com.tunjid.androidbootstrap.view.util.InsetFlags
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.activities.MainActivity
 import io.reactivex.disposables.CompositeDisposable
+import java.lang.Exception
 
 /**
  * Base fragment
@@ -52,6 +53,11 @@ abstract class BaseFragment : com.tunjid.androidbootstrap.core.abstractclasses.B
     fun insetFlags(): InsetFlags = InsetFlags.ALL
 
     protected fun setFabExtended(extended: Boolean) = hostingActivity.setFabExtended(extended)
+
+    fun onInconsistentList(exception: Exception) {
+        hostingActivity.recreate()
+        exception.printStackTrace()
+    }
 
     fun togglePersistentUi() {
         toggleFab(showsFab())

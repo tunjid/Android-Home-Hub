@@ -1,10 +1,11 @@
 package com.tunjid.rcswitchcontrol.adapters
 
 import android.net.nsd.NsdServiceInfo
+import android.text.SpannableStringBuilder
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import androidx.core.content.ContextCompat
+import androidx.core.text.scale
 import com.tunjid.androidbootstrap.recyclerview.InteractiveAdapter
 import com.tunjid.androidbootstrap.recyclerview.InteractiveViewHolder
 import com.tunjid.rcswitchcontrol.R
@@ -52,21 +53,11 @@ class NSDAdapter(
             serviceInfo = info
             adapterListener = listener
 
-            val stringBuilder = StringBuilder()
-            stringBuilder.append(info.serviceName).append("\n")
-                    .append(info.host.hostAddress)
-
-            val isSelf = adapterListener.isSelf(info)
-
-            if (isSelf) stringBuilder.append(" (SELF)")
-
-            val color = ContextCompat.getColor(itemView.context, if (isSelf)
-                R.color.dark_grey
-            else
-                R.color.colorPrimary)
-
-            textView.setTextColor(color)
-            textView.text = stringBuilder.toString()
+            textView.text = SpannableStringBuilder()
+                    .append(info.serviceName)
+                    .apply { if (adapterListener.isSelf(info)) append(" (SELF)") }
+                    .append("\n")
+                    .scale(0.8F) { append(info.host.hostAddress) }
         }
 
     }

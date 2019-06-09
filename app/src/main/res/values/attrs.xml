@@ -2,4 +2,5 @@
 <resources>
     <attr name="app_background_color" format="reference" />
     <attr name="card_background_color" format="reference" />
+    <attr name="text_color" format="reference" />
 </resources>

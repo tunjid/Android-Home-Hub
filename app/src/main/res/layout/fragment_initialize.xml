@@ -34,7 +34,7 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:text="@string/button_scan"
-        android:textColor="@color/colorPrimary"
+        android:textColor="?colorAccent"
         android:textSize="@dimen/medium_text"
         android:textStyle="bold|italic"
         android:visibility="invisible"

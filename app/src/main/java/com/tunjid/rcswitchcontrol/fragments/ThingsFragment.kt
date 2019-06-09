@@ -6,6 +6,8 @@ import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel
 import androidx.lifecycle.ViewModelProviders
 
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
+import android.bluetooth.BluetoothDevice
+import com.tunjid.rcswitchcontrol.services.ClientBleService
 
 class ThingsFragment : ClientBleFragment() {
 
@@ -23,10 +25,11 @@ class ThingsFragment : ClientBleFragment() {
 
     companion object {
 
-
-        fun newInstance(): ThingsFragment {
+        fun newInstance(device: BluetoothDevice? = null): ThingsFragment {
             val startFragment = ThingsFragment()
             val args = Bundle()
+            if (device != null) args.putParcelable(ClientBleService.BLUETOOTH_DEVICE, device)
+
             startFragment.arguments = args
             return startFragment
         }

@@ -106,7 +106,7 @@ class MainActivity : BaseActivity() {
         if (isNsdClient) Broadcaster.push(Intent(ClientNsdService.ACTION_START_NSD_DISCOVERY))
 
         if (!isSavedInstance) showFragment(when {
-            App.isAndroidThings -> ThingsFragment.newInstance()
+            App.isAndroidThings -> ThingsFragment.newInstance(device)
             isNsdClient -> ClientNsdFragment.newInstance()
             device == null -> StartFragment.newInstance()
             else -> ClientBleFragment.newInstance(device)

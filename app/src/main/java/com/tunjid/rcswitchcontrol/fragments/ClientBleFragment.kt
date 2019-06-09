@@ -107,10 +107,11 @@ open class ClientBleFragment : BaseFragment(), RemoteSwitchAdapter.SwitchListene
         super.onResume()
         toolBar.setTitle(R.string.switches)
 
-        val device = arguments!!.getParcelable<BluetoothDevice>(BLUETOOTH_DEVICE)!!
-        disposables.add(viewModel.listenBle(device).subscribe(this::toggleProgress, Throwable::printStackTrace))
         disposables.add(viewModel.connectionState().subscribe(this::onConnectionStateChanged, Throwable::printStackTrace))
         disposables.add(viewModel.listenServer().subscribe({ requireActivity().invalidateOptionsMenu() }, Throwable::printStackTrace))
+        arguments!!.getParcelable<BluetoothDevice>(BLUETOOTH_DEVICE)?.let {
+            disposables.add(viewModel.listenBle(it).subscribe(this::toggleProgress, Throwable::printStackTrace))
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {

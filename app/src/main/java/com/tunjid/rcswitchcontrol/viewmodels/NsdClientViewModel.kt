@@ -185,7 +185,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
     private fun diffSwitches(payload: Payload): Diff<RcSwitch> = Diff.calculate(
             switches,
             payload.data?.let {
-                if (hasSwitches(payload)) RcSwitch.deserializeSavedSwitches(it)
+                if (hasSwitches(payload)) RcSwitch.deserializeList(it)
                 else emptyList<RcSwitch>()
             } ?: emptyList<RcSwitch>(),
             { current, server ->

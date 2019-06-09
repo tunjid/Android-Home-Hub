@@ -54,9 +54,9 @@ class RcSwitch() : Parcelable {
     }
 
     fun getEncodedTransmission(state: Boolean): String =
-        Base64.encodeToString(getTransmission(state), Base64.DEFAULT)
+            Base64.encodeToString(getTransmission(state), Base64.DEFAULT)
 
-        fun serialize(): String = gson.toJson(this)
+    fun serialize(): String = gson.toJson(this)
 
     // Equals considers the code only, not the name
     override fun equals(other: Any?): Boolean {
@@ -130,17 +130,17 @@ class RcSwitch() : Parcelable {
 
         private val gson = Gson()
 
-        fun serializedSavedSwitches(): String =
-                App.instance.getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE)
-                        .getString(SWITCHES_KEY, "")!!
+        val savedSwitches: MutableList<RcSwitch>
+            get() = deserializeList(serializedSavedSwitches)
 
-        fun deserializeSavedSwitches(serialized: String): ArrayList<RcSwitch> {
+        val serializedSavedSwitches: String
+            get() = App.instance.getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE)
+                    .getString(SWITCHES_KEY, "")!!
+
+        fun deserializeList(serialized: String): MutableList<RcSwitch> {
             val array = gson.fromJson(serialized, Array<RcSwitch>::class.java)
-            return if (array == null) ArrayList() else ArrayList(Arrays.asList(*array))
+            return if (array == null) mutableListOf() else mutableListOf(*array)
         }
-
-        val savedSwitches: ArrayList<RcSwitch>
-            get() = deserializeSavedSwitches(serializedSavedSwitches())
 
         fun saveSwitches(switches: List<RcSwitch>) {
             val preferences = App.instance.getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE)
@@ -152,13 +152,9 @@ class RcSwitch() : Parcelable {
         @JvmField
         @Suppress("unused")
         val CREATOR: Parcelable.Creator<RcSwitch> = object : Parcelable.Creator<RcSwitch> {
-            override fun createFromParcel(`in`: Parcel): RcSwitch {
-                return RcSwitch(`in`)
-            }
+            override fun createFromParcel(`in`: Parcel): RcSwitch = RcSwitch(`in`)
 
-            override fun newArray(size: Int): Array<RcSwitch?> {
-                return arrayOfNulls(size)
-            }
+            override fun newArray(size: Int): Array<RcSwitch?> = arrayOfNulls(size)
         }
     }
 }

@@ -80,7 +80,7 @@ class BleRcProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
                     else R.string.blercprotocol_refresh_response
             ))
                     .setAction(ClientBleService.ACTION_TRANSMITTER)
-                    .setData(RcSwitch.serializedSavedSwitches())
+                    .setData(RcSwitch.serializedSavedSwitches)
                     .addCommand(REFRESH_SWITCHES).addCommand(SNIFF)
 
             SNIFF -> {
@@ -112,7 +112,7 @@ class BleRcProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
                     RcSwitch.saveSwitches(switches)
                 }
 
-                builder.setData(RcSwitch.serializedSavedSwitches())
+                builder.setData(RcSwitch.serializedSavedSwitches)
                         .addCommand(SNIFF)
                         .setAction(action)
             }
@@ -129,7 +129,7 @@ class BleRcProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
                 RcSwitch.saveSwitches(switches)
 
                 builder.setResponse(response).setAction(action)
-                        .setData(RcSwitch.serializedSavedSwitches())
+                        .setData(RcSwitch.serializedSavedSwitches)
                         .addCommand(SNIFF)
             }
 
@@ -205,7 +205,7 @@ class BleRcProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
                             switches.add(rcSwitch)
                             RcSwitch.saveSwitches(switches)
                             builder.setAction(ClientBleService.ACTION_TRANSMITTER)
-                                    .setData(RcSwitch.serializedSavedSwitches())
+                                    .setData(RcSwitch.serializedSavedSwitches)
                         }
                     }
                 }

@@ -75,15 +75,13 @@ class BleRcProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
         builder.setKey(javaClass.name).addCommand(RESET)
 
         when (val action = payload.action) {
-            PING -> builder.setResponse(getString(R.string.blercprotocol_ping_response))
+            PING, REFRESH_SWITCHES -> builder.setResponse(getString(
+                    if (action == PING) R.string.blercprotocol_ping_response
+                    else R.string.blercprotocol_refresh_response
+            ))
                     .setAction(ClientBleService.ACTION_TRANSMITTER)
                     .setData(RcSwitch.serializedSavedSwitches())
                     .addCommand(REFRESH_SWITCHES).addCommand(SNIFF)
-
-            REFRESH_SWITCHES -> builder.setResponse(getString(R.string.blercprotocol_refresh_response))
-                    .setAction(ClientBleService.ACTION_TRANSMITTER)
-                    .setData(RcSwitch.serializedSavedSwitches())
-                    .addCommand(SNIFF).addCommand(REFRESH_SWITCHES)
 
             SNIFF -> {
                 builder.addCommand(RESET)
@@ -178,33 +176,37 @@ class BleRcProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
                 val rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_SNIFFER)
                 builder.setData(switchCreator.state)
 
-                if (RcSwitch.ON_CODE == switchCreator.state) {
-                    switchCreator.withOnCode(rawData)
-                    builder.setResponse(appContext.getString(R.string.blercprotocol_sniff_on_response))
-                            .setAction(action)
-                            .addCommand(SNIFF)
-                            .addCommand(RESET)
-                } else if (RcSwitch.OFF_CODE == switchCreator.state) {
-                    val switches = RcSwitch.savedSwitches
-                    val rcSwitch = switchCreator.withOffCode(rawData)
-                    val containsSwitch = switches.contains(rcSwitch)
+                when {
+                    RcSwitch.ON_CODE == switchCreator.state -> {
+                        switchCreator.withOnCode(rawData)
+                        builder.setResponse(appContext.getString(R.string.blercprotocol_sniff_on_response))
+                                .setAction(action)
+                                .addCommand(SNIFF)
+                                .addCommand(RESET)
+                    }
 
-                    rcSwitch.name = "Switch " + (switches.size + 1)
+                    RcSwitch.OFF_CODE == switchCreator.state -> {
+                        val switches = RcSwitch.savedSwitches
+                        val rcSwitch = switchCreator.withOffCode(rawData)
+                        val containsSwitch = switches.contains(rcSwitch)
 
-                    builder.setAction(action)
-                            .addCommand(SNIFF)
-                            .addCommand(REFRESH_SWITCHES)
-                            .addCommand(RESET)
-                            .setResponse(getString(
-                                    if (containsSwitch) R.string.scanblercprotocol_sniff_already_exists_response
-                                    else R.string.blercprotocol_sniff_off_response)
-                            )
+                        rcSwitch.name = "Switch " + (switches.size + 1)
 
-                    if (!containsSwitch) {
-                        switches.add(rcSwitch)
-                        RcSwitch.saveSwitches(switches)
-                        builder.setAction(ClientBleService.ACTION_TRANSMITTER)
-                                .setData(RcSwitch.serializedSavedSwitches())
+                        builder.setAction(action)
+                                .addCommand(SNIFF)
+                                .addCommand(REFRESH_SWITCHES)
+                                .addCommand(RESET)
+                                .setResponse(getString(
+                                        if (containsSwitch) R.string.scanblercprotocol_sniff_already_exists_response
+                                        else R.string.blercprotocol_sniff_off_response)
+                                )
+
+                        if (!containsSwitch) {
+                            switches.add(rcSwitch)
+                            RcSwitch.saveSwitches(switches)
+                            builder.setAction(ClientBleService.ACTION_TRANSMITTER)
+                                    .setData(RcSwitch.serializedSavedSwitches())
+                        }
                     }
                 }
             }

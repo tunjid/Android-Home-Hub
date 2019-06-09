@@ -62,6 +62,7 @@ class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
         delegatedPayload.key?.let { builder.setKey(it) }
         delegatedPayload.data?.let { builder.setData(it) }
+        delegatedPayload.action?.let { builder.setAction(it) }
         builder.setResponse(result + delegatedPayload.response)
 
         for (command in delegatedPayload.commands) builder.addCommand(command)

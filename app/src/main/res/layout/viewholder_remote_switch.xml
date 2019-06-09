@@ -1,15 +1,17 @@
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="@dimen/half_margin"
-    app:cardBackgroundColor="@color/card_background">
+    app:cardBackgroundColor="?card_background_color">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/row_parent"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingVertical="@dimen/double_margin">
+        android:paddingVertical="@dimen/double_margin"
+        tools:targetApi="o">
 
         <TextView
             android:id="@+id/switch_name"
@@ -28,6 +30,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginRight="@dimen/single_margin"
+            android:backgroundTint="?colorAccent"
             android:elevation="@dimen/eigth_margin"
             android:paddingHorizontal="@dimen/single_margin"
             android:paddingVertical="@dimen/half_margin"
@@ -43,6 +46,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginRight="@dimen/single_margin"
+            android:backgroundTint="?colorAccent"
             android:elevation="@dimen/eigth_margin"
             android:paddingHorizontal="@dimen/single_margin"
             android:paddingVertical="@dimen/half_margin"

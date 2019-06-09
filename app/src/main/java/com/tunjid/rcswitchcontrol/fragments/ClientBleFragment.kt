@@ -61,7 +61,7 @@ open class ClientBleFragment : BaseFragment(), RemoteSwitchAdapter.SwitchListene
     private val swipeDirection: Int
         get() = if (isDeleting) 0 else makeMovementFlags(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT)
 
-    override fun onAttach(context: Context?) {
+    override fun onAttach(context: Context) {
         super.onAttach(context)
         viewModel = ViewModelProviders.of(requireActivity()).get(BleClientViewModel::class.java)
     }

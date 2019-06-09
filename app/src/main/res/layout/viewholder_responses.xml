@@ -10,5 +10,5 @@
     android:textAllCaps="false"
     android:textColor="@color/text_color"
     android:textSize="@dimen/medium_text"
-    app:chipBackgroundColor="@color/app_background"
+    app:chipBackgroundColor="?app_background_color"
     tools:text="I'm a chip" />

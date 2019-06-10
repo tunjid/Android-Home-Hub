@@ -28,9 +28,8 @@ class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
         val action = payload.action
 
         when (action) {
-            PING -> return if (protocol != null) protocol!!.processInput(payload)
-            else closeAndChoose(builder)
-
+            PING -> protocol?.let { return it.processInput(payload) }
+                    ?: return closeAndChoose(builder)
             RESET, CHOOSER -> return closeAndChoose(builder)
         }
 
@@ -52,21 +51,23 @@ class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
             }
         }
 
-        choosing = false
+        protocol?.let { protocol ->
+            choosing = false
 
-        var result = "Chose Protocol: " + protocol!!.javaClass.simpleName
-        result += "\n"
-        result += "\n"
+            var result = "Chose Protocol: " + protocol.javaClass.simpleName
+            result += "\n"
+            result += "\n"
 
-        val delegatedPayload = protocol!!.processInput(PING)
+            val delegatedPayload = protocol.processInput(PING)
 
-        delegatedPayload.key?.let { builder.setKey(it) }
-        delegatedPayload.data?.let { builder.setData(it) }
-        delegatedPayload.action?.let { builder.setAction(it) }
-        builder.setResponse(result + delegatedPayload.response)
+            delegatedPayload.key?.let { builder.setKey(it) }
+            delegatedPayload.data?.let { builder.setData(it) }
+            delegatedPayload.action?.let { builder.setAction(it) }
+            builder.setResponse(result + delegatedPayload.response)
 
-        for (command in delegatedPayload.commands) builder.addCommand(command)
-        builder.addCommand(RESET)
+            for (command in delegatedPayload.commands) builder.addCommand(command)
+            builder.addCommand(RESET)
+        }
 
         return builder.build()
     }
@@ -91,9 +92,7 @@ class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
     }
 
     @Throws(IOException::class)
-    override fun close() {
-        if (protocol != null) protocol!!.close()
-    }
+    override fun close() = protocol?.close() ?: Unit
 
     companion object {
 

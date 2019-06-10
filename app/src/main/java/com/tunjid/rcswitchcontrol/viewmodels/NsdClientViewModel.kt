@@ -28,9 +28,9 @@ import io.reactivex.schedulers.Schedulers.io
 
 class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
 
-    val history: MutableList<String> = ArrayList()
-    val commands: MutableList<String> = ArrayList()
-    val switches: MutableList<RcSwitch> = ArrayList()
+    val history: MutableList<String> = mutableListOf()
+    val commands: MutableList<String> = mutableListOf()
+    val switches: MutableList<RcSwitch> = mutableListOf()
 
     private val noisyCommands: Set<String> = setOf(
             ClientBleService.ACTION_TRANSMITTER,
@@ -168,18 +168,8 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun isSwitchPayload(payload: Payload): Boolean {
-        val key = payload.key
-        val payloadAction = payload.action
-
-        val isBleRc = key == BleRcProtocol::class.java.name
-
-        if (isBleRc) return true
-        if (payloadAction == null) return false
-
-        val context = getApplication<Application>()
-        return (payloadAction == ClientBleService.ACTION_TRANSMITTER
-                || payloadAction == context.getString(R.string.blercprotocol_delete_command)
-                || payloadAction == context.getString(R.string.blercprotocol_rename_command))
+        if (payload.key == BleRcProtocol::class.java.name) return true
+        return hasSwitches(payload)
     }
 
     private fun diffSwitches(payload: Payload): Diff<RcSwitch> = Diff.calculate(
@@ -188,21 +178,14 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
                 if (hasSwitches(payload)) RcSwitch.deserializeList(it)
                 else emptyList<RcSwitch>()
             } ?: emptyList<RcSwitch>(),
-            { current, server ->
-                if (server.isNotEmpty()) Lists.replace(current, server)
-                current
-            },
-            { rcSwitch -> Differentiable.fromCharSequence(Supplier { rcSwitch.serialize() }) })
+            { current, server -> current.apply { if (hasSwitches(payload)) Lists.replace(this, server) } },
+            { switch -> Differentiable.fromCharSequence { switch.serialize() } })
 
-    private fun diffHistory(payload: Payload): Diff<String> {
-        return Diff.calculate(history,
-                listOf(payload.response),
-                { current, server ->
-                    current.addAll(server)
-                    current
-                },
-                { response -> Differentiable.fromCharSequence(Supplier { response.toString() }) })
-    }
+    private fun diffHistory(payload: Payload): Diff<String> = Diff.calculate(
+            history,
+            listOf(payload.response),
+            { current, responses -> current.apply { addAll(responses) } },
+            { response -> Differentiable.fromCharSequence { response.toString() } })
 
     private fun <T> diff(list: List<T>, diffSupplier: Supplier<Diff<T>>): Single<DiffResult> {
         return Single.fromCallable<Diff<T>>(diffSupplier::get)

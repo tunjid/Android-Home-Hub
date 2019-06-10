@@ -27,33 +27,33 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/on_switch"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginRight="@dimen/single_margin"
             android:backgroundTint="?colorAccent"
             android:elevation="@dimen/eigth_margin"
-            android:paddingHorizontal="@dimen/single_margin"
             android:paddingVertical="@dimen/half_margin"
             android:text="@string/on"
             android:textSize="@dimen/small_text"
             app:cornerRadius="@dimen/single_margin"
             app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintLeft_toRightOf="@+id/switch_name"
             app:layout_constraintRight_toLeftOf="@+id/off_switch"
             app:layout_constraintTop_toTopOf="parent" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/off_switch"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginRight="@dimen/single_margin"
             android:backgroundTint="?colorAccent"
             android:elevation="@dimen/eigth_margin"
-            android:paddingHorizontal="@dimen/single_margin"
             android:paddingVertical="@dimen/half_margin"
             android:text="@string/off"
             android:textSize="@dimen/small_text"
             app:cornerRadius="@dimen/single_margin"
             app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintLeft_toRightOf="@+id/on_switch"
             app:layout_constraintRight_toRightOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>

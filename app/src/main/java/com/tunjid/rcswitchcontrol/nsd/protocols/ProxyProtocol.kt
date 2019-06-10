@@ -56,7 +56,6 @@ class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
             var result = "Chose Protocol: " + protocol.javaClass.simpleName
             result += "\n"
-            result += "\n"
 
             val delegatedPayload = protocol.processInput(PING)
 

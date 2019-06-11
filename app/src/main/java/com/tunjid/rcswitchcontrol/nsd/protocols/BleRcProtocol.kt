@@ -34,24 +34,16 @@ class BleRcProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
     private val DISCONNECT: String = appContext.getString(R.string.menu_disconnect)
     private val REFRESH_SWITCHES: String = appContext.getString(R.string.blercprotocol_refresh_switches_command)
 
-    private val pushThread: HandlerThread = HandlerThread("PushThread")
-    private val pushHandler: Handler
-    private val switchCreator: RcSwitch.SwitchCreator
-    private val bleConnection: ServiceConnection<ClientBleService>
-    private val disposable: CompositeDisposable
+    private val disposable: CompositeDisposable = CompositeDisposable()
+    private val switchCreator: RcSwitch.SwitchCreator = RcSwitch.SwitchCreator()
+
+    private val pushThread: HandlerThread = HandlerThread("PushThread").apply { start() }
+    private val pushHandler: Handler= Handler(pushThread.looper)
+
+    private val bleConnection: ServiceConnection<ClientBleService> = ServiceConnection(ClientBleService::class.java)
 
     init {
-
-        pushThread.start()
-
-        switchCreator = RcSwitch.SwitchCreator()
-
-        pushHandler = Handler(pushThread.looper)
-        bleConnection = ServiceConnection(ClientBleService::class.java)
-        disposable = CompositeDisposable()
-
         bleConnection.with(appContext).bind()
-
         disposable.add(Broadcaster.listen(
                 ClientBleService.ACTION_GATT_CONNECTED,
                 ClientBleService.ACTION_GATT_CONNECTING,

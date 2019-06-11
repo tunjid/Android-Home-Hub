@@ -358,10 +358,7 @@ class ClientBleService : Service(), ClientStartedBoundService {
     private fun findGattServices(gattServices: List<BluetoothGattService>?) {
         if (gattServices == null) return
 
-        val handlerThread = HandlerThread("IndicationSetThread")
-        handlerThread.start()
-
-        val handler = Handler(handlerThread.looper)
+        val handler = Handler(HandlerThread("IndicationSetThread").apply { start() }.looper)
 
         // Loops through available GATT Services.
         for (gattService in gattServices) {

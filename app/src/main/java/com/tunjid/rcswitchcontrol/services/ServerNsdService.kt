@@ -106,9 +106,7 @@ class ServerNsdService : Service() {
      * [android.os.Binder] for [ServerNsdService]
      */
     private inner class Binder : ServiceConnection.Binder<ServerNsdService>() {
-        override fun getService(): ServerNsdService {
-            return this@ServerNsdService
-        }
+        override fun getService(): ServerNsdService = this@ServerNsdService
     }
 
     /**

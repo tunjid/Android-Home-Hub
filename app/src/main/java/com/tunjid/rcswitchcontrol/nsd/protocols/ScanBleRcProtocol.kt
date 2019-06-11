@@ -41,19 +41,15 @@ internal class ScanBleRcProtocol(printWriter: PrintWriter) : CommsProtocol(print
     private var currentDevice: BluetoothDevice? = null
     private val scanner: BLEScanner
 
-    private val scanThread: HandlerThread = HandlerThread("Hi")
-    private val scanHandler: Handler
+    private val scanThread: HandlerThread = HandlerThread("Hi").apply { start() }
+    private val scanHandler: Handler= Handler(scanThread.looper)
 
     private val deviceMap = HashMap<String, BluetoothDevice>()
-    private val bleConnection: ServiceConnection<ClientBleService>
+    private val bleConnection: ServiceConnection<ClientBleService> = ServiceConnection(ClientBleService::class.java)
+
     private val disposable = CompositeDisposable()
 
     init {
-
-        scanThread.start()
-        scanHandler = Handler(scanThread.looper)
-
-        bleConnection = ServiceConnection(ClientBleService::class.java)
 
         val bluetoothManager = appContext.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         val bluetoothAdapter = bluetoothManager.adapter

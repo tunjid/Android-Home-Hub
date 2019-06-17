@@ -4,7 +4,6 @@ import android.content.Context
 import android.hardware.usb.UsbManager
 import android.os.Handler
 import android.os.HandlerThread
-import android.util.Log
 import com.hoho.android.usbserial.driver.UsbSerialDriver
 import com.hoho.android.usbserial.driver.UsbSerialPort
 import com.hoho.android.usbserial.util.SerialInputOutputManager
@@ -69,8 +68,6 @@ class AndroidSerialPort(
     private fun openSerialPort(driver: UsbSerialDriver, baudRate: Int, flowControl: ZigBeePort.FlowControl?) {
         if (serialPort != null) throw RuntimeException("Serial port already open.")
 
-        Log.i("TEST", "Opening port. Flow control: $flowControl")
-
         logger.debug("Opening port {} at {} baud with {}.", driver.ports[0].portNumber, baudRate, flowControl)
 
         val manager = App.instance.getSystemService(Context.USB_SERVICE) as UsbManager
@@ -80,8 +77,6 @@ class AndroidSerialPort(
         val connection = manager.openDevice(driver.device)
                 ?: // You probably need to call UsbManager.requestPermission(driver.getDevice(), ..)
                 return
-
-        Log.i("TEST", "OPENED DEVICEEEEEEE")
 
         serialPort = driver.ports[0]
         val port = serialPort!!
@@ -138,7 +133,6 @@ class AndroidSerialPort(
         serialPort?.apply {
             try {
                 this.write(byteArrayOf(value.toByte()), 9999999)
-                Log.i("TEST", "WROTE: $value")
             } catch (e: SerialPortException) {
                 e.printStackTrace()
             }
@@ -157,7 +151,6 @@ class AndroidSerialPort(
                     if (start != end) {
                         val value = buffer[start++]
                         if (start >= maxLength) start = 0
-                        Log.i("TEST", "READ: $value")
 
                         return value
                     }
@@ -181,14 +174,14 @@ class AndroidSerialPort(
     }
 
     override fun onNewData(data: ByteArray?) {
-        Log.i("TEST", "READ IN CALLBACK: ${data.toString()}")
-
         try {
             data ?: return
 
             synchronized(bufferSynchronisationObject) {
-                for (recv in data) {
-                    buffer[end++] = recv.toInt()
+                val intBuffer = data.map { if (it < 0) 256 + it else it.toInt() }
+
+                for (recv in intBuffer) {
+                    buffer[end++] = recv
                     if (end >= maxLength) end = 0
                 }
             }

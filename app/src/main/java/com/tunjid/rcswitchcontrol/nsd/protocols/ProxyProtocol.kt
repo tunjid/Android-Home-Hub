@@ -40,6 +40,7 @@ class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
             CONNECT_RC_REMOTE -> protocol = ScanBleRcProtocol(printWriter)
             RC_REMOTE -> protocol = BleRcProtocol(printWriter)
             KNOCK_KNOCK -> protocol = KnockKnockProtocol(printWriter)
+            ZIGBEE_CONTROLLER -> protocol = ZigBeeProtocol(printWriter)
             else -> return builder.let {
                 it.setResponse(getString(R.string.proxyprotocol_invalid_command))
                 if (App.isAndroidThings) it.addCommand(CONNECT_RC_REMOTE)
@@ -81,6 +82,7 @@ class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
         choosing = true
 
         builder.setResponse(appContext.getString(R.string.proxyprotocol_ping_response))
+                .addCommand(ZIGBEE_CONTROLLER)
                 .addCommand(KNOCK_KNOCK)
                 .addCommand(RC_REMOTE)
                 .addCommand(RESET)
@@ -101,5 +103,7 @@ class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
         private const val KNOCK_KNOCK = "Knock Knock Jokes"
         private const val RC_REMOTE = "Control Remote Device"
         private const val CONNECT_RC_REMOTE = "Connect Remote Device"
+        private const val ZIGBEE_CONTROLLER = "Control Zigbee Devices"
+
     }
 }

@@ -70,9 +70,10 @@ dependencies {
 
     implementation 'com.github.kai-morich:usb-serial-for-android:1.7.0'
 
-    implementation 'com.zsmartsystems.zigbee:com.zsmartsystems.zigbee:1.1.10'
-    implementation 'com.zsmartsystems.zigbee:com.zsmartsystems.zigbee.serial:1.1.10'
-    implementation 'com.zsmartsystems.zigbee:com.zsmartsystems.zigbee.dongle.cc2531:1.1.10'
+    implementation 'com.zsmartsystems.zigbee:com.zsmartsystems.zigbee:1.1.11-SNAPSHOT'
+    implementation 'com.zsmartsystems.zigbee:com.zsmartsystems.zigbee.console:1.1.11-SNAPSHOT'
+    implementation 'com.zsmartsystems.zigbee:com.zsmartsystems.zigbee.serial:1.1.11-SNAPSHOT'
+    implementation 'com.zsmartsystems.zigbee:com.zsmartsystems.zigbee.dongle.cc2531:1.1.11-SNAPSHOT'
 
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$parent.ext.kotlin_version"
 

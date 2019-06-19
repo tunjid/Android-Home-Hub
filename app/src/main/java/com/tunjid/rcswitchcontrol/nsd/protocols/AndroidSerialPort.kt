@@ -55,7 +55,6 @@ class AndroidSerialPort(
             logger.warn("Unable to open serial port: " + e.message)
             false
         }
-
     }
 
     /**
@@ -73,7 +72,6 @@ class AndroidSerialPort(
         val manager = App.instance.getSystemService(Context.USB_SERVICE) as UsbManager
 
 
-// Open a connection to the first available driver.
         val connection = manager.openDevice(driver.device)
                 ?: // You probably need to call UsbManager.requestPermission(driver.getDevice(), ..)
                 return
@@ -84,14 +82,6 @@ class AndroidSerialPort(
         try {
             port.open(connection)
             port.setParameters(baudRate, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE)
-
-//            when (flowControl) {
-//                ZigBeePort.FlowControl.FLOWCONTROL_OUT_NONE -> serialPort!!.flowControlMode = jssc.SerialPort.FLOWCONTROL_NONE
-//                ZigBeePort.FlowControl.FLOWCONTROL_OUT_RTSCTS -> serialPort!!.flowControlMode = jssc.SerialPort.FLOWCONTROL_RTSCTS_IN or jssc.SerialPort.FLOWCONTROL_RTSCTS_OUT
-//                ZigBeePort.FlowControl.FLOWCONTROL_OUT_XONOFF -> serialPort!!.flowControlMode = jssc.SerialPort.FLOWCONTROL_XONXOFF_OUT
-//                else -> {
-//                }
-//            }
 
             serialInputOutputManager = SerialInputOutputManager(port, this)
 
@@ -107,26 +97,23 @@ class AndroidSerialPort(
 
     }
 
-    override fun close() {
-        try {
-            serialPort?.apply {
-                synchronized(lock) {
-                    close()
-                    serialInputOutputManager.stop()
+    override fun close() = try {
+        serialPort?.apply {
+            synchronized(lock) {
+                close()
+                serialInputOutputManager.stop()
 
-                    serialPort = null
-                    lock.notify()
-                }
-
-                logger.info("Serial port '$driver' closed.")
+                serialPort = null
+                lock.notify()
             }
-            serialThread?.quitSafely()
-            serialThread = null
-            serialHandler = null
-        } catch (e: Exception) {
-            logger.warn("Error closing serial port: '$driver'", e)
-        }
 
+            logger.info("Serial port '$driver' closed.")
+        }
+        serialThread?.quitSafely()
+        serialThread = null
+        serialHandler = null
+    } catch (e: Exception) {
+        logger.warn("Error closing serial port: '$driver'", e)
     }
 
     override fun write(value: Int) {
@@ -169,9 +156,7 @@ class AndroidSerialPort(
         return -1
     }
 
-    override fun onRunError(e: java.lang.Exception?) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
+    override fun onRunError(e: java.lang.Exception?) = e?.printStackTrace() ?: Unit
 
     override fun onNewData(data: ByteArray?) {
         try {
@@ -195,11 +180,9 @@ class AndroidSerialPort(
         }
     }
 
-    override fun purgeRxBuffer() {
-        synchronized(bufferSynchronisationObject) {
-            start = 0
-            end = 0
-        }
+    override fun purgeRxBuffer() = synchronized(bufferSynchronisationObject) {
+        start = 0
+        end = 0
     }
 
     companion object {

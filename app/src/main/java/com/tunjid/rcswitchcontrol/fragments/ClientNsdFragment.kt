@@ -62,7 +62,7 @@ class ClientNsdFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
         listManager = ListManagerBuilder<ChatAdapter.TextViewHolder, Unit>()
                 .withRecyclerView(root.findViewById(R.id.commands))
                 .withAdapter(ChatAdapter(viewModel.commands, this))
-                .withInconsistencyHandler { requireActivity().recreate() }
+                .withInconsistencyHandler(this::onInconsistentList)
                 .withCustomLayoutManager(FlexboxLayoutManager(inflater.context).apply {
                     alignItems = AlignItems.CENTER
                     flexDirection = FlexDirection.ROW
@@ -90,8 +90,8 @@ class ClientNsdFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
     }
 
     override fun onDestroyView() {
-        listManager.clear()
         super.onDestroyView()
+        listManager.clear()
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
@@ -155,7 +155,7 @@ class ClientNsdFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
             return fragment
         }
 
-        fun adapter(fragmentManager: FragmentManager) = object : FragmentStatePagerAdapter(fragmentManager) {
+        fun adapter(fragmentManager: FragmentManager) = object : FragmentStatePagerAdapter(fragmentManager, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
 
             override fun getItem(position: Int): Fragment = when (position) {
                 HISTORY -> NsdHistoryFragment.newInstance()

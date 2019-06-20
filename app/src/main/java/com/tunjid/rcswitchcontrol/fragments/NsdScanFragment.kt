@@ -58,8 +58,8 @@ class NsdScanFragment : BaseFragment(), NSDAdapter.ServiceClickedListener {
     }
 
     override fun onDestroyView() {
-        scrollManager.clear()
         super.onDestroyView()
+        scrollManager.clear()
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {

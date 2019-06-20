@@ -51,8 +51,8 @@ class NsdHistoryFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
     }
 
     override fun onDestroyView() {
-        listManager.clear()
         super.onDestroyView()
+        listManager.clear()
     }
 
     override fun onTextClicked(text: String) =
@@ -62,7 +62,7 @@ class NsdHistoryFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
         listManager.onDiff(state.result)
 
         if (viewModel.history.isNotEmpty()) listManager.post {
-            listManager.recyclerView.smoothScrollToPosition(viewModel.latestHistoryIndex)
+            listManager.recyclerView?.smoothScrollToPosition(viewModel.latestHistoryIndex)
         }
     }
 

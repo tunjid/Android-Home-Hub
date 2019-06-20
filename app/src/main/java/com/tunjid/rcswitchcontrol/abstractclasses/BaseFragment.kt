@@ -1,6 +1,7 @@
 package com.tunjid.rcswitchcontrol.abstractclasses
 
 
+import android.util.Log
 import android.view.View
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat.getDrawable
@@ -56,7 +57,7 @@ abstract class BaseFragment : com.tunjid.androidbootstrap.core.abstractclasses.B
 
     fun onInconsistentList(exception: Exception) {
         hostingActivity.recreate()
-        exception.printStackTrace()
+        Log.i("RecyclerView", "Inconsistency in ${javaClass.simpleName}", exception)
     }
 
     fun togglePersistentUi() {

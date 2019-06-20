@@ -183,7 +183,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun diffHistory(payload: Payload): Diff<String> = Diff.calculate(
             history,
-            listOf(payload.response),
+            listOf(payload.response ?: "Unknown response"),
             { current, responses -> current.apply { addAll(responses) } },
             { response -> Differentiable.fromCharSequence { response.toString() } })
 

@@ -23,6 +23,8 @@ import com.zsmartsystems.zigbee.serialization.DefaultSerializer
 import com.zsmartsystems.zigbee.transport.TransportConfig
 import com.zsmartsystems.zigbee.transport.TransportConfigOption
 import com.zsmartsystems.zigbee.zcl.clusters.ZclIasZoneCluster
+import java.io.OutputStream
+import java.io.PrintStream
 import java.io.PrintWriter
 import java.util.*
 
@@ -35,6 +37,21 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
     private val dongle: ZigBeeDongleTiCc2531
     private val networkManager: ZigBeeNetworkManager
     private val availableCommands: MutableMap<String, ZigBeeConsoleCommand> = TreeMap()
+    private val outStream = PrintStream(object : OutputStream() {
+        val stringBuilder = StringBuilder()
+
+        override fun write(b: Int) {
+            this.stringBuilder.append(b.toChar())
+        }
+
+        override fun toString(): String = this.stringBuilder.toString()
+
+        override fun flush() {
+            super.flush()
+            print(stringBuilder.toString())
+            stringBuilder.setLength(0)
+        }
+    }, true)
 
     init {
         val manager: UsbManager = App.instance.getSystemService(USB_SERVICE) as UsbManager
@@ -109,8 +126,13 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
         val builder = Payload.builder()
         builder.setKey(javaClass.name).addCommand(RESET)
 
-        when (payload.action) {
+        when (val action = payload.action) {
+            RESET -> reset()
             PING -> builder.setResponse(getString(R.string.zigbeeprotocol_ping))
+            in availableCommands.keys -> action?.apply {
+                builder.setResponse(getString(R.string.zigbeeprotocol_chose, action))
+                processInputLine(action)
+            }
             else -> builder.setResponse("Ummm")
         }
 
@@ -135,7 +157,7 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
         println("Extended PAN ID = " + networkManager.zigBeeExtendedPanId)
         println("Channel         = " + networkManager.zigBeeChannel)
 
-        if (resetNetwork) reset(networkManager)
+        if (resetNetwork) reset()
 
         // Add the default ZigBeeAlliance09 HA link key
 
@@ -157,7 +179,47 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
         dongle.setLedMode(2, false)
     }
 
-    private fun reset(networkManager: ZigBeeNetworkManager) {
+    private fun processInputLine(inputLine: String) {
+        if (inputLine.isEmpty()) return
+
+        val args = inputLine.replace("\\s+".toRegex(), " ").split(" ".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+        try {
+            executeCommand(networkManager, args)
+        } catch (e: Exception) {
+            print("Exception in command execution: ")
+            e.printStackTrace()
+        }
+    }
+
+
+    /**
+     * Executes command.
+     *
+     * @param networkManager the [ZigBeeNetworkManager]
+     * @param args the arguments including the command
+     */
+    private fun executeCommand(networkManager: ZigBeeNetworkManager, args: Array<String>) {
+        val command = availableCommands[args[0].toLowerCase()]
+                ?: return print("Unknown command. Use 'help' command to list available commands.")
+
+        try {
+            command.process(networkManager, args, outStream)
+        } catch (e: IllegalArgumentException) {
+            print(
+                    "Error executing command: ${e.message}",
+                    "${command.command} ${command.syntax}"
+            )
+        } catch (e: IllegalStateException) {
+            print(
+                    "Error executing command: " + e.message,
+                    command.command + " " + command.syntax
+            )
+        } catch (e: Exception) {
+            print("Error executing command: $e")
+        }
+    }
+
+    private fun reset() {
         val nwkKey: ZigBeeKey = ZigBeeKey.createRandom()
         val linkKey = ZigBeeKey(intArrayOf(0x5A, 0x69, 0x67, 0x42, 0x65, 0x65, 0x41, 0x6C, 0x6C, 0x69, 0x61, 0x6E, 0x63, 0x65, 0x30, 0x39))
         val extendedPan = ExtendedPanId()
@@ -186,10 +248,14 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
         print(stringBuilder.toString())
     }
 
-    private fun print(message: String) {
+    private fun print(vararg messages: String) {
         val builder = Payload.builder().apply {
             setKey(this@ZigBeeProtocol.javaClass.name)
-            setResponse(message)
+            setResponse(StringBuilder().let {
+                messages.forEach { message -> it.append(message); it.append("\n") }
+                it.toString()
+            })
+            availableCommands.keys.forEach { addCommand(it) }
         }
 
         handler.post { printWriter.println(builder.build().serialize()) }

@@ -17,7 +17,7 @@ class ChatAdapter(
             TextViewHolder(getItemView(R.layout.viewholder_responses, parent), adapterListener)
 
     override fun onBindViewHolder(holder: TextViewHolder, position: Int) =
-            holder.bind(responses[position], adapterListener)
+            holder.bind(responses[position])
 
     override fun getItemCount(): Int = responses.size
 
@@ -37,12 +37,10 @@ class ChatAdapter(
             textView.setOnClickListener { adapterListener?.onTextClicked(text) }
         }
 
-        internal fun bind(text: String, listener: ChatAdapterListener) {
+        internal fun bind(text: String) {
             this.text = text
 
             textView.text = text
-            adapterListener = listener
-
             textView.isClickable = adapterListener != null
         }
     }

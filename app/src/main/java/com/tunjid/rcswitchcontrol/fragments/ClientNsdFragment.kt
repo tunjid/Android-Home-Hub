@@ -62,6 +62,7 @@ class ClientNsdFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
         listManager = ListManagerBuilder<ChatAdapter.TextViewHolder, Unit>()
                 .withRecyclerView(root.findViewById(R.id.commands))
                 .withAdapter(ChatAdapter(viewModel.commands, this))
+                .withInconsistencyHandler { requireActivity().recreate() }
                 .withCustomLayoutManager(FlexboxLayoutManager(inflater.context).apply {
                     alignItems = AlignItems.CENTER
                     flexDirection = FlexDirection.ROW

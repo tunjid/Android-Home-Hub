@@ -10,6 +10,7 @@ import com.zsmartsystems.zigbee.ZigBeeGroupAddress
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager
 import com.zsmartsystems.zigbee.ZigBeeNetworkNodeListener
 import com.zsmartsystems.zigbee.ZigBeeNode
+import com.zsmartsystems.zigbee.app.basic.ZigBeeBasicServerExtension
 import com.zsmartsystems.zigbee.app.discovery.ZigBeeDiscoveryExtension
 import com.zsmartsystems.zigbee.app.iasclient.ZigBeeIasCieExtension
 import com.zsmartsystems.zigbee.app.otaserver.ZclOtaUpgradeServer
@@ -66,7 +67,8 @@ class ZigBeeConsole
  * @param dongle the [ZigBeeTransportTransmit]
  * @param transportCommands list of [ZigBeeConsoleCommand] to send to the transport
  */
-(private val networkManager: ZigBeeNetworkManager, private val dongle: ZigBeeTransportTransmit,
+(private val networkManager: ZigBeeNetworkManager,
+ private val dongle: ZigBeeTransportTransmit,
  transportCommands: List<Class<out ZigBeeConsoleCommand>>) {
     /**
      * The main thread.
@@ -94,7 +96,7 @@ class ZigBeeConsole
         // Add the extensions to the network
         networkManager.addExtension(ZigBeeIasCieExtension())
         networkManager.addExtension(ZigBeeOtaUpgradeExtension())
-        //        networkManager.addExtension(new ZigBeeBasicServerExtension());
+        networkManager.addExtension(ZigBeeBasicServerExtension())
 
         val discoveryExtension = ZigBeeDiscoveryExtension()
         discoveryExtension.updatePeriod = 60
@@ -165,7 +167,7 @@ class ZigBeeConsole
         newCommands["discovery"] = ZigBeeConsoleNetworkDiscoveryCommand()
 
         newCommands["otaupgrade"] = ZigBeeConsoleOtaUpgradeCommand()
-        //        newCommands.put("channel", new ZigBeeConsoleChannelCommand());
+        newCommands["channel"] = ZigBeeConsoleChannelCommand()
 
 
         networkManager.addNetworkStateListener { state -> print("ZigBee network state updated to $state", System.out) }

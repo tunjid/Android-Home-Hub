@@ -7,7 +7,7 @@ import android.widget.EditText
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.DialogFragment
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.model.RcSwitch
+import com.tunjid.rcswitchcontrol.data.RcSwitch
 
 
 @SuppressLint("InflateParams")

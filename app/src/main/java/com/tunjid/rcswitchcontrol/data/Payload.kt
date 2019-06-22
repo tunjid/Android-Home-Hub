@@ -1,4 +1,4 @@
-package com.tunjid.rcswitchcontrol.model
+package com.tunjid.rcswitchcontrol.data
 
 import com.google.gson.Gson
 import java.io.Serializable

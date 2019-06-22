@@ -4,7 +4,7 @@ import android.util.Log
 
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.model.Payload
+import com.tunjid.rcswitchcontrol.data.Payload
 
 import java.io.IOException
 import java.io.PrintWriter

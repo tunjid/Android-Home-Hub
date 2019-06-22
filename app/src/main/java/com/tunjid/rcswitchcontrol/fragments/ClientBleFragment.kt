@@ -31,7 +31,7 @@ import com.tunjid.rcswitchcontrol.activities.MainActivity
 import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter
 import com.tunjid.rcswitchcontrol.dialogfragments.NameServiceDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
-import com.tunjid.rcswitchcontrol.model.RcSwitch
+import com.tunjid.rcswitchcontrol.data.RcSwitch
 import com.tunjid.rcswitchcontrol.services.ClientBleService.Companion.BLUETOOTH_DEVICE
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler

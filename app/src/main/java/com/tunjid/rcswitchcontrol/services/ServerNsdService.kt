@@ -12,7 +12,7 @@ import com.tunjid.androidbootstrap.communications.nsd.NsdHelper.createPrintWrite
 import com.tunjid.androidbootstrap.core.components.ServiceConnection
 import com.tunjid.rcswitchcontrol.App.Companion.catcher
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.model.RcSwitch.Companion.SWITCH_PREFS
+import com.tunjid.rcswitchcontrol.data.RcSwitch.Companion.SWITCH_PREFS
 import com.tunjid.rcswitchcontrol.nsd.protocols.CommsProtocol
 import com.tunjid.rcswitchcontrol.nsd.protocols.ProxyProtocol
 import io.reactivex.disposables.CompositeDisposable

@@ -109,7 +109,8 @@
     <string name="scanblercprotocol_sniff_already_exists_response">This switch already exists</string>
 
     <string name="zigbeeprotocol_ping">Find and control ZigBee Devices"</string>
-    <string name="zigbeeprotocol_chose">Chose %1$s"</string>
+    <string name="zigbeeprotocol_enter_args">Executing arguments for %1$s"</string>
+    <string name="zigbeeprotocol_executing">Executing %1$s"</string>
 
     <string name="knockknockprotocol_no">no</string>
     <string name="knockknockprotocol_yes">yes</string>

@@ -1,12 +1,12 @@
-package com.tunjid.rcswitchcontrol.model
+package com.tunjid.rcswitchcontrol.data
 
 import android.content.Context.MODE_PRIVATE
 import android.os.Parcel
 import android.os.Parcelable
 import android.util.Base64
 import androidx.annotation.StringDef
-import com.google.gson.Gson
 import com.tunjid.rcswitchcontrol.App
+import com.tunjid.rcswitchcontrol.data.persistence.Deserializer.Companion.gson
 import java.lang.annotation.Retention
 import java.lang.annotation.RetentionPolicy.SOURCE
 import java.util.*
@@ -127,8 +127,6 @@ class RcSwitch() : Parcelable {
 
         const val ON_CODE = "on"
         const val OFF_CODE = "off"
-
-        private val gson = Gson()
 
         val savedSwitches: MutableList<RcSwitch>
             get() = deserializeList(serializedSavedSwitches)

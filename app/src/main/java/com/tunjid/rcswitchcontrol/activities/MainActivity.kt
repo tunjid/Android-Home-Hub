@@ -31,7 +31,7 @@ import com.tunjid.rcswitchcontrol.fragments.ClientBleFragment
 import com.tunjid.rcswitchcontrol.fragments.ClientNsdFragment
 import com.tunjid.rcswitchcontrol.fragments.StartFragment
 import com.tunjid.rcswitchcontrol.fragments.ThingsFragment
-import com.tunjid.rcswitchcontrol.model.RcSwitch
+import com.tunjid.rcswitchcontrol.data.RcSwitch
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.services.ClientBleService.Companion.BLUETOOTH_DEVICE
 import com.tunjid.rcswitchcontrol.services.ClientNsdService

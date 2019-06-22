@@ -12,7 +12,7 @@ import com.tunjid.androidbootstrap.recyclerview.ListPlaceholder
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.adapters.ChatAdapter
-import com.tunjid.rcswitchcontrol.model.Payload
+import com.tunjid.rcswitchcontrol.data.Payload
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
 import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel.State

@@ -30,7 +30,7 @@ import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.activities.MainActivity
 import com.tunjid.rcswitchcontrol.adapters.ChatAdapter
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.model.Payload
+import com.tunjid.rcswitchcontrol.data.Payload
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel.State

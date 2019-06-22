@@ -17,8 +17,8 @@ import com.tunjid.androidbootstrap.communications.bluetooth.ScanResultCompat
 import com.tunjid.androidbootstrap.core.components.ServiceConnection
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.model.Payload
-import com.tunjid.rcswitchcontrol.model.RcSwitch
+import com.tunjid.rcswitchcontrol.data.Payload
+import com.tunjid.rcswitchcontrol.data.RcSwitch
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import io.reactivex.disposables.CompositeDisposable
 import java.io.PrintWriter

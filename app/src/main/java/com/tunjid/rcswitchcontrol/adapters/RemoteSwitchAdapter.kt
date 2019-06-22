@@ -6,7 +6,7 @@ import android.widget.TextView
 import com.tunjid.androidbootstrap.recyclerview.InteractiveAdapter
 import com.tunjid.androidbootstrap.recyclerview.InteractiveViewHolder
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.model.RcSwitch
+import com.tunjid.rcswitchcontrol.data.RcSwitch
 
 
 class RemoteSwitchAdapter(

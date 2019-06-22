@@ -8,8 +8,8 @@ import android.util.Log
 import com.tunjid.androidbootstrap.core.components.ServiceConnection
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.model.Payload
-import com.tunjid.rcswitchcontrol.model.RcSwitch
+import com.tunjid.rcswitchcontrol.data.Payload
+import com.tunjid.rcswitchcontrol.data.RcSwitch
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.services.ClientBleService.Companion.C_HANDLE_CONTROL
 import com.tunjid.rcswitchcontrol.services.ClientBleService.Companion.STATE_SNIFFING

@@ -17,8 +17,8 @@ import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.adapters.ChatAdapter
 import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter
 import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
-import com.tunjid.rcswitchcontrol.model.Payload
-import com.tunjid.rcswitchcontrol.model.RcSwitch
+import com.tunjid.rcswitchcontrol.data.Payload
+import com.tunjid.rcswitchcontrol.data.RcSwitch
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator

@@ -1,7 +1,7 @@
 package com.tunjid.rcswitchcontrol.nsd.protocols
 
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.model.Payload
+import com.tunjid.rcswitchcontrol.data.Payload
 import java.io.PrintWriter
 
 /**

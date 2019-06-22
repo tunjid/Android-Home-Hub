@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.annotation.StringRes
 
 import com.tunjid.rcswitchcontrol.App
-import com.tunjid.rcswitchcontrol.model.Payload
+import com.tunjid.rcswitchcontrol.data.Payload
 
 import java.io.Closeable
 import java.io.PrintWriter

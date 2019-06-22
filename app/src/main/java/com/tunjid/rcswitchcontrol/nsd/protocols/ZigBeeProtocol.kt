@@ -9,7 +9,10 @@ import com.hoho.android.usbserial.driver.ProbeTable
 import com.hoho.android.usbserial.driver.UsbSerialProber
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.model.Payload
+import com.tunjid.rcswitchcontrol.data.Payload
+import com.tunjid.rcswitchcontrol.data.ZigBeeCommandArgs
+import com.tunjid.rcswitchcontrol.data.ZigBeeCommandInfo
+import com.tunjid.rcswitchcontrol.io.*
 import com.zsmartsystems.zigbee.*
 import com.zsmartsystems.zigbee.app.basic.ZigBeeBasicServerExtension
 import com.zsmartsystems.zigbee.app.discovery.ZigBeeDiscoveryExtension
@@ -26,7 +29,6 @@ import com.zsmartsystems.zigbee.zcl.clusters.ZclIasZoneCluster
 import java.io.OutputStream
 import java.io.PrintStream
 import java.io.PrintWriter
-import java.util.*
 
 
 class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
@@ -34,24 +36,47 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
     private val thread = HandlerThread("ZigBee").apply { start() }
     private val handler = Handler(thread.looper)
 
+    private val outStream = PrintStream(ConsoleOutputStream { post(it) }, true)
+
     private val dongle: ZigBeeDongleTiCc2531
     private val networkManager: ZigBeeNetworkManager
-    private val availableCommands: MutableMap<String, ZigBeeConsoleCommand> = TreeMap()
-    private val outStream = PrintStream(object : OutputStream() {
-        val stringBuilder = StringBuilder()
+    private val availableCommands: Map<String, ZigBeeConsoleCommand> = mutableMapOf(
+            "nodes" to ZigBeeConsoleNodeListCommand(),
+            "endpoint" to ZigBeeConsoleDescribeEndpointCommand(),
+            "node" to ZigBeeConsoleDescribeNodeCommand(),
+            "bind" to ZigBeeConsoleBindCommand(),
+            "unbind" to ZigBeeConsoleUnbindCommand(),
+            "bindtable" to ZigBeeConsoleBindingTableCommand(),
 
-        override fun write(b: Int) {
-            this.stringBuilder.append(b.toChar())
-        }
+            "read" to ZigBeeConsoleAttributeReadCommand(),
+            "write" to ZigBeeConsoleAttributeWriteCommand(),
 
-        override fun toString(): String = this.stringBuilder.toString()
+            "attsupported" to ZigBeeConsoleAttributeSupportedCommand(),
+            "cmdsupported" to ZigBeeConsoleCommandsSupportedCommand(),
 
-        override fun flush() {
-            super.flush()
-            print(stringBuilder.toString())
-            stringBuilder.setLength(0)
-        }
-    }, true)
+            "info" to ZigBeeConsoleDeviceInformationCommand(),
+            "join" to ZigBeeConsoleNetworkJoinCommand(),
+            "leave" to ZigBeeConsoleNetworkLeaveCommand(),
+
+            "reporting" to ZigBeeConsoleReportingConfigCommand(),
+            "subscribe" to ZigBeeConsoleReportingSubscribeCommand(),
+            "unsubscribe" to ZigBeeConsoleReportingUnsubscribeCommand(),
+
+            "installkey" to ZigBeeConsoleInstallKeyCommand(),
+            "linkkey" to ZigBeeConsoleLinkKeyCommand(),
+
+            "netstart" to ZigBeeConsoleNetworkStartCommand(),
+            "netbackup" to ZigBeeConsoleNetworkBackupCommand(),
+            "discovery" to ZigBeeConsoleNetworkDiscoveryCommand(),
+
+            "otaupgrade" to ZigBeeConsoleOtaUpgradeCommand(),
+            "channel" to ZigBeeConsoleChannelCommand(),
+
+            "on" to OnCommand(),
+            "off" to OffCommand(),
+            "color" to ColorCommand(),
+            "level" to LevelCommand()
+    ).let { it["help"] = HelpCommand(it); it.toMap() }
 
     init {
         val manager: UsbManager = App.instance.getSystemService(USB_SERVICE) as UsbManager
@@ -65,7 +90,7 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
         val driver = drivers[0]
 
-        dongle = ZigBeeDongleTiCc2531(AndroidSerialPort(driver, 9600))
+        dongle = ZigBeeDongleTiCc2531(AndroidSerialPort(driver, 115200))
         networkManager = ZigBeeNetworkManager(dongle).apply {
             //            setNetworkDataStore(ZigBeeDataStore(dongleName))
             addExtension(ZigBeeIasCieExtension())
@@ -75,71 +100,56 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
             setSerializer(DefaultSerializer::class.java, DefaultDeserializer::class.java)
 
-            addNetworkStateListener { state -> print("ZigBee network state updated to $state") }
+            addNetworkStateListener { state -> post("ZigBee network state updated to $state") }
 
             addNetworkNodeListener(object : ZigBeeNetworkNodeListener {
-                override fun nodeAdded(node: ZigBeeNode) = print("Node Added $node")
+                override fun nodeAdded(node: ZigBeeNode) = post("Node Added $node")
 
-                override fun nodeUpdated(node: ZigBeeNode) = print("Node Updated $node")
+                override fun nodeUpdated(node: ZigBeeNode) = post("Node Updated $node")
 
-                override fun nodeRemoved(node: ZigBeeNode) = print("Node Removed $node")
+                override fun nodeRemoved(node: ZigBeeNode) = post("Node Removed $node")
             })
 
             addCommandListener {}
         }
 
-        availableCommands["nodes"] = ZigBeeConsoleNodeListCommand()
-        availableCommands["endpoint"] = ZigBeeConsoleDescribeEndpointCommand()
-        availableCommands["node"] = ZigBeeConsoleDescribeNodeCommand()
-        availableCommands["bind"] = ZigBeeConsoleBindCommand()
-        availableCommands["unbind"] = ZigBeeConsoleUnbindCommand()
-        availableCommands["bindtable"] = ZigBeeConsoleBindingTableCommand()
-
-        availableCommands["read"] = ZigBeeConsoleAttributeReadCommand()
-        availableCommands["write"] = ZigBeeConsoleAttributeWriteCommand()
-
-        availableCommands["attsupported"] = ZigBeeConsoleAttributeSupportedCommand()
-        availableCommands["cmdsupported"] = ZigBeeConsoleCommandsSupportedCommand()
-
-        availableCommands["info"] = ZigBeeConsoleDeviceInformationCommand()
-        availableCommands["join"] = ZigBeeConsoleNetworkJoinCommand()
-        availableCommands["leave"] = ZigBeeConsoleNetworkLeaveCommand()
-
-        availableCommands["reporting"] = ZigBeeConsoleReportingConfigCommand()
-        availableCommands["subscribe"] = ZigBeeConsoleReportingSubscribeCommand()
-        availableCommands["unsubscribe"] = ZigBeeConsoleReportingUnsubscribeCommand()
-
-        availableCommands["installkey"] = ZigBeeConsoleInstallKeyCommand()
-        availableCommands["linkkey"] = ZigBeeConsoleLinkKeyCommand()
-
-        availableCommands["netstart"] = ZigBeeConsoleNetworkStartCommand()
-        availableCommands["netbackup"] = ZigBeeConsoleNetworkBackupCommand()
-        availableCommands["discovery"] = ZigBeeConsoleNetworkDiscoveryCommand()
-
-        availableCommands["otaupgrade"] = ZigBeeConsoleOtaUpgradeCommand()
-        availableCommands["channel"] = ZigBeeConsoleChannelCommand()
-
-        handler.post { start() }
+        handler.post(this::start)
     }
 
     override fun processInput(payload: Payload): Payload {
         val builder = Payload.builder()
         builder.setKey(javaClass.name).addCommand(RESET)
 
-        when (val action = payload.action) {
+        when (val action = payload.action ?: "invalid command") {
             RESET -> reset()
             PING -> builder.setResponse(getString(R.string.zigbeeprotocol_ping))
-            in availableCommands.keys -> action?.apply {
-                builder.setResponse(getString(R.string.zigbeeprotocol_chose, action))
-                processInputLine(action)
+            in availableCommands.keys -> availableCommands[action]?.apply {
+                val data = payload.data
+                val commandArgs = if (data == null) null else ZigBeeCommandArgs.deserialize(data)
+                val needsCommandArgs: Boolean = (commandArgs == null || commandArgs.isInvalid) && syntax.isNotEmpty()
+
+                when {
+                    needsCommandArgs -> {
+                        builder.setResponse(getString(R.string.zigbeeprotocol_enter_args, action))
+                        builder.setData(ZigBeeCommandInfo(command, description, syntax, help).serialize())
+                    }
+                    else -> {
+                        val args = commandArgs?.args ?: arrayOf(action)
+                        builder.setResponse(getString(R.string.zigbeeprotocol_executing, args.commandString()))
+                        execute(args)
+                    }
+                }
+
             }
-            else -> builder.setResponse("Ummm")
+            else -> builder.setResponse("Unrecognized command")
         }
 
         availableCommands.keys.forEach { builder.addCommand(it) }
 
         return builder.build()
     }
+
+    private fun Array<String>.commandString() = joinToString(separator = " ")
 
     private fun start() {
         val resetNetwork = true
@@ -179,18 +189,14 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
         dongle.setLedMode(2, false)
     }
 
-    private fun processInputLine(inputLine: String) {
-        if (inputLine.isEmpty()) return
-
-        val args = inputLine.replace("\\s+".toRegex(), " ").split(" ".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+    private fun execute(args: Array<String>) {
         try {
             executeCommand(networkManager, args)
         } catch (e: Exception) {
-            print("Exception in command execution: ")
+            post("Exception in executing command: ${args.commandString()}")
             e.printStackTrace()
         }
     }
-
 
     /**
      * Executes command.
@@ -200,22 +206,22 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
      */
     private fun executeCommand(networkManager: ZigBeeNetworkManager, args: Array<String>) {
         val command = availableCommands[args[0].toLowerCase()]
-                ?: return print("Unknown command. Use 'help' command to list available commands.")
+                ?: return post("Unknown command. Use 'help' command to list available commands.")
 
         try {
             command.process(networkManager, args, outStream)
         } catch (e: IllegalArgumentException) {
-            print(
+            post(
                     "Error executing command: ${e.message}",
                     "${command.command} ${command.syntax}"
             )
         } catch (e: IllegalStateException) {
-            print(
+            post(
                     "Error executing command: " + e.message,
                     command.command + " " + command.syntax
             )
         } catch (e: Exception) {
-            print("Error executing command: $e")
+            post("Error executing command: $e")
         }
     }
 
@@ -245,16 +251,17 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
         networkManager.zigBeeNetworkKey = nwkKey
         networkManager.zigBeeLinkKey = linkKey
 
-        print(stringBuilder.toString())
+        post(stringBuilder.toString())
     }
 
-    private fun print(vararg messages: String) {
+    private fun post(vararg messages: String) {
         val builder = Payload.builder().apply {
             setKey(this@ZigBeeProtocol.javaClass.name)
             setResponse(StringBuilder().let {
                 messages.forEach { message -> it.append(message); it.append("\n") }
                 it.toString()
             })
+            addCommand(RESET)
             availableCommands.keys.forEach { addCommand(it) }
         }
 
@@ -264,5 +271,21 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
     override fun close() {
         thread.quitSafely()
         networkManager.shutdown()
+    }
+
+    class ConsoleOutputStream(private val consumer: (String) -> Unit) : OutputStream() {
+        private val stringBuilder = StringBuilder()
+
+        override fun write(b: Int) {
+            this.stringBuilder.append(b.toChar())
+        }
+
+        override fun toString(): String = this.stringBuilder.toString()
+
+        override fun flush() {
+            super.flush()
+            consumer.invoke(stringBuilder.toString())
+            stringBuilder.setLength(0)
+        }
     }
 }

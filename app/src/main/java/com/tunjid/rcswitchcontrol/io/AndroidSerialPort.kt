@@ -1,4 +1,4 @@
-package com.tunjid.rcswitchcontrol.nsd.protocols
+package com.tunjid.rcswitchcontrol.io
 
 import android.content.Context
 import android.hardware.usb.UsbManager

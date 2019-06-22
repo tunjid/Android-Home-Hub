@@ -12,8 +12,8 @@ import com.tunjid.androidbootstrap.functions.collections.Lists
 import com.tunjid.androidbootstrap.material.animator.FabExtensionAnimator
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.model.RcSwitch
-import com.tunjid.rcswitchcontrol.model.RcSwitch.Companion.SWITCH_PREFS
+import com.tunjid.rcswitchcontrol.data.RcSwitch
+import com.tunjid.rcswitchcontrol.data.RcSwitch.Companion.SWITCH_PREFS
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.services.ClientBleService.Companion.BLUETOOTH_DEVICE
 import com.tunjid.rcswitchcontrol.services.ClientBleService.Companion.C_HANDLE_CONTROL

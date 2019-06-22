@@ -41,7 +41,9 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
     )
 
     private val disposable: CompositeDisposable = CompositeDisposable()
+
     private val stateProcessor: PublishProcessor<State> = PublishProcessor.create()
+    private val payloadProcessor: PublishProcessor<Payload> = PublishProcessor.create()
     private val connectionStateProcessor: PublishProcessor<String> = PublishProcessor.create()
     private val nsdConnection: ServiceConnection<ClientNsdService> = ServiceConnection(ClientNsdService::class.java, ServiceConnection.BindCallback<ClientNsdService>(this::onServiceConnected))
 
@@ -63,6 +65,19 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
                 ClientNsdService.ACTION_SERVER_RESPONSE,
                 ClientNsdService.ACTION_START_NSD_DISCOVERY)
                 .subscribe(this::onIntentReceived, Throwable::printStackTrace))
+
+        disposable.add(payloadProcessor.concatMapSingle { payload ->
+            val isSwitchPayload = isSwitchPayload(payload)
+
+            when {
+                isSwitchPayload -> diff(switches, Supplier { diffSwitches(payload) })
+                else -> diff(history, Supplier { diffHistory(payload) })
+            }.map { Triple(isSwitchPayload, payload, it) }
+        }
+                .observeOn(mainThread())
+                .doOnNext { Lists.replace(commands, it.second.commands) }
+                .map { State(it.first, getMessage(it.second), it.third) }
+                .subscribe(stateProcessor::onNext, Throwable::printStackTrace))
     }
 
     override fun onCleared() {
@@ -71,7 +86,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
         super.onCleared()
     }
 
-    fun listen(predicate: (state: State) -> Boolean): Flowable<State> = stateProcessor.filter(predicate).observeOn(mainThread())
+    fun listen(predicate: (state: State) -> Boolean): Flowable<State> = stateProcessor.filter(predicate)
 
     fun sendMessage(message: Payload) = sendMessage(Supplier { true }, message)
 
@@ -111,15 +126,8 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
             ClientNsdService.ACTION_SERVER_RESPONSE -> {
                 val serverResponse = intent.getStringExtra(ClientNsdService.DATA_SERVER_RESPONSE)
                 val payload = Payload.deserialize(serverResponse)
-                val isSwitchPayload = isSwitchPayload(payload)
 
-                val diffSingle: Single<DiffResult> = when {
-                    isSwitchPayload -> diff(switches, Supplier { diffSwitches(payload) })
-                    else -> diff(history, Supplier { diffHistory(payload) })
-                }.doAfterSuccess { Lists.replace(commands, payload.commands) }
-
-                disposable.add(diffSingle.map { State(isSwitchPayload, getMessage(payload), it) }
-                        .subscribe(stateProcessor::onNext, Throwable::printStackTrace))
+                payloadProcessor.onNext(payload)
             }
         }
     }

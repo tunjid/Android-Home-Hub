@@ -75,7 +75,9 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
             "on" to OnCommand(),
             "off" to OffCommand(),
             "color" to ColorCommand(),
-            "level" to LevelCommand()
+            "level" to LevelCommand(),
+            "rediscover" to RediscoverCommand()
+
     ).let { it["help"] = HelpCommand(it); it.toMap() }
 
     init {

@@ -12,6 +12,7 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.data.Payload
 import com.tunjid.rcswitchcontrol.data.ZigBeeCommandArgs
 import com.tunjid.rcswitchcontrol.data.ZigBeeCommandInfo
+import com.tunjid.rcswitchcontrol.data.persistence.ZigBeeDataStore
 import com.tunjid.rcswitchcontrol.io.*
 import com.zsmartsystems.zigbee.*
 import com.zsmartsystems.zigbee.app.basic.ZigBeeBasicServerExtension
@@ -94,7 +95,7 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
         dongle = ZigBeeDongleTiCc2531(AndroidSerialPort(driver, 115200))
         networkManager = ZigBeeNetworkManager(dongle).apply {
-            //            setNetworkDataStore(ZigBeeDataStore(dongleName))
+            setNetworkDataStore(ZigBeeDataStore("Home"))
             addExtension(ZigBeeIasCieExtension())
             addExtension(ZigBeeOtaUpgradeExtension())
             addExtension(ZigBeeBasicServerExtension())
@@ -169,6 +170,7 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
         println("Extended PAN ID = " + networkManager.zigBeeExtendedPanId)
         println("Channel         = " + networkManager.zigBeeChannel)
 
+        @Suppress("ConstantConditionIf")
         if (resetNetwork) reset()
 
         // Add the default ZigBeeAlliance09 HA link key

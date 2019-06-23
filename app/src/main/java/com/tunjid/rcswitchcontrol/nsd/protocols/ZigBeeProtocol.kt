@@ -4,6 +4,7 @@ import android.content.Context.USB_SERVICE
 import android.hardware.usb.UsbManager
 import android.os.Handler
 import android.os.HandlerThread
+import android.util.Log
 import com.hoho.android.usbserial.driver.CdcAcmSerialDriver
 import com.hoho.android.usbserial.driver.ProbeTable
 import com.hoho.android.usbserial.driver.UsbSerialProber
@@ -27,7 +28,7 @@ import com.zsmartsystems.zigbee.serialization.DefaultSerializer
 import com.zsmartsystems.zigbee.transport.TransportConfig
 import com.zsmartsystems.zigbee.transport.TransportConfigOption
 import com.zsmartsystems.zigbee.zcl.clusters.ZclIasZoneCluster
-import java.io.OutputStream
+import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 import java.io.PrintWriter
 
@@ -37,7 +38,7 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
     private val thread = HandlerThread("ZigBee").apply { start() }
     private val handler = Handler(thread.looper)
 
-    private val outStream = PrintStream(ConsoleOutputStream { post(it) }, true)
+    private val outStream = ConsoleStream { post(it) }
 
     private val dongle: ZigBeeDongleTiCc2531
     private val networkManager: ZigBeeNetworkManager
@@ -103,7 +104,10 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
             setSerializer(DefaultSerializer::class.java, DefaultDeserializer::class.java)
 
-            addNetworkStateListener { state -> post("ZigBee network state updated to $state") }
+            addNetworkStateListener { state ->
+                post("ZigBee network state updated to $state")
+                if (ZigBeeNetworkState.ONLINE == state) executeCommand(this, arrayOf("netstart", "form", "$zigBeePanId", "$zigBeeExtendedPanId"))
+            }
 
             addNetworkNodeListener(object : ZigBeeNetworkNodeListener {
                 override fun nodeAdded(node: ZigBeeNode) = post("Node Added $node")
@@ -166,9 +170,9 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
             return
         }
 
-        println("PAN ID          = " + networkManager.zigBeePanId)
-        println("Extended PAN ID = " + networkManager.zigBeeExtendedPanId)
-        println("Channel         = " + networkManager.zigBeeChannel)
+        post("PAN ID          = " + networkManager.zigBeePanId)
+        post("Extended PAN ID = " + networkManager.zigBeeExtendedPanId)
+        post("Channel         = " + networkManager.zigBeeChannel)
 
         @Suppress("ConstantConditionIf")
         if (resetNetwork) reset()
@@ -181,11 +185,10 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
         dongle.updateTransportConfig(transportOptions)
 
-        if (networkManager.startup(resetNetwork) !== ZigBeeStatus.SUCCESS) {
-            println("ZigBee console starting up ... [FAIL]")
-        } else {
-            println("ZigBee console starting up ... [OK]")
-        }
+        post(
+                if (networkManager.startup(resetNetwork) !== ZigBeeStatus.SUCCESS) "ZigBee console starting up ... [FAIL]"
+                else "ZigBee console starting up ... [OK]"
+        )
 
         networkManager.addSupportedCluster(ZclIasZoneCluster.CLUSTER_ID)
 
@@ -259,12 +262,12 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
     }
 
     private fun post(vararg messages: String) {
+        val out = messages.joinToString(separator = "")
+        Log.i("ZIGBEE", out)
+
         val builder = Payload.builder().apply {
             setKey(this@ZigBeeProtocol.javaClass.name)
-            setResponse(StringBuilder().let {
-                messages.forEach { message -> it.append(message); it.append("\n") }
-                it.toString()
-            })
+            setResponse(out)
             addCommand(RESET)
             availableCommands.keys.forEach { addCommand(it) }
         }
@@ -277,19 +280,13 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
         thread.quitSafely()
     }
 
-    class ConsoleOutputStream(private val consumer: (String) -> Unit) : OutputStream() {
-        private val stringBuilder = StringBuilder()
-
-        override fun write(b: Int) {
-            this.stringBuilder.append(b.toChar())
-        }
-
-        override fun toString(): String = this.stringBuilder.toString()
-
+    class ConsoleStream(private val consumer: (String) -> Unit) : PrintStream(object : ByteArrayOutputStream() {
         override fun flush() {
+            synchronized(this) {
+                consumer.invoke(String(toByteArray()))
+                reset()
+            }
             super.flush()
-            consumer.invoke(stringBuilder.toString())
-            stringBuilder.setLength(0)
         }
-    }
+    }, true)
 }

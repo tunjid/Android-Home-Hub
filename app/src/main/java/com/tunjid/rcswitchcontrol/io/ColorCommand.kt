@@ -14,7 +14,7 @@ import java.util.concurrent.Future
  */
 class ColorCommand : AbsZigBeeCommand() {
 
-    override fun getCommand(): String = "off"
+    override fun getCommand(): String = "color"
 
     override fun getDescription(): String = "Changes light color."
 

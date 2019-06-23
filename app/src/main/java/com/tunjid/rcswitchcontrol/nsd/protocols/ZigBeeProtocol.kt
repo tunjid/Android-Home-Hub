@@ -112,7 +112,7 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
             addNetworkStateListener { state ->
                 post("ZigBee network state updated to $state")
-                if (ZigBeeNetworkState.ONLINE == state) executeCommand(this, arrayOf("netstart", "form", "$zigBeePanId", "$zigBeeExtendedPanId"))
+                if (ZigBeeNetworkState.ONLINE == state) formNetwork()
             }
 
             addNetworkNodeListener(object : ZigBeeNetworkNodeListener {
@@ -136,6 +136,7 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
         when (val action = payload.action ?: "invalid command") {
             RESET -> reset()
+            FORM_NETWORK -> formNetwork()
             PING -> builder.setResponse(getString(R.string.zigbeeprotocol_ping))
             in availableCommands.keys -> availableCommands[action]?.apply {
                 val data = payload.data
@@ -158,7 +159,7 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
             else -> builder.setResponse("Unrecognized command")
         }
 
-        availableCommands.keys.forEach { builder.addCommand(it) }
+        builder.appendCommands()
 
         return builder.build()
     }
@@ -276,13 +277,20 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
         post(stringBuilder.toString())
     }
 
+    private fun formNetwork() = executeCommand(networkManager, arrayOf("netstart", "form", "${networkManager.zigBeePanId}", "${networkManager.zigBeeExtendedPanId}"))
+
+    private fun Payload.Builder.appendCommands() {
+        addCommand(RESET)
+        addCommand(FORM_NETWORK)
+        availableCommands.keys.forEach { addCommand(it) }
+    }
+
     private fun post(vararg messages: String) {
         val out = messages.commandString()
         val builder = Payload.builder().apply {
             setKey(this@ZigBeeProtocol.javaClass.name)
             setResponse(out)
-            addCommand(RESET)
-            availableCommands.keys.forEach { addCommand(it) }
+            appendCommands()
         }
 
         Log.i("ZIGBEE", out)
@@ -313,5 +321,7 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
         const val BAUD_RATE = 115200
         const val MESH_UPDATE_PERIOD = 60
         const val OUTPUT_BUFFER_RATE = 200L
+
+        const val FORM_NETWORK = "formnet"
     }
 }

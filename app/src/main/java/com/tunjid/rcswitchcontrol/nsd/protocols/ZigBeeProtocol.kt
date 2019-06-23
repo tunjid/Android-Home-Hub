@@ -92,22 +92,21 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
     init {
         val manager: UsbManager = App.instance.getSystemService(USB_SERVICE) as UsbManager
 
-        val customTable = ProbeTable()
-        customTable.addProduct(1105, 5800, CdcAcmSerialDriver::class.java)
+        val dongleLookup = ProbeTable().apply { addProduct(TI_VENDOR_ID, CC2531_PRODUCT_ID, CdcAcmSerialDriver::class.java) }
 
-        val drivers = UsbSerialProber(customTable).findAllDrivers(manager)
+        val drivers = UsbSerialProber(dongleLookup).findAllDrivers(manager)
 
         if (drivers.isEmpty()) throw IllegalArgumentException("No driver available")
 
         val driver = drivers[0]
 
-        dongle = ZigBeeDongleTiCc2531(AndroidSerialPort(driver, 115200))
+        dongle = ZigBeeDongleTiCc2531(AndroidSerialPort(driver, BAUD_RATE))
         networkManager = ZigBeeNetworkManager(dongle).apply {
             setNetworkDataStore(ZigBeeDataStore("Home"))
             addExtension(ZigBeeIasCieExtension())
             addExtension(ZigBeeOtaUpgradeExtension())
             addExtension(ZigBeeBasicServerExtension())
-            addExtension(ZigBeeDiscoveryExtension().apply { updatePeriod = 60 })
+            addExtension(ZigBeeDiscoveryExtension().apply { updatePeriod = MESH_UPDATE_PERIOD })
 
             setSerializer(DefaultSerializer::class.java, DefaultDeserializer::class.java)
 
@@ -164,14 +163,15 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
         return builder.build()
     }
 
+    /**
+     * Buffers writes to the output stream because quick concurrent writes cause data loss to the client
+     */
     private fun processOutput() {
         disposable.add(outputProcessor
                 .onBackpressureBuffer()
-                .concatMap { Flowable.just(it).delay(800, TimeUnit.MILLISECONDS) }
+                .concatMap { Flowable.just(it).delay(OUTPUT_BUFFER_RATE, TimeUnit.MILLISECONDS) }
                 .subscribe({ if (thread.isAlive) handler.post { printWriter.println(it) } }, { it.printStackTrace(); processOutput() }))
     }
-
-    private fun Array<out String>.commandString() = joinToString(separator = " ")
 
     private fun start() {
         val resetNetwork = true
@@ -289,6 +289,8 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
         if (thread.isAlive) outputProcessor.onNext(builder.build().serialize())
     }
 
+    private fun Array<out String>.commandString() = joinToString(separator = " ")
+
     override fun close() {
         disposable.clear()
         networkManager.shutdown()
@@ -304,4 +306,13 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
             super.flush()
         }
     }, true)
+
+    companion object {
+        const val TI_VENDOR_ID = 1105
+        const val CC2531_PRODUCT_ID = 5800
+        const val BAUD_RATE = 115200
+        const val MESH_UPDATE_PERIOD = 60
+        const val OUTPUT_BUFFER_RATE = 800L
+
+    }
 }

@@ -28,15 +28,22 @@ import com.zsmartsystems.zigbee.serialization.DefaultSerializer
 import com.zsmartsystems.zigbee.transport.TransportConfig
 import com.zsmartsystems.zigbee.transport.TransportConfigOption
 import com.zsmartsystems.zigbee.zcl.clusters.ZclIasZoneCluster
+import io.reactivex.Flowable
+import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.processors.PublishProcessor
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 import java.io.PrintWriter
+import java.util.concurrent.TimeUnit
 
 
 class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
     private val thread = HandlerThread("ZigBee").apply { start() }
     private val handler = Handler(thread.looper)
+
+    private val disposable = CompositeDisposable()
+    private val outputProcessor: PublishProcessor<String> = PublishProcessor.create()
 
     private val outStream = ConsoleStream { post(it) }
 
@@ -120,6 +127,7 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
             addCommandListener {}
         }
 
+        processOutput()
         handler.post(this::start)
     }
 
@@ -156,7 +164,14 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
         return builder.build()
     }
 
-    private fun Array<String>.commandString() = joinToString(separator = " ")
+    private fun processOutput() {
+        disposable.add(outputProcessor
+                .onBackpressureBuffer()
+                .concatMap { Flowable.just(it).delay(800, TimeUnit.MILLISECONDS) }
+                .subscribe({ if (thread.isAlive) handler.post { printWriter.println(it) } }, { it.printStackTrace(); processOutput() }))
+    }
+
+    private fun Array<out String>.commandString() = joinToString(separator = " ")
 
     private fun start() {
         val resetNetwork = true
@@ -262,9 +277,7 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
     }
 
     private fun post(vararg messages: String) {
-        val out = messages.joinToString(separator = "")
-        Log.i("ZIGBEE", out)
-
+        val out = messages.commandString()
         val builder = Payload.builder().apply {
             setKey(this@ZigBeeProtocol.javaClass.name)
             setResponse(out)
@@ -272,10 +285,12 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
             availableCommands.keys.forEach { addCommand(it) }
         }
 
-        if (thread.isAlive) handler.post { printWriter.println(builder.build().serialize()) }
+        Log.i("ZIGBEE", out)
+        if (thread.isAlive) outputProcessor.onNext(builder.build().serialize())
     }
 
     override fun close() {
+        disposable.clear()
         networkManager.shutdown()
         thread.quitSafely()
     }

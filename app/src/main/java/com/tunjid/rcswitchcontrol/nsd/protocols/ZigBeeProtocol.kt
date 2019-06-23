@@ -232,9 +232,9 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
     private fun reset() {
         val nwkKey: ZigBeeKey = ZigBeeKey.createRandom()
         val linkKey = ZigBeeKey(intArrayOf(0x5A, 0x69, 0x67, 0x42, 0x65, 0x65, 0x41, 0x6C, 0x6C, 0x69, 0x61, 0x6E, 0x63, 0x65, 0x30, 0x39))
-        val extendedPan = ExtendedPanId()
+        val extendedPan = ExtendedPanId("987654321")
         val channel = 11
-        val pan = 1
+        val pan = 0x2000
 
         val stringBuilder = StringBuilder().apply {
             append("*** Resetting network")

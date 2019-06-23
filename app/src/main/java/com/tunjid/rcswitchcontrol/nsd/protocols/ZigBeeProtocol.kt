@@ -269,12 +269,12 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
             availableCommands.keys.forEach { addCommand(it) }
         }
 
-        handler.post { printWriter.println(builder.build().serialize()) }
+        if (thread.isAlive) handler.post { printWriter.println(builder.build().serialize()) }
     }
 
     override fun close() {
-        thread.quitSafely()
         networkManager.shutdown()
+        thread.quitSafely()
     }
 
     class ConsoleOutputStream(private val consumer: (String) -> Unit) : OutputStream() {

@@ -2,12 +2,7 @@ package com.tunjid.rcswitchcontrol.fragments
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
@@ -31,11 +26,15 @@ import com.tunjid.rcswitchcontrol.activities.MainActivity
 import com.tunjid.rcswitchcontrol.adapters.ChatAdapter
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
 import com.tunjid.rcswitchcontrol.data.Payload
+import com.tunjid.rcswitchcontrol.data.ZigBeeCommandArgs
+import com.tunjid.rcswitchcontrol.dialogfragments.ZigBeeArgumentDialogFragment
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel.State
 
-class ClientNsdFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
+class ClientNsdFragment : BaseFragment(),
+        ChatAdapter.ChatAdapterListener,
+        ZigBeeArgumentDialogFragment.ZigBeeArgsListener {
 
     private lateinit var pager: ViewPager
     private lateinit var connectionStatus: TextView
@@ -80,7 +79,7 @@ class ClientNsdFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
 
     override fun onResume() {
         super.onResume()
-        disposables.add(viewModel.listen { true }.subscribe(this::onPayloadReceived, Throwable::printStackTrace))
+        disposables.add(viewModel.listen().subscribe(this::onPayloadReceived, Throwable::printStackTrace))
         disposables.add(viewModel.connectionState().subscribe(this::onConnectionStateChanged, Throwable::printStackTrace))
     }
 
@@ -125,6 +124,9 @@ class ClientNsdFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
     override fun onTextClicked(text: String) =
             viewModel.sendMessage(Payload.builder().setAction(text).build())
 
+    override fun onArgsEntered(args: ZigBeeCommandArgs) =
+            viewModel.sendMessage(Payload.builder().setAction(args.command).setData(args.serialize()).build())
+
     private fun onConnectionStateChanged(text: String) {
         requireActivity().invalidateOptionsMenu()
         connectionStatus.text = resources.getString(R.string.connection_state, text)
@@ -139,7 +141,8 @@ class ClientNsdFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
         pager.currentItem = if (state.isRc) SWITCHES else HISTORY
         listManager.notifyDataSetChanged()
 
-        if (state.prompt != null) Snackbar.make(pager, state.prompt, LENGTH_SHORT).show()
+        state.prompt?.let { Snackbar.make(pager, it, LENGTH_SHORT).show() }
+        state.commandInfo?.let { ZigBeeArgumentDialogFragment.newInstance(it).show(childFragmentManager, "info") }
     }
 
     companion object {

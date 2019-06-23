@@ -47,7 +47,7 @@ class NsdHistoryFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
 
     override fun onResume() {
         super.onResume()
-        disposables.add(viewModel.listen { true }.subscribe(this::onPayloadReceived, Throwable::printStackTrace))
+        disposables.add(viewModel.listen().subscribe(this::onPayloadReceived, Throwable::printStackTrace))
     }
 
     override fun onDestroyView() {

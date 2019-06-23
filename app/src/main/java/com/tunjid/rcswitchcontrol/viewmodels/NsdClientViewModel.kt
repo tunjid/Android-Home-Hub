@@ -15,6 +15,7 @@ import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
 import com.tunjid.rcswitchcontrol.data.Payload
 import com.tunjid.rcswitchcontrol.data.RcSwitch
 import com.tunjid.rcswitchcontrol.data.RcSwitch.Companion.SWITCH_PREFS
+import com.tunjid.rcswitchcontrol.data.ZigBeeCommandInfo
 import com.tunjid.rcswitchcontrol.nsd.protocols.BleRcProtocol
 import com.tunjid.rcswitchcontrol.nsd.protocols.CommsProtocol
 import com.tunjid.rcswitchcontrol.services.ClientBleService
@@ -25,6 +26,7 @@ import io.reactivex.android.schedulers.AndroidSchedulers.mainThread
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.processors.PublishProcessor
 import io.reactivex.schedulers.Schedulers.io
+import java.util.LinkedHashSet
 
 class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -58,26 +60,8 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         nsdConnection.with(app).bind()
-        disposable.add(Broadcaster.listen(
-                ClientNsdService.ACTION_SOCKET_CONNECTED,
-                ClientNsdService.ACTION_SOCKET_CONNECTING,
-                ClientNsdService.ACTION_SOCKET_DISCONNECTED,
-                ClientNsdService.ACTION_SERVER_RESPONSE,
-                ClientNsdService.ACTION_START_NSD_DISCOVERY)
-                .subscribe(this::onIntentReceived, Throwable::printStackTrace))
-
-        disposable.add(payloadProcessor.concatMapSingle { payload ->
-            val isSwitchPayload = isSwitchPayload(payload)
-
-            when {
-                isSwitchPayload -> diff(switches, Supplier { diffSwitches(payload) })
-                else -> diff(history, Supplier { diffHistory(payload) })
-            }.map { Triple(isSwitchPayload, payload, it) }
-        }
-                .observeOn(mainThread())
-                .doOnNext { Lists.replace(commands, it.second.commands) }
-                .map { State(it.first, getMessage(it.second), it.third) }
-                .subscribe(stateProcessor::onNext, Throwable::printStackTrace))
+        listenForBroadcasts()
+        listenForPayloads()
     }
 
     override fun onCleared() {
@@ -86,7 +70,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
         super.onCleared()
     }
 
-    fun listen(predicate: (state: State) -> Boolean): Flowable<State> = stateProcessor.filter(predicate)
+    fun listen(predicate: (state: State) -> Boolean = { true }): Flowable<State> = stateProcessor.filter(predicate)
 
     fun sendMessage(message: Payload) = sendMessage(Supplier { true }, message)
 
@@ -157,29 +141,6 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
         if (nsdConnection.isBound && predicate.get()) nsdConnection.boundService.sendMessage(message)
     }
 
-    private fun getMessage(payload: Payload): String? {
-        val response = payload.response ?: return null
-
-        var action: String? = payload.action
-        action = action ?: ""
-
-        return if (noisyCommands.contains(action)) response else null
-    }
-
-    private fun hasSwitches(payload: Payload): Boolean {
-        val action = payload.action ?: return false
-
-        val context = getApplication<Application>()
-        return (action == ClientBleService.ACTION_TRANSMITTER
-                || action == context.getString(R.string.blercprotocol_delete_command)
-                || action == context.getString(R.string.blercprotocol_rename_command))
-    }
-
-    private fun isSwitchPayload(payload: Payload): Boolean {
-        if (payload.key == BleRcProtocol::class.java.name) return true
-        return hasSwitches(payload)
-    }
-
     private fun diffSwitches(payload: Payload): Diff<RcSwitch> = Diff.calculate(
             switches,
             payload.data?.let {
@@ -203,5 +164,63 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
                 .map { diff -> diff.result }
     }
 
-    class State internal constructor(val isRc: Boolean, val prompt: String?, val result: DiffResult)
+    private fun extractCommandInfo(payload: Payload): ZigBeeCommandInfo? {
+        if (isSwitchPayload(payload)) return null
+        return payload.data?.let { data -> ZigBeeCommandInfo.deserialize(data) }
+    }
+
+    private fun getMessage(payload: Payload): String? {
+        val response = payload.response ?: return null
+
+        var action: String? = payload.action
+        action = action ?: ""
+
+        return if (noisyCommands.contains(action)) response else null
+    }
+
+    private fun isSwitchPayload(payload: Payload): Boolean {
+        if (payload.key == BleRcProtocol::class.java.name) return true
+        return hasSwitches(payload)
+    }
+
+    private fun hasSwitches(payload: Payload): Boolean {
+        val action = payload.action ?: return false
+
+        val context = getApplication<Application>()
+        return (action == ClientBleService.ACTION_TRANSMITTER
+                || action == context.getString(R.string.blercprotocol_delete_command)
+                || action == context.getString(R.string.blercprotocol_rename_command))
+    }
+
+    private fun listenForBroadcasts() {
+        disposable.add(Broadcaster.listen(
+                ClientNsdService.ACTION_SOCKET_CONNECTED,
+                ClientNsdService.ACTION_SOCKET_CONNECTING,
+                ClientNsdService.ACTION_SOCKET_DISCONNECTED,
+                ClientNsdService.ACTION_SERVER_RESPONSE,
+                ClientNsdService.ACTION_START_NSD_DISCOVERY)
+                .subscribe(this::onIntentReceived) { it.printStackTrace(); listenForBroadcasts() })
+    }
+
+    private fun listenForPayloads() {
+        disposable.add(payloadProcessor.concatMapSingle { payload ->
+            val isSwitchPayload = isSwitchPayload(payload)
+
+            when {
+                isSwitchPayload -> diff(switches, Supplier { diffSwitches(payload) })
+                else -> diff(history, Supplier { diffHistory(payload) })
+            }.map { State(isSwitchPayload, getMessage(payload), extractCommandInfo(payload), payload.commands, it) }
+        }
+                .observeOn(mainThread())
+                .doOnNext { Lists.replace(commands, it.commands) }
+                .subscribe(stateProcessor::onNext) { it.printStackTrace(); listenForPayloads() })
+    }
+
+    class State internal constructor(
+            val isRc: Boolean,
+            val prompt: String?,
+            val commandInfo: ZigBeeCommandInfo?,
+            val commands: LinkedHashSet<String>,
+            val result: DiffResult
+    )
 }

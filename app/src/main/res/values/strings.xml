@@ -44,6 +44,10 @@
     <string name="rename">Rename</string>
     <string name="cancel">Cancel</string>
 
+    <!-- ZigBee Command Arguments -->
+    <string name="zigbee_command_arguments_title">Command: %1$s</string>
+    <string name="zigbee_command_arguments_description">Description: %1$s</string>
+
     <!-- Notification channel -->
     <string name="switch_service">Switch service</string>
     <string name="switch_service_description">Service for maintaining switch connection</string>

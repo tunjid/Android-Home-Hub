@@ -13,6 +13,7 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.data.Payload
 import com.tunjid.rcswitchcontrol.data.ZigBeeCommandArgs
 import com.tunjid.rcswitchcontrol.data.ZigBeeCommandInfo
+import com.tunjid.rcswitchcontrol.data.ZigBeeLight
 import com.tunjid.rcswitchcontrol.data.persistence.ZigBeeDataStore
 import com.tunjid.rcswitchcontrol.io.*
 import com.zsmartsystems.zigbee.*
@@ -21,6 +22,7 @@ import com.zsmartsystems.zigbee.app.discovery.ZigBeeDiscoveryExtension
 import com.zsmartsystems.zigbee.app.iasclient.ZigBeeIasCieExtension
 import com.zsmartsystems.zigbee.app.otaserver.ZigBeeOtaUpgradeExtension
 import com.zsmartsystems.zigbee.console.*
+import com.zsmartsystems.zigbee.database.ZigBeeNodeDao
 import com.zsmartsystems.zigbee.dongle.cc2531.ZigBeeDongleTiCc2531
 import com.zsmartsystems.zigbee.security.ZigBeeKey
 import com.zsmartsystems.zigbee.serialization.DefaultDeserializer
@@ -28,6 +30,7 @@ import com.zsmartsystems.zigbee.serialization.DefaultSerializer
 import com.zsmartsystems.zigbee.transport.TransportConfig
 import com.zsmartsystems.zigbee.transport.TransportConfigOption
 import com.zsmartsystems.zigbee.zcl.clusters.ZclIasZoneCluster
+import com.zsmartsystems.zigbee.zcl.protocol.ZclClusterType
 import io.reactivex.Flowable
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.processors.PublishProcessor
@@ -48,6 +51,7 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
     private val outStream = ConsoleStream { post(it) }
 
     private val dongle: ZigBeeDongleTiCc2531
+    private val dataStore = ZigBeeDataStore("Home")
     private val networkManager: ZigBeeNetworkManager
     private val availableCommands: Map<String, ZigBeeConsoleCommand> = mutableMapOf(
             "nodes" to ZigBeeConsoleNodeListCommand(),
@@ -102,7 +106,7 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
         dongle = ZigBeeDongleTiCc2531(AndroidSerialPort(driver, BAUD_RATE))
         networkManager = ZigBeeNetworkManager(dongle).apply {
-            setNetworkDataStore(ZigBeeDataStore("Home"))
+            setNetworkDataStore(dataStore)
             addExtension(ZigBeeIasCieExtension())
             addExtension(ZigBeeOtaUpgradeExtension())
             addExtension(ZigBeeBasicServerExtension())
@@ -279,6 +283,17 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
     private fun formNetwork() = executeCommand(networkManager, arrayOf("netstart", "form", "${networkManager.zigBeePanId}", "${networkManager.zigBeeExtendedPanId}"))
 
+    private fun savedDevices() {
+        dataStore.readNetworkNodes()
+                .map(dataStore::readNode)
+                .mapNotNull(this::nodeToZigBeeLight)
+    }
+
+    private fun nodeToZigBeeLight(node: ZigBeeNodeDao): ZigBeeLight? =
+            node.endpoints.find { it.inputClusterIds.contains(ZclClusterType.ON_OFF.id) }?.let { endpoint ->
+                ZigBeeLight(node.ieeeAddress.toString(), node.networkAddress.toString(), endpoint.endpointId.toString())
+            }
+
     private fun Payload.Builder.appendCommands() {
         addCommand(RESET)
         addCommand(FORM_NETWORK)
@@ -323,5 +338,6 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
         const val OUTPUT_BUFFER_RATE = 200L
 
         const val FORM_NETWORK = "formnet"
+        const val SAVED_DEVICES = "saveddevices"
     }
 }

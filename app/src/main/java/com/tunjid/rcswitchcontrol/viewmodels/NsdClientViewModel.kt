@@ -85,18 +85,15 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
                 .remove(ClientNsdService.LAST_CONNECTED_SERVICE).apply()
     }
 
-    fun connectionState(): Flowable<String> {
-        return connectionStateProcessor.startWith { publisher ->
-            val bound = nsdConnection.isBound
-            if (bound) nsdConnection.boundService.onAppForeGround()
+    fun connectionState(): Flowable<String> = connectionStateProcessor.startWith({
+        val bound = nsdConnection.isBound
+        if (bound) nsdConnection.boundService.onAppForeGround()
 
-            publisher.onNext(getConnectionText(
-                    if (bound) nsdConnection.boundService.connectionState
-                    else ClientNsdService.ACTION_SOCKET_DISCONNECTED)
-            )
-            publisher.onComplete()
-        }.observeOn(mainThread())
-    }
+        getConnectionText(
+                if (bound) nsdConnection.boundService.connectionState
+                else ClientNsdService.ACTION_SOCKET_DISCONNECTED)
+
+    }()).observeOn(mainThread())
 
     private fun onServiceConnected(service: ClientNsdService) {
         connectionStateProcessor.onNext(getConnectionText(service.connectionState))
@@ -203,13 +200,15 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun listenForPayloads() {
-        disposable.add(payloadProcessor.concatMapSingle { payload ->
+        disposable.add(payloadProcessor.concatMap { payload ->
             val isSwitchPayload = isSwitchPayload(payload)
 
-            when {
-                isSwitchPayload -> diff(switches, Supplier { diffSwitches(payload) })
-                else -> diff(history, Supplier { diffHistory(payload) })
-            }.map { State(isSwitchPayload, getMessage(payload), extractCommandInfo(payload), payload.commands, it) }
+            Single.concat(mutableListOf<Single<DiffResult>>().let { singleList ->
+                singleList.add(diff(history, Supplier { diffHistory(payload) }))
+                if (isSwitchPayload) singleList.add(diff(switches, Supplier { diffSwitches(payload) }))
+
+                singleList.map { single -> single.map { State(isSwitchPayload, getMessage(payload), extractCommandInfo(payload), payload.commands, it) } }
+            })
         }
                 .observeOn(mainThread())
                 .doOnNext { Lists.replace(commands, it.commands) }

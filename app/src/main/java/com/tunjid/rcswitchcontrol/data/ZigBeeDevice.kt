@@ -16,6 +16,8 @@ class ZigBeeDevice(
             parcel.readString()!!,
             parcel.readString()!!)
 
+    fun toggleCommand(state: Boolean) = ZigBeeCommandArgs(if (state) "on" else "off", arrayOf("$networkAdress/$endpoint"))
+
     override fun getId(): String = ieeeAddress
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {

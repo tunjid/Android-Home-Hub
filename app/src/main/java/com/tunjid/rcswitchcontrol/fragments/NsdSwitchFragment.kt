@@ -14,11 +14,8 @@ import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.adapters.DeviceViewHolder
 import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter
 import com.tunjid.rcswitchcontrol.adapters.ZigBeeDeviceViewHolder
-import com.tunjid.rcswitchcontrol.data.Device
+import com.tunjid.rcswitchcontrol.data.*
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
-import com.tunjid.rcswitchcontrol.data.Payload
-import com.tunjid.rcswitchcontrol.data.RcSwitch
-import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
 import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler
@@ -82,8 +79,11 @@ class NsdSwitchFragment : BaseFragment(),
     override fun onLongClicked(device: ZigBeeDevice) {
     }
 
-    override fun onSwitchToggled(device: ZigBeeDevice, state: Boolean) {
-    }
+    override fun onSwitchToggled(device: ZigBeeDevice, state: Boolean) =
+            viewModel.sendMessage(Payload.builder().setAction(ClientBleService.ACTION_TRANSMITTER)
+                    .setData(device.toggleCommand(state).serialize())
+                    .build())
+
 
     override fun onSwitchRenamed(rcSwitch: RcSwitch) {
         listManager.notifyItemChanged(viewModel.devices.indexOf(rcSwitch))

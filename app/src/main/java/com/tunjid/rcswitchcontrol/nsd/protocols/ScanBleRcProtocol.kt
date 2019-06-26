@@ -19,6 +19,7 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
 import com.tunjid.rcswitchcontrol.data.Payload
 import com.tunjid.rcswitchcontrol.data.RcSwitch
+import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import io.reactivex.disposables.CompositeDisposable
 import java.io.PrintWriter

@@ -12,12 +12,13 @@ import com.tunjid.androidbootstrap.recyclerview.diff.Diff
 import com.tunjid.androidbootstrap.recyclerview.diff.Differentiable
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.data.Payload
-import com.tunjid.rcswitchcontrol.data.RcSwitch
+import com.tunjid.rcswitchcontrol.data.*
 import com.tunjid.rcswitchcontrol.data.RcSwitch.Companion.SWITCH_PREFS
-import com.tunjid.rcswitchcontrol.data.ZigBeeCommandInfo
+import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserialize
+import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserializeList
 import com.tunjid.rcswitchcontrol.nsd.protocols.BleRcProtocol
 import com.tunjid.rcswitchcontrol.nsd.protocols.CommsProtocol
+import com.tunjid.rcswitchcontrol.nsd.protocols.ZigBeeProtocol
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import io.reactivex.Flowable
@@ -26,13 +27,12 @@ import io.reactivex.android.schedulers.AndroidSchedulers.mainThread
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.processors.PublishProcessor
 import io.reactivex.schedulers.Schedulers.io
-import java.util.LinkedHashSet
 
 class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
 
     val history: MutableList<String> = mutableListOf()
     val commands: MutableList<String> = mutableListOf()
-    val switches: MutableList<RcSwitch> = mutableListOf()
+    val devices: MutableList<Device> = mutableListOf()
 
     private val noisyCommands: Set<String> = setOf(
             ClientBleService.ACTION_TRANSMITTER,
@@ -47,7 +47,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
     private val stateProcessor: PublishProcessor<State> = PublishProcessor.create()
     private val payloadProcessor: PublishProcessor<Payload> = PublishProcessor.create()
     private val connectionStateProcessor: PublishProcessor<String> = PublishProcessor.create()
-    private val nsdConnection: ServiceConnection<ClientNsdService> = ServiceConnection(ClientNsdService::class.java, ServiceConnection.BindCallback<ClientNsdService>(this::onServiceConnected))
+    private val nsdConnection: ServiceConnection<ClientNsdService> = ServiceConnection(ClientNsdService::class.java, this::onServiceConnected)
 
     val isBound: Boolean
         get() = nsdConnection.isBound
@@ -102,11 +102,14 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun onIntentReceived(intent: Intent) {
         when (val action = intent.action) {
-            ClientNsdService.ACTION_SOCKET_CONNECTED, ClientNsdService.ACTION_SOCKET_CONNECTING, ClientNsdService.ACTION_SOCKET_DISCONNECTED -> connectionStateProcessor.onNext(getConnectionText(action))
+            ClientNsdService.ACTION_SOCKET_CONNECTED,
+            ClientNsdService.ACTION_SOCKET_CONNECTING,
+            ClientNsdService.ACTION_SOCKET_DISCONNECTED -> connectionStateProcessor.onNext(getConnectionText(action))
             ClientNsdService.ACTION_START_NSD_DISCOVERY -> connectionStateProcessor.onNext(getConnectionText(ClientNsdService.ACTION_SOCKET_CONNECTING))
             ClientNsdService.ACTION_SERVER_RESPONSE -> {
                 val serverResponse = intent.getStringExtra(ClientNsdService.DATA_SERVER_RESPONSE)
-                val payload = Payload.deserialize(serverResponse)
+                        ?: return
+                val payload = serverResponse.deserialize(Payload::class)
 
                 payloadProcessor.onNext(payload)
             }
@@ -138,14 +141,12 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
         if (nsdConnection.isBound && predicate.get()) nsdConnection.boundService.sendMessage(message)
     }
 
-    private fun diffSwitches(payload: Payload): Diff<RcSwitch> = Diff.calculate(
-            switches,
-            payload.data?.let {
-                if (hasSwitches(payload)) RcSwitch.deserializeList(it)
-                else emptyList<RcSwitch>()
-            } ?: emptyList<RcSwitch>(),
-            { current, server -> current.apply { if (hasSwitches(payload)) Lists.replace(this, server) } },
-            { switch -> Differentiable.fromCharSequence { switch.serialize() } })
+    private fun diffDevices(devices: List<Device>): Diff<Device> = Diff.calculate(this.devices, devices) { current, server ->
+        mutableSetOf<Device>().apply {
+            addAll(current)
+            addAll(server)
+        }.toList()
+    }
 
     private fun diffHistory(payload: Payload): Diff<String> = Diff.calculate(
             history,
@@ -161,32 +162,34 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
                 .map { diff -> diff.result }
     }
 
-    private fun extractCommandInfo(payload: Payload): ZigBeeCommandInfo? {
-        if (isSwitchPayload(payload)) return null
-        return payload.data?.let { data -> ZigBeeCommandInfo.deserialize(data) }
-    }
-
-    private fun getMessage(payload: Payload): String? {
-        val response = payload.response ?: return null
-
-        var action: String? = payload.action
-        action = action ?: ""
-
+    private fun Payload.getMessage(): String? {
+        response ?: return null
         return if (noisyCommands.contains(action)) response else null
     }
 
-    private fun isSwitchPayload(payload: Payload): Boolean {
-        if (payload.key == BleRcProtocol::class.java.name) return true
-        return hasSwitches(payload)
+    private fun Payload.extractCommandInfo(): ZigBeeCommandInfo? {
+        if (BleRcProtocol::class.java.name != key) return null
+        if (extractDevices() != null) return null
+        return data?.deserialize(ZigBeeCommandInfo::class)
     }
 
-    private fun hasSwitches(payload: Payload): Boolean {
-        val action = payload.action ?: return false
-
+    private fun Payload.extractDevices(): List<Device>? {
+        val serialized = data ?: return null
         val context = getApplication<Application>()
-        return (action == ClientBleService.ACTION_TRANSMITTER
-                || action == context.getString(R.string.blercprotocol_delete_command)
-                || action == context.getString(R.string.blercprotocol_rename_command))
+
+        return when (key) {
+            BleRcProtocol::class.java.name -> when (action) {
+                ClientBleService.ACTION_TRANSMITTER,
+                context.getString(R.string.blercprotocol_delete_command),
+                context.getString(R.string.blercprotocol_rename_command) -> serialized.deserializeList(RcSwitch::class)
+                else -> null
+            }
+            ZigBeeProtocol::class.java.name -> when (action) {
+                context.getString(R.string.zigbeeprotocol_saved_devices) -> serialized.deserializeList(ZigBeeDevice::class)
+                else -> null
+            }
+            else -> null
+        }
     }
 
     private fun listenForBroadcasts() {
@@ -201,13 +204,13 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun listenForPayloads() {
         disposable.add(payloadProcessor.concatMap { payload ->
-            val isSwitchPayload = isSwitchPayload(payload)
-
             Single.concat(mutableListOf<Single<DiffResult>>().let { singleList ->
-                singleList.add(diff(history, Supplier { diffHistory(payload) }))
-                if (isSwitchPayload) singleList.add(diff(switches, Supplier { diffSwitches(payload) }))
+                val devices = payload.extractDevices()
 
-                singleList.map { single -> single.map { State(isSwitchPayload, getMessage(payload), extractCommandInfo(payload), payload.commands, it) } }
+                singleList.add(diff(history, Supplier { diffHistory(payload) }))
+                if (devices != null) singleList.add(diff(this.devices, Supplier { diffDevices(devices) }))
+
+                singleList.map { single -> single.map { State(devices != null, payload.getMessage(), payload.extractCommandInfo(), payload.commands, it) } }
             })
         }
                 .observeOn(mainThread())
@@ -219,7 +222,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
             val isRc: Boolean,
             val prompt: String?,
             val commandInfo: ZigBeeCommandInfo?,
-            val commands: LinkedHashSet<String>,
+            val commands: Set<String>,
             val result: DiffResult
     )
 }

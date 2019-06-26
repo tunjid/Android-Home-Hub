@@ -8,33 +8,33 @@ import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ItemTouchHelper.Callback.makeMovementFlags
 import androidx.recyclerview.widget.RecyclerView
-import com.tunjid.androidbootstrap.recyclerview.ListManager
-import com.tunjid.androidbootstrap.recyclerview.ListManagerBuilder
-import com.tunjid.androidbootstrap.recyclerview.ListPlaceholder
-import com.tunjid.androidbootstrap.recyclerview.SwipeDragOptionsBuilder
+import com.tunjid.androidbootstrap.recyclerview.*
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
-import com.tunjid.rcswitchcontrol.adapters.ChatAdapter
+import com.tunjid.rcswitchcontrol.adapters.DeviceViewHolder
 import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter
-import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
+import com.tunjid.rcswitchcontrol.adapters.ZigBeeDeviceViewHolder
+import com.tunjid.rcswitchcontrol.data.Device
+import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.data.Payload
 import com.tunjid.rcswitchcontrol.data.RcSwitch
+import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
+import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
 import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel
 
-class NsdSwitchFragment : BaseFragment(), RemoteSwitchAdapter.SwitchListener, RenameSwitchDialogFragment.SwitchNameListener {
+typealias ViewHolder = DeviceViewHolder<out InteractiveAdapter.AdapterListener, out Any>
+
+class NsdSwitchFragment : BaseFragment(),
+        RemoteSwitchAdapter.Listener,
+        RenameSwitchDialogFragment.SwitchNameListener {
 
     private var isDeleting: Boolean = false
 
     private lateinit var viewModel: NsdClientViewModel
-    private lateinit var listManager: ListManager<RecyclerView.ViewHolder, ListPlaceholder<*>>
-
-
-    private val swipeDirection: Int
-        get() = if (isDeleting || listManager.recyclerView.adapter is ChatAdapter) 0
-        else makeMovementFlags(0, ItemTouchHelper.LEFT)
+    private lateinit var listManager: ListManager<ViewHolder, ListPlaceholder<*>>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,16 +46,16 @@ class NsdSwitchFragment : BaseFragment(), RemoteSwitchAdapter.SwitchListener, Re
                               savedInstanceState: Bundle?): View? {
 
         val root = inflater.inflate(R.layout.fragment_list, container, false)
-        listManager = ListManagerBuilder<RecyclerView.ViewHolder, ListPlaceholder<*>>()
+        listManager = ListManagerBuilder<ViewHolder, ListPlaceholder<*>>()
                 .withRecyclerView(root.findViewById(R.id.list))
                 .withGridLayoutManager(SpanCountCalculator.spanCount)
-                .withAdapter(RemoteSwitchAdapter(this, viewModel.switches))
-                .withSwipeDragOptions(SwipeDragOptionsBuilder<RecyclerView.ViewHolder>()
+                .withAdapter(RemoteSwitchAdapter(this, viewModel.devices))
+                .withSwipeDragOptions(SwipeDragOptionsBuilder<ViewHolder>()
                         .setSwipeConsumer { viewHolder, _ -> onDelete(viewHolder) }
-                        .setMovementFlagsFunction { swipeDirection }
+                        .setMovementFlagsFunction(this::swipeDirection)
                         .setItemViewSwipeSupplier { true }
                         .build())
-                .withInconsistencyHandler (this::onInconsistentList)
+                .withInconsistencyHandler(this::onInconsistentList)
                 .build()
 
         return root
@@ -79,12 +79,23 @@ class NsdSwitchFragment : BaseFragment(), RemoteSwitchAdapter.SwitchListener, Re
                     .setData(rcSwitch.getEncodedTransmission(state))
                     .build())
 
+    override fun onLongClicked(device: ZigBeeDevice) {
+    }
+
+    override fun onSwitchToggled(device: ZigBeeDevice, state: Boolean) {
+    }
+
     override fun onSwitchRenamed(rcSwitch: RcSwitch) {
-        listManager.notifyItemChanged(viewModel.switches.indexOf(rcSwitch))
-        viewModel.sendMessage(Payload.builder().setAction(getString(R.string.blercprotocol_rename_command))
+        listManager.notifyItemChanged(viewModel.devices.indexOf(rcSwitch))
+        viewModel.sendMessage(Payload.builder()
+                .setAction(getString(R.string.blercprotocol_rename_command))
                 .setData(rcSwitch.serialize())
                 .build())
     }
+
+    private fun swipeDirection(holder: ViewHolder): Int =
+            if (isDeleting || holder is ZigBeeDeviceViewHolder) 0
+            else makeMovementFlags(0, ItemTouchHelper.LEFT)
 
     private fun onDelete(viewHolder: RecyclerView.ViewHolder) {
         if (isDeleting) return
@@ -94,9 +105,9 @@ class NsdSwitchFragment : BaseFragment(), RemoteSwitchAdapter.SwitchListener, Re
 
         val position = viewHolder.adapterPosition
 
-        val switches = viewModel.switches
-        val deletionHandler = DeletionHandler<RcSwitch>(position) { self ->
-            if (self.hasItems())
+        val devices = viewModel.devices
+        val deletionHandler = DeletionHandler<Device>(position) { self ->
+            if (self.hasItems() && self.peek() is RcSwitch)
                 viewModel.sendMessage(Payload.builder()
                         .setAction(getString(R.string.blercprotocol_delete_command))
                         .setData(self.pop().serialize())
@@ -105,8 +116,8 @@ class NsdSwitchFragment : BaseFragment(), RemoteSwitchAdapter.SwitchListener, Re
             isDeleting = false
         }
 
-        deletionHandler.push(switches[position])
-        switches.removeAt(position)
+        deletionHandler.push(devices[position])
+        devices.removeAt(position)
         listManager.notifyItemRemoved(position)
 
         showSnackBar { snackBar ->
@@ -115,7 +126,7 @@ class NsdSwitchFragment : BaseFragment(), RemoteSwitchAdapter.SwitchListener, Re
                     .setAction(R.string.undo) {
                         if (deletionHandler.hasItems()) {
                             val deletedAt = deletionHandler.deletedPosition
-                            switches.add(deletedAt, deletionHandler.pop())
+                            devices.add(deletedAt, deletionHandler.pop())
                             listManager.notifyItemInserted(deletedAt)
                         }
                         isDeleting = false

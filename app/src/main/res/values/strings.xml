@@ -115,6 +115,7 @@
     <string name="zigbeeprotocol_ping">Find and control ZigBee Devices"</string>
     <string name="zigbeeprotocol_enter_args">Requesting arguments for %1$s"</string>
     <string name="zigbeeprotocol_executing">Executing %1$s"</string>
+    <string name="zigbeeprotocol_saved_devices">Saved Devices"</string>
 
     <string name="knockknockprotocol_no">no</string>
     <string name="knockknockprotocol_yes">yes</string>

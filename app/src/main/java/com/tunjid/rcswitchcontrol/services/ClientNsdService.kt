@@ -18,9 +18,10 @@ import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.activities.MainActivity
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService
 import com.tunjid.rcswitchcontrol.data.Payload
 import com.tunjid.rcswitchcontrol.data.RcSwitch.Companion.SWITCH_PREFS
+import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
+import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService
 import io.reactivex.disposables.CompositeDisposable
 import java.io.Closeable
 import java.io.IOException
@@ -258,6 +259,6 @@ class ClientNsdService : Service(), ClientStartedBoundService {
         const val ACTION_SOCKET_DISCONNECTED = "com.tunjid.rcswitchcontrol.services.ClientNsdService.service.socket.disconnected"
         const val ACTION_START_NSD_DISCOVERY = "com.tunjid.rcswitchcontrol.services.ClientNsdService.start.nsd.discovery"
 
-        val DATA_SERVER_RESPONSE = "service_response"
+        const val DATA_SERVER_RESPONSE = "service_response"
     }
 }

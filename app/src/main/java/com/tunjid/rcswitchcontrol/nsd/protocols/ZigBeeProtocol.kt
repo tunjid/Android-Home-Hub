@@ -13,7 +13,10 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.data.Payload
 import com.tunjid.rcswitchcontrol.data.ZigBeeCommandArgs
 import com.tunjid.rcswitchcontrol.data.ZigBeeCommandInfo
-import com.tunjid.rcswitchcontrol.data.ZigBeeLight
+import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
+import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserialize
+import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
+import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serializeList
 import com.tunjid.rcswitchcontrol.data.persistence.ZigBeeDataStore
 import com.tunjid.rcswitchcontrol.io.*
 import com.zsmartsystems.zigbee.*
@@ -41,6 +44,8 @@ import java.util.concurrent.TimeUnit
 
 
 class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
+
+    private val SAVED_DEVICES = getString(R.string.zigbeeprotocol_saved_devices)
 
     private val thread = HandlerThread("ZigBee").apply { start() }
     private val handler = Handler(thread.looper)
@@ -141,10 +146,10 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
         when (val action = payload.action ?: "invalid command") {
             RESET -> reset()
             FORM_NETWORK -> formNetwork()
+            SAVED_DEVICES -> savedDevices()
             PING -> builder.setResponse(getString(R.string.zigbeeprotocol_ping))
             in availableCommands.keys -> availableCommands[action]?.apply {
-                val data = payload.data
-                val commandArgs = if (data == null) null else ZigBeeCommandArgs.deserialize(data)
+                val commandArgs = payload.data?.deserialize(ZigBeeCommandArgs::class)
                 val needsCommandArgs: Boolean = (commandArgs == null || commandArgs.isInvalid) && syntax.isNotEmpty()
 
                 when {
@@ -283,20 +288,27 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
     private fun formNetwork() = executeCommand(networkManager, arrayOf("netstart", "form", "${networkManager.zigBeePanId}", "${networkManager.zigBeeExtendedPanId}"))
 
-    private fun savedDevices() {
-        dataStore.readNetworkNodes()
-                .map(dataStore::readNode)
-                .mapNotNull(this::nodeToZigBeeLight)
-    }
+    private fun savedDevices() = dataStore.readNetworkNodes()
+            .map(dataStore::readNode)
+            .mapNotNull(this::nodeToZigBeeDevice)
+            .let { devices ->
+                printWriter.println(Payload.builder().apply {
+                    setKey(this@ZigBeeProtocol.javaClass.name)
+                    setAction(SAVED_DEVICES)
+                    setData(devices.serializeList())
+                    appendCommands()
+                }.build().serialize())
+            }
 
-    private fun nodeToZigBeeLight(node: ZigBeeNodeDao): ZigBeeLight? =
-            node.endpoints.find { it.inputClusterIds.contains(ZclClusterType.ON_OFF.id) }?.let { endpoint ->
-                ZigBeeLight(node.ieeeAddress.toString(), node.networkAddress.toString(), endpoint.endpointId.toString())
+    private fun nodeToZigBeeDevice(node: ZigBeeNodeDao): ZigBeeDevice? =
+            node.endpoints.find { it.inputClusters.map { cluster -> cluster.clusterId }.contains(ZclClusterType.ON_OFF.id) }?.let { endpoint ->
+                ZigBeeDevice(node.ieeeAddress.toString(), node.networkAddress.toString(), endpoint.endpointId.toString(), node.ieeeAddress.toString())
             }
 
     private fun Payload.Builder.appendCommands() {
         addCommand(RESET)
         addCommand(FORM_NETWORK)
+        addCommand(SAVED_DEVICES)
         availableCommands.keys.forEach { addCommand(it) }
     }
 
@@ -338,6 +350,5 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
         const val OUTPUT_BUFFER_RATE = 200L
 
         const val FORM_NETWORK = "formnet"
-        const val SAVED_DEVICES = "saveddevices"
     }
 }

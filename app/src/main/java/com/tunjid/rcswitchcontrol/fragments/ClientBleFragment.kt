@@ -4,12 +4,7 @@ import android.bluetooth.BluetoothDevice
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.TextView
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -29,23 +24,28 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.activities.MainActivity
 import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter
+import com.tunjid.rcswitchcontrol.data.Device
+import com.tunjid.rcswitchcontrol.data.RcSwitch
+import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
 import com.tunjid.rcswitchcontrol.dialogfragments.NameServiceDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
-import com.tunjid.rcswitchcontrol.data.RcSwitch
 import com.tunjid.rcswitchcontrol.services.ClientBleService.Companion.BLUETOOTH_DEVICE
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
 import com.tunjid.rcswitchcontrol.viewmodels.BleClientViewModel
 
-open class ClientBleFragment : BaseFragment(), RemoteSwitchAdapter.SwitchListener, RenameSwitchDialogFragment.SwitchNameListener, NameServiceDialogFragment.ServiceNameListener {
+open class ClientBleFragment : BaseFragment(),
+        RemoteSwitchAdapter.Listener,
+        RenameSwitchDialogFragment.SwitchNameListener,
+        NameServiceDialogFragment.ServiceNameListener {
 
     private var lastOffSet: Int = 0
     private var isDeleting: Boolean = false
 
     private lateinit var progressBar: View
     private lateinit var connectionStatus: TextView
-    private lateinit var listManager: ListManager<RemoteSwitchAdapter.ViewHolder, ListPlaceholder<*>>
+    private lateinit var listManager: ListManager<ViewHolder, ListPlaceholder<*>>
 
     private lateinit var viewModel: BleClientViewModel
 
@@ -81,12 +81,12 @@ open class ClientBleFragment : BaseFragment(), RemoteSwitchAdapter.SwitchListene
         progressBar = root.findViewById(R.id.progress_bar)
         connectionStatus = root.findViewById(R.id.connection_status)
 
-        listManager = ListManagerBuilder<RemoteSwitchAdapter.ViewHolder, ListPlaceholder<*>>()
+        listManager = ListManagerBuilder<ViewHolder, ListPlaceholder<*>>()
                 .withRecyclerView(root.findViewById(R.id.switch_list))
                 .withAdapter(RemoteSwitchAdapter(this, viewModel.switches))
                 .withGridLayoutManager(SpanCountCalculator.spanCount)
                 .addScrollListener { _, dy -> if (dy != 0) toggleFab(dy < 0) }
-                .withSwipeDragOptions(SwipeDragOptionsBuilder<RemoteSwitchAdapter.ViewHolder>()
+                .withSwipeDragOptions(SwipeDragOptionsBuilder<ViewHolder>()
                         .setMovementFlagsFunction { swipeDirection }
                         .setSwipeConsumer { viewHolder, _ -> onDelete(viewHolder) }
                         .build())
@@ -180,6 +180,12 @@ open class ClientBleFragment : BaseFragment(), RemoteSwitchAdapter.SwitchListene
     override fun onSwitchRenamed(rcSwitch: RcSwitch) =
             listManager.notifyItemChanged(viewModel.onSwitchUpdated(rcSwitch))
 
+    override fun onLongClicked(device: ZigBeeDevice) {
+    }
+
+    override fun onSwitchToggled(device: ZigBeeDevice, state: Boolean) {
+    }
+
     override fun onServiceNamed(name: String) = viewModel.nameServer(name)
 
     private fun onConnectionStateChanged(status: String) {
@@ -202,9 +208,9 @@ open class ClientBleFragment : BaseFragment(), RemoteSwitchAdapter.SwitchListene
         val position = viewHolder.adapterPosition
         val switches = viewModel.switches
 
-        val deletionHandler = DeletionHandler<RcSwitch>(position) {
+        val deletionHandler = DeletionHandler<Device>(position) {
             isDeleting = false
-            RcSwitch.saveSwitches(switches)
+            viewModel.saveSwitches()
         }
 
         deletionHandler.push(switches[position])

@@ -2,8 +2,7 @@ package com.tunjid.rcswitchcontrol.data
 
 import android.os.Parcel
 import android.os.Parcelable
-import com.tunjid.rcswitchcontrol.data.persistence.Deserializer
-import com.tunjid.rcswitchcontrol.data.persistence.Deserializer.Companion.gson
+import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.converter
 
 class ZigBeeCommandInfo(
         val command: String,
@@ -27,7 +26,7 @@ class ZigBeeCommandInfo(
             parcel.readString()!!,
             parcel.readString()!!)
 
-    fun serialize(): String = gson.toJson(this)
+    fun serialize(): String = converter.toJson(this)
 
     fun toArgs(): ZigBeeCommandArgs {
         val args = entries.map { it.value }.toMutableList()
@@ -47,11 +46,7 @@ class ZigBeeCommandInfo(
 
     class Entry(var key: String, var value: String)
 
-    companion object CREATOR :
-            Deserializer<ZigBeeCommandInfo>,
-            Parcelable.Creator<ZigBeeCommandInfo> {
-
-        override fun deserialize(serialized: String): ZigBeeCommandInfo = gson.fromJson(serialized, ZigBeeCommandInfo::class.java)
+    companion object CREATOR :Parcelable.Creator<ZigBeeCommandInfo> {
 
         override fun createFromParcel(parcel: Parcel): ZigBeeCommandInfo = ZigBeeCommandInfo(parcel)
 

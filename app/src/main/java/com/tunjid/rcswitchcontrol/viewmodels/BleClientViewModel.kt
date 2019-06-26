@@ -12,8 +12,10 @@ import com.tunjid.androidbootstrap.functions.collections.Lists
 import com.tunjid.androidbootstrap.material.animator.FabExtensionAnimator
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
+import com.tunjid.rcswitchcontrol.data.Device
 import com.tunjid.rcswitchcontrol.data.RcSwitch
 import com.tunjid.rcswitchcontrol.data.RcSwitch.Companion.SWITCH_PREFS
+import com.tunjid.rcswitchcontrol.data.persistence.RfSwitchDataStore
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.services.ClientBleService.Companion.BLUETOOTH_DEVICE
 import com.tunjid.rcswitchcontrol.services.ClientBleService.Companion.C_HANDLE_CONTROL
@@ -30,9 +32,9 @@ import java.util.*
 
 class BleClientViewModel(application: Application) : AndroidViewModel(application) {
 
-    val switches: MutableList<RcSwitch> = ArrayList(RcSwitch.savedSwitches)
     private var device: BluetoothDevice? = null
 
+    private val switchStore = RfSwitchDataStore()
     private val switchCreator: RcSwitch.SwitchCreator = RcSwitch.SwitchCreator()
 
     private val disposable: CompositeDisposable = CompositeDisposable()
@@ -42,6 +44,8 @@ class BleClientViewModel(application: Application) : AndroidViewModel(applicatio
 
     private val bleConnection: ServiceConnection<ClientBleService> = ServiceConnection(ClientBleService::class.java, ServiceConnection.BindCallback<ClientBleService> { this.onBleServiceConnected(it) })
     private val serverConnection: ServiceConnection<ServerNsdService> = ServiceConnection(ServerNsdService::class.java) { serverConnectedProcessor.onNext(true) }
+
+    val switches: MutableList<Device> = ArrayList(switchStore.savedSwitches)
 
     val isBleBound: Boolean
         get() = bleConnection.isBound
@@ -128,7 +132,7 @@ class BleClientViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun refreshSwitches() {
-        Lists.replace(switches, RcSwitch.savedSwitches)
+        Lists.replace(switches, switchStore.savedSwitches.map { it as Device })
     }
 
     fun sniffRcSwitch() {
@@ -144,7 +148,7 @@ class BleClientViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun onSwitchUpdated(rcSwitch: RcSwitch): Int {
-        RcSwitch.saveSwitches(switches)
+        saveSwitches()
         return switches.indexOf(rcSwitch)
     }
 
@@ -200,7 +204,7 @@ class BleClientViewModel(application: Application) : AndroidViewModel(applicatio
                         if (switches.contains(rcSwitch)) return
 
                         switches.add(rcSwitch)
-                        RcSwitch.saveSwitches(switches)
+                        saveSwitches()
                     }
                 }
                 loadingProcessor.onNext(false)
@@ -217,4 +221,6 @@ class BleClientViewModel(application: Application) : AndroidViewModel(applicatio
             else -> ""
         }
     }
+
+    fun saveSwitches() = switchStore.saveSwitches(switches.filter { it is RcSwitch }.map { it as RcSwitch })
 }

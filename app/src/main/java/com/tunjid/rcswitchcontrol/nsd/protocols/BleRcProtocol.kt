@@ -10,6 +10,9 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
 import com.tunjid.rcswitchcontrol.data.Payload
 import com.tunjid.rcswitchcontrol.data.RcSwitch
+import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserialize
+import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
+import com.tunjid.rcswitchcontrol.data.persistence.RfSwitchDataStore
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.services.ClientBleService.Companion.C_HANDLE_CONTROL
 import com.tunjid.rcswitchcontrol.services.ClientBleService.Companion.STATE_SNIFFING
@@ -34,11 +37,13 @@ class BleRcProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
     private val DISCONNECT: String = appContext.getString(R.string.menu_disconnect)
     private val REFRESH_SWITCHES: String = appContext.getString(R.string.blercprotocol_refresh_switches_command)
 
-    private val disposable: CompositeDisposable = CompositeDisposable()
-    private val switchCreator: RcSwitch.SwitchCreator = RcSwitch.SwitchCreator()
+    private val disposable = CompositeDisposable()
+
+    private val switchStore = RfSwitchDataStore()
+    private val switchCreator = RcSwitch.SwitchCreator()
 
     private val pushThread: HandlerThread = HandlerThread("PushThread").apply { start() }
-    private val pushHandler: Handler= Handler(pushThread.looper)
+    private val pushHandler: Handler = Handler(pushThread.looper)
 
     private val bleConnection: ServiceConnection<ClientBleService> = ServiceConnection(ClientBleService::class.java)
 
@@ -72,7 +77,7 @@ class BleRcProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
                     else R.string.blercprotocol_refresh_response
             ))
                     .setAction(ClientBleService.ACTION_TRANSMITTER)
-                    .setData(RcSwitch.serializedSavedSwitches)
+                    .setData(switchStore.serializedSavedSwitches)
                     .addCommand(REFRESH_SWITCHES).addCommand(SNIFF)
 
             SNIFF -> {
@@ -85,8 +90,8 @@ class BleRcProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
             }
 
             RENAME -> {
-                val switches = RcSwitch.savedSwitches
-                val rcSwitch = payload.data?.let { RcSwitch.deserialize(it) }
+                val switches = switchStore.savedSwitches
+                val rcSwitch = payload.data?.deserialize(RcSwitch::class)
 
                 val position = switches.indexOf(rcSwitch)
                 val hasSwitch = position > -1
@@ -101,27 +106,27 @@ class BleRcProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
                 if (hasSwitch && rcSwitch != null) {
                     switches.removeAt(position)
                     switches.add(position, rcSwitch)
-                    RcSwitch.saveSwitches(switches)
+                    switchStore.saveSwitches(switches)
                 }
 
-                builder.setData(RcSwitch.serializedSavedSwitches)
+                builder.setData(switchStore.serializedSavedSwitches)
                         .addCommand(SNIFF)
                         .setAction(action)
             }
 
             DELETE -> {
-                val switches = RcSwitch.savedSwitches
-                val rcSwitch = payload.data?.let { RcSwitch.deserialize(it) }
+                val switches = switchStore.savedSwitches
+                val rcSwitch = payload.data?.deserialize(RcSwitch::class)
                 val response = if (rcSwitch == null || !switches.remove(rcSwitch))
                     getString(R.string.blercprotocol_no_such_switch_response)
                 else
                     getString(R.string.blercprotocol_deleted_response, rcSwitch.name)
 
                 // Save switches before sending them
-                RcSwitch.saveSwitches(switches)
+                switchStore.saveSwitches(switches)
 
                 builder.setResponse(response).setAction(action)
-                        .setData(RcSwitch.serializedSavedSwitches)
+                        .setData(switchStore.serializedSavedSwitches)
                         .addCommand(SNIFF)
             }
 
@@ -178,7 +183,7 @@ class BleRcProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
                     }
 
                     RcSwitch.OFF_CODE == switchCreator.state -> {
-                        val switches = RcSwitch.savedSwitches
+                        val switches = switchStore.savedSwitches
                         val rcSwitch = switchCreator.withOffCode(rawData)
                         val containsSwitch = switches.contains(rcSwitch)
 
@@ -195,9 +200,9 @@ class BleRcProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
 
                         if (!containsSwitch) {
                             switches.add(rcSwitch)
-                            RcSwitch.saveSwitches(switches)
+                            switchStore.saveSwitches(switches)
                             builder.setAction(ClientBleService.ACTION_TRANSMITTER)
-                                    .setData(RcSwitch.serializedSavedSwitches)
+                                    .setData(switchStore.serializedSavedSwitches)
                         }
                     }
                 }

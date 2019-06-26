@@ -1,12 +1,9 @@
 package com.tunjid.rcswitchcontrol.data
 
-import android.content.Context.MODE_PRIVATE
 import android.os.Parcel
 import android.os.Parcelable
 import android.util.Base64
 import androidx.annotation.StringDef
-import com.tunjid.rcswitchcontrol.App
-import com.tunjid.rcswitchcontrol.data.persistence.Deserializer.Companion.gson
 import java.lang.annotation.Retention
 import java.lang.annotation.RetentionPolicy.SOURCE
 import java.util.*
@@ -18,9 +15,9 @@ import java.util.*
  * Created by tj.dahunsi on 3/11/17.
  */
 
-class RcSwitch() : Parcelable {
+class RcSwitch() : Parcelable, Device {
 
-    var name: String = "Switch"
+    override var name: String = "Switch"
 
     private var bitLength: Byte = 0
     private var protocol: Byte = 0
@@ -56,7 +53,7 @@ class RcSwitch() : Parcelable {
     fun getEncodedTransmission(state: Boolean): String =
             Base64.encodeToString(getTransmission(state), Base64.DEFAULT)
 
-    fun serialize(): String = gson.toJson(this)
+    override fun getId(): String = "$onCode-$offCode"
 
     // Equals considers the code only, not the name
     override fun equals(other: Any?): Boolean {
@@ -120,7 +117,6 @@ class RcSwitch() : Parcelable {
     }
 
     companion object {
-        private const val SWITCHES_KEY = "Switches"
 
         // Shared preference key
         const val SWITCH_PREFS = "SwitchPrefs"
@@ -128,24 +124,6 @@ class RcSwitch() : Parcelable {
         const val ON_CODE = "on"
         const val OFF_CODE = "off"
 
-        val savedSwitches: MutableList<RcSwitch>
-            get() = deserializeList(serializedSavedSwitches)
-
-        val serializedSavedSwitches: String
-            get() = App.instance.getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE)
-                    .getString(SWITCHES_KEY, "")!!
-
-        fun deserializeList(serialized: String): MutableList<RcSwitch> {
-            val array = gson.fromJson(serialized, Array<RcSwitch>::class.java)
-            return if (array == null) mutableListOf() else mutableListOf(*array)
-        }
-
-        fun saveSwitches(switches: List<RcSwitch>) {
-            val preferences = App.instance.getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE)
-            preferences.edit().putString(SWITCHES_KEY, gson.toJson(switches)).apply()
-        }
-
-        fun deserialize(input: String): RcSwitch = gson.fromJson(input, RcSwitch::class.java)
 
         @JvmField
         @Suppress("unused")

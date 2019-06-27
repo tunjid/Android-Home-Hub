@@ -81,7 +81,7 @@ class NsdSwitchFragment : BaseFragment(),
 
     override fun onSwitchToggled(device: ZigBeeDevice, state: Boolean) = device.toggleCommand(state).let {
         viewModel.sendMessage(Payload.builder().setAction(it.command)
-                .setData(it.args.serialize())
+                .setData(it.serialize())
                 .build())
     }
 

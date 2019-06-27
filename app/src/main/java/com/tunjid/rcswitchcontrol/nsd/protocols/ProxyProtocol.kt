@@ -1,11 +1,8 @@
 package com.tunjid.rcswitchcontrol.nsd.protocols
 
-import android.util.Log
-
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.data.Payload
-
 import java.io.IOException
 import java.io.PrintWriter
 
@@ -20,6 +17,10 @@ class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
     private var choosing: Boolean = false
     private var protocol: CommsProtocol? = null
+    private val protocolMap = mutableMapOf(
+            RC_REMOTE to BleRcProtocol(printWriter),
+            KNOCK_KNOCK to KnockKnockProtocol(printWriter)
+    )
 
     override fun processInput(payload: Payload): Payload {
         val builder = Payload.builder()
@@ -30,17 +31,19 @@ class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
         when (action) {
             PING -> protocol?.let { return it.processInput(payload) }
                     ?: return closeAndChoose(builder)
+            RESET_CURRENT -> return protocol?.processInput(RESET)
+                    ?: return closeAndChoose(builder)
             RESET, CHOOSER -> return closeAndChoose(builder)
         }
 
         if (!choosing) return protocol?.processInput(payload) ?: closeAndChoose(builder)
 
         // Choose the protocol to proxy through
-        when (action) {
-            CONNECT_RC_REMOTE -> protocol = ScanBleRcProtocol(printWriter)
-            RC_REMOTE -> protocol = BleRcProtocol(printWriter)
-            KNOCK_KNOCK -> protocol = KnockKnockProtocol(printWriter)
-            ZIGBEE_CONTROLLER -> protocol = ZigBeeProtocol(printWriter)
+        protocol = when (action) {
+            CONNECT_RC_REMOTE -> protocolMap.getOrPut(action) { ScanBleRcProtocol(printWriter) }
+            RC_REMOTE -> protocolMap.getOrPut(action) { BleRcProtocol(printWriter) }
+            KNOCK_KNOCK -> protocolMap.getOrPut(action) { KnockKnockProtocol(printWriter) }
+            ZIGBEE_CONTROLLER -> protocolMap.getOrPut(action) { ZigBeeProtocol(printWriter) }
             else -> return builder.let {
                 it.setResponse(getString(R.string.proxyprotocol_invalid_command))
                 if (App.isAndroidThings) it.addCommand(CONNECT_RC_REMOTE)
@@ -66,6 +69,9 @@ class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
             builder.setResponse(result + delegatedPayload.response)
 
             for (command in delegatedPayload.commands) builder.addCommand(command)
+
+            builder.addCommand(CHOOSER)
+            builder.addCommand(RESET_CURRENT)
             builder.addCommand(RESET)
         }
 
@@ -73,18 +79,14 @@ class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
     }
 
     private fun closeAndChoose(builder: Payload.Builder): Payload {
-        try {
-            close()
-        } catch (e: IOException) {
-            Log.e(TAG, "Failed to close current CommsProtocol in ProxyProtocol", e)
-        }
-
+        protocol?.processInput(RESET)
         choosing = true
 
         builder.setResponse(appContext.getString(R.string.proxyprotocol_ping_response))
                 .addCommand(ZIGBEE_CONTROLLER)
                 .addCommand(KNOCK_KNOCK)
                 .addCommand(RC_REMOTE)
+                .addCommand(RESET_CURRENT)
                 .addCommand(RESET)
 
         if (App.isAndroidThings) builder.addCommand(CONNECT_RC_REMOTE)
@@ -93,13 +95,21 @@ class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
     }
 
     @Throws(IOException::class)
-    override fun close() = protocol?.close() ?: Unit
+    override fun close() {
+        protocolMap.values.forEach {
+            try {
+                it.close()
+            } catch (exception: IOException) {
+                exception.printStackTrace()
+            }
+        }
+        protocol = null
+    }
 
     companion object {
 
-        private val TAG = ProxyProtocol::class.java.simpleName
-
         private const val CHOOSER = "choose"
+        private const val RESET_CURRENT = "Reset current"
         private const val KNOCK_KNOCK = "Knock Knock Jokes"
         private const val RC_REMOTE = "Control Remote Device"
         private const val CONNECT_RC_REMOTE = "Connect Remote Device"

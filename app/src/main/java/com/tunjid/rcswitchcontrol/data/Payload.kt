@@ -13,15 +13,14 @@ import java.util.*
 class Payload : Serializable {
 
     var key: String? = null
-        private set
     var data: String? = null
-        private set
     var action: String? = null
-        private set
     var response: String? = null
-        private set
 
     val commands = LinkedHashSet<String>()
+
+    fun addCommand(command: String) = commands.add(command)
+
 
     class Builder {
         private var payload = Payload()

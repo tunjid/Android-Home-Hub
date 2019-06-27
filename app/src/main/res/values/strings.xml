@@ -38,6 +38,8 @@
     <string name="connected_to">Connected to %1$s</string>
     <string name="connecting_to">Connecting to %1$s</string>
     <string name="disconnected">Disconnected</string>
+    <string name="history">History</string>
+    <string name="devices">Devices</string>
 
     <!-- Rename switch -->
     <string name="rename_switch">Rename Switch</string>

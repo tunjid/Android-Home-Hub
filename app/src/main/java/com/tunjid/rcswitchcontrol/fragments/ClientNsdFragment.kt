@@ -21,6 +21,7 @@ import com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
 import com.google.android.material.tabs.TabLayout
 import com.tunjid.androidbootstrap.recyclerview.ListManager
 import com.tunjid.androidbootstrap.recyclerview.ListManagerBuilder
+import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.activities.MainActivity
@@ -151,8 +152,8 @@ class ClientNsdFragment : BaseFragment(),
 
     companion object {
 
-        const val HISTORY = 1
-        const val SWITCHES = 0
+        const val HISTORY = 0
+        const val DEVICES = 1
 
         fun newInstance(): ClientNsdFragment {
             val fragment = ClientNsdFragment()
@@ -166,7 +167,13 @@ class ClientNsdFragment : BaseFragment(),
 
             override fun getItem(position: Int): Fragment = when (position) {
                 HISTORY -> NsdHistoryFragment.newInstance()
-                SWITCHES -> NsdSwitchFragment.newInstance()
+                DEVICES -> NsdSwitchFragment.newInstance()
+                else -> throw IllegalArgumentException("invalid index")
+            }
+
+            override fun getPageTitle(position: Int): CharSequence? = when (position) {
+                HISTORY -> App.instance.getString(R.string.history)
+                DEVICES ->  App.instance.getString(R.string.devices)
                 else -> throw IllegalArgumentException("invalid index")
             }
 

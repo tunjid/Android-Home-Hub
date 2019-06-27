@@ -168,7 +168,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun Payload.extractCommandInfo(): ZigBeeCommandInfo? {
-        if (BleRcProtocol::class.java.name != key) return null
+        if (BleRcProtocol::class.java.name == key) return null
         if (extractDevices() != null) return null
         return data?.deserialize(ZigBeeCommandInfo::class)
     }

@@ -2,10 +2,7 @@ package com.tunjid.rcswitchcontrol.data.persistence
 
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.tunjid.rcswitchcontrol.data.Payload
-import com.tunjid.rcswitchcontrol.data.RcSwitch
-import com.tunjid.rcswitchcontrol.data.ZigBeeCommandInfo
-import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
+import com.tunjid.rcswitchcontrol.data.*
 import kotlin.reflect.KClass
 
 
@@ -25,6 +22,7 @@ class Converter<out T : Any> internal constructor(private val kClass: KClass<T>)
         private val payload = Converter(Payload::class)
         private val rcSwitch = Converter(RcSwitch::class)
         private val zigBeeDevice = Converter(ZigBeeDevice::class)
+        private val zigBeeCommandArgs = Converter(ZigBeeCommandArgs::class)
         private val zigBeeCommandInfo = Converter(ZigBeeCommandInfo::class)
 
         fun <T : Any> T.serialize(): String = converter.toJson(this)
@@ -39,6 +37,7 @@ class Converter<out T : Any> internal constructor(private val kClass: KClass<T>)
             Payload::class -> payload
             RcSwitch::class -> rcSwitch
             ZigBeeDevice::class -> zigBeeDevice
+            ZigBeeCommandArgs::class -> zigBeeCommandArgs
             ZigBeeCommandInfo::class -> zigBeeCommandInfo
             else -> throw IllegalArgumentException("Invalid class")
         } as Converter<T>

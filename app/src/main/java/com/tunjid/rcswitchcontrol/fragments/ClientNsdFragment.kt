@@ -18,6 +18,7 @@ import com.google.android.flexbox.FlexboxLayoutManager
 import com.google.android.flexbox.JustifyContent
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
+import com.google.android.material.tabs.TabLayout
 import com.tunjid.androidbootstrap.recyclerview.ListManager
 import com.tunjid.androidbootstrap.recyclerview.ListManagerBuilder
 import com.tunjid.rcswitchcontrol.R
@@ -54,6 +55,7 @@ class ClientNsdFragment : BaseFragment(),
                               savedInstanceState: Bundle?): View? {
 
         val root = inflater.inflate(R.layout.fragment_nsd_client, container, false)
+        val tabs = root.findViewById<TabLayout>(R.id.tabs)
         pager = root.findViewById(R.id.pager)
         pager.adapter = adapter(childFragmentManager)
 
@@ -69,6 +71,8 @@ class ClientNsdFragment : BaseFragment(),
                     justifyContent = JustifyContent.FLEX_START
                 })
                 .build()
+
+        tabs.setupWithViewPager(pager)
 
         return root
     }
@@ -139,7 +143,6 @@ class ClientNsdFragment : BaseFragment(),
                     AutoTransition().excludeTarget(RecyclerView::class.java, true))
         }
 
-        pager.currentItem = if (state.isRc) SWITCHES else HISTORY
         listManager.notifyDataSetChanged()
 
         state.prompt?.let { Snackbar.make(pager, it, LENGTH_SHORT).show() }
@@ -148,8 +151,8 @@ class ClientNsdFragment : BaseFragment(),
 
     companion object {
 
-        const val HISTORY = 0
-        const val SWITCHES = 1
+        const val HISTORY = 1
+        const val SWITCHES = 0
 
         fun newInstance(): ClientNsdFragment {
             val fragment = ClientNsdFragment()

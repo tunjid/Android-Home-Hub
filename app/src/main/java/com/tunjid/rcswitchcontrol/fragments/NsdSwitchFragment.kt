@@ -79,11 +79,11 @@ class NsdSwitchFragment : BaseFragment(),
     override fun onLongClicked(device: ZigBeeDevice) {
     }
 
-    override fun onSwitchToggled(device: ZigBeeDevice, state: Boolean) =
-            viewModel.sendMessage(Payload.builder().setAction(ClientBleService.ACTION_TRANSMITTER)
-                    .setData(device.toggleCommand(state).serialize())
-                    .build())
-
+    override fun onSwitchToggled(device: ZigBeeDevice, state: Boolean) = device.toggleCommand(state).let {
+        viewModel.sendMessage(Payload.builder().setAction(it.command)
+                .setData(it.args.serialize())
+                .build())
+    }
 
     override fun onSwitchRenamed(rcSwitch: RcSwitch) {
         listManager.notifyItemChanged(viewModel.devices.indexOf(rcSwitch))

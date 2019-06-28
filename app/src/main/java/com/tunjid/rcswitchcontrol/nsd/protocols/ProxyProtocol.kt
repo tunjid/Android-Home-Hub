@@ -23,20 +23,20 @@ class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
     )
 
     override fun processInput(payload: Payload): Payload {
-        val builder = Payload.builder()
-        builder.setKey(javaClass.name)
+        val output = Payload()
+        output.key = javaClass.name
 
         val action = payload.action
 
         when (action) {
             PING -> protocol?.let { return it.processInput(payload) }
-                    ?: return closeAndChoose(builder)
+                    ?: return closeAndChoose(output)
             RESET_CURRENT -> return protocol?.processInput(RESET)
-                    ?: return closeAndChoose(builder)
-            RESET, CHOOSER -> return closeAndChoose(builder)
+                    ?: return closeAndChoose(output, true)
+            RESET, CHOOSER -> return closeAndChoose(output)
         }
 
-        if (!choosing) return protocol?.processInput(payload) ?: closeAndChoose(builder)
+        if (!choosing) return protocol?.processInput(payload) ?: closeAndChoose(output)
 
         // Choose the protocol to proxy through
         protocol = when (action) {
@@ -44,18 +44,17 @@ class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
             RC_REMOTE -> protocolMap.getOrPut(action) { BleRcProtocol(printWriter) }
             KNOCK_KNOCK -> protocolMap.getOrPut(action) { KnockKnockProtocol(printWriter) }
             ZIGBEE_CONTROLLER -> protocolMap.getOrPut(action) { ZigBeeProtocol(printWriter) }
-            else -> return builder.let {
-                it.setResponse(getString(R.string.proxyprotocol_invalid_command))
-                if (App.isAndroidThings) it.addCommand(CONNECT_RC_REMOTE)
+            else -> return output.apply {
+                response = getString(R.string.proxyprotocol_invalid_command)
+                if (App.isAndroidThings) addCommand(CONNECT_RC_REMOTE)
 
-                it.addCommand(KNOCK_KNOCK)
-                        .addCommand(RC_REMOTE)
-                        .addCommand(RESET)
-                        .build()
+                addCommand(KNOCK_KNOCK)
+                addCommand(RC_REMOTE)
+                addCommand(RESET)
             }
         }
 
-        protocol?.let { protocol ->
+        protocol?.also { protocol ->
             choosing = false
 
             var result = "Chose Protocol: " + protocol.javaClass.simpleName
@@ -63,35 +62,35 @@ class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
             val delegatedPayload = protocol.processInput(PING)
 
-            delegatedPayload.key?.let { builder.setKey(it) }
-            delegatedPayload.data?.let { builder.setData(it) }
-            delegatedPayload.action?.let { builder.setAction(it) }
-            builder.setResponse(result + delegatedPayload.response)
+            delegatedPayload.key?.let { output.key = it }
+            delegatedPayload.data?.let { output.data = it }
+            delegatedPayload.action?.let { output.action = it }
+            output.response = result + delegatedPayload.response
 
-            for (command in delegatedPayload.commands) builder.addCommand(command)
+            for (command in delegatedPayload.commands) output.addCommand(command)
 
-            builder.addCommand(CHOOSER)
-            builder.addCommand(RESET_CURRENT)
-            builder.addCommand(RESET)
+            output.addCommand(CHOOSER)
+            output.addCommand(RESET_CURRENT)
+            output.addCommand(RESET)
         }
 
-        return builder.build()
+        return output
     }
 
-    private fun closeAndChoose(builder: Payload.Builder): Payload {
-        protocol?.processInput(RESET)
+    private fun closeAndChoose(payload: Payload, resetProtocol: Boolean = false): Payload {
+        if (resetProtocol) protocol?.processInput(RESET)
         choosing = true
 
-        builder.setResponse(appContext.getString(R.string.proxyprotocol_ping_response))
-                .addCommand(ZIGBEE_CONTROLLER)
-                .addCommand(KNOCK_KNOCK)
-                .addCommand(RC_REMOTE)
-                .addCommand(RESET_CURRENT)
-                .addCommand(RESET)
+        return payload.apply {
+            response = appContext.getString(R.string.proxyprotocol_ping_response)
+            addCommand(ZIGBEE_CONTROLLER)
+            addCommand(KNOCK_KNOCK)
+            addCommand(RC_REMOTE)
+            addCommand(RESET_CURRENT)
+            addCommand(RESET)
 
-        if (App.isAndroidThings) builder.addCommand(CONNECT_RC_REMOTE)
-
-        return builder.build()
+            if (App.isAndroidThings) payload.addCommand(CONNECT_RC_REMOTE)
+        }
     }
 
     @Throws(IOException::class)

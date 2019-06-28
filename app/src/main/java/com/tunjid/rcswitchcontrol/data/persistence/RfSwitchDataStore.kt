@@ -6,10 +6,13 @@ import com.tunjid.rcswitchcontrol.data.RcSwitch
 import com.tunjid.rcswitchcontrol.data.RcSwitch.Companion.SWITCH_PREFS
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserializeList
 
-class RfSwitchDataStore{
+class RfSwitchDataStore {
 
     val savedSwitches: MutableList<RcSwitch>
-        get() = serializedSavedSwitches.deserializeList(RcSwitch::class).toMutableList()
+        get() = serializedSavedSwitches.let {
+            if (it.isEmpty()) mutableListOf()
+            else it.deserializeList(RcSwitch::class).toMutableList()
+        }
 
     val serializedSavedSwitches: String
         get() = preferences.getString(SWITCHES_KEY, "")!!

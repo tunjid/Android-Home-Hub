@@ -38,7 +38,7 @@ class ZigBeeArgumentDialogFragment : DialogFragment() {
         val listener = parentFragment as ZigBeeArgsListener?
         val inflater = activity.layoutInflater
 
-        val view = inflater.inflate(R.layout.fragment_zigbee_args, null)
+        val view = inflater.inflate(R.layout.dialog_zigbee_args, null)
         val recyclerView = view.findViewById<RecyclerView>(R.id.list)
         recyclerView.adapter = Adapter(commandInfo)
         recyclerView.layoutManager = LinearLayoutManager(view.context)

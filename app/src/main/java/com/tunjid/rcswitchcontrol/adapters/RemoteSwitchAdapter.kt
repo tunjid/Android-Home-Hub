@@ -20,7 +20,7 @@ class RemoteSwitchAdapter(
 
     override fun onCreateViewHolder(viewGroup: ViewGroup, viewType: Int): ViewHolder = when (viewType) {
         RF_DEVICE -> RfDeviceViewHolder(getItemView(R.layout.viewholder_remote_switch, viewGroup), adapterListener)
-        ZIGBEE_DEVICE -> ZigBeeDeviceViewHolder(getItemView(R.layout.viewholder_remote_switch, viewGroup), adapterListener)
+        ZIGBEE_DEVICE -> ZigBeeDeviceViewHolder(getItemView(R.layout.viewholder_zigbee_device, viewGroup), adapterListener)
         else -> throw IllegalArgumentException("Invalid object type")
     }
 

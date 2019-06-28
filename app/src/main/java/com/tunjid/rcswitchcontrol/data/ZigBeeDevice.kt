@@ -18,6 +18,8 @@ class ZigBeeDevice(
 
     fun toggleCommand(state: Boolean) = (if (state) "on" else "off").let { ZigBeeCommandArgs(it, arrayOf(it, "$networkAdress/$endpoint")) }
 
+    fun rediscoverCommand() = "rediscover".let { ZigBeeCommandArgs(it, arrayOf(it, ieeeAddress)) }
+
     override fun getId(): String = ieeeAddress
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {

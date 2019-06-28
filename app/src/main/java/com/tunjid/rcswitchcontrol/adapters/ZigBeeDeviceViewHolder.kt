@@ -17,6 +17,7 @@ class ZigBeeDeviceViewHolder internal constructor(
 
         offSwitch.setOnClickListener { adapterListener.onSwitchToggled(device, false) }
         onSwitch.setOnClickListener { adapterListener.onSwitchToggled(device, true) }
+        itemView.setOnClickListener { adapterListener.rediscover(device) }
         itemView.setOnLongClickListener {
             adapterListener.onLongClicked(device)
             true
@@ -27,5 +28,7 @@ class ZigBeeDeviceViewHolder internal constructor(
         fun onLongClicked(device: ZigBeeDevice)
 
         fun onSwitchToggled(device: ZigBeeDevice, state: Boolean)
+
+        fun rediscover(device: ZigBeeDevice)
     }
 }

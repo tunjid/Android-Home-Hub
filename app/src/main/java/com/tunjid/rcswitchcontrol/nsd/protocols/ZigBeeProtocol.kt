@@ -347,7 +347,7 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
         const val CC2531_PRODUCT_ID = 5800
         const val BAUD_RATE = 115200
         const val MESH_UPDATE_PERIOD = 60
-        const val OUTPUT_BUFFER_RATE = 200L
+        const val OUTPUT_BUFFER_RATE = 100L
 
         const val FORM_NETWORK = "formnet"
     }

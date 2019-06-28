@@ -186,6 +186,9 @@ open class ClientBleFragment : BaseFragment(),
     override fun onSwitchToggled(device: ZigBeeDevice, state: Boolean) {
     }
 
+    override fun rediscover(device: ZigBeeDevice) {
+    }
+
     override fun onServiceNamed(name: String) = viewModel.nameServer(name)
 
     private fun onConnectionStateChanged(status: String) {

@@ -85,6 +85,12 @@ class NsdSwitchFragment : BaseFragment(),
                 .build())
     }
 
+    override fun rediscover(device: ZigBeeDevice) = device.rediscoverCommand().let {
+        viewModel.sendMessage(Payload.builder().setAction(it.command)
+                .setData(it.serialize())
+                .build())
+    }
+
     override fun onSwitchRenamed(rcSwitch: RcSwitch) {
         listManager.notifyItemChanged(viewModel.devices.indexOf(rcSwitch))
         viewModel.sendMessage(Payload.builder()

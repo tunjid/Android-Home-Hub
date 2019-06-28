@@ -140,37 +140,37 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
     }
 
     override fun processInput(payload: Payload): Payload {
-        val builder = Payload.builder()
-        builder.setKey(javaClass.name).addCommand(RESET)
+        val output = Payload()
+        output.key = javaClass.name
+        output.addCommand(RESET)
 
         when (val action = payload.action ?: "invalid command") {
             RESET -> reset()
             FORM_NETWORK -> formNetwork()
             SAVED_DEVICES -> savedDevices()
-            PING -> builder.setResponse(getString(R.string.zigbeeprotocol_ping))
+            PING -> output.response = (getString(R.string.zigbeeprotocol_ping))
             in availableCommands.keys -> availableCommands[action]?.apply {
                 val commandArgs = payload.data?.deserialize(ZigBeeCommandArgs::class)
                 val needsCommandArgs: Boolean = (commandArgs == null || commandArgs.isInvalid) && syntax.isNotEmpty()
 
                 when {
                     needsCommandArgs -> {
-                        builder.setResponse(getString(R.string.zigbeeprotocol_enter_args, action))
-                        builder.setData(ZigBeeCommandInfo(command, description, syntax, help).serialize())
+                        output.response = getString(R.string.zigbeeprotocol_enter_args, action)
+                        output.data = ZigBeeCommandInfo(command, description, syntax, help).serialize()
                     }
                     else -> {
                         val args = commandArgs?.args ?: arrayOf(action)
-                        builder.setResponse(getString(R.string.zigbeeprotocol_executing, args.commandString()))
+                        output.response = getString(R.string.zigbeeprotocol_executing, args.commandString())
                         execute(args)
                     }
                 }
-
             }
-            else -> builder.setResponse("Unrecognized command")
+            else -> output.response = "Unrecognized command"
         }
 
-        builder.appendCommands()
+        output.appendCommands()
 
-        return builder.build()
+        return output
     }
 
     /**
@@ -292,12 +292,13 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
             .map(dataStore::readNode)
             .mapNotNull(this::nodeToZigBeeDevice)
             .let { devices ->
-                printWriter.println(Payload.builder().apply {
-                    setKey(this@ZigBeeProtocol.javaClass.name)
-                    setAction(SAVED_DEVICES)
-                    setData(devices.serializeList())
+                printWriter.println(Payload().apply {
+                    key = this@ZigBeeProtocol.javaClass.name
+                    action = SAVED_DEVICES
+                    data = devices.serializeList()
+                    response = getString(R.string.zigbeeprotocol_saved_devices_request)
                     appendCommands()
-                }.build().serialize())
+                }.serialize())
             }
 
     private fun nodeToZigBeeDevice(node: ZigBeeNodeDao): ZigBeeDevice? =
@@ -305,7 +306,7 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
                 ZigBeeDevice(node.ieeeAddress.toString(), node.networkAddress.toString(), endpoint.endpointId.toString(), node.ieeeAddress.toString())
             }
 
-    private fun Payload.Builder.appendCommands() {
+    private fun Payload.appendCommands() {
         addCommand(RESET)
         addCommand(FORM_NETWORK)
         addCommand(SAVED_DEVICES)
@@ -314,14 +315,14 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
     private fun post(vararg messages: String) {
         val out = messages.commandString()
-        val builder = Payload.builder().apply {
-            setKey(this@ZigBeeProtocol.javaClass.name)
-            setResponse(out)
+
+        if (thread.isAlive) outputProcessor.onNext(Payload().apply {
+            key = this@ZigBeeProtocol.javaClass.name
+            response = out
             appendCommands()
-        }
+        }.serialize())
 
         Log.i("ZIGBEE", out)
-        if (thread.isAlive) outputProcessor.onNext(builder.build().serialize())
     }
 
     private fun Array<out String>.commandString() = joinToString(separator = " ")

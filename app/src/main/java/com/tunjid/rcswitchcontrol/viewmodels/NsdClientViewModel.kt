@@ -143,8 +143,8 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun diffDevices(devices: List<Device>): Diff<Device> = Diff.calculate(this.devices, devices) { current, server ->
         mutableSetOf<Device>().apply {
-            addAll(current)
             addAll(server)
+            addAll(current)
         }.toList()
     }
 

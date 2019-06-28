@@ -46,7 +46,7 @@
                 android:layout_height="match_parent"
                 app:tabMode="fixed"
                 app:tabSelectedTextColor="@color/white"
-                app:tabTextColor="@color/dark_grey" />
+                app:tabTextColor="@color/text_color" />
         </com.google.android.material.appbar.AppBarLayout>
 
 

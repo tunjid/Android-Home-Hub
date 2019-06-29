@@ -12,7 +12,6 @@ import com.tunjid.androidbootstrap.recyclerview.ListPlaceholder
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.adapters.ChatAdapter
-import com.tunjid.rcswitchcontrol.data.Payload
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
 import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel.State
@@ -55,8 +54,7 @@ class NsdHistoryFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
         listManager.clear()
     }
 
-    override fun onTextClicked(text: String) =
-            viewModel.sendMessage(Payload.builder().setAction(text).build())
+    override fun onTextClicked(text: String) = viewModel.dispatchPayload { action = text }
 
     private fun onPayloadReceived(state: State) {
         listManager.onDiff(state.result)

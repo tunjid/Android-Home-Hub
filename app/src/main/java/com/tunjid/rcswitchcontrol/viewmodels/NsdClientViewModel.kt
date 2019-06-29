@@ -27,12 +27,13 @@ import io.reactivex.android.schedulers.AndroidSchedulers.mainThread
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.processors.PublishProcessor
 import io.reactivex.schedulers.Schedulers.io
+import java.util.concurrent.TimeUnit
 
 class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
 
     val history: MutableList<String> = mutableListOf()
-    val commands: MutableList<String> = mutableListOf()
     val devices: MutableList<Device> = mutableListOf()
+    val commands: MutableList<String> = mutableListOf()
 
     private val noisyCommands: Set<String> = setOf(
             ClientBleService.ACTION_TRANSMITTER,
@@ -45,7 +46,8 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
     private val disposable: CompositeDisposable = CompositeDisposable()
 
     private val stateProcessor: PublishProcessor<State> = PublishProcessor.create()
-    private val payloadProcessor: PublishProcessor<Payload> = PublishProcessor.create()
+    private val inPayloadProcessor: PublishProcessor<Payload> = PublishProcessor.create()
+    private val outPayloadProcessor: PublishProcessor<Payload> = PublishProcessor.create()
     private val connectionStateProcessor: PublishProcessor<String> = PublishProcessor.create()
     private val nsdConnection: ServiceConnection<ClientNsdService> = ServiceConnection(ClientNsdService::class.java, this::onServiceConnected)
 
@@ -60,8 +62,9 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         nsdConnection.with(app).bind()
+        listenForOutputPayloads()
+        listenForInputPayloads()
         listenForBroadcasts()
-        listenForPayloads()
     }
 
     override fun onCleared() {
@@ -72,7 +75,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
 
     fun listen(predicate: (state: State) -> Boolean = { true }): Flowable<State> = stateProcessor.filter(predicate)
 
-    fun sendMessage(message: Payload) = sendMessage(Supplier { true }, message)
+    fun dispatchPayload(payloadReceiver: Payload.() -> Unit) = dispatchPayload({ true }, payloadReceiver)
 
     fun onBackground() = nsdConnection.boundService.onAppBackground()
 
@@ -97,7 +100,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun onServiceConnected(service: ClientNsdService) {
         connectionStateProcessor.onNext(getConnectionText(service.connectionState))
-        sendMessage(Supplier { commands.isEmpty() }, Payload.builder().setAction(CommsProtocol.PING).build())
+        dispatchPayload({ commands.isEmpty() }) { action = CommsProtocol.PING }
     }
 
     private fun onIntentReceived(intent: Intent) {
@@ -111,7 +114,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
                         ?: return
                 val payload = serverResponse.deserialize(Payload::class)
 
-                payloadProcessor.onNext(payload)
+                inPayloadProcessor.onNext(payload)
             }
         }
     }
@@ -123,7 +126,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
 
         when (newState) {
             ClientNsdService.ACTION_SOCKET_CONNECTED -> {
-                sendMessage(Supplier { commands.isEmpty() }, Payload.builder().setAction(CommsProtocol.PING).build())
+                dispatchPayload({ commands.isEmpty() }) { action = (CommsProtocol.PING) }
                 text = if (!isBound) context.getString(R.string.connected)
                 else context.getString(R.string.connected_to, nsdConnection.boundService.serviceName)
             }
@@ -137,8 +140,9 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
         return text
     }
 
-    private fun sendMessage(predicate: Supplier<Boolean>, message: Payload) {
-        if (nsdConnection.isBound && predicate.get()) nsdConnection.boundService.sendMessage(message)
+    private fun dispatchPayload(predicate: (() -> Boolean), payloadReceiver: Payload.() -> Unit) = Payload().run {
+        payloadReceiver.invoke(this)
+        if (predicate.invoke()) outPayloadProcessor.onNext(this)
     }
 
     private fun diffDevices(devices: List<Device>): Diff<Device> = Diff.calculate(this.devices, devices) { current, server ->
@@ -154,13 +158,12 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
             { current, responses -> current.apply { addAll(responses) } },
             { response -> Differentiable.fromCharSequence { response.toString() } })
 
-    private fun <T> diff(list: List<T>, diffSupplier: Supplier<Diff<T>>): Single<DiffResult> {
-        return Single.fromCallable<Diff<T>>(diffSupplier::get)
-                .subscribeOn(io())
-                .observeOn(mainThread())
-                .doOnSuccess { diff -> Lists.replace(list, diff.items) }
-                .map { diff -> diff.result }
-    }
+    private fun <T> diff(list: List<T>, diffSupplier: Supplier<Diff<T>>): Single<DiffResult> =
+            Single.fromCallable<Diff<T>>(diffSupplier::get)
+                    .subscribeOn(io())
+                    .observeOn(mainThread())
+                    .doOnSuccess { diff -> Lists.replace(list, diff.items) }
+                    .map { diff -> diff.result }
 
     private fun Payload.getMessage(): String? {
         response ?: return null
@@ -202,8 +205,8 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
                 .subscribe(this::onIntentReceived) { it.printStackTrace(); listenForBroadcasts() })
     }
 
-    private fun listenForPayloads() {
-        disposable.add(payloadProcessor.concatMap { payload ->
+    private fun listenForInputPayloads() {
+        disposable.add(inPayloadProcessor.concatMap { payload ->
             Single.concat(mutableListOf<Single<DiffResult>>().let { singleList ->
                 val devices = payload.extractDevices()
 
@@ -215,7 +218,14 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
         }
                 .observeOn(mainThread())
                 .doOnNext { Lists.replace(commands, it.commands) }
-                .subscribe(stateProcessor::onNext) { it.printStackTrace(); listenForPayloads() })
+                .subscribe(stateProcessor::onNext) { it.printStackTrace(); listenForInputPayloads() })
+    }
+
+    private fun listenForOutputPayloads() {
+        disposable.add(outPayloadProcessor
+                .sample(200, TimeUnit.MILLISECONDS)
+                .filter { nsdConnection.isBound }
+                .subscribe(nsdConnection.boundService::sendMessage) { it.printStackTrace(); listenForOutputPayloads() })
     }
 
     class State internal constructor(

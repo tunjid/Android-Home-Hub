@@ -27,7 +27,6 @@ import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.activities.MainActivity
 import com.tunjid.rcswitchcontrol.adapters.ChatAdapter
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.data.Payload
 import com.tunjid.rcswitchcontrol.data.ZigBeeCommandArgs
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.dialogfragments.ZigBeeArgumentDialogFragment
@@ -128,10 +127,13 @@ class ClientNsdFragment : BaseFragment(),
     }
 
     override fun onTextClicked(text: String) =
-            viewModel.sendMessage(Payload.builder().setAction(text).build())
+            viewModel.dispatchPayload { action = text }
 
     override fun onArgsEntered(args: ZigBeeCommandArgs) =
-            viewModel.sendMessage(Payload.builder().setAction(args.command).setData(args.serialize()).build())
+            viewModel.dispatchPayload {
+                action = args.command
+                data = args.serialize()
+            }
 
     private fun onConnectionStateChanged(text: String) {
         requireActivity().invalidateOptionsMenu()
@@ -173,7 +175,7 @@ class ClientNsdFragment : BaseFragment(),
 
             override fun getPageTitle(position: Int): CharSequence? = when (position) {
                 HISTORY -> App.instance.getString(R.string.history)
-                DEVICES ->  App.instance.getString(R.string.devices)
+                DEVICES -> App.instance.getString(R.string.devices)
                 else -> throw IllegalArgumentException("invalid index")
             }
 

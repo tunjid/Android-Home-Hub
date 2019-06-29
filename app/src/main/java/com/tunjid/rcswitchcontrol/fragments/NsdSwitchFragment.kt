@@ -8,13 +8,17 @@ import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ItemTouchHelper.Callback.makeMovementFlags
 import androidx.recyclerview.widget.RecyclerView
+import com.flask.colorpicker.ColorPickerView
+import com.flask.colorpicker.builder.ColorPickerDialogBuilder
 import com.tunjid.androidbootstrap.recyclerview.*
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.adapters.DeviceViewHolder
 import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter
 import com.tunjid.rcswitchcontrol.adapters.ZigBeeDeviceViewHolder
-import com.tunjid.rcswitchcontrol.data.*
+import com.tunjid.rcswitchcontrol.data.Device
+import com.tunjid.rcswitchcontrol.data.RcSwitch
+import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
 import com.tunjid.rcswitchcontrol.services.ClientBleService
@@ -72,31 +76,54 @@ class NsdSwitchFragment : BaseFragment(),
             RenameSwitchDialogFragment.newInstance(rcSwitch).show(childFragmentManager, "")
 
     override fun onSwitchToggled(rcSwitch: RcSwitch, state: Boolean) =
-            viewModel.sendMessage(Payload.builder().setAction(ClientBleService.ACTION_TRANSMITTER)
-                    .setData(rcSwitch.getEncodedTransmission(state))
-                    .build())
+            viewModel.dispatchPayload {
+                action = ClientBleService.ACTION_TRANSMITTER
+                data = rcSwitch.getEncodedTransmission(state)
+            }
 
     override fun onLongClicked(device: ZigBeeDevice) {
     }
 
-    override fun onSwitchToggled(device: ZigBeeDevice, state: Boolean) = device.toggleCommand(state).let {
-        viewModel.sendMessage(Payload.builder().setAction(it.command)
-                .setData(it.serialize())
-                .build())
-    }
+    override fun onSwitchToggled(device: ZigBeeDevice, state: Boolean) =
+            device.toggleCommand(state).let {
+                viewModel.dispatchPayload {
+                    action = it.command
+                    data = it.serialize()
+                }
+            }
 
-    override fun rediscover(device: ZigBeeDevice) = device.rediscoverCommand().let {
-        viewModel.sendMessage(Payload.builder().setAction(it.command)
-                .setData(it.serialize())
-                .build())
-    }
+    override fun rediscover(device: ZigBeeDevice) =
+            device.rediscoverCommand().let { args ->
+                viewModel.dispatchPayload {
+                    action = args.command
+                    data = args.serialize()
+                }
+            }
+
+    override fun color(device: ZigBeeDevice) = ColorPickerDialogBuilder
+            .with(context)
+            .setTitle("Choose color")
+            .wheelType(ColorPickerView.WHEEL_TYPE.CIRCLE)
+            .showLightnessSlider(true)
+            .showAlphaSlider(true)
+            .density(12)
+            .setOnColorChangedListener {
+                device.colorCommand(it).let { args ->
+                    viewModel.dispatchPayload {
+                        action = args.command
+                        data = args.serialize()
+                    }
+                }
+            }
+            .build()
+            .show()
 
     override fun onSwitchRenamed(rcSwitch: RcSwitch) {
         listManager.notifyItemChanged(viewModel.devices.indexOf(rcSwitch))
-        viewModel.sendMessage(Payload.builder()
-                .setAction(getString(R.string.blercprotocol_rename_command))
-                .setData(rcSwitch.serialize())
-                .build())
+        viewModel.dispatchPayload {
+            action = getString(R.string.blercprotocol_rename_command)
+            data = rcSwitch.serialize()
+        }
     }
 
     private fun swipeDirection(holder: ViewHolder): Int =
@@ -114,10 +141,10 @@ class NsdSwitchFragment : BaseFragment(),
         val devices = viewModel.devices
         val deletionHandler = DeletionHandler<Device>(position) { self ->
             if (self.hasItems() && self.peek() is RcSwitch)
-                viewModel.sendMessage(Payload.builder()
-                        .setAction(getString(R.string.blercprotocol_delete_command))
-                        .setData(self.pop().serialize())
-                        .build())
+                viewModel.dispatchPayload {
+                    action = getString(R.string.blercprotocol_delete_command)
+                    data = self.pop().serialize()
+                }
 
             isDeleting = false
         }

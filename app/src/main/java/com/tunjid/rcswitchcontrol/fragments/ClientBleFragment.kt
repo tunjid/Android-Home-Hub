@@ -189,6 +189,9 @@ open class ClientBleFragment : BaseFragment(),
     override fun rediscover(device: ZigBeeDevice) {
     }
 
+    override fun color(device: ZigBeeDevice) {
+    }
+
     override fun onServiceNamed(name: String) = viewModel.nameServer(name)
 
     private fun onConnectionStateChanged(status: String) {

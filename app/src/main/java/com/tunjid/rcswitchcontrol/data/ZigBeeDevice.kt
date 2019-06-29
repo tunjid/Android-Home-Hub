@@ -1,9 +1,14 @@
 package com.tunjid.rcswitchcontrol.data
 
+import android.graphics.Color
 import android.os.Parcel
 import android.os.Parcelable
+import com.tunjid.rcswitchcontrol.io.ColorCommand
+import com.tunjid.rcswitchcontrol.io.OffCommand
+import com.tunjid.rcswitchcontrol.io.OnCommand
+import com.tunjid.rcswitchcontrol.io.RediscoverCommand
 
-class ZigBeeDevice(
+data class ZigBeeDevice(
         val ieeeAddress: String,
         val networkAdress: String,
         val endpoint: String,
@@ -16,11 +21,24 @@ class ZigBeeDevice(
             parcel.readString()!!,
             parcel.readString()!!)
 
-    fun toggleCommand(state: Boolean) = (if (state) "on" else "off").let { ZigBeeCommandArgs(it, arrayOf(it, "$networkAdress/$endpoint")) }
+    fun toggleCommand(state: Boolean) = (if (state) OnCommand() else OffCommand())
+            .command
+            .let { ZigBeeCommandArgs(it, arrayOf(it, "$networkAdress/$endpoint")) }
 
-    fun rediscoverCommand() = "rediscover".let { ZigBeeCommandArgs(it, arrayOf(it, ieeeAddress)) }
+    fun rediscoverCommand() = RediscoverCommand().command.let { ZigBeeCommandArgs(it, arrayOf(it, ieeeAddress)) }
 
-    override fun getId(): String = ieeeAddress
+    fun colorCommand(color: Int) = ColorCommand().command.let {
+        ZigBeeCommandArgs(it, arrayOf(
+                it,
+                "$networkAdress/$endpoint",
+                Color.red(color).toString(),
+                Color.green(color).toString(),
+                Color.blue(color).toString()
+        ))
+    }
+
+
+    override fun getId(): String = arrayOf(ieeeAddress, networkAdress).toString()
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {
         parcel.writeString(ieeeAddress)
@@ -30,18 +48,6 @@ class ZigBeeDevice(
     }
 
     override fun describeContents(): Int = 0
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as ZigBeeDevice
-
-        if (ieeeAddress != other.ieeeAddress) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int = ieeeAddress.hashCode()
 
     companion object CREATOR : Parcelable.Creator<ZigBeeDevice> {
 

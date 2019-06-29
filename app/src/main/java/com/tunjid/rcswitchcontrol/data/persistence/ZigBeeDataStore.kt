@@ -9,6 +9,9 @@ import com.zsmartsystems.zigbee.database.ZigBeeNodeDao
 
 class ZigBeeDataStore(private val networkId: String) : ZigBeeNetworkDataStore {
 
+    val hasNoDevices: Boolean
+        get() = preferences(networkId).all.isEmpty()
+
     override fun removeNode(address: IeeeAddress) =
             preferences(networkId).edit().remove(address.toString()).apply()
 

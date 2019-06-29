@@ -184,7 +184,7 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
     }
 
     private fun start() {
-        val resetNetwork = true
+        val resetNetwork = dataStore.hasNoDevices
         val transportOptions = TransportConfig()
 
         // Initialise the network
@@ -199,7 +199,6 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
         post("Extended PAN ID = " + networkManager.zigBeeExtendedPanId)
         post("Channel         = " + networkManager.zigBeeChannel)
 
-        @Suppress("ConstantConditionIf")
         if (resetNetwork) reset()
 
         // Add the default ZigBeeAlliance09 HA link key

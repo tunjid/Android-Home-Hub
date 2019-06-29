@@ -11,17 +11,18 @@ class ZigBeeDeviceViewHolder internal constructor(
         listener: ZigBeeDeviceViewHolder.Listener
 ) : DeviceViewHolder<ZigBeeDeviceViewHolder.Listener, ZigBeeDevice>(itemView, listener) {
 
-    val colorPicker = itemView.findViewById<View>(R.id.color_picker)
+    private val zigBeeIcon = itemView.findViewById<View>(R.id.zigbee_icon)
+    private val colorPicker = itemView.findViewById<View>(R.id.color_picker)
 
     override fun bind(device: ZigBeeDevice) {
         super.bind(device)
 
         deviceName.text = device.name
 
+        zigBeeIcon.setOnClickListener { adapterListener.rediscover(device) }
         colorPicker.setOnClickListener { adapterListener.color(device) }
         offSwitch.setOnClickListener { adapterListener.onSwitchToggled(device, false) }
         onSwitch.setOnClickListener { adapterListener.onSwitchToggled(device, true) }
-        itemView.setOnClickListener { adapterListener.rediscover(device) }
         itemView.setOnLongClickListener {
             adapterListener.onLongClicked(device)
             true

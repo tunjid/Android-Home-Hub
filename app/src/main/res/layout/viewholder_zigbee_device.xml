@@ -54,21 +54,21 @@
             app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <View
-        android:layout_width="@dimen/third_margin"
-        android:layout_height="@dimen/third_margin"
-        android:layout_margin="@dimen/single_margin"
-        android:background="@drawable/circle_background"
-        android:backgroundTint="@color/device_offline"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-
     <ImageButton
         android:id="@+id/color_picker"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="@dimen/quadruple_margin"
+        android:layout_marginStart="@dimen/single_margin"
         android:layout_marginTop="@dimen/single_margin"
+        android:background="?attr/selectableItemBackground"
         app:srcCompat="@drawable/ic_palette_24dp" />
+
+    <ImageView
+        android:id="@+id/zigbee_icon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="start|bottom"
+        android:layout_marginStart="@dimen/single_margin"
+        android:layout_marginBottom="@dimen/single_margin"
+        app:srcCompat="@drawable/ic_zigbee_24dp" />
 </com.google.android.material.card.MaterialCardView>

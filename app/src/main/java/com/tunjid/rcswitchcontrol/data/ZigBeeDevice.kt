@@ -3,6 +3,7 @@ package com.tunjid.rcswitchcontrol.data
 import android.graphics.Color
 import android.os.Parcel
 import android.os.Parcelable
+import com.tunjid.androidbootstrap.recyclerview.diff.Differentiable
 import com.tunjid.rcswitchcontrol.io.ColorCommand
 import com.tunjid.rcswitchcontrol.io.OffCommand
 import com.tunjid.rcswitchcontrol.io.OnCommand
@@ -37,8 +38,12 @@ data class ZigBeeDevice(
         ))
     }
 
+    override fun getId(): String = ieeeAddress
 
-    override fun getId(): String = arrayOf(ieeeAddress, networkAdress).toString()
+    override fun areContentsTheSame(other: Differentiable?): Boolean {
+        if (other !is ZigBeeDevice) return false
+        return other.networkAdress == ieeeAddress
+    }
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {
         parcel.writeString(ieeeAddress)

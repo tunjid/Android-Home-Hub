@@ -113,7 +113,7 @@ class ServerNsdService : Service() {
     /**
      * Thread for communications between [ServerNsdService] and it's clients
      */
-    private class ServerThread internal constructor(private val serverSocket: ServerSocket?) : Thread(), Closeable {
+    private class ServerThread internal constructor(private val serverSocket: ServerSocket) : Thread(), Closeable {
 
         @Volatile
         internal var isRunning: Boolean = false
@@ -127,7 +127,7 @@ class ServerNsdService : Service() {
             while (isRunning) {
                 try {
                     // Create new connection for every new client
-                    val connection = Connection(serverSocket!!.accept(), connectionsMap).apply { start() }
+                    val connection = Connection(serverSocket.accept(), connectionsMap).apply { start() }
                     connectionsMap[connection.id] = connection
 
                     Log.d(TAG, "Client connected. Number of clients: " + connectionsMap.size)
@@ -145,7 +145,7 @@ class ServerNsdService : Service() {
             for (key in connectionsMap.keys) catcher(TAG, "Closing server connection with id $key") { connectionsMap[key]?.close() }
 
             connectionsMap.clear()
-            if (serverSocket != null) catcher(TAG, "Closing server socket.") { serverSocket.close() }
+            catcher(TAG, "Closing server socket.") { serverSocket.close() }
         }
     }
 
@@ -153,7 +153,7 @@ class ServerNsdService : Service() {
      * Connection between [ServerNsdService] and it's clients
      */
     private class Connection internal constructor(
-            private val socket: Socket?,
+            private val socket: Socket,
             private val connectionMap: MutableMap<Long, Connection>
     ) : Thread(), Closeable {
 
@@ -162,7 +162,7 @@ class ServerNsdService : Service() {
         }
 
         override fun run() {
-            if (socket == null || !socket.isConnected) return
+            if (!socket.isConnected) return
 
             var protocol: CommsProtocol? = null
 
@@ -209,7 +209,7 @@ class ServerNsdService : Service() {
         @Throws(IOException::class)
         override fun close() {
             connectionMap.remove(id)
-            socket!!.close()
+            socket.close()
         }
     }
 

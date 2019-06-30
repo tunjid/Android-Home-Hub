@@ -38,8 +38,6 @@ import com.zsmartsystems.zigbee.zcl.protocol.ZclClusterType
 import io.reactivex.Flowable
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.processors.PublishProcessor
-import java.io.ByteArrayOutputStream
-import java.io.PrintStream
 import java.io.PrintWriter
 import java.util.concurrent.TimeUnit
 
@@ -332,16 +330,6 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
         networkManager.shutdown()
         thread.quitSafely()
     }
-
-    class ConsoleStream(private val consumer: (String) -> Unit) : PrintStream(object : ByteArrayOutputStream() {
-        override fun flush() {
-            synchronized(this) {
-                consumer.invoke(String(toByteArray()))
-                reset()
-            }
-            super.flush()
-        }
-    }, true)
 
     companion object {
         const val TI_VENDOR_ID = 1105

@@ -14,14 +14,17 @@ import com.tunjid.rcswitchcontrol.App.Companion.catcher
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
 import com.tunjid.rcswitchcontrol.data.RcSwitch.Companion.SWITCH_PREFS
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
+import com.tunjid.rcswitchcontrol.io.ConsoleWriter
 import com.tunjid.rcswitchcontrol.nsd.protocols.CommsProtocol
 import com.tunjid.rcswitchcontrol.nsd.protocols.ProxyProtocol
 import io.reactivex.disposables.CompositeDisposable
 import java.io.Closeable
 import java.io.IOException
+import java.io.PrintWriter
 import java.net.ServerSocket
 import java.net.Socket
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
 
 /**
  * Service hosting a [CommsProtocol] on network service discovery
@@ -119,6 +122,9 @@ class ServerNsdService : Service() {
         internal var isRunning: Boolean = false
         private val connectionsMap = ConcurrentHashMap<Long, Connection>()
 
+        private val proxyProtocol = ProxyProtocol(ConsoleWriter(this::onConnectionWrite))
+        private val pool = Executors.newFixedThreadPool(3)
+
         override fun run() {
             isRunning = true
 
@@ -127,7 +133,11 @@ class ServerNsdService : Service() {
             while (isRunning) {
                 try {
                     // Create new connection for every new client
-                    val connection = Connection(serverSocket.accept(), connectionsMap).apply { start() }
+                    val connection = Connection(
+                            serverSocket.accept(),
+                            { proxyProtocol.processInput(it).serialize() },
+                            this::onConnectionWrite,
+                            { connectionsMap.remove(it) }).apply { start() }
                     connectionsMap[connection.id] = connection
 
                     Log.d(TAG, "Client connected. Number of clients: " + connectionsMap.size)
@@ -137,6 +147,14 @@ class ServerNsdService : Service() {
 
             }
             Log.d(TAG, "ServerSocket Dead.")
+        }
+
+        /**
+         * Called when a child connection writes to
+         */
+        @Synchronized
+        private fun onConnectionWrite(written: String) {
+            pool.execute { connectionsMap.values.forEach { it.outWriter.println(written) } }
         }
 
         override fun close() {
@@ -154,61 +172,47 @@ class ServerNsdService : Service() {
      */
     private class Connection internal constructor(
             private val socket: Socket,
-            private val connectionMap: MutableMap<Long, Connection>
+            private val inputProcessor: (input: String?) -> String,
+            private val outputProcessor: (output: String) -> Unit,
+            private val onClose: (threadId: Long) -> Unit
     ) : Thread(), Closeable {
 
-        init {
-            Log.d(TAG, "Connected to new client")
-        }
+        lateinit var outWriter: PrintWriter
 
         override fun run() {
             if (!socket.isConnected) return
-
-            var protocol: CommsProtocol? = null
+            Log.d(TAG, "Connected to new client")
 
             try {
-                val `in` = createBufferedReader(socket)
-                val out = createPrintWriter(socket)
-                protocol = ProxyProtocol(out)
-
-                var outputLine: String
+                outWriter = createPrintWriter(socket)
+                val reader = createBufferedReader(socket)
 
                 // Initiate conversation with client
-                outputLine = protocol.processInput(null).serialize()
-
-                out.println(outputLine)
+                outputProcessor.invoke(inputProcessor.invoke(CommsProtocol.PING))
 
                 while (true) {
-                    val inputLine = `in`.readLine() ?: break
-                    outputLine = protocol.processInput(inputLine).serialize()
-                    out.println(outputLine)
+                    val input = reader.readLine() ?: break
+                    val output = inputProcessor.invoke(input)
+                    outputProcessor.invoke(output)
 
-                    Log.d(TAG, "Read from client stream: $inputLine")
+                    Log.d(TAG, "Read from client stream: $input")
 
-                    if (outputLine == "Bye.") break
+                    if (output == "Bye.") break
                 }
             } catch (e: IOException) {
                 e.printStackTrace()
             } finally {
                 try {
-                    if (protocol != null)
-                        try {
-                            protocol.close()
-                        } catch (e: IOException) {
-                            e.printStackTrace()
-                        }
-
                     close()
                 } catch (e: IOException) {
                     e.printStackTrace()
                 }
-
             }
         }
 
         @Throws(IOException::class)
         override fun close() {
-            connectionMap.remove(id)
+            onClose.invoke(id)
             socket.close()
         }
     }

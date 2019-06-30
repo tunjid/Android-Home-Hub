@@ -19,6 +19,7 @@ import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serializeList
 import com.tunjid.rcswitchcontrol.data.persistence.ZigBeeDataStore
 import com.tunjid.rcswitchcontrol.io.*
+import com.tunjid.rcswitchcontrol.zigbee.*
 import com.zsmartsystems.zigbee.*
 import com.zsmartsystems.zigbee.app.basic.ZigBeeBasicServerExtension
 import com.zsmartsystems.zigbee.app.discovery.ZigBeeDiscoveryExtension

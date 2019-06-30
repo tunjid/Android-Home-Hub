@@ -4,10 +4,10 @@ import android.graphics.Color
 import android.os.Parcel
 import android.os.Parcelable
 import com.tunjid.androidbootstrap.recyclerview.diff.Differentiable
-import com.tunjid.rcswitchcontrol.io.ColorCommand
-import com.tunjid.rcswitchcontrol.io.OffCommand
-import com.tunjid.rcswitchcontrol.io.OnCommand
-import com.tunjid.rcswitchcontrol.io.RediscoverCommand
+import com.tunjid.rcswitchcontrol.zigbee.ColorCommand
+import com.tunjid.rcswitchcontrol.zigbee.OffCommand
+import com.tunjid.rcswitchcontrol.zigbee.OnCommand
+import com.tunjid.rcswitchcontrol.zigbee.RediscoverCommand
 
 data class ZigBeeDevice(
         val ieeeAddress: String,

@@ -1,4 +1,4 @@
-package com.tunjid.rcswitchcontrol.io
+package com.tunjid.rcswitchcontrol.zigbee
 
 import com.zsmartsystems.zigbee.IeeeAddress
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager

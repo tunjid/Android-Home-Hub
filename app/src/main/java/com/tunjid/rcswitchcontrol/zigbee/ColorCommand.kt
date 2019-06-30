@@ -1,4 +1,4 @@
-package com.tunjid.rcswitchcontrol.io
+package com.tunjid.rcswitchcontrol.zigbee
 
 import com.tunjid.rcswitchcontrol.nsd.protocols.Cie
 import com.zsmartsystems.zigbee.CommandResult

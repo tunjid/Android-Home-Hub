@@ -40,10 +40,8 @@ data class ZigBeeDevice(
 
     override fun getId(): String = ieeeAddress
 
-    override fun areContentsTheSame(other: Differentiable?): Boolean {
-        if (other !is ZigBeeDevice) return false
-        return other.networkAdress == ieeeAddress
-    }
+    override fun areContentsTheSame(other: Differentiable?): Boolean =
+            if (other is ZigBeeDevice) other.networkAdress == networkAdress else false
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {
         parcel.writeString(ieeeAddress)

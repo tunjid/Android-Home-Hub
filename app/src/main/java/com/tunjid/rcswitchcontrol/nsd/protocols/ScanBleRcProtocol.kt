@@ -43,7 +43,7 @@ internal class ScanBleRcProtocol(printWriter: PrintWriter) : CommsProtocol(print
     private val scanner: BLEScanner
 
     private val scanThread: HandlerThread = HandlerThread("Hi").apply { start() }
-    private val scanHandler: Handler= Handler(scanThread.looper)
+    private val scanHandler: Handler = Handler(scanThread.looper)
 
     private val deviceMap = HashMap<String, BluetoothDevice>()
     private val bleConnection: ServiceConnection<ClientBleService> = ServiceConnection(ClientBleService::class.java)
@@ -92,50 +92,48 @@ internal class ScanBleRcProtocol(printWriter: PrintWriter) : CommsProtocol(print
         scanner.stopScan()
 
         val resources = appContext.resources
-        val builder = Payload.builder()
-        builder.setKey(this@ScanBleRcProtocol.javaClass.name)
-        builder.addCommand(RESET)
-        builder.addCommand(SCAN)
+        val output = Payload(this@ScanBleRcProtocol.javaClass.name)
+        output.addCommand(RESET)
+        output.addCommand(SCAN)
 
-        for (device in deviceMap.values) builder.addCommand(device.name)
+        for (device in deviceMap.values) output.addCommand(device.name)
 
-        builder.setResponse(resources.getString(R.string.scanblercprotocol_scan_response, deviceMap.size))
-        printWriter.println(builder.build().serialize())
+        output.response = resources.getString(R.string.scanblercprotocol_scan_response, deviceMap.size)
+        printWriter.println(output.serialize())
     }
 
     private fun onBroadcastReceived(intent: Intent) {
         val action = intent.action ?: return
-        val builder = Payload.builder()
-        builder.setKey(javaClass.simpleName).addCommand(RESET)
+        val output = Payload(javaClass.simpleName)
+        output.addCommand(RESET)
 
         when (action) {
-            ClientBleService.ACTION_GATT_CONNECTED -> builder.setResponse(appContext.getString(R.string.connected))
-                    .addCommand(DISCONNECT)
-            ClientBleService.ACTION_GATT_CONNECTING -> builder.setResponse(appContext.getString(R.string.connecting))
-            ClientBleService.ACTION_GATT_DISCONNECTED -> builder.setResponse(appContext.getString(R.string.disconnected))
-                    .addCommand(CONNECT)
+            ClientBleService.ACTION_GATT_CONNECTED -> output.apply { response = appContext.getString(R.string.connected);addCommand(DISCONNECT) }
+            ClientBleService.ACTION_GATT_CONNECTING -> output.response = appContext.getString(R.string.connecting)
+            ClientBleService.ACTION_GATT_DISCONNECTED -> output.apply { response = appContext.getString(R.string.disconnected);addCommand(CONNECT) }
         }
 
-        pushData(builder.build())
+        pushData(output)
     }
 
     override fun processInput(payload: Payload): Payload {
         val resources = appContext.resources
-        val builder = Payload.builder()
-        builder.setKey(javaClass.name)
-        builder.addCommand(RESET)
+        val output = Payload(javaClass.name)
+        output.addCommand(RESET)
 
         val action = payload.action
 
         when {
-            action == PING || action == RESET -> builder.setResponse(resources.getString(R.string.scanblercprotocol_ping_reponse))
-                    .addCommand(SCAN).build()
+            action == PING || action == RESET -> output.apply {
+                response = resources.getString(R.string.scanblercprotocol_ping_reponse)
+                addCommand(SCAN)
+            }
             action == SCAN -> {
                 deviceMap.clear()
                 scanner.startScan()
                 scanHandler.postDelayed({ this.onScanComplete() }, SCAN_DURATION.toLong())
 
-                builder.setResponse(resources.getString(R.string.scanblercprotocol_start_scan_reponse))
+                output.response = resources.getString(R.string.scanblercprotocol_start_scan_reponse)
             }
             action == CONNECT && bleConnection.isBound -> bleConnection.boundService.connect(currentDevice)
             action == DISCONNECT && bleConnection.isBound -> bleConnection.boundService.disconnect()
@@ -149,7 +147,7 @@ internal class ScanBleRcProtocol(printWriter: PrintWriter) : CommsProtocol(print
                 Log.i(TAG, "Started ClientBleService, device: $action")
             }
         }
-        return builder.build()
+        return output
     }
 
     override fun onDeviceFound(result: ScanResultCompat) {

@@ -1,5 +1,12 @@
 package com.tunjid.rcswitchcontrol.nsd.protocols
 
+import android.content.Context
+import android.hardware.usb.UsbManager
+import androidx.annotation.StringRes
+import com.hoho.android.usbserial.driver.CdcAcmSerialDriver
+import com.hoho.android.usbserial.driver.ProbeTable
+import com.hoho.android.usbserial.driver.UsbSerialDriver
+import com.hoho.android.usbserial.driver.UsbSerialProber
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.data.Payload
@@ -20,7 +27,7 @@ class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
     private val protocolMap = mutableMapOf(
             RC_REMOTE to BleRcProtocol(printWriter),
             KNOCK_KNOCK to KnockKnockProtocol(printWriter)
-    )
+    ).apply { findZigBeeDriver()?.let { driver -> this[ZIGBEE_CONTROLLER] = ZigBeeProtocol(driver, printWriter) } }
 
     override fun processInput(payload: Payload): Payload {
         var output = Payload(payload.key)
@@ -42,15 +49,9 @@ class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
             CONNECT_RC_REMOTE -> protocolMap.getOrPut(action) { ScanBleRcProtocol(printWriter) }
             RC_REMOTE -> protocolMap.getOrPut(action) { BleRcProtocol(printWriter) }
             KNOCK_KNOCK -> protocolMap.getOrPut(action) { KnockKnockProtocol(printWriter) }
-            ZIGBEE_CONTROLLER -> protocolMap.getOrPut(action) { ZigBeeProtocol(printWriter) }
-            else -> return output.apply {
-                response = getString(R.string.proxyprotocol_invalid_command)
-                if (App.isAndroidThings) addCommand(CONNECT_RC_REMOTE)
-
-                addCommand(KNOCK_KNOCK)
-                addCommand(RC_REMOTE)
-                addCommand(RESET)
-            }
+            ZIGBEE_CONTROLLER -> findZigBeeDriver()?.let { protocolMap.getOrPut(action) { ZigBeeProtocol(it, printWriter) } }
+                    ?: return output.apply { invalidCommand(R.string.zigbeeprotocol_unavailable) }
+            else -> return output.apply { invalidCommand(R.string.proxyprotocol_invalid_command) }
         }
 
         protocol?.also { protocol ->
@@ -90,6 +91,25 @@ class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
             if (App.isAndroidThings) payload.addCommand(CONNECT_RC_REMOTE)
         }
+    }
+
+    private fun findZigBeeDriver(): UsbSerialDriver? {
+        val manager: UsbManager = App.instance.getSystemService(Context.USB_SERVICE) as UsbManager
+
+        val dongleLookup = ProbeTable().apply { addProduct(ZigBeeProtocol.TI_VENDOR_ID, ZigBeeProtocol.CC2531_PRODUCT_ID, CdcAcmSerialDriver::class.java) }
+
+        val drivers = UsbSerialProber(dongleLookup).findAllDrivers(manager)
+
+        return if (drivers.isEmpty()) null else drivers[0]
+    }
+
+    private fun Payload.invalidCommand(@StringRes responseRes: Int) {
+        response = getString(responseRes)
+        if (App.isAndroidThings) addCommand(CONNECT_RC_REMOTE)
+
+        addCommand(KNOCK_KNOCK)
+        addCommand(RC_REMOTE)
+        addCommand(RESET)
     }
 
     @Throws(IOException::class)

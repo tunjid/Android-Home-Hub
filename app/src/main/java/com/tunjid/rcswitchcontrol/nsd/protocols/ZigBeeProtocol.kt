@@ -1,14 +1,9 @@
 package com.tunjid.rcswitchcontrol.nsd.protocols
 
-import android.content.Context.USB_SERVICE
-import android.hardware.usb.UsbManager
 import android.os.Handler
 import android.os.HandlerThread
 import android.util.Log
-import com.hoho.android.usbserial.driver.CdcAcmSerialDriver
-import com.hoho.android.usbserial.driver.ProbeTable
-import com.hoho.android.usbserial.driver.UsbSerialProber
-import com.tunjid.rcswitchcontrol.App
+import com.hoho.android.usbserial.driver.UsbSerialDriver
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.data.Payload
 import com.tunjid.rcswitchcontrol.data.ZigBeeCommandArgs
@@ -43,7 +38,7 @@ import java.io.PrintWriter
 import java.util.concurrent.TimeUnit
 
 
-class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
+class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
     private val SAVED_DEVICES = getString(R.string.zigbeeprotocol_saved_devices)
 
@@ -99,16 +94,6 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
     ).let { it["help"] = HelpCommand(it); it.toMap() }
 
     init {
-        val manager: UsbManager = App.instance.getSystemService(USB_SERVICE) as UsbManager
-
-        val dongleLookup = ProbeTable().apply { addProduct(TI_VENDOR_ID, CC2531_PRODUCT_ID, CdcAcmSerialDriver::class.java) }
-
-        val drivers = UsbSerialProber(dongleLookup).findAllDrivers(manager)
-
-        if (drivers.isEmpty()) throw IllegalArgumentException("No driver available")
-
-        val driver = drivers[0]
-
         dongle = ZigBeeDongleTiCc2531(AndroidSerialPort(driver, BAUD_RATE))
         networkManager = ZigBeeNetworkManager(dongle).apply {
             setNetworkDataStore(dataStore)
@@ -189,10 +174,7 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
         // Initialise the network
         val initResponse = networkManager.initialize()
 
-        if (initResponse != ZigBeeStatus.SUCCESS) {
-            close()
-            return
-        }
+        if (initResponse != ZigBeeStatus.SUCCESS) return close()
 
         post("PAN ID          = " + networkManager.zigBeePanId)
         post("Extended PAN ID = " + networkManager.zigBeeExtendedPanId)

@@ -7,9 +7,10 @@ import android.widget.TextView
 import com.tunjid.androidbootstrap.recyclerview.InteractiveAdapter
 import com.tunjid.androidbootstrap.recyclerview.InteractiveViewHolder
 import com.tunjid.rcswitchcontrol.R
+import com.tunjid.rcswitchcontrol.data.Record
 
 class ChatAdapter(
-        private val responses: List<String>,
+        private val responses: List<Record>,
         listener: ChatAdapterListener
         ) : InteractiveAdapter<ChatAdapter.TextViewHolder, ChatAdapter.ChatAdapterListener>(listener) {
 
@@ -22,7 +23,7 @@ class ChatAdapter(
     override fun getItemCount(): Int = responses.size
 
     interface ChatAdapterListener : AdapterListener {
-        fun onTextClicked(text: String)
+        fun onRecordClicked(record: Record)
     }
 
     class TextViewHolder internal constructor(
@@ -30,17 +31,17 @@ class ChatAdapter(
             listener: ChatAdapterListener
     ) : InteractiveViewHolder<ChatAdapterListener>(itemView, listener) {
 
-        private lateinit var text: String
+        private lateinit var record: Record
         private val textView: TextView = itemView.findViewById(R.id.text)
 
         init {
-            textView.setOnClickListener { adapterListener?.onTextClicked(text) }
+            textView.setOnClickListener { adapterListener?.onRecordClicked(record) }
         }
 
-        internal fun bind(text: String) {
-            this.text = text
+        internal fun bind(record: Record) {
+            this.record = record
 
-            textView.text = text
+            textView.text = record.entry
             textView.isClickable = adapterListener != null
         }
     }

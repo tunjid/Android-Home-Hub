@@ -23,8 +23,7 @@ class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
     )
 
     override fun processInput(payload: Payload): Payload {
-        val output = Payload()
-        output.key = javaClass.name
+        var output = Payload(payload.key)
 
         val action = payload.action
 
@@ -62,7 +61,7 @@ class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
             val delegatedPayload = protocol.processInput(PING)
 
-            delegatedPayload.key?.let { output.key = it }
+            output = output.copy(key = delegatedPayload.key)
             delegatedPayload.data?.let { output.data = it }
             delegatedPayload.action?.let { output.action = it }
             output.response = result + delegatedPayload.response

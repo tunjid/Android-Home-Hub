@@ -18,7 +18,8 @@ import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deseriali
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serializeList
 import com.tunjid.rcswitchcontrol.data.persistence.ZigBeeDataStore
-import com.tunjid.rcswitchcontrol.io.*
+import com.tunjid.rcswitchcontrol.io.AndroidSerialPort
+import com.tunjid.rcswitchcontrol.io.ConsoleStream
 import com.tunjid.rcswitchcontrol.zigbee.*
 import com.zsmartsystems.zigbee.*
 import com.zsmartsystems.zigbee.app.basic.ZigBeeBasicServerExtension
@@ -139,8 +140,7 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
     }
 
     override fun processInput(payload: Payload): Payload {
-        val output = Payload()
-        output.key = javaClass.name
+        val output = Payload(javaClass.name)
         output.addCommand(RESET)
 
         when (val action = payload.action ?: "invalid command") {
@@ -290,8 +290,7 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
             .map(dataStore::readNode)
             .mapNotNull(this::nodeToZigBeeDevice)
             .let { devices ->
-                printWriter.println(Payload().apply {
-                    key = this@ZigBeeProtocol.javaClass.name
+                printWriter.println(Payload(this@ZigBeeProtocol.javaClass.name).apply {
                     action = SAVED_DEVICES
                     data = devices.serializeList()
                     response = getString(R.string.zigbeeprotocol_saved_devices_request)
@@ -314,8 +313,7 @@ class ZigBeeProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
     private fun post(vararg messages: String) {
         val out = messages.commandString()
 
-        if (thread.isAlive) outputProcessor.onNext(Payload().apply {
-            key = this@ZigBeeProtocol.javaClass.name
+        if (thread.isAlive) outputProcessor.onNext(Payload(this@ZigBeeProtocol.javaClass.name).apply {
             response = out
             appendCommands()
         }.serialize())

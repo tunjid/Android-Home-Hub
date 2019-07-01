@@ -27,6 +27,7 @@ import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.activities.MainActivity
 import com.tunjid.rcswitchcontrol.adapters.ChatAdapter
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
+import com.tunjid.rcswitchcontrol.data.Record
 import com.tunjid.rcswitchcontrol.data.ZigBeeCommandArgs
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.dialogfragments.ZigBeeArgumentDialogFragment
@@ -127,12 +128,11 @@ class ClientNsdFragment : BaseFragment(),
         return super.onOptionsItemSelected(item)
     }
 
-    override fun onTextClicked(text: String) =
-            viewModel.dispatchPayload { action = text }
+    override fun onRecordClicked(record: Record) =
+            viewModel.dispatchPayload(record.key) { action = record.entry }
 
     override fun onArgsEntered(args: ZigBeeCommandArgs) =
-            viewModel.dispatchPayload {
-                key = ZigBeeProtocol::class.java.simpleName
+            viewModel.dispatchPayload(ZigBeeProtocol::class.java.simpleName) {
                 action = args.command
                 data = args.serialize()
             }

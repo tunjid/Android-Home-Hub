@@ -12,11 +12,12 @@ import com.tunjid.androidbootstrap.recyclerview.ListPlaceholder
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.adapters.ChatAdapter
+import com.tunjid.rcswitchcontrol.data.Record
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
 import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel.State
 
-class NsdHistoryFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
+class NsdHistoryFragment : BaseFragment() {
 
     private lateinit var listManager: ListManager<RecyclerView.ViewHolder, ListPlaceholder<*>>
 
@@ -36,7 +37,7 @@ class NsdHistoryFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
                 .withRecyclerView(root.findViewById(R.id.list))
                 .withGridLayoutManager(SpanCountCalculator.spanCount)
                 .withAdapter(ChatAdapter(viewModel.history, object : ChatAdapter.ChatAdapterListener {
-                    override fun onTextClicked(text: String) {}
+                    override fun onRecordClicked(record: Record) {}
                 }))
                 .withInconsistencyHandler(this::onInconsistentList)
                 .build()
@@ -53,8 +54,6 @@ class NsdHistoryFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
         super.onDestroyView()
         listManager.clear()
     }
-
-    override fun onTextClicked(text: String) = viewModel.dispatchPayload { action = text }
 
     private fun onPayloadReceived(state: State) {
         listManager.onDiff(state.result)

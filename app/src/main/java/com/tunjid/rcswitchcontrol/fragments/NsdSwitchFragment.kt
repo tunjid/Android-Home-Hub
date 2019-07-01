@@ -77,8 +77,7 @@ class NsdSwitchFragment : BaseFragment(),
             RenameSwitchDialogFragment.newInstance(rcSwitch).show(childFragmentManager, "")
 
     override fun onSwitchToggled(rcSwitch: RcSwitch, state: Boolean) =
-            viewModel.dispatchPayload {
-                key = rcSwitch.key
+            viewModel.dispatchPayload(rcSwitch.key) {
                 action = ClientBleService.ACTION_TRANSMITTER
                 data = rcSwitch.getEncodedTransmission(state)
             }
@@ -88,8 +87,7 @@ class NsdSwitchFragment : BaseFragment(),
 
     override fun onSwitchToggled(device: ZigBeeDevice, state: Boolean) =
             device.toggleCommand(state).let {
-                viewModel.dispatchPayload {
-                    key = device.key
+                viewModel.dispatchPayload(device.key) {
                     action = it.command
                     data = it.serialize()
                 }
@@ -97,8 +95,7 @@ class NsdSwitchFragment : BaseFragment(),
 
     override fun rediscover(device: ZigBeeDevice) =
             device.rediscoverCommand().let { args ->
-                viewModel.dispatchPayload {
-                    key = device.key
+                viewModel.dispatchPayload(device.key) {
                     action = args.command
                     data = args.serialize()
                 }
@@ -113,8 +110,7 @@ class NsdSwitchFragment : BaseFragment(),
             .density(12)
             .setOnColorChangedListener {
                 device.colorCommand(it).let { args ->
-                    viewModel.dispatchPayload {
-                        key = ZigBeeProtocol::class.java.simpleName
+                    viewModel.dispatchPayload(ZigBeeProtocol::class.java.simpleName) {
                         action = args.command
                         data = args.serialize()
                     }
@@ -125,8 +121,7 @@ class NsdSwitchFragment : BaseFragment(),
 
     override fun onSwitchRenamed(rcSwitch: RcSwitch) {
         listManager.notifyItemChanged(viewModel.devices.indexOf(rcSwitch))
-        viewModel.dispatchPayload {
-            key = rcSwitch.key
+        viewModel.dispatchPayload(rcSwitch.key) {
             action = getString(R.string.blercprotocol_rename_command)
             data = rcSwitch.serialize()
         }
@@ -147,8 +142,7 @@ class NsdSwitchFragment : BaseFragment(),
         val devices = viewModel.devices
         val deletionHandler = DeletionHandler<Device>(position) { self ->
             if (self.hasItems() && self.peek() is RcSwitch) self.pop().also { device ->
-                viewModel.dispatchPayload {
-                    key = device.key
+                viewModel.dispatchPayload(device.key) {
                     action = getString(R.string.blercprotocol_delete_command)
                     data = device.serialize()
                 }

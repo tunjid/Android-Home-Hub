@@ -10,7 +10,7 @@ import java.util.*
  * Created by tj.dahunsi on 2/11/17.
  */
 
-class Payload(val key: String) : Serializable {
+data class Payload(val key: String) : Serializable {
 
     var data: String? = null
     var action: String? = null

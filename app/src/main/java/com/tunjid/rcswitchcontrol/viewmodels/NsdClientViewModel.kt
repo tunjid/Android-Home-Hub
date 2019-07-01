@@ -31,9 +31,9 @@ import java.util.concurrent.TimeUnit
 
 class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
 
-    val history: MutableList<String> = mutableListOf()
     val devices: MutableList<Device> = mutableListOf()
-    val commands: MutableList<String> = mutableListOf()
+    val history: MutableList<Record> = mutableListOf()
+    val commands: MutableList<Record> = mutableListOf()
 
     private val noisyCommands: Set<String> = setOf(
             ClientBleService.ACTION_TRANSMITTER,
@@ -75,7 +75,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
 
     fun listen(predicate: (state: State) -> Boolean = { true }): Flowable<State> = stateProcessor.filter(predicate)
 
-    fun dispatchPayload(payloadReceiver: Payload.() -> Unit) = dispatchPayload({ true }, payloadReceiver)
+    fun dispatchPayload(key: String, payloadReceiver: Payload.() -> Unit) = dispatchPayload(key, { true }, payloadReceiver)
 
     fun onBackground() = nsdConnection.boundService.onAppBackground()
 
@@ -100,7 +100,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun onServiceConnected(service: ClientNsdService) {
         connectionStateProcessor.onNext(getConnectionText(service.connectionState))
-        dispatchPayload({ commands.isEmpty() }) { action = CommsProtocol.PING }
+        dispatchPayload(CommsProtocol::class.java.simpleName, { commands.isEmpty() }) { action = CommsProtocol.PING }
     }
 
     private fun onIntentReceived(intent: Intent) {
@@ -126,7 +126,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
 
         when (newState) {
             ClientNsdService.ACTION_SOCKET_CONNECTED -> {
-                dispatchPayload({ commands.isEmpty() }) { action = (CommsProtocol.PING) }
+                dispatchPayload(CommsProtocol::class.java.simpleName, { commands.isEmpty() }) { action = (CommsProtocol.PING) }
                 text = if (!isBound) context.getString(R.string.connected)
                 else context.getString(R.string.connected_to, nsdConnection.boundService.serviceName)
             }
@@ -140,7 +140,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
         return text
     }
 
-    private fun dispatchPayload(predicate: (() -> Boolean), payloadReceiver: Payload.() -> Unit) = Payload().run {
+    private fun dispatchPayload(key: String, predicate: (() -> Boolean), payloadReceiver: Payload.() -> Unit) = Payload(key).run {
         payloadReceiver.invoke(this)
         if (predicate.invoke()) outPayloadProcessor.onNext(this)
     }
@@ -152,9 +152,9 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
         }.toList()
     }
 
-    private fun diffHistory(payload: Payload): Diff<String> = Diff.calculate(
+    private fun diffHistory(payload: Payload): Diff<Record> = Diff.calculate(
             history,
-            listOf(payload.response ?: "Unknown response"),
+            listOf(Record(payload.key, (payload.response ?: "Unknown response"), true)),
             { current, responses -> current.apply { addAll(responses) } },
             { response -> Differentiable.fromCharSequence { response.toString() } })
 
@@ -213,11 +213,11 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
                 singleList.add(diff(history, Supplier { diffHistory(payload) }))
                 if (devices != null) singleList.add(diff(this.devices, Supplier { diffDevices(devices) }))
 
-                singleList.map { single -> single.map { State(devices != null, payload.getMessage(), payload.extractCommandInfo(), payload.commands, it) } }
+                singleList.map { single -> single.map { State(payload.key, devices != null, payload.getMessage(), payload.extractCommandInfo(), payload.commands, it) } }
             })
         }
                 .observeOn(mainThread())
-                .doOnNext { Lists.replace(commands, it.commands) }
+                .doOnNext { Lists.replace(commands, it.let { state -> state.commands.map { command -> Record(state.key, command, true) } }) }
                 .subscribe(stateProcessor::onNext) { it.printStackTrace(); listenForInputPayloads() })
     }
 
@@ -229,6 +229,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     class State internal constructor(
+            val key: String,
             val isRc: Boolean,
             val prompt: String?,
             val commandInfo: ZigBeeCommandInfo?,

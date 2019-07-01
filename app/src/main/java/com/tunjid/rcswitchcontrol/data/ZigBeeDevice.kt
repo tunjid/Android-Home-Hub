@@ -4,6 +4,7 @@ import android.graphics.Color
 import android.os.Parcel
 import android.os.Parcelable
 import com.tunjid.androidbootstrap.recyclerview.diff.Differentiable
+import com.tunjid.rcswitchcontrol.nsd.protocols.ZigBeeProtocol
 import com.tunjid.rcswitchcontrol.zigbee.ColorCommand
 import com.tunjid.rcswitchcontrol.zigbee.OffCommand
 import com.tunjid.rcswitchcontrol.zigbee.OnCommand
@@ -15,6 +16,8 @@ data class ZigBeeDevice(
         val endpoint: String,
         override val name: String
 ) : Parcelable, Device {
+
+    override val key: String = ZigBeeProtocol::class.java.simpleName
 
     constructor(parcel: Parcel) : this(
             parcel.readString()!!,

@@ -4,6 +4,7 @@ import android.os.Parcel
 import android.os.Parcelable
 import android.util.Base64
 import androidx.annotation.StringDef
+import com.tunjid.rcswitchcontrol.nsd.protocols.BleRcProtocol
 import java.lang.annotation.Retention
 import java.lang.annotation.RetentionPolicy.SOURCE
 import java.util.*
@@ -18,6 +19,7 @@ import java.util.*
 class RcSwitch() : Parcelable, Device {
 
     override var name: String = "Switch"
+    override val key: String = BleRcProtocol::class.java.simpleName
 
     private var bitLength: Byte = 0
     private var protocol: Byte = 0

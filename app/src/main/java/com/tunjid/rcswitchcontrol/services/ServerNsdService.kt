@@ -149,12 +149,12 @@ class ServerNsdService : Service() {
 
         private fun onConnectionOpened(port: Int, connection: Connection) {
             portMap[port] = connection
-            Log.d(TAG, "Client connected. Number of clients: " + portMap.size)
+            Log.d(TAG, "Client connected. Number of clients: ${portMap.size}")
         }
 
         private fun onConnectionClosed(port: Int) {
             portMap.remove(port)
-            Log.d(TAG, "Client left. Number of clients: " + portMap.size)
+            Log.d(TAG, "Client left. Number of clients: ${portMap.size}")
         }
 
         private fun onClientWrite(input: String?): String {
@@ -163,8 +163,10 @@ class ServerNsdService : Service() {
         }
 
         @Synchronized
-        private fun broadcastToClients(output: String) =
-                pool.execute { portMap.values.forEach { it.outWriter.println(output) } }
+        private fun broadcastToClients(output: String) {
+            Log.d(TAG, "Writing to all connections: ${portMap.size}")
+            pool.execute { portMap.values.forEach { it.outWriter.println(output) } }
+        }
 
         override fun close() {
             isRunning = false

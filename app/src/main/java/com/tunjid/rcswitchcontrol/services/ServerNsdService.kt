@@ -164,7 +164,7 @@ class ServerNsdService : Service() {
 
         @Synchronized
         private fun broadcastToClients(output: String) {
-            Log.d(TAG, "Writing to all connections: ${portMap.size}")
+            Log.d(TAG, "Writing to all connections: $output")
             pool.execute { portMap.values.forEach { it.outWriter.println(output) } }
         }
 

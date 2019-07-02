@@ -148,7 +148,7 @@ class BleRcProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
     private fun onBleIntentReceived(intent: Intent) {
         val intentAction = intent.action ?: return
 
-        val payload = Payload(this@BleRcProtocol.javaClass.name)
+        val payload = Payload(javaClass.name)
 
         when (intentAction) {
             ClientBleService.ACTION_GATT_CONNECTED -> payload.apply {

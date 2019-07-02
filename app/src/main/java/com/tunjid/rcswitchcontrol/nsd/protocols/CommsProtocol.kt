@@ -22,8 +22,8 @@ abstract class CommsProtocol internal constructor(internal val printWriter: Prin
     val appContext: Context = App.instance
 
     fun processInput(input: String?): Payload = processInput(when (input) {
-        null, PING -> Payload(this::class.java.simpleName).apply { action = PING }
-        RESET -> Payload(this::class.java.simpleName).apply { action = RESET }
+        null, PING -> Payload(CommsProtocol::class.java.name).apply { action = PING }
+        RESET -> Payload(CommsProtocol::class.java.name).apply { action = RESET }
         else -> input.deserialize(Payload::class)
     })
 

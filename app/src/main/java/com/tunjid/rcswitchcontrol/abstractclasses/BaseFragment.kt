@@ -38,6 +38,11 @@ abstract class BaseFragment : com.tunjid.androidbootstrap.core.abstractclasses.B
         hostingActivity.toggleToolbar(showsToolBar())
     }
 
+    override fun onPause() {
+        disposables.clear()
+        super.onPause()
+    }
+
     override fun onDestroyView() {
         disposables.clear()
         super.onDestroyView()

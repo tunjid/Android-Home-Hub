@@ -17,7 +17,7 @@ data class ZigBeeDevice(
         override val name: String
 ) : Parcelable, Device {
 
-    override val key: String = ZigBeeProtocol::class.java.simpleName
+    override val key: String = ZigBeeProtocol::class.java.name
 
     constructor(parcel: Parcel) : this(
             parcel.readString()!!,

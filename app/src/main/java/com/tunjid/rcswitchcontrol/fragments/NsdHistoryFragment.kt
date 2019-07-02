@@ -6,6 +6,10 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.flexbox.AlignItems
+import com.google.android.flexbox.FlexDirection
+import com.google.android.flexbox.FlexboxLayoutManager
+import com.google.android.flexbox.JustifyContent
 import com.tunjid.androidbootstrap.recyclerview.ListManager
 import com.tunjid.androidbootstrap.recyclerview.ListManagerBuilder
 import com.tunjid.androidbootstrap.recyclerview.ListPlaceholder
@@ -22,10 +26,12 @@ class NsdHistoryFragment : BaseFragment() {
     private lateinit var listManager: ListManager<RecyclerView.ViewHolder, ListPlaceholder<*>>
 
     private lateinit var viewModel: NsdClientViewModel
+    private var key: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         viewModel = ViewModelProviders.of(parentFragment!!).get(NsdClientViewModel::class.java)
+        key = arguments?.getString(KEY)
     }
 
     override fun onCreateView(inflater: LayoutInflater,
@@ -33,21 +39,30 @@ class NsdHistoryFragment : BaseFragment() {
                               savedInstanceState: Bundle?): View? {
 
         val root = inflater.inflate(R.layout.fragment_list, container, false)
-        listManager = ListManagerBuilder<RecyclerView.ViewHolder, ListPlaceholder<*>>()
+        val builder = ListManagerBuilder<RecyclerView.ViewHolder, ListPlaceholder<*>>()
                 .withRecyclerView(root.findViewById(R.id.list))
-                .withGridLayoutManager(SpanCountCalculator.spanCount)
-                .withAdapter(ChatAdapter(viewModel.history, object : ChatAdapter.ChatAdapterListener {
-                    override fun onRecordClicked(record: Record) {}
+                .withAdapter(ChatAdapter(viewModel.getCommands(key), object : ChatAdapter.ChatAdapterListener {
+                    override fun onRecordClicked(record: Record) {
+                        if (key != null) viewModel.dispatchPayload(record.key) { action = record.entry }
+                    }
                 }))
                 .withInconsistencyHandler(this::onInconsistentList)
-                .build()
+
+        if (key == null) builder.withGridLayoutManager(SpanCountCalculator.spanCount)
+        else builder.withCustomLayoutManager(FlexboxLayoutManager(inflater.context).apply {
+            alignItems = AlignItems.CENTER
+            flexDirection = FlexDirection.ROW
+            justifyContent = JustifyContent.FLEX_START
+        })
+
+        listManager = builder.build()
 
         return root
     }
 
     override fun onResume() {
         super.onResume()
-        disposables.add(viewModel.listen().subscribe(this::onPayloadReceived, Throwable::printStackTrace))
+        disposables.add(viewModel.listen(this::filter).subscribe(this::onPayloadReceived, Throwable::printStackTrace))
     }
 
     override fun onDestroyView() {
@@ -55,19 +70,23 @@ class NsdHistoryFragment : BaseFragment() {
         listManager.clear()
     }
 
+    private fun filter(state: State): Boolean = if (key == null) state is State.History else key == state.key && state is State.Commands
+
     private fun onPayloadReceived(state: State) {
         listManager.onDiff(state.result)
 
-        if (viewModel.history.isNotEmpty()) listManager.post {
-            listManager.recyclerView?.smoothScrollToPosition(viewModel.latestHistoryIndex)
+        if (viewModel.getCommands(key).isNotEmpty()) listManager.post {
+            listManager.recyclerView?.smoothScrollToPosition(viewModel.lastIndex(key))
         }
     }
 
     companion object {
 
-        fun newInstance(): NsdHistoryFragment {
+        const val KEY = "KEY"
+
+        fun newInstance(key: String? = null): NsdHistoryFragment {
             val fragment = NsdHistoryFragment()
-            val bundle = Bundle()
+            val bundle = Bundle().apply { putString(KEY, key) }
 
             fragment.arguments = bundle
             return fragment

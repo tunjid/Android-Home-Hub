@@ -21,11 +21,11 @@ import com.tunjid.rcswitchcontrol.data.RcSwitch
 import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
-import com.tunjid.rcswitchcontrol.nsd.protocols.ZigBeeProtocol
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
 import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel
+import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel.State
 
 typealias ViewHolder = DeviceViewHolder<out InteractiveAdapter.AdapterListener, out Any>
 
@@ -65,7 +65,7 @@ class NsdSwitchFragment : BaseFragment(),
 
     override fun onResume() {
         super.onResume()
-        disposables.add(viewModel.listen { it.isRc }.subscribe({ listManager.onDiff(it.result) }, Throwable::printStackTrace))
+        disposables.add(viewModel.listen { it is State.Devices }.subscribe({ listManager.onDiff(it.result) }, Throwable::printStackTrace))
     }
 
     override fun onDestroyView() {
@@ -110,7 +110,7 @@ class NsdSwitchFragment : BaseFragment(),
             .density(12)
             .setOnColorChangedListener {
                 device.colorCommand(it).let { args ->
-                    viewModel.dispatchPayload(ZigBeeProtocol::class.java.simpleName) {
+                    viewModel.dispatchPayload(device.key) {
                         action = args.command
                         data = args.serialize()
                     }

@@ -6,7 +6,6 @@ import android.content.Intent
 import androidx.lifecycle.AndroidViewModel
 import androidx.recyclerview.widget.DiffUtil.DiffResult
 import com.tunjid.androidbootstrap.core.components.ServiceConnection
-import com.tunjid.androidbootstrap.functions.Supplier
 import com.tunjid.androidbootstrap.functions.collections.Lists
 import com.tunjid.androidbootstrap.recyclerview.diff.Diff
 import com.tunjid.androidbootstrap.recyclerview.diff.Differentiable
@@ -22,7 +21,6 @@ import com.tunjid.rcswitchcontrol.nsd.protocols.ZigBeeProtocol
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import io.reactivex.Flowable
-import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers.mainThread
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.processors.PublishProcessor
@@ -31,9 +29,12 @@ import java.util.concurrent.TimeUnit
 
 class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
 
+    private val commands: MutableMap<String, MutableList<Record>> = mutableMapOf()
+    private val history: MutableList<Record> = mutableListOf()
+
     val devices: MutableList<Device> = mutableListOf()
-    val history: MutableList<Record> = mutableListOf()
-    val commands: MutableList<Record> = mutableListOf()
+
+    val keys: Set<String> = commands.keys
 
     private val noisyCommands: Set<String> = setOf(
             ClientBleService.ACTION_TRANSMITTER,
@@ -57,9 +58,6 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
     val isConnected: Boolean
         get() = nsdConnection.isBound && !nsdConnection.boundService.isConnected
 
-    val latestHistoryIndex: Int
-        get() = history.size - 1
-
     init {
         nsdConnection.with(app).bind()
         listenForOutputPayloads()
@@ -78,6 +76,10 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
     fun dispatchPayload(key: String, payloadReceiver: Payload.() -> Unit) = dispatchPayload(key, { true }, payloadReceiver)
 
     fun onBackground() = nsdConnection.boundService.onAppBackground()
+
+    fun getCommands(key: String?) = if (key == null) history else commands.getOrPut(key) { mutableListOf() }
+
+    fun lastIndex(key: String?): Int = getCommands(key).size - 1
 
     fun forgetService() {
         // Don't call unbind, when the hosting activity is finished,
@@ -100,7 +102,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun onServiceConnected(service: ClientNsdService) {
         connectionStateProcessor.onNext(getConnectionText(service.connectionState))
-        dispatchPayload(CommsProtocol::class.java.simpleName, { commands.isEmpty() }) { action = CommsProtocol.PING }
+        dispatchPayload(CommsProtocol::class.java.name, commands::isEmpty) { action = CommsProtocol.PING }
     }
 
     private fun onIntentReceived(intent: Intent) {
@@ -126,7 +128,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
 
         when (newState) {
             ClientNsdService.ACTION_SOCKET_CONNECTED -> {
-                dispatchPayload(CommsProtocol::class.java.simpleName, { commands.isEmpty() }) { action = (CommsProtocol.PING) }
+                dispatchPayload(CommsProtocol::class.java.name, commands::isEmpty) { action = (CommsProtocol.PING) }
                 text = if (!isBound) context.getString(R.string.connected)
                 else context.getString(R.string.connected_to, nsdConnection.boundService.serviceName)
             }
@@ -145,25 +147,25 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
         if (predicate.invoke()) outPayloadProcessor.onNext(this)
     }
 
-    private fun diffDevices(devices: List<Device>): Diff<Device> = Diff.calculate(this.devices, devices) { current, server ->
-        mutableSetOf<Device>().apply {
-            addAll(server)
-            addAll(current)
-        }.toList()
-    }
+    private fun diffDevices(devices: List<Device>): Diff<Device> =
+            Diff.calculate(this.devices, devices) { current, server ->
+                mutableSetOf<Device>().apply {
+                    addAll(server)
+                    addAll(current)
+                }.toList()
+            }
 
     private fun diffHistory(payload: Payload): Diff<Record> = Diff.calculate(
             history,
             listOf(Record(payload.key, (payload.response ?: "Unknown response"), true)),
             { current, responses -> current.apply { addAll(responses) } },
-            { response -> Differentiable.fromCharSequence { response.toString() } })
+            { response -> Differentiable.fromCharSequence { response.entry } })
 
-    private fun <T> diff(list: List<T>, diffSupplier: Supplier<Diff<T>>): Single<DiffResult> =
-            Single.fromCallable<Diff<T>>(diffSupplier::get)
-                    .subscribeOn(io())
-                    .observeOn(mainThread())
-                    .doOnSuccess { diff -> Lists.replace(list, diff.items) }
-                    .map { diff -> diff.result }
+    private fun diffCommands(payload: Payload): Diff<Record> = Diff.calculate(
+            getCommands(payload.key),
+            payload.commands.map { Record(payload.key, it, true) },
+            { _, responses -> responses },
+            { response -> Differentiable.fromCharSequence { response.entry } })
 
     private fun Payload.getMessage(): String? {
         response ?: return null
@@ -206,18 +208,29 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun listenForInputPayloads() {
-        disposable.add(inPayloadProcessor.concatMap { payload ->
-            Single.concat(mutableListOf<Single<DiffResult>>().let { singleList ->
-                val devices = payload.extractDevices()
+        disposable.add(inPayloadProcessor.concatMapIterable { payload ->
+            mutableListOf<State>().apply {
+                val key = payload.key
+                val message = payload.getMessage()
+                val fetchedDevices = payload.extractDevices()
+                val commandInfo = payload.extractCommandInfo()
 
-                singleList.add(diff(history, Supplier { diffHistory(payload) }))
-                if (devices != null) singleList.add(diff(this.devices, Supplier { diffDevices(devices) }))
-
-                singleList.map { single -> single.map { State(payload.key, devices != null, payload.getMessage(), payload.extractCommandInfo(), payload.commands, it) } }
-            })
+                add(diffCommands(payload).let { State.Commands(key, getCommands(key), it) })
+                add(diffHistory(payload).let { State.History(key, message, commandInfo, history, it) })
+                if (fetchedDevices != null) add(diffDevices(fetchedDevices).let { State.Devices(key, devices, it) })
+            }
         }
+                .onBackpressureBuffer()
+                .subscribeOn(io())
                 .observeOn(mainThread())
-                .doOnNext { Lists.replace(commands, it.let { state -> state.commands.map { command -> Record(state.key, command, true) } }) }
+                .doOnNext {
+                    when (it) {
+                        is State.History -> Lists.replace(it.current, it.diff.items)
+                        is State.Commands -> Lists.replace(it.current, it.diff.items)
+                        is State.Devices -> Lists.replace(it.current, it.diff.items)
+                    }
+                }
+
                 .subscribe(stateProcessor::onNext) { it.printStackTrace(); listenForInputPayloads() })
     }
 
@@ -228,12 +241,31 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
                 .subscribe(nsdConnection.boundService::sendMessage) { it.printStackTrace(); listenForOutputPayloads() })
     }
 
-    class State internal constructor(
-            val key: String,
-            val isRc: Boolean,
-            val prompt: String?,
-            val commandInfo: ZigBeeCommandInfo?,
-            val commands: Set<String>,
+
+    sealed class State(
+            open val key: String,
+            open val prompt: String?,
+            open val commandInfo: ZigBeeCommandInfo?,
             val result: DiffResult
-    )
+    ) {
+        class History(
+                override val key: String,
+                override val prompt: String?,
+                override val commandInfo: ZigBeeCommandInfo?,
+                internal val current: List<Record>,
+                internal val diff: Diff<Record>
+        ) : State(key, prompt, commandInfo, diff.result)
+
+        class Commands(
+                override val key: String,
+                internal val current: List<Record>,
+                internal val diff: Diff<Record>
+        ) : State(key, null, null, diff.result)
+
+        class Devices(
+                override val key: String,
+                internal val current: List<Device>,
+                internal val diff: Diff<Device>
+        ) : State(key, null, null, diff.result)
+    }
 }

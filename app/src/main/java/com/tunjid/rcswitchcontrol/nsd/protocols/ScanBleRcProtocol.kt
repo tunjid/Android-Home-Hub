@@ -104,7 +104,7 @@ internal class ScanBleRcProtocol(printWriter: PrintWriter) : CommsProtocol(print
 
     private fun onBroadcastReceived(intent: Intent) {
         val action = intent.action ?: return
-        val output = Payload(javaClass.simpleName)
+        val output = Payload(javaClass.name)
         output.addCommand(RESET)
 
         when (action) {

@@ -19,7 +19,7 @@ import java.util.*
 class RcSwitch() : Parcelable, Device {
 
     override var name: String = "Switch"
-    override val key: String = BleRcProtocol::class.java.simpleName
+    override val key: String = BleRcProtocol::class.java.name
 
     private var bitLength: Byte = 0
     private var protocol: Byte = 0

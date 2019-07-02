@@ -8,41 +8,31 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentStatePagerAdapter
 import androidx.lifecycle.ViewModelProviders
-import androidx.recyclerview.widget.RecyclerView
-import androidx.transition.AutoTransition
-import androidx.transition.TransitionManager
 import androidx.viewpager.widget.ViewPager
-import com.google.android.flexbox.AlignItems
-import com.google.android.flexbox.FlexDirection
-import com.google.android.flexbox.FlexboxLayoutManager
-import com.google.android.flexbox.JustifyContent
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.bottomsheet.BottomSheetBehavior.*
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
 import com.google.android.material.tabs.TabLayout
-import com.tunjid.androidbootstrap.recyclerview.ListManager
-import com.tunjid.androidbootstrap.recyclerview.ListManagerBuilder
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.activities.MainActivity
-import com.tunjid.rcswitchcontrol.adapters.ChatAdapter
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.data.Record
 import com.tunjid.rcswitchcontrol.data.ZigBeeCommandArgs
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.dialogfragments.ZigBeeArgumentDialogFragment
-import com.tunjid.rcswitchcontrol.nsd.protocols.ZigBeeProtocol
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel.State
 
 class ClientNsdFragment : BaseFragment(),
-        ChatAdapter.ChatAdapterListener,
         ZigBeeArgumentDialogFragment.ZigBeeArgsListener {
 
-    private lateinit var pager: ViewPager
+    private lateinit var mainPager: ViewPager
+    private lateinit var commandsPager: ViewPager
+
     private lateinit var connectionStatus: TextView
-    private lateinit var listManager: ListManager<ChatAdapter.TextViewHolder, Unit>
 
     private lateinit var viewModel: NsdClientViewModel
 
@@ -58,23 +48,35 @@ class ClientNsdFragment : BaseFragment(),
 
         val root = inflater.inflate(R.layout.fragment_nsd_client, container, false)
         val tabs = root.findViewById<TabLayout>(R.id.tabs)
-        pager = root.findViewById(R.id.pager)
-        pager.adapter = adapter(childFragmentManager)
+        val commandTabs = root.findViewById<TabLayout>(R.id.command_tabs)
+        val bottomSheet = root.findViewById<ViewGroup>(R.id.bottom_sheet)
+        val bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet)
 
         connectionStatus = root.findViewById(R.id.connection_status)
 
-        listManager = ListManagerBuilder<ChatAdapter.TextViewHolder, Unit>()
-                .withRecyclerView(root.findViewById(R.id.commands))
-                .withAdapter(ChatAdapter(viewModel.commands, this))
-                .withInconsistencyHandler(this::onInconsistentList)
-                .withCustomLayoutManager(FlexboxLayoutManager(inflater.context).apply {
-                    alignItems = AlignItems.CENTER
-                    flexDirection = FlexDirection.ROW
-                    justifyContent = JustifyContent.FLEX_START
-                })
-                .build()
+        mainPager = root.findViewById(R.id.pager)
+        commandsPager = root.findViewById(R.id.commands)
 
-        tabs.setupWithViewPager(pager)
+        mainPager.adapter = adapter(childFragmentManager)
+        commandsPager.adapter = commandAdapter(viewModel.keys, childFragmentManager)
+
+        tabs.setupWithViewPager(mainPager)
+        commandTabs.setupWithViewPager(commandsPager)
+
+        mainPager.addOnPageChangeListener(object : ViewPager.SimpleOnPageChangeListener() {
+            override fun onPageSelected(position: Int) {
+                bottomSheetBehavior.state = if (position == HISTORY) STATE_HALF_EXPANDED else STATE_HIDDEN
+            }
+        })
+
+        bottomSheetBehavior.setExpandedOffset(requireContext().resources.getDimensionPixelSize(R.dimen.triple_and_half_margin))
+        bottomSheetBehavior.setBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
+            override fun onSlide(bottomSheet: View, slideOffset: Float) {}
+
+            override fun onStateChanged(bottomSheet: View, newState: Int) {
+                if (newState == STATE_HIDDEN && mainPager.currentItem == HISTORY) bottomSheetBehavior.state = STATE_COLLAPSED
+            }
+        })
 
         return root
     }
@@ -86,6 +88,7 @@ class ClientNsdFragment : BaseFragment(),
 
     override fun onResume() {
         super.onResume()
+        refreshAdapter()
         disposables.add(viewModel.listen().subscribe(this::onPayloadReceived, Throwable::printStackTrace))
         disposables.add(viewModel.connectionState().subscribe(this::onConnectionStateChanged, Throwable::printStackTrace))
     }
@@ -93,11 +96,6 @@ class ClientNsdFragment : BaseFragment(),
     override fun onPause() {
         super.onPause()
         viewModel.onBackground()
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        listManager.clear()
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
@@ -128,11 +126,8 @@ class ClientNsdFragment : BaseFragment(),
         return super.onOptionsItemSelected(item)
     }
 
-    override fun onRecordClicked(record: Record) =
-            viewModel.dispatchPayload(record.key) { action = record.entry }
-
     override fun onArgsEntered(args: ZigBeeCommandArgs) =
-            viewModel.dispatchPayload(ZigBeeProtocol::class.java.simpleName) {
+            viewModel.dispatchPayload(args.key) {
                 action = args.command
                 data = args.serialize()
             }
@@ -143,15 +138,20 @@ class ClientNsdFragment : BaseFragment(),
     }
 
     private fun onPayloadReceived(state: State) {
-        view?.apply {
-            TransitionManager.beginDelayedTransition(this as ViewGroup,
-                    AutoTransition().excludeTarget(RecyclerView::class.java, true))
-        }
-
-        listManager.notifyDataSetChanged()
-
-        state.prompt?.let { Snackbar.make(pager, it, LENGTH_SHORT).show() }
+        state.prompt?.let { Snackbar.make(mainPager, it, LENGTH_SHORT).show() }
         state.commandInfo?.let { ZigBeeArgumentDialogFragment.newInstance(it).show(childFragmentManager, "info") }
+
+        refreshAdapter()
+    }
+
+    private fun refreshAdapter() {
+        val count = commandsPager.adapter?.count ?: return
+        val keySize = viewModel.keys.size
+
+        if (count != keySize) {
+            commandsPager.adapter?.notifyDataSetChanged()
+
+        }
     }
 
     companion object {
@@ -182,6 +182,17 @@ class ClientNsdFragment : BaseFragment(),
             }
 
             override fun getCount(): Int = 2
+        }
+
+        fun commandAdapter(keys: Set<String>, fragmentManager: FragmentManager) = object : FragmentStatePagerAdapter(fragmentManager, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
+
+            override fun getItem(position: Int): Fragment = NsdHistoryFragment.newInstance(items()[position])
+
+            override fun getPageTitle(position: Int): CharSequence? = items()[position].split(".").last()
+
+            override fun getCount(): Int = keys.size
+
+            private fun items() = keys.map { it }.sorted()
         }
     }
 }

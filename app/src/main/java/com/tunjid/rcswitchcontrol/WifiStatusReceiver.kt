@@ -14,7 +14,7 @@ import android.os.Handler
 import android.os.Looper
 import com.tunjid.androidbootstrap.communications.nsd.NsdHelper
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.model.RcSwitch.Companion.SWITCH_PREFS
+import com.tunjid.rcswitchcontrol.data.RfSwitch.Companion.SWITCH_PREFS
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ClientNsdService.Companion.LAST_CONNECTED_SERVICE

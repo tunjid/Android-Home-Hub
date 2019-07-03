@@ -2,44 +2,35 @@ package com.tunjid.rcswitchcontrol.fragments
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentStatePagerAdapter
 import androidx.lifecycle.ViewModelProviders
-import androidx.recyclerview.widget.RecyclerView
-import androidx.transition.AutoTransition
-import androidx.transition.TransitionManager
 import androidx.viewpager.widget.ViewPager
-import com.google.android.flexbox.AlignItems
-import com.google.android.flexbox.FlexDirection
-import com.google.android.flexbox.FlexboxLayoutManager
-import com.google.android.flexbox.JustifyContent
-import com.google.android.material.snackbar.Snackbar
-import com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
-import com.tunjid.androidbootstrap.recyclerview.ListManager
-import com.tunjid.androidbootstrap.recyclerview.ListManagerBuilder
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.bottomsheet.BottomSheetBehavior.*
+import com.google.android.material.tabs.TabLayout
+import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.activities.MainActivity
-import com.tunjid.rcswitchcontrol.adapters.ChatAdapter
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.model.Payload
+import com.tunjid.rcswitchcontrol.data.ZigBeeCommandArgs
+import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
+import com.tunjid.rcswitchcontrol.dialogfragments.ZigBeeArgumentDialogFragment
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel.State
 
-class ClientNsdFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
+class ClientNsdFragment : BaseFragment(),
+        ZigBeeArgumentDialogFragment.ZigBeeArgsListener {
 
-    private lateinit var pager: ViewPager
+    private lateinit var mainPager: ViewPager
+    private lateinit var commandsPager: ViewPager
+
     private lateinit var connectionStatus: TextView
-    private lateinit var listManager: ListManager<ChatAdapter.TextViewHolder, Unit>
 
     private lateinit var viewModel: NsdClientViewModel
 
@@ -54,20 +45,47 @@ class ClientNsdFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
                               savedInstanceState: Bundle?): View? {
 
         val root = inflater.inflate(R.layout.fragment_nsd_client, container, false)
-        pager = root.findViewById(R.id.pager)
-        pager.adapter = adapter(childFragmentManager)
+        val tabs = root.findViewById<TabLayout>(R.id.tabs)
+        val commandTabs = root.findViewById<TabLayout>(R.id.command_tabs)
+        val bottomSheet = root.findViewById<ViewGroup>(R.id.bottom_sheet)
+        val bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet)
+        val offset = requireContext().resources.getDimensionPixelSize(R.dimen.triple_and_half_margin)
+
+        val calculateTranslation: (slideOffset: Float) -> Float = calculate@{ slideOffset ->
+            if (slideOffset == 0F) return@calculate -bottomSheetBehavior.peekHeight.toFloat()
+
+            val multiplier = if (slideOffset < 0) slideOffset else slideOffset
+            val height = if (slideOffset < 0) bottomSheetBehavior.peekHeight else bottomSheet.height - offset
+            (-height * multiplier)-bottomSheetBehavior.peekHeight
+        }
 
         connectionStatus = root.findViewById(R.id.connection_status)
 
-        listManager = ListManagerBuilder<ChatAdapter.TextViewHolder, Unit>()
-                .withRecyclerView(root.findViewById(R.id.commands))
-                .withAdapter(ChatAdapter(viewModel.commands, this))
-                .withCustomLayoutManager(FlexboxLayoutManager(inflater.context).apply {
-                    alignItems = AlignItems.CENTER
-                    flexDirection = FlexDirection.ROW
-                    justifyContent = JustifyContent.FLEX_START
-                })
-                .build()
+        mainPager = root.findViewById(R.id.pager)
+        commandsPager = root.findViewById(R.id.commands)
+
+        mainPager.adapter = adapter(childFragmentManager)
+        commandsPager.adapter = commandAdapter(viewModel.keys, childFragmentManager)
+
+        tabs.setupWithViewPager(mainPager)
+        commandTabs.setupWithViewPager(commandsPager)
+
+        mainPager.addOnPageChangeListener(object : ViewPager.SimpleOnPageChangeListener() {
+            override fun onPageSelected(position: Int) {
+                bottomSheetBehavior.state = if (position == HISTORY) STATE_HALF_EXPANDED else STATE_HIDDEN
+            }
+        })
+
+        bottomSheetBehavior.setExpandedOffset(offset)
+        bottomSheetBehavior.setBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
+            override fun onSlide(bottomSheet: View, slideOffset: Float) {
+                mainPager.translationY = calculateTranslation(slideOffset)
+            }
+
+            override fun onStateChanged(bottomSheet: View, newState: Int) {
+                if (newState == STATE_HIDDEN && mainPager.currentItem == HISTORY) bottomSheetBehavior.state = STATE_COLLAPSED
+            }
+        })
 
         return root
     }
@@ -79,18 +97,13 @@ class ClientNsdFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
 
     override fun onResume() {
         super.onResume()
-        disposables.add(viewModel.listen { true }.subscribe(this::onPayloadReceived, Throwable::printStackTrace))
+        disposables.add(viewModel.listen().subscribe(this::onPayloadReceived, Throwable::printStackTrace))
         disposables.add(viewModel.connectionState().subscribe(this::onConnectionStateChanged, Throwable::printStackTrace))
     }
 
     override fun onPause() {
         super.onPause()
         viewModel.onBackground()
-    }
-
-    override fun onDestroyView() {
-        listManager.clear()
-        super.onDestroyView()
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
@@ -121,8 +134,11 @@ class ClientNsdFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
         return super.onOptionsItemSelected(item)
     }
 
-    override fun onTextClicked(text: String) =
-            viewModel.sendMessage(Payload.builder().setAction(text).build())
+    override fun onArgsEntered(args: ZigBeeCommandArgs) =
+            viewModel.dispatchPayload(args.key) {
+                action = args.command
+                data = args.serialize()
+            }
 
     private fun onConnectionStateChanged(text: String) {
         requireActivity().invalidateOptionsMenu()
@@ -130,21 +146,14 @@ class ClientNsdFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
     }
 
     private fun onPayloadReceived(state: State) {
-        view?.apply {
-            TransitionManager.beginDelayedTransition(this as ViewGroup,
-                    AutoTransition().excludeTarget(RecyclerView::class.java, true))
-        }
-
-        pager.currentItem = if (state.isRc) SWITCHES else HISTORY
-        listManager.notifyDataSetChanged()
-
-        if (state.prompt != null) Snackbar.make(pager, state.prompt, LENGTH_SHORT).show()
+        state.commandInfo?.let { ZigBeeArgumentDialogFragment.newInstance(it).show(childFragmentManager, "info") }
+        if (state is State.Commands && state.isNew) commandsPager.adapter?.notifyDataSetChanged()
     }
 
     companion object {
 
         const val HISTORY = 0
-        const val SWITCHES = 1
+        const val DEVICES = 1
 
         fun newInstance(): ClientNsdFragment {
             val fragment = ClientNsdFragment()
@@ -154,15 +163,32 @@ class ClientNsdFragment : BaseFragment(), ChatAdapter.ChatAdapterListener {
             return fragment
         }
 
-        fun adapter(fragmentManager: FragmentManager) = object : FragmentStatePagerAdapter(fragmentManager) {
+        fun adapter(fragmentManager: FragmentManager) = object : FragmentStatePagerAdapter(fragmentManager, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
 
             override fun getItem(position: Int): Fragment = when (position) {
                 HISTORY -> NsdHistoryFragment.newInstance()
-                SWITCHES -> NsdSwitchFragment.newInstance()
+                DEVICES -> NsdSwitchFragment.newInstance()
+                else -> throw IllegalArgumentException("invalid index")
+            }
+
+            override fun getPageTitle(position: Int): CharSequence? = when (position) {
+                HISTORY -> App.instance.getString(R.string.history)
+                DEVICES -> App.instance.getString(R.string.devices)
                 else -> throw IllegalArgumentException("invalid index")
             }
 
             override fun getCount(): Int = 2
+        }
+
+        fun commandAdapter(keys: Set<String>, fragmentManager: FragmentManager) = object : FragmentStatePagerAdapter(fragmentManager, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
+
+            override fun getItem(position: Int): Fragment = NsdHistoryFragment.newInstance(item(position))
+
+            override fun getPageTitle(position: Int): CharSequence? = item(position).split(".").last().toUpperCase().removeSuffix("PROTOCOL")
+
+            override fun getCount(): Int = keys.size
+
+            private fun item(index: Int) = keys.map { it }.sorted()[index]
         }
     }
 }

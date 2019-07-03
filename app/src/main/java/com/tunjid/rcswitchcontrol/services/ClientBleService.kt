@@ -29,7 +29,7 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.activities.MainActivity
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
 import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService
-import com.tunjid.rcswitchcontrol.model.RcSwitch.Companion.SWITCH_PREFS
+import com.tunjid.rcswitchcontrol.data.RfSwitch.Companion.SWITCH_PREFS
 import io.reactivex.disposables.CompositeDisposable
 import java.util.*
 
@@ -358,10 +358,7 @@ class ClientBleService : Service(), ClientStartedBoundService {
     private fun findGattServices(gattServices: List<BluetoothGattService>?) {
         if (gattServices == null) return
 
-        val handlerThread = HandlerThread("IndicationSetThread")
-        handlerThread.start()
-
-        val handler = Handler(handlerThread.looper)
+        val handler = Handler(HandlerThread("IndicationSetThread").apply { start() }.looper)
 
         // Loops through available GATT Services.
         for (gattService in gattServices) {

@@ -12,15 +12,19 @@ import com.tunjid.androidbootstrap.communications.nsd.NsdHelper.createPrintWrite
 import com.tunjid.androidbootstrap.core.components.ServiceConnection
 import com.tunjid.rcswitchcontrol.App.Companion.catcher
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.model.RcSwitch.Companion.SWITCH_PREFS
+import com.tunjid.rcswitchcontrol.data.RfSwitch.Companion.SWITCH_PREFS
+import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
+import com.tunjid.rcswitchcontrol.io.ConsoleWriter
 import com.tunjid.rcswitchcontrol.nsd.protocols.CommsProtocol
 import com.tunjid.rcswitchcontrol.nsd.protocols.ProxyProtocol
 import io.reactivex.disposables.CompositeDisposable
 import java.io.Closeable
 import java.io.IOException
+import java.io.PrintWriter
 import java.net.ServerSocket
 import java.net.Socket
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
 
 /**
  * Service hosting a [CommsProtocol] on network service discovery
@@ -106,47 +110,72 @@ class ServerNsdService : Service() {
      * [android.os.Binder] for [ServerNsdService]
      */
     private inner class Binder : ServiceConnection.Binder<ServerNsdService>() {
-        override fun getService(): ServerNsdService {
-            return this@ServerNsdService
-        }
+        override fun getService(): ServerNsdService = this@ServerNsdService
     }
 
     /**
      * Thread for communications between [ServerNsdService] and it's clients
      */
-    private class ServerThread internal constructor(private val serverSocket: ServerSocket?) : Thread(), Closeable {
+    private class ServerThread internal constructor(private val serverSocket: ServerSocket) : Thread(), Closeable {
 
         @Volatile
         internal var isRunning: Boolean = false
-        private val connectionsMap = ConcurrentHashMap<Long, Connection>()
+        private val portMap = ConcurrentHashMap<Int, Connection>()
+
+        private val protocol = ProxyProtocol(ConsoleWriter(this::broadcastToClients))
+        private val pool = Executors.newFixedThreadPool(5)
 
         override fun run() {
             isRunning = true
 
-            Log.d(TAG, "ServerSocket Created, awaiting connection.")
+            Log.d(TAG, "ServerSocket Created, awaiting connections.")
 
             while (isRunning) {
                 try {
-                    // Create new connection for every new client
-                    val connection = Connection(serverSocket!!.accept(), connectionsMap).apply { start() }
-                    connectionsMap[connection.id] = connection
-
-                    Log.d(TAG, "Client connected. Number of clients: " + connectionsMap.size)
+                    Connection( // Create new connection for every new client
+                            serverSocket.accept(), // Block this ServerThread till a socket connects
+                            this::onClientWrite,
+                            this::broadcastToClients,
+                            this::onConnectionOpened,
+                            this::onConnectionClosed)
+                            .apply { pool.submit(this) }
                 } catch (e: Exception) {
                     Log.e(TAG, "Error creating client connection: ", e)
                 }
-
             }
+
             Log.d(TAG, "ServerSocket Dead.")
+        }
+
+        private fun onConnectionOpened(port: Int, connection: Connection) {
+            portMap[port] = connection
+            Log.d(TAG, "Client connected. Number of clients: ${portMap.size}")
+        }
+
+        private fun onConnectionClosed(port: Int) {
+            portMap.remove(port)
+            Log.d(TAG, "Client left. Number of clients: ${portMap.size}")
+        }
+
+        private fun onClientWrite(input: String?): String {
+            Log.d(TAG, "Read from client stream: $input")
+            return protocol.processInput(input).serialize()
+        }
+
+        @Synchronized
+        private fun broadcastToClients(output: String) {
+            Log.d(TAG, "Writing to all connections: $output")
+            pool.execute { portMap.values.forEach { it.outWriter.println(output) } }
         }
 
         override fun close() {
             isRunning = false
 
-            for (key in connectionsMap.keys) catcher(TAG, "Closing server connection with id $key") { connectionsMap[key]?.close() }
+            for (key in portMap.keys) catcher(TAG, "Closing server connection with id $key") { portMap[key]?.close() }
 
-            connectionsMap.clear()
-            if (serverSocket != null) catcher(TAG, "Closing server socket.") { serverSocket.close() }
+            portMap.clear()
+            catcher(TAG, "Closing server socket.") { serverSocket.close() }
+            catcher(TAG, "Shutting down execution pool.") { pool.shutdown() }
         }
     }
 
@@ -154,63 +183,50 @@ class ServerNsdService : Service() {
      * Connection between [ServerNsdService] and it's clients
      */
     private class Connection internal constructor(
-            private val socket: Socket?,
-            private val connectionMap: MutableMap<Long, Connection>
-    ) : Thread(), Closeable {
+            private val socket: Socket,
+            private val inputProcessor: (input: String?) -> String,
+            private val outputProcessor: (output: String) -> Unit,
+            private val onOpen: (port: Int, connection: Connection) -> Unit,
+            private val onClose: (port: Int) -> Unit
+    ) : Runnable, Closeable {
 
-        init {
-            Log.d(TAG, "Connected to new client")
-        }
+        val port: Int = socket.port
+        lateinit var outWriter: PrintWriter
 
         override fun run() {
-            if (socket == null || !socket.isConnected) return
+            if (!socket.isConnected) return
 
-            var protocol: CommsProtocol? = null
+            onOpen.invoke(port, this)
 
             try {
-                val `in` = createBufferedReader(socket)
-                val out = createPrintWriter(socket)
-                protocol = ProxyProtocol(out)
-
-                var outputLine: String
+                outWriter = createPrintWriter(socket)
+                val reader = createBufferedReader(socket)
 
                 // Initiate conversation with client
-                outputLine = protocol.processInput(null).serialize()
-
-                out.println(outputLine)
+                outputProcessor.invoke(inputProcessor.invoke(CommsProtocol.PING))
 
                 while (true) {
-                    val inputLine = `in`.readLine() ?: break
-                    outputLine = protocol.processInput(inputLine).serialize()
-                    out.println(outputLine)
+                    val input = reader.readLine() ?: break
+                    val output = inputProcessor.invoke(input)
+                    outputProcessor.invoke(output)
 
-                    Log.d(TAG, "Read from client stream: $inputLine")
-
-                    if (outputLine == "Bye.") break
+                    if (output == "Bye.") break
                 }
             } catch (e: IOException) {
                 e.printStackTrace()
             } finally {
                 try {
-                    if (protocol != null)
-                        try {
-                            protocol.close()
-                        } catch (e: IOException) {
-                            e.printStackTrace()
-                        }
-
                     close()
                 } catch (e: IOException) {
                     e.printStackTrace()
                 }
-
             }
         }
 
         @Throws(IOException::class)
         override fun close() {
-            connectionMap.remove(id)
-            socket!!.close()
+            onClose.invoke(port)
+            socket.close()
         }
     }
 

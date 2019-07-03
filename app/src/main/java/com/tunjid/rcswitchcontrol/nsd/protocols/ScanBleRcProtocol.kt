@@ -17,8 +17,9 @@ import com.tunjid.androidbootstrap.communications.bluetooth.ScanResultCompat
 import com.tunjid.androidbootstrap.core.components.ServiceConnection
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.model.Payload
-import com.tunjid.rcswitchcontrol.model.RcSwitch
+import com.tunjid.rcswitchcontrol.data.Payload
+import com.tunjid.rcswitchcontrol.data.RfSwitch
+import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import io.reactivex.disposables.CompositeDisposable
 import java.io.PrintWriter
@@ -41,19 +42,15 @@ internal class ScanBleRcProtocol(printWriter: PrintWriter) : CommsProtocol(print
     private var currentDevice: BluetoothDevice? = null
     private val scanner: BLEScanner
 
-    private val scanThread: HandlerThread = HandlerThread("Hi")
-    private val scanHandler: Handler
+    private val scanThread: HandlerThread = HandlerThread("Hi").apply { start() }
+    private val scanHandler: Handler = Handler(scanThread.looper)
 
     private val deviceMap = HashMap<String, BluetoothDevice>()
-    private val bleConnection: ServiceConnection<ClientBleService>
+    private val bleConnection: ServiceConnection<ClientBleService> = ServiceConnection(ClientBleService::class.java)
+
     private val disposable = CompositeDisposable()
 
     init {
-
-        scanThread.start()
-        scanHandler = Handler(scanThread.looper)
-
-        bleConnection = ServiceConnection(ClientBleService::class.java)
 
         val bluetoothManager = appContext.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         val bluetoothAdapter = bluetoothManager.adapter
@@ -68,7 +65,7 @@ internal class ScanBleRcProtocol(printWriter: PrintWriter) : CommsProtocol(print
                 .withCallBack(this)
                 .build()
 
-        val preferences = appContext.getSharedPreferences(RcSwitch.SWITCH_PREFS, MODE_PRIVATE)
+        val preferences = appContext.getSharedPreferences(RfSwitch.SWITCH_PREFS, MODE_PRIVATE)
         val lastConnectedDevice = preferences.getString(ClientBleService.LAST_PAIRED_DEVICE, "")
 
         // Retreive device from shared preferences if it exists
@@ -95,50 +92,48 @@ internal class ScanBleRcProtocol(printWriter: PrintWriter) : CommsProtocol(print
         scanner.stopScan()
 
         val resources = appContext.resources
-        val builder = Payload.builder()
-        builder.setKey(this@ScanBleRcProtocol.javaClass.name)
-        builder.addCommand(RESET)
-        builder.addCommand(SCAN)
+        val output = Payload(this@ScanBleRcProtocol.javaClass.name)
+        output.addCommand(RESET)
+        output.addCommand(SCAN)
 
-        for (device in deviceMap.values) builder.addCommand(device.name)
+        for (device in deviceMap.values) output.addCommand(device.name)
 
-        builder.setResponse(resources.getString(R.string.scanblercprotocol_scan_response, deviceMap.size))
-        printWriter.println(builder.build().serialize())
+        output.response = resources.getString(R.string.scanblercprotocol_scan_response, deviceMap.size)
+        printWriter.println(output.serialize())
     }
 
     private fun onBroadcastReceived(intent: Intent) {
         val action = intent.action ?: return
-        val builder = Payload.builder()
-        builder.setKey(javaClass.simpleName).addCommand(RESET)
+        val output = Payload(javaClass.name)
+        output.addCommand(RESET)
 
         when (action) {
-            ClientBleService.ACTION_GATT_CONNECTED -> builder.setResponse(appContext.getString(R.string.connected))
-                    .addCommand(DISCONNECT)
-            ClientBleService.ACTION_GATT_CONNECTING -> builder.setResponse(appContext.getString(R.string.connecting))
-            ClientBleService.ACTION_GATT_DISCONNECTED -> builder.setResponse(appContext.getString(R.string.disconnected))
-                    .addCommand(CONNECT)
+            ClientBleService.ACTION_GATT_CONNECTED -> output.apply { response = appContext.getString(R.string.connected);addCommand(DISCONNECT) }
+            ClientBleService.ACTION_GATT_CONNECTING -> output.response = appContext.getString(R.string.connecting)
+            ClientBleService.ACTION_GATT_DISCONNECTED -> output.apply { response = appContext.getString(R.string.disconnected);addCommand(CONNECT) }
         }
 
-        pushData(builder.build())
+        pushData(output)
     }
 
     override fun processInput(payload: Payload): Payload {
         val resources = appContext.resources
-        val builder = Payload.builder()
-        builder.setKey(javaClass.name)
-        builder.addCommand(RESET)
+        val output = Payload(javaClass.name)
+        output.addCommand(RESET)
 
         val action = payload.action
 
         when {
-            action == PING || action == RESET -> builder.setResponse(resources.getString(R.string.scanblercprotocol_ping_reponse))
-                    .addCommand(SCAN).build()
+            action == PING || action == RESET -> output.apply {
+                response = resources.getString(R.string.scanblercprotocol_ping_reponse)
+                addCommand(SCAN)
+            }
             action == SCAN -> {
                 deviceMap.clear()
                 scanner.startScan()
                 scanHandler.postDelayed({ this.onScanComplete() }, SCAN_DURATION.toLong())
 
-                builder.setResponse(resources.getString(R.string.scanblercprotocol_start_scan_reponse))
+                output.response = resources.getString(R.string.scanblercprotocol_start_scan_reponse)
             }
             action == CONNECT && bleConnection.isBound -> bleConnection.boundService.connect(currentDevice)
             action == DISCONNECT && bleConnection.isBound -> bleConnection.boundService.disconnect()
@@ -152,7 +147,7 @@ internal class ScanBleRcProtocol(printWriter: PrintWriter) : CommsProtocol(print
                 Log.i(TAG, "Started ClientBleService, device: $action")
             }
         }
-        return builder.build()
+        return output
     }
 
     override fun onDeviceFound(result: ScanResultCompat) {

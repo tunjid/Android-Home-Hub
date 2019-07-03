@@ -7,12 +7,21 @@ import androidx.lifecycle.ViewModelProviders
 
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.bluetooth.BluetoothDevice
+import android.content.Context
+import com.tunjid.rcswitchcontrol.data.RfSwitch
 import com.tunjid.rcswitchcontrol.services.ClientBleService
+import com.tunjid.rcswitchcontrol.services.ServerNsdService
 
 class ThingsFragment : ClientBleFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        requireContext().getSharedPreferences(RfSwitch.SWITCH_PREFS, Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean(ServerNsdService.SERVER_FLAG, true)
+                .apply()
+
         ViewModelProviders.of(this).get(NsdClientViewModel::class.java)
     }
 

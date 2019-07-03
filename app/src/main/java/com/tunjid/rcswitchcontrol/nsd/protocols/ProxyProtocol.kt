@@ -1,11 +1,15 @@
 package com.tunjid.rcswitchcontrol.nsd.protocols
 
-import android.util.Log
-
+import android.content.Context
+import android.hardware.usb.UsbManager
+import com.hoho.android.usbserial.driver.CdcAcmSerialDriver
+import com.hoho.android.usbserial.driver.ProbeTable
+import com.hoho.android.usbserial.driver.UsbSerialDriver
+import com.hoho.android.usbserial.driver.UsbSerialProber
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.model.Payload
-
+import com.tunjid.rcswitchcontrol.data.Payload
+import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import java.io.IOException
 import java.io.PrintWriter
 
@@ -18,88 +22,48 @@ import java.io.PrintWriter
 
 class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
-    private var choosing: Boolean = false
-    private var protocol: CommsProtocol? = null
+    private val protocolMap = mutableMapOf(
+            RfProtocol::class.java.name to RfProtocol(printWriter),
+            KnockKnockProtocol::class.java.name to KnockKnockProtocol(printWriter)
+    ).apply { findZigBeeDriver()?.let { driver -> this[ZigBeeProtocol::class.java.name] = ZigBeeProtocol(driver, printWriter) } }
 
     override fun processInput(payload: Payload): Payload {
-        val builder = Payload.builder()
-        builder.setKey(javaClass.name)
-
         val action = payload.action
+        val protocol = protocolMap[payload.key]
 
-        when (action) {
-            PING -> protocol?.let { return it.processInput(payload) }
-                    ?: return closeAndChoose(builder)
-            RESET, CHOOSER -> return closeAndChoose(builder)
-        }
-
-        if (!choosing) return protocol?.processInput(payload) ?: closeAndChoose(builder)
-
-        // Choose the protocol to proxy through
-        when (action) {
-            CONNECT_RC_REMOTE -> protocol = ScanBleRcProtocol(printWriter)
-            RC_REMOTE -> protocol = BleRcProtocol(printWriter)
-            KNOCK_KNOCK -> protocol = KnockKnockProtocol(printWriter)
-            else -> return builder.let {
-                it.setResponse(getString(R.string.proxyprotocol_invalid_command))
-                if (App.isAndroidThings) it.addCommand(CONNECT_RC_REMOTE)
-
-                it.addCommand(KNOCK_KNOCK)
-                        .addCommand(RC_REMOTE)
-                        .addCommand(RESET)
-                        .build()
+        return when {
+            action == PING -> pingAll()
+            protocol != null -> protocol.processInput(payload).apply { addCommand(RESET) }
+            else -> Payload(CommsProtocol::class.java.name).apply {
+                response = getString(R.string.proxyprotocol_invalid_command)
+                addCommand(PING)
             }
         }
-
-        protocol?.let { protocol ->
-            choosing = false
-
-            var result = "Chose Protocol: " + protocol.javaClass.simpleName
-            result += "\n"
-
-            val delegatedPayload = protocol.processInput(PING)
-
-            delegatedPayload.key?.let { builder.setKey(it) }
-            delegatedPayload.data?.let { builder.setData(it) }
-            delegatedPayload.action?.let { builder.setAction(it) }
-            builder.setResponse(result + delegatedPayload.response)
-
-            for (command in delegatedPayload.commands) builder.addCommand(command)
-            builder.addCommand(RESET)
-        }
-
-        return builder.build()
     }
 
-    private fun closeAndChoose(builder: Payload.Builder): Payload {
-        try {
-            close()
-        } catch (e: IOException) {
-            Log.e(TAG, "Failed to close current CommsProtocol in ProxyProtocol", e)
-        }
+    private fun pingAll(): Payload {
+        protocolMap.values.forEach { printWriter.println(it.processInput(PING).serialize()) }
+        return Payload(CommsProtocol::class.java.name).apply { addCommand(PING) }
+    }
 
-        choosing = true
+    private fun findZigBeeDriver(): UsbSerialDriver? {
+        val manager: UsbManager = App.instance.getSystemService(Context.USB_SERVICE) as UsbManager
 
-        builder.setResponse(appContext.getString(R.string.proxyprotocol_ping_response))
-                .addCommand(KNOCK_KNOCK)
-                .addCommand(RC_REMOTE)
-                .addCommand(RESET)
+        val dongleLookup = ProbeTable().apply { addProduct(ZigBeeProtocol.TI_VENDOR_ID, ZigBeeProtocol.CC2531_PRODUCT_ID, CdcAcmSerialDriver::class.java) }
 
-        if (App.isAndroidThings) builder.addCommand(CONNECT_RC_REMOTE)
+        val drivers = UsbSerialProber(dongleLookup).findAllDrivers(manager)
 
-        return builder.build()
+        return if (drivers.isEmpty()) null else drivers[0]
     }
 
     @Throws(IOException::class)
-    override fun close() = protocol?.close() ?: Unit
-
-    companion object {
-
-        private val TAG = ProxyProtocol::class.java.simpleName
-
-        private const val CHOOSER = "choose"
-        private const val KNOCK_KNOCK = "Knock Knock Jokes"
-        private const val RC_REMOTE = "Control Remote Device"
-        private const val CONNECT_RC_REMOTE = "Connect Remote Device"
+    override fun close() {
+        protocolMap.values.forEach {
+            try {
+                it.close()
+            } catch (exception: IOException) {
+                exception.printStackTrace()
+            }
+        }
     }
 }

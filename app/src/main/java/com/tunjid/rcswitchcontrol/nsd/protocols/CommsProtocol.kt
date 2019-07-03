@@ -4,7 +4,8 @@ import android.content.Context
 import androidx.annotation.StringRes
 
 import com.tunjid.rcswitchcontrol.App
-import com.tunjid.rcswitchcontrol.model.Payload
+import com.tunjid.rcswitchcontrol.data.Payload
+import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserialize
 
 import java.io.Closeable
 import java.io.PrintWriter
@@ -21,9 +22,9 @@ abstract class CommsProtocol internal constructor(internal val printWriter: Prin
     val appContext: Context = App.instance
 
     fun processInput(input: String?): Payload = processInput(when (input) {
-        null, PING -> Payload.builder().setAction(PING).build()
-        RESET -> Payload.builder().setAction(RESET).build()
-        else -> Payload.deserialize(input)
+        null, PING -> Payload(CommsProtocol::class.java.name).apply { action = PING }
+        RESET -> Payload(CommsProtocol::class.java.name).apply { action = RESET }
+        else -> input.deserialize(Payload::class)
     })
 
     protected fun getString(@StringRes id: Int): String = appContext.getString(id)

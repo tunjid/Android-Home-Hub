@@ -1,12 +1,10 @@
-package com.tunjid.rcswitchcontrol.model
+package com.tunjid.rcswitchcontrol.data
 
-import android.content.Context.MODE_PRIVATE
 import android.os.Parcel
 import android.os.Parcelable
 import android.util.Base64
 import androidx.annotation.StringDef
-import com.google.gson.Gson
-import com.tunjid.rcswitchcontrol.App
+import com.tunjid.rcswitchcontrol.nsd.protocols.RfProtocol
 import java.lang.annotation.Retention
 import java.lang.annotation.RetentionPolicy.SOURCE
 import java.util.*
@@ -18,9 +16,10 @@ import java.util.*
  * Created by tj.dahunsi on 3/11/17.
  */
 
-class RcSwitch() : Parcelable {
+class RfSwitch() : Parcelable, Device {
 
-    var name: String = "Switch"
+    override var name: String = "Switch"
+    override val key: String = RfProtocol::class.java.name
 
     private var bitLength: Byte = 0
     private var protocol: Byte = 0
@@ -56,14 +55,14 @@ class RcSwitch() : Parcelable {
     fun getEncodedTransmission(state: Boolean): String =
             Base64.encodeToString(getTransmission(state), Base64.DEFAULT)
 
-    fun serialize(): String = gson.toJson(this)
+    override fun getId(): String = "$onCode-$offCode"
 
     // Equals considers the code only, not the name
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || javaClass != other.javaClass) return false
 
-        val rcSwitch = other as RcSwitch?
+        val rcSwitch = other as RfSwitch?
 
         return Arrays.equals(onCode, rcSwitch!!.onCode) && Arrays.equals(offCode, rcSwitch.offCode)
 
@@ -94,7 +93,7 @@ class RcSwitch() : Parcelable {
         var state: String
             internal set
 
-        private lateinit var rcSwitch: RcSwitch
+        private lateinit var rfSwitch: RfSwitch
 
         init {
             state = ON_CODE
@@ -103,24 +102,23 @@ class RcSwitch() : Parcelable {
         fun withOnCode(code: ByteArray) {
             state = OFF_CODE
 
-            rcSwitch = RcSwitch()
+            rfSwitch = RfSwitch()
 
-            rcSwitch.bitLength = code[8]
-            rcSwitch.protocol = code[9]
+            rfSwitch.bitLength = code[8]
+            rfSwitch.protocol = code[9]
 
-            System.arraycopy(code, 0, rcSwitch.onCode, 0, 4)
-            System.arraycopy(code, 4, rcSwitch.pulseLength, 0, 4)
+            System.arraycopy(code, 0, rfSwitch.onCode, 0, 4)
+            System.arraycopy(code, 4, rfSwitch.pulseLength, 0, 4)
         }
 
-        fun withOffCode(code: ByteArray): RcSwitch {
+        fun withOffCode(code: ByteArray): RfSwitch {
             state = ON_CODE
-            System.arraycopy(code, 0, rcSwitch.offCode, 0, 4)
-            return rcSwitch
+            System.arraycopy(code, 0, rfSwitch.offCode, 0, 4)
+            return rfSwitch
         }
     }
 
     companion object {
-        private const val SWITCHES_KEY = "Switches"
 
         // Shared preference key
         const val SWITCH_PREFS = "SwitchPrefs"
@@ -128,33 +126,13 @@ class RcSwitch() : Parcelable {
         const val ON_CODE = "on"
         const val OFF_CODE = "off"
 
-        private val gson = Gson()
-
-        val savedSwitches: MutableList<RcSwitch>
-            get() = deserializeList(serializedSavedSwitches)
-
-        val serializedSavedSwitches: String
-            get() = App.instance.getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE)
-                    .getString(SWITCHES_KEY, "")!!
-
-        fun deserializeList(serialized: String): MutableList<RcSwitch> {
-            val array = gson.fromJson(serialized, Array<RcSwitch>::class.java)
-            return if (array == null) mutableListOf() else mutableListOf(*array)
-        }
-
-        fun saveSwitches(switches: List<RcSwitch>) {
-            val preferences = App.instance.getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE)
-            preferences.edit().putString(SWITCHES_KEY, gson.toJson(switches)).apply()
-        }
-
-        fun deserialize(input: String): RcSwitch = gson.fromJson(input, RcSwitch::class.java)
 
         @JvmField
         @Suppress("unused")
-        val CREATOR: Parcelable.Creator<RcSwitch> = object : Parcelable.Creator<RcSwitch> {
-            override fun createFromParcel(`in`: Parcel): RcSwitch = RcSwitch(`in`)
+        val CREATOR: Parcelable.Creator<RfSwitch> = object : Parcelable.Creator<RfSwitch> {
+            override fun createFromParcel(`in`: Parcel): RfSwitch = RfSwitch(`in`)
 
-            override fun newArray(size: Int): Array<RcSwitch?> = arrayOfNulls(size)
+            override fun newArray(size: Int): Array<RfSwitch?> = arrayOfNulls(size)
         }
     }
 }

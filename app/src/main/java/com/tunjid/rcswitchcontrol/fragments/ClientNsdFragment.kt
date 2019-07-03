@@ -49,6 +49,15 @@ class ClientNsdFragment : BaseFragment(),
         val commandTabs = root.findViewById<TabLayout>(R.id.command_tabs)
         val bottomSheet = root.findViewById<ViewGroup>(R.id.bottom_sheet)
         val bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet)
+        val offset = requireContext().resources.getDimensionPixelSize(R.dimen.triple_and_half_margin)
+
+        val calculateTranslation: (slideOffset: Float) -> Float = calculate@{ slideOffset ->
+            if (slideOffset == 0F) return@calculate -bottomSheetBehavior.peekHeight.toFloat()
+
+            val multiplier = if (slideOffset < 0) slideOffset else slideOffset
+            val height = if (slideOffset < 0) bottomSheetBehavior.peekHeight else bottomSheet.height - offset
+            (-height * multiplier)-bottomSheetBehavior.peekHeight
+        }
 
         connectionStatus = root.findViewById(R.id.connection_status)
 
@@ -67,9 +76,11 @@ class ClientNsdFragment : BaseFragment(),
             }
         })
 
-        bottomSheetBehavior.setExpandedOffset(requireContext().resources.getDimensionPixelSize(R.dimen.triple_and_half_margin))
+        bottomSheetBehavior.setExpandedOffset(offset)
         bottomSheetBehavior.setBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
-            override fun onSlide(bottomSheet: View, slideOffset: Float) {}
+            override fun onSlide(bottomSheet: View, slideOffset: Float) {
+                mainPager.translationY = calculateTranslation(slideOffset)
+            }
 
             override fun onStateChanged(bottomSheet: View, newState: Int) {
                 if (newState == STATE_HIDDEN && mainPager.currentItem == HISTORY) bottomSheetBehavior.state = STATE_COLLAPSED

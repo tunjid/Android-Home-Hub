@@ -13,8 +13,8 @@ import com.tunjid.androidbootstrap.material.animator.FabExtensionAnimator
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
 import com.tunjid.rcswitchcontrol.data.Device
-import com.tunjid.rcswitchcontrol.data.RcSwitch
-import com.tunjid.rcswitchcontrol.data.RcSwitch.Companion.SWITCH_PREFS
+import com.tunjid.rcswitchcontrol.data.RfSwitch
+import com.tunjid.rcswitchcontrol.data.RfSwitch.Companion.SWITCH_PREFS
 import com.tunjid.rcswitchcontrol.data.persistence.RfSwitchDataStore
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.services.ClientBleService.Companion.BLUETOOTH_DEVICE
@@ -35,7 +35,7 @@ class BleClientViewModel(application: Application) : AndroidViewModel(applicatio
     private var device: BluetoothDevice? = null
 
     private val switchStore = RfSwitchDataStore()
-    private val switchCreator: RcSwitch.SwitchCreator = RcSwitch.SwitchCreator()
+    private val switchCreator: RfSwitch.SwitchCreator = RfSwitch.SwitchCreator()
 
     private val disposable: CompositeDisposable = CompositeDisposable()
     private val bleConnectedProcessor: PublishProcessor<String> = PublishProcessor.create()
@@ -58,7 +58,7 @@ class BleClientViewModel(application: Application) : AndroidViewModel(applicatio
             val context = getApplication<Application>()
 
             return when {
-                switchCreator.state == RcSwitch.ON_CODE -> FabExtensionAnimator.newState(context.getString(R.string.sniff_code, context.getString(R.string.on)), ContextCompat.getDrawable(context, R.drawable.ic_on_24dp))
+                switchCreator.state == RfSwitch.ON_CODE -> FabExtensionAnimator.newState(context.getString(R.string.sniff_code, context.getString(R.string.on)), ContextCompat.getDrawable(context, R.drawable.ic_on_24dp))
                 else -> FabExtensionAnimator.newState(context.getString(R.string.sniff_code, context.getString(R.string.off)), ContextCompat.getDrawable(context, R.drawable.ic_off_24dp))
             }
         }
@@ -141,15 +141,15 @@ class BleClientViewModel(application: Application) : AndroidViewModel(applicatio
                     .writeCharacteristicArray(C_HANDLE_CONTROL, byteArrayOf(STATE_SNIFFING))
     }
 
-    fun toggleSwitch(rcSwitch: RcSwitch, state: Boolean) {
+    fun toggleSwitch(rfSwitch: RfSwitch, state: Boolean) {
         if (bleConnection.isBound)
             bleConnection.boundService
-                    .writeCharacteristicArray(C_HANDLE_TRANSMITTER, rcSwitch.getTransmission(state))
+                    .writeCharacteristicArray(C_HANDLE_TRANSMITTER, rfSwitch.getTransmission(state))
     }
 
-    fun onSwitchUpdated(rcSwitch: RcSwitch): Int {
+    fun onSwitchUpdated(rfSwitch: RfSwitch): Int {
         saveSwitches()
-        return switches.indexOf(rcSwitch)
+        return switches.indexOf(rfSwitch)
     }
 
     fun forgetBluetoothDevice() {
@@ -196,8 +196,8 @@ class BleClientViewModel(application: Application) : AndroidViewModel(applicatio
             ClientBleService.ACTION_SNIFFER -> {
                 rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_SNIFFER)
                 when (switchCreator.state) {
-                    RcSwitch.ON_CODE -> switchCreator.withOnCode(rawData)
-                    RcSwitch.OFF_CODE -> {
+                    RfSwitch.ON_CODE -> switchCreator.withOnCode(rawData)
+                    RfSwitch.OFF_CODE -> {
                         val rcSwitch = switchCreator.withOffCode(rawData)
                         rcSwitch.name = "Switch " + (switches.size + 1)
 
@@ -222,5 +222,5 @@ class BleClientViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun saveSwitches() = switchStore.saveSwitches(switches.filter { it is RcSwitch }.map { it as RcSwitch })
+    fun saveSwitches() = switchStore.saveSwitches(switches.filter { it is RfSwitch }.map { it as RfSwitch })
 }

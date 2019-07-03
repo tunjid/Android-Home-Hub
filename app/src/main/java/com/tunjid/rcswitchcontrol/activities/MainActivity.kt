@@ -31,7 +31,7 @@ import com.tunjid.rcswitchcontrol.fragments.ClientBleFragment
 import com.tunjid.rcswitchcontrol.fragments.ClientNsdFragment
 import com.tunjid.rcswitchcontrol.fragments.StartFragment
 import com.tunjid.rcswitchcontrol.fragments.ThingsFragment
-import com.tunjid.rcswitchcontrol.data.RcSwitch
+import com.tunjid.rcswitchcontrol.data.RfSwitch
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.services.ClientBleService.Companion.BLUETOOTH_DEVICE
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
@@ -83,7 +83,7 @@ class MainActivity : BaseActivity() {
         supportFragmentManager.registerFragmentLifecycleCallbacks(fragmentViewCreatedCallback, false)
         setContentView(R.layout.activity_main)
 
-        val preferences = getSharedPreferences(RcSwitch.SWITCH_PREFS, Context.MODE_PRIVATE)
+        val preferences = getSharedPreferences(RfSwitch.SWITCH_PREFS, Context.MODE_PRIVATE)
 
         val lastConnectedDevice = preferences.getString(ClientBleService.LAST_PAIRED_DEVICE, "")
         val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager

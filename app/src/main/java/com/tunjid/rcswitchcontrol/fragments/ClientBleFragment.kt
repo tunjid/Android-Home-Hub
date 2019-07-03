@@ -25,7 +25,7 @@ import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.activities.MainActivity
 import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter
 import com.tunjid.rcswitchcontrol.data.Device
-import com.tunjid.rcswitchcontrol.data.RcSwitch
+import com.tunjid.rcswitchcontrol.data.RfSwitch
 import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
 import com.tunjid.rcswitchcontrol.dialogfragments.NameServiceDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
@@ -171,14 +171,14 @@ open class ClientBleFragment : BaseFragment(),
 
     override fun showsFab(): Boolean = true
 
-    override fun onLongClicked(rcSwitch: RcSwitch) =
-            RenameSwitchDialogFragment.newInstance(rcSwitch).show(childFragmentManager, "")
+    override fun onLongClicked(rfSwitch: RfSwitch) =
+            RenameSwitchDialogFragment.newInstance(rfSwitch).show(childFragmentManager, "")
 
-    override fun onSwitchToggled(rcSwitch: RcSwitch, state: Boolean) =
-            viewModel.toggleSwitch(rcSwitch, state)
+    override fun onSwitchToggled(rfSwitch: RfSwitch, state: Boolean) =
+            viewModel.toggleSwitch(rfSwitch, state)
 
-    override fun onSwitchRenamed(rcSwitch: RcSwitch) =
-            listManager.notifyItemChanged(viewModel.onSwitchUpdated(rcSwitch))
+    override fun onSwitchRenamed(rfSwitch: RfSwitch) =
+            listManager.notifyItemChanged(viewModel.onSwitchUpdated(rfSwitch))
 
     override fun onLongClicked(device: ZigBeeDevice) {
     }

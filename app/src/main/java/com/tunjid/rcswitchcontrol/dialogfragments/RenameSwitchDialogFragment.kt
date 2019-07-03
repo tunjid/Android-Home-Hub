@@ -7,17 +7,17 @@ import android.widget.EditText
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.DialogFragment
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.data.RcSwitch
+import com.tunjid.rcswitchcontrol.data.RfSwitch
 
 
 @SuppressLint("InflateParams")
 class RenameSwitchDialogFragment : DialogFragment() {
 
-    private lateinit var rcSwitch: RcSwitch
+    private lateinit var rfSwitch: RfSwitch
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        rcSwitch = arguments!!.getParcelable(SWITCH)!!
+        rfSwitch = arguments!!.getParcelable(SWITCH)!!
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -28,14 +28,14 @@ class RenameSwitchDialogFragment : DialogFragment() {
         val view = inflater.inflate(R.layout.dialog_rename_switch, null)
         val editText = view.findViewById<EditText>(R.id.switch_name)
 
-        editText.setText(rcSwitch.name)
+        editText.setText(rfSwitch.name)
 
         return AlertDialog.Builder(activity, R.style.DialogTheme)
                 .setView(view)
                 .setTitle(R.string.rename_switch)
                 .setPositiveButton(R.string.rename) { _, _ ->
-                    rcSwitch.name = editText.text.toString()
-                    listener?.onSwitchRenamed(rcSwitch)
+                    rfSwitch.name = editText.text.toString()
+                    listener?.onSwitchRenamed(rfSwitch)
                     dismiss()
                 }
                 .setNegativeButton(R.string.cancel) { _, _ -> dismiss() }
@@ -43,18 +43,18 @@ class RenameSwitchDialogFragment : DialogFragment() {
     }
 
     interface SwitchNameListener {
-        fun onSwitchRenamed(rcSwitch: RcSwitch)
+        fun onSwitchRenamed(rfSwitch: RfSwitch)
     }
 
     companion object {
 
         private const val SWITCH = "SWITCH"
 
-        fun newInstance(rcSwitch: RcSwitch): RenameSwitchDialogFragment {
+        fun newInstance(rfSwitch: RfSwitch): RenameSwitchDialogFragment {
 
             val fragment = RenameSwitchDialogFragment()
             val args = Bundle()
-            args.putParcelable(SWITCH, rcSwitch)
+            args.putParcelable(SWITCH, rfSwitch)
             fragment.arguments = args
             return fragment
         }

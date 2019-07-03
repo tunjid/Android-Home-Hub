@@ -4,7 +4,7 @@ import android.view.ViewGroup
 import com.tunjid.androidbootstrap.recyclerview.InteractiveAdapter
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.data.Device
-import com.tunjid.rcswitchcontrol.data.RcSwitch
+import com.tunjid.rcswitchcontrol.data.RfSwitch
 import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
 
 typealias ViewHolder =  DeviceViewHolder<out InteractiveAdapter.AdapterListener, out Device>
@@ -25,13 +25,13 @@ class RemoteSwitchAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) = when (val device = switches[position]) {
-        is RcSwitch -> (holder as RfDeviceViewHolder).bind(device)
+        is RfSwitch -> (holder as RfDeviceViewHolder).bind(device)
         is ZigBeeDevice -> (holder as ZigBeeDeviceViewHolder).bind(device)
         else -> throw IllegalArgumentException("Invalid object type")
     }
 
     override fun getItemViewType(position: Int): Int = when (switches[position]) {
-        is RcSwitch -> RF_DEVICE
+        is RfSwitch -> RF_DEVICE
         is ZigBeeDevice -> ZIGBEE_DEVICE
         else -> throw IllegalArgumentException("Invalid object type")
     }

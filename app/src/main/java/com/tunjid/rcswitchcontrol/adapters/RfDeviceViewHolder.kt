@@ -2,15 +2,15 @@ package com.tunjid.rcswitchcontrol.adapters
 
 import android.view.View
 import com.tunjid.androidbootstrap.recyclerview.InteractiveAdapter
-import com.tunjid.rcswitchcontrol.data.RcSwitch
+import com.tunjid.rcswitchcontrol.data.RfSwitch
 
 // ViewHolder for actual content
 class RfDeviceViewHolder internal constructor(
         itemView: View,
         listener: RfDeviceViewHolder.Listener
-) : DeviceViewHolder<RfDeviceViewHolder.Listener, RcSwitch>(itemView, listener) {
+) : DeviceViewHolder<RfDeviceViewHolder.Listener, RfSwitch>(itemView, listener) {
 
-    override fun bind(device: RcSwitch) {
+    override fun bind(device: RfSwitch) {
         super.bind(device)
 
         deviceName.text = device.name
@@ -24,8 +24,8 @@ class RfDeviceViewHolder internal constructor(
     }
 
     interface Listener : InteractiveAdapter.AdapterListener {
-        fun onLongClicked(rcSwitch: RcSwitch)
+        fun onLongClicked(rfSwitch: RfSwitch)
 
-        fun onSwitchToggled(rcSwitch: RcSwitch, state: Boolean)
+        fun onSwitchToggled(rfSwitch: RfSwitch, state: Boolean)
     }
 }

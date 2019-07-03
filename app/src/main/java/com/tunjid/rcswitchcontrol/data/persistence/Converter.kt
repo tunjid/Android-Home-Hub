@@ -20,7 +20,7 @@ class Converter<out T : Any> internal constructor(private val kClass: KClass<T>)
 
         val converter = Gson()
         private val payload = Converter(Payload::class)
-        private val rcSwitch = Converter(RcSwitch::class)
+        private val rcSwitch = Converter(RfSwitch::class)
         private val zigBeeDevice = Converter(ZigBeeDevice::class)
         private val zigBeeCommandArgs = Converter(ZigBeeCommandArgs::class)
         private val zigBeeCommandInfo = Converter(ZigBeeCommandInfo::class)
@@ -35,7 +35,7 @@ class Converter<out T : Any> internal constructor(private val kClass: KClass<T>)
 
         private fun <T : Any> converter(kClass: KClass<T>): Converter<T> = when (kClass) {
             Payload::class -> payload
-            RcSwitch::class -> rcSwitch
+            RfSwitch::class -> rcSwitch
             ZigBeeDevice::class -> zigBeeDevice
             ZigBeeCommandArgs::class -> zigBeeCommandArgs
             ZigBeeCommandInfo::class -> zigBeeCommandInfo

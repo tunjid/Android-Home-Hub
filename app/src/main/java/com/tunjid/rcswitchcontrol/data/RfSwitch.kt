@@ -16,7 +16,7 @@ import java.util.*
  * Created by tj.dahunsi on 3/11/17.
  */
 
-class RcSwitch() : Parcelable, Device {
+class RfSwitch() : Parcelable, Device {
 
     override var name: String = "Switch"
     override val key: String = BleRcProtocol::class.java.name
@@ -62,7 +62,7 @@ class RcSwitch() : Parcelable, Device {
         if (this === other) return true
         if (other == null || javaClass != other.javaClass) return false
 
-        val rcSwitch = other as RcSwitch?
+        val rcSwitch = other as RfSwitch?
 
         return Arrays.equals(onCode, rcSwitch!!.onCode) && Arrays.equals(offCode, rcSwitch.offCode)
 
@@ -93,7 +93,7 @@ class RcSwitch() : Parcelable, Device {
         var state: String
             internal set
 
-        private lateinit var rcSwitch: RcSwitch
+        private lateinit var rfSwitch: RfSwitch
 
         init {
             state = ON_CODE
@@ -102,19 +102,19 @@ class RcSwitch() : Parcelable, Device {
         fun withOnCode(code: ByteArray) {
             state = OFF_CODE
 
-            rcSwitch = RcSwitch()
+            rfSwitch = RfSwitch()
 
-            rcSwitch.bitLength = code[8]
-            rcSwitch.protocol = code[9]
+            rfSwitch.bitLength = code[8]
+            rfSwitch.protocol = code[9]
 
-            System.arraycopy(code, 0, rcSwitch.onCode, 0, 4)
-            System.arraycopy(code, 4, rcSwitch.pulseLength, 0, 4)
+            System.arraycopy(code, 0, rfSwitch.onCode, 0, 4)
+            System.arraycopy(code, 4, rfSwitch.pulseLength, 0, 4)
         }
 
-        fun withOffCode(code: ByteArray): RcSwitch {
+        fun withOffCode(code: ByteArray): RfSwitch {
             state = ON_CODE
-            System.arraycopy(code, 0, rcSwitch.offCode, 0, 4)
-            return rcSwitch
+            System.arraycopy(code, 0, rfSwitch.offCode, 0, 4)
+            return rfSwitch
         }
     }
 
@@ -129,10 +129,10 @@ class RcSwitch() : Parcelable, Device {
 
         @JvmField
         @Suppress("unused")
-        val CREATOR: Parcelable.Creator<RcSwitch> = object : Parcelable.Creator<RcSwitch> {
-            override fun createFromParcel(`in`: Parcel): RcSwitch = RcSwitch(`in`)
+        val CREATOR: Parcelable.Creator<RfSwitch> = object : Parcelable.Creator<RfSwitch> {
+            override fun createFromParcel(`in`: Parcel): RfSwitch = RfSwitch(`in`)
 
-            override fun newArray(size: Int): Array<RcSwitch?> = arrayOfNulls(size)
+            override fun newArray(size: Int): Array<RfSwitch?> = arrayOfNulls(size)
         }
     }
 }

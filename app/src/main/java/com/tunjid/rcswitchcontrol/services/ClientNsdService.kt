@@ -19,7 +19,7 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.activities.MainActivity
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
 import com.tunjid.rcswitchcontrol.data.Payload
-import com.tunjid.rcswitchcontrol.data.RcSwitch.Companion.SWITCH_PREFS
+import com.tunjid.rcswitchcontrol.data.RfSwitch.Companion.SWITCH_PREFS
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService
 import io.reactivex.disposables.CompositeDisposable

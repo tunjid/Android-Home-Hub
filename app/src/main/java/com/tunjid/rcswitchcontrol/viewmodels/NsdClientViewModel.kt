@@ -12,7 +12,7 @@ import com.tunjid.androidbootstrap.recyclerview.diff.Differentiable
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
 import com.tunjid.rcswitchcontrol.data.*
-import com.tunjid.rcswitchcontrol.data.RcSwitch.Companion.SWITCH_PREFS
+import com.tunjid.rcswitchcontrol.data.RfSwitch.Companion.SWITCH_PREFS
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserialize
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserializeList
 import com.tunjid.rcswitchcontrol.nsd.protocols.BleRcProtocol
@@ -174,7 +174,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
             BleRcProtocol::class.java.name -> when (action) {
                 ClientBleService.ACTION_TRANSMITTER,
                 context.getString(R.string.blercprotocol_delete_command),
-                context.getString(R.string.blercprotocol_rename_command) -> serialized.deserializeList(RcSwitch::class)
+                context.getString(R.string.blercprotocol_rename_command) -> serialized.deserializeList(RfSwitch::class)
                 else -> null
             }
             ZigBeeProtocol::class.java.name -> when (action) {

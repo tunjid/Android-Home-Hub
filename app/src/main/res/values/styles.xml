@@ -7,6 +7,9 @@
         <item name="colorAccent">@color/colorAccent</item>
         <item name="app_background_color">@color/app_background</item>
         <item name="card_background_color">@color/card_background</item>
+        <item name="text_color">@color/text_color</item>
+        <item name="tab_text_selected_color">@color/text_color</item>
+        <item name="tab_text_unselected_color">@color/dark_grey</item>
         <item name="android:windowBackground">@color/app_background</item>
         <item name="android:textColor">@color/text_color</item>
         <item name="android:textColorPrimary">@color/text_color</item>

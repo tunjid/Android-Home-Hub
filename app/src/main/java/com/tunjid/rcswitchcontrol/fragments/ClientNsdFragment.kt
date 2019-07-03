@@ -11,8 +11,6 @@ import androidx.lifecycle.ViewModelProviders
 import androidx.viewpager.widget.ViewPager
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetBehavior.*
-import com.google.android.material.snackbar.Snackbar
-import com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
 import com.google.android.material.tabs.TabLayout
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
@@ -88,7 +86,6 @@ class ClientNsdFragment : BaseFragment(),
 
     override fun onResume() {
         super.onResume()
-        refreshAdapter()
         disposables.add(viewModel.listen().subscribe(this::onPayloadReceived, Throwable::printStackTrace))
         disposables.add(viewModel.connectionState().subscribe(this::onConnectionStateChanged, Throwable::printStackTrace))
     }
@@ -138,20 +135,8 @@ class ClientNsdFragment : BaseFragment(),
     }
 
     private fun onPayloadReceived(state: State) {
-        state.prompt?.let { Snackbar.make(mainPager, it, LENGTH_SHORT).show() }
         state.commandInfo?.let { ZigBeeArgumentDialogFragment.newInstance(it).show(childFragmentManager, "info") }
-
-        refreshAdapter()
-    }
-
-    private fun refreshAdapter() {
-        val count = commandsPager.adapter?.count ?: return
-        val keySize = viewModel.keys.size
-
-        if (count != keySize) {
-            commandsPager.adapter?.notifyDataSetChanged()
-
-        }
+        if (state is State.Commands && state.isNew) commandsPager.adapter?.notifyDataSetChanged()
     }
 
     companion object {
@@ -186,13 +171,13 @@ class ClientNsdFragment : BaseFragment(),
 
         fun commandAdapter(keys: Set<String>, fragmentManager: FragmentManager) = object : FragmentStatePagerAdapter(fragmentManager, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
 
-            override fun getItem(position: Int): Fragment = NsdHistoryFragment.newInstance(items()[position])
+            override fun getItem(position: Int): Fragment = NsdHistoryFragment.newInstance(item(position))
 
-            override fun getPageTitle(position: Int): CharSequence? = items()[position].split(".").last()
+            override fun getPageTitle(position: Int): CharSequence? = item(position).split(".").last().toUpperCase().removeSuffix("PROTOCOL")
 
             override fun getCount(): Int = keys.size
 
-            private fun items() = keys.map { it }.sorted()
+            private fun item(index: Int) = keys.map { it }.sorted()[index]
         }
     }
 }

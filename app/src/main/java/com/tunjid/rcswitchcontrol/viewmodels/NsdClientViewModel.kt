@@ -29,21 +29,6 @@ import java.util.concurrent.TimeUnit
 
 class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
 
-    private val commands: MutableMap<String, MutableList<Record>> = mutableMapOf()
-    private val history: MutableList<Record> = mutableListOf()
-
-    val devices: MutableList<Device> = mutableListOf()
-
-    val keys: Set<String> = commands.keys
-
-    private val noisyCommands: Set<String> = setOf(
-            ClientBleService.ACTION_TRANSMITTER,
-            app.getString(R.string.scanblercprotocol_sniff),
-            app.getString(R.string.blercprotocol_rename_command),
-            app.getString(R.string.blercprotocol_delete_command),
-            app.getString(R.string.blercprotocol_refresh_switches_command)
-    )
-
     private val disposable: CompositeDisposable = CompositeDisposable()
 
     private val stateProcessor: PublishProcessor<State> = PublishProcessor.create()
@@ -51,6 +36,14 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
     private val outPayloadProcessor: PublishProcessor<Payload> = PublishProcessor.create()
     private val connectionStateProcessor: PublishProcessor<String> = PublishProcessor.create()
     private val nsdConnection: ServiceConnection<ClientNsdService> = ServiceConnection(ClientNsdService::class.java, this::onServiceConnected)
+
+    private val commands: MutableMap<String, MutableList<Record>> = mutableMapOf()
+    private val history: MutableList<Record> = mutableListOf()
+
+    val devices: MutableList<Device> = mutableListOf()
+
+    val keys: Set<String>
+        get() = commands.keys
 
     val isBound: Boolean
         get() = nsdConnection.isBound
@@ -167,11 +160,6 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
             { _, responses -> responses },
             { response -> Differentiable.fromCharSequence { response.entry } })
 
-    private fun Payload.getMessage(): String? {
-        response ?: return null
-        return if (noisyCommands.contains(action)) response else null
-    }
-
     private fun Payload.extractCommandInfo(): ZigBeeCommandInfo? {
         if (BleRcProtocol::class.java.name == key) return null
         if (extractDevices() != null) return null
@@ -211,12 +199,12 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
         disposable.add(inPayloadProcessor.concatMapIterable { payload ->
             mutableListOf<State>().apply {
                 val key = payload.key
-                val message = payload.getMessage()
+                val isNew = keys.contains(key)
                 val fetchedDevices = payload.extractDevices()
                 val commandInfo = payload.extractCommandInfo()
 
-                add(diffCommands(payload).let { State.Commands(key, getCommands(key), it) })
-                add(diffHistory(payload).let { State.History(key, message, commandInfo, history, it) })
+                add(diffHistory(payload).let { State.History(key, commandInfo, history, it) })
+                add(diffCommands(payload).let { State.Commands(key, isNew, getCommands(key), it) })
                 if (fetchedDevices != null) add(diffDevices(fetchedDevices).let { State.Devices(key, devices, it) })
             }
         }
@@ -244,28 +232,27 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
 
     sealed class State(
             open val key: String,
-            open val prompt: String?,
             open val commandInfo: ZigBeeCommandInfo?,
             val result: DiffResult
     ) {
         class History(
                 override val key: String,
-                override val prompt: String?,
                 override val commandInfo: ZigBeeCommandInfo?,
                 internal val current: List<Record>,
                 internal val diff: Diff<Record>
-        ) : State(key, prompt, commandInfo, diff.result)
+        ) : State(key, commandInfo, diff.result)
 
         class Commands(
                 override val key: String,
+                val isNew:Boolean,
                 internal val current: List<Record>,
                 internal val diff: Diff<Record>
-        ) : State(key, null, null, diff.result)
+        ) : State(key, null, diff.result)
 
         class Devices(
                 override val key: String,
                 internal val current: List<Device>,
                 internal val diff: Diff<Device>
-        ) : State(key, null, null, diff.result)
+        ) : State(key, null, diff.result)
     }
 }

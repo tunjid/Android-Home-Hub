@@ -15,8 +15,8 @@ import com.tunjid.rcswitchcontrol.data.*
 import com.tunjid.rcswitchcontrol.data.RfSwitch.Companion.SWITCH_PREFS
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserialize
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserializeList
-import com.tunjid.rcswitchcontrol.nsd.protocols.RfProtocol
 import com.tunjid.rcswitchcontrol.nsd.protocols.CommsProtocol
+import com.tunjid.rcswitchcontrol.nsd.protocols.RfProtocol
 import com.tunjid.rcswitchcontrol.nsd.protocols.ZigBeeProtocol
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
@@ -104,12 +104,8 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
             ClientNsdService.ACTION_SOCKET_CONNECTING,
             ClientNsdService.ACTION_SOCKET_DISCONNECTED -> connectionStateProcessor.onNext(getConnectionText(action))
             ClientNsdService.ACTION_START_NSD_DISCOVERY -> connectionStateProcessor.onNext(getConnectionText(ClientNsdService.ACTION_SOCKET_CONNECTING))
-            ClientNsdService.ACTION_SERVER_RESPONSE -> {
-                val serverResponse = intent.getStringExtra(ClientNsdService.DATA_SERVER_RESPONSE)
-                        ?: return
-                val payload = serverResponse.deserialize(Payload::class)
-
-                inPayloadProcessor.onNext(payload)
+            ClientNsdService.ACTION_SERVER_RESPONSE -> intent.getStringExtra(ClientNsdService.DATA_SERVER_RESPONSE)?.apply {
+                if (isNotEmpty()) inPayloadProcessor.onNext(deserialize(Payload::class))
             }
         }
     }
@@ -218,7 +214,6 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
                         is State.Devices -> Lists.replace(it.current, it.diff.items)
                     }
                 }
-
                 .subscribe(stateProcessor::onNext) { it.printStackTrace(); listenForInputPayloads() })
     }
 
@@ -244,7 +239,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
 
         class Commands(
                 override val key: String,
-                val isNew:Boolean,
+                val isNew: Boolean,
                 internal val current: List<Record>,
                 internal val diff: Diff<Record>
         ) : State(key, null, diff.result)

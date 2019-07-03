@@ -30,12 +30,13 @@ import java.lang.annotation.Retention
 import java.lang.annotation.RetentionPolicy.SOURCE
 import java.net.Socket
 import java.util.*
+import java.util.concurrent.Executors
 
 
 class ClientNsdService : Service(), ClientStartedBoundService {
 
     private var isUserInApp: Boolean = false
-    private var nsdHelper: NsdHelper? = null
+    private lateinit var nsdHelper: NsdHelper
     private var currentService: NsdServiceInfo? = null
 
     @ConnectionState
@@ -73,7 +74,7 @@ class ClientNsdService : Service(), ClientStartedBoundService {
         addChannel(R.string.switch_service, R.string.switch_service_description)
 
         nsdHelper = NsdHelper.getBuilder(this).build()
-        disposable.add(Broadcaster.listen(ACTION_STOP).subscribe({ intent ->
+        disposable.add(Broadcaster.listen(ACTION_STOP).subscribe({
             stopForeground(true)
             tearDown()
             stopSelf()
@@ -102,10 +103,8 @@ class ClientNsdService : Service(), ClientStartedBoundService {
         isUserInApp = false
 
         // Use a notification to tell the user the app is running
-        if (isConnected)
-            startForeground(NOTIFICATION_ID, connectedNotification())
-        else
-            stopForeground(true)// Otherwise, remove the notification and wait for a reconnect
+        if (isConnected) startForeground(NOTIFICATION_ID, connectedNotification())
+        else stopForeground(true) // Otherwise, remove the notification and wait for a reconnect
     }
 
     override fun onAppForeGround() {
@@ -120,7 +119,6 @@ class ClientNsdService : Service(), ClientStartedBoundService {
     }
 
     private fun connect(serviceInfo: NsdServiceInfo) {
-
         // If we're already connected to this service, return
         if (isConnected) return
 
@@ -143,7 +141,7 @@ class ClientNsdService : Service(), ClientStartedBoundService {
     }
 
     protected fun tearDown() {
-        nsdHelper!!.tearDown()
+        nsdHelper.tearDown()
 
         Log.e(TAG, "Tearing down ClientServer")
         if (messageThread != null) messageThread!!.close()
@@ -182,7 +180,8 @@ class ClientNsdService : Service(), ClientStartedBoundService {
             internal var clientNsdService: ClientNsdService) : Thread(), Closeable {
 
         private lateinit var currentSocket: Socket
-        private var out: PrintWriter? = null
+        private lateinit var out: PrintWriter
+        private val pool = Executors.newSingleThreadExecutor()
 
         override fun run() {
             try {
@@ -198,7 +197,7 @@ class ClientNsdService : Service(), ClientStartedBoundService {
                 clientNsdService.connectionState = ACTION_SOCKET_CONNECTED
 
                 if (!clientNsdService.messageQueue.isEmpty()) {
-                    out!!.println(clientNsdService.messageQueue.remove())
+                    out.println(clientNsdService.messageQueue.remove())
                 }
 
                 while (true) {
@@ -226,16 +225,13 @@ class ClientNsdService : Service(), ClientStartedBoundService {
         }
 
         internal fun send(message: String) {
-            if (out == null) return
-
-            if (out!!.checkError()) {
+            if (out.checkError()) {
                 close()
                 Log.d(TAG, "Error writing to server, closing.")
-            } else
-                Thread {
-                    out!!.println(message)
-                    Log.d(TAG, "Connection sent message: $message")
-                }.start()
+            } else pool.submit {
+                out.println(message)
+                Log.d(TAG, "Connection sent message: $message")
+            }
         }
 
         override fun close() {

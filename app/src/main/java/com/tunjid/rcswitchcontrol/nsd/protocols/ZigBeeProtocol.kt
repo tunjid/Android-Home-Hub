@@ -131,8 +131,13 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
         when (val action = payload.action ?: "invalid command") {
             RESET -> reset()
             FORM_NETWORK -> formNetwork()
-            SAVED_DEVICES -> savedDevices()
-            PING -> output.response = (getString(R.string.zigbeeprotocol_ping))
+            PING, SAVED_DEVICES -> output.apply {
+                response = (getString(R.string.zigbeeprotocol_ping))
+                this.action = SAVED_DEVICES
+                data = savedDevices()
+                response = getString(R.string.zigbeeprotocol_saved_devices_request)
+                appendCommands()
+            }
             in availableCommands.keys -> availableCommands[action]?.apply {
                 val commandArgs = payload.data?.deserialize(ZigBeeCommandArgs::class)
                 val needsCommandArgs: Boolean = (commandArgs == null || commandArgs.isInvalid) && syntax.isNotEmpty()
@@ -271,14 +276,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
     private fun savedDevices() = dataStore.readNetworkNodes()
             .map(dataStore::readNode)
             .mapNotNull(this::nodeToZigBeeDevice)
-            .let { devices ->
-                printWriter.println(Payload(this@ZigBeeProtocol.javaClass.name).apply {
-                    action = SAVED_DEVICES
-                    data = devices.serializeList()
-                    response = getString(R.string.zigbeeprotocol_saved_devices_request)
-                    appendCommands()
-                }.serialize())
-            }
+            .let { it.serializeList() }
 
     private fun nodeToZigBeeDevice(node: ZigBeeNodeDao): ZigBeeDevice? =
             node.endpoints.find { it.inputClusters.map { cluster -> cluster.clusterId }.contains(ZclClusterType.ON_OFF.id) }?.let { endpoint ->

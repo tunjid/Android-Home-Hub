@@ -23,7 +23,7 @@ import java.io.PrintWriter
 class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
     private val protocolMap = mutableMapOf(
-            BleRcProtocol::class.java.name to BleRcProtocol(printWriter),
+            RfProtocol::class.java.name to RfProtocol(printWriter),
             KnockKnockProtocol::class.java.name to KnockKnockProtocol(printWriter)
     ).apply { findZigBeeDriver()?.let { driver -> this[ZigBeeProtocol::class.java.name] = ZigBeeProtocol(driver, printWriter) } }
 
@@ -43,7 +43,7 @@ class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
     private fun pingAll(): Payload {
         protocolMap.values.forEach { printWriter.println(it.processInput(PING).serialize()) }
-        return Payload(CommsProtocol::class.java.name)
+        return Payload(CommsProtocol::class.java.name).apply { addCommand(PING) }
     }
 
     private fun findZigBeeDriver(): UsbSerialDriver? {

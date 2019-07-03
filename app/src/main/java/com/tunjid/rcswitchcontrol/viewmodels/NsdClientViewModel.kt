@@ -15,7 +15,7 @@ import com.tunjid.rcswitchcontrol.data.*
 import com.tunjid.rcswitchcontrol.data.RfSwitch.Companion.SWITCH_PREFS
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserialize
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserializeList
-import com.tunjid.rcswitchcontrol.nsd.protocols.BleRcProtocol
+import com.tunjid.rcswitchcontrol.nsd.protocols.RfProtocol
 import com.tunjid.rcswitchcontrol.nsd.protocols.CommsProtocol
 import com.tunjid.rcswitchcontrol.nsd.protocols.ZigBeeProtocol
 import com.tunjid.rcswitchcontrol.services.ClientBleService
@@ -161,7 +161,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
             { response -> Differentiable.fromCharSequence { response.entry } })
 
     private fun Payload.extractCommandInfo(): ZigBeeCommandInfo? {
-        if (BleRcProtocol::class.java.name == key) return null
+        if (RfProtocol::class.java.name == key) return null
         if (extractDevices() != null) return null
         return data?.deserialize(ZigBeeCommandInfo::class)
     }
@@ -171,7 +171,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
         val context = getApplication<Application>()
 
         return when (key) {
-            BleRcProtocol::class.java.name -> when (action) {
+            RfProtocol::class.java.name -> when (action) {
                 ClientBleService.ACTION_TRANSMITTER,
                 context.getString(R.string.blercprotocol_delete_command),
                 context.getString(R.string.blercprotocol_rename_command) -> serialized.deserializeList(RfSwitch::class)

@@ -28,7 +28,7 @@ import java.util.*
  */
 
 @Suppress("PrivatePropertyName")
-class BleRcProtocol internal constructor(printWriter: PrintWriter) : CommsProtocol(printWriter) {
+class RfProtocol internal constructor(printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
     private val SNIFF: String = appContext.getString(R.string.scanblercprotocol_sniff)
     private val RENAME: String = appContext.getString(R.string.blercprotocol_rename_command)
@@ -225,6 +225,6 @@ class BleRcProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
 
     companion object {
 
-        private val TAG = BleRcProtocol::class.java.simpleName
+        private val TAG = RfProtocol::class.java.simpleName
     }
 }

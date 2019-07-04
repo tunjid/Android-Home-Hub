@@ -9,10 +9,10 @@ import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
 
 typealias ViewHolder =  DeviceViewHolder<out InteractiveAdapter.AdapterListener, out Device>
 
-class RemoteSwitchAdapter(
+class DeviceAdapter(
         switchListener: Listener,
         private val switches: List<Device>
-) : InteractiveAdapter<ViewHolder, RemoteSwitchAdapter.Listener>(switchListener) {
+) : InteractiveAdapter<ViewHolder, DeviceAdapter.Listener>(switchListener) {
 
     init {
         setHasStableIds(true)

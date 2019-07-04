@@ -14,7 +14,7 @@ import com.tunjid.androidbootstrap.recyclerview.*
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.adapters.DeviceViewHolder
-import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter
+import com.tunjid.rcswitchcontrol.adapters.DeviceAdapter
 import com.tunjid.rcswitchcontrol.adapters.ZigBeeDeviceViewHolder
 import com.tunjid.rcswitchcontrol.data.Device
 import com.tunjid.rcswitchcontrol.data.RfSwitch
@@ -32,7 +32,7 @@ import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel.State
 typealias ViewHolder = DeviceViewHolder<out InteractiveAdapter.AdapterListener, out Any>
 
 class NsdSwitchFragment : BaseFragment(),
-        RemoteSwitchAdapter.Listener,
+        DeviceAdapter.Listener,
         RenameSwitchDialogFragment.SwitchNameListener,
         ZigBeeArgumentDialogFragment.ZigBeeArgsListener {
 
@@ -54,7 +54,7 @@ class NsdSwitchFragment : BaseFragment(),
         listManager = ListManagerBuilder<ViewHolder, ListPlaceholder<*>>()
                 .withRecyclerView(root.findViewById(R.id.list))
                 .withGridLayoutManager(SpanCountCalculator.spanCount)
-                .withAdapter(RemoteSwitchAdapter(this, viewModel.devices))
+                .withAdapter(DeviceAdapter(this, viewModel.devices))
                 .withSwipeDragOptions(SwipeDragOptionsBuilder<ViewHolder>()
                         .setSwipeConsumer { viewHolder, _ -> onDelete(viewHolder) }
                         .setMovementFlagsFunction(this::swipeDirection)

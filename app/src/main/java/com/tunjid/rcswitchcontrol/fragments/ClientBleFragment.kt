@@ -23,7 +23,7 @@ import com.tunjid.rcswitchcontrol.App.Companion.isServiceRunning
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.activities.MainActivity
-import com.tunjid.rcswitchcontrol.adapters.RemoteSwitchAdapter
+import com.tunjid.rcswitchcontrol.adapters.DeviceAdapter
 import com.tunjid.rcswitchcontrol.data.Device
 import com.tunjid.rcswitchcontrol.data.RfSwitch
 import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
@@ -36,7 +36,7 @@ import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
 import com.tunjid.rcswitchcontrol.viewmodels.BleClientViewModel
 
 open class ClientBleFragment : BaseFragment(),
-        RemoteSwitchAdapter.Listener,
+        DeviceAdapter.Listener,
         RenameSwitchDialogFragment.SwitchNameListener,
         NameServiceDialogFragment.ServiceNameListener {
 
@@ -83,7 +83,7 @@ open class ClientBleFragment : BaseFragment(),
 
         listManager = ListManagerBuilder<ViewHolder, ListPlaceholder<*>>()
                 .withRecyclerView(root.findViewById(R.id.switch_list))
-                .withAdapter(RemoteSwitchAdapter(this, viewModel.switches))
+                .withAdapter(DeviceAdapter(this, viewModel.switches))
                 .withGridLayoutManager(SpanCountCalculator.spanCount)
                 .addScrollListener { _, dy -> if (dy != 0) toggleFab(dy < 0) }
                 .withSwipeDragOptions(SwipeDragOptionsBuilder<ViewHolder>()

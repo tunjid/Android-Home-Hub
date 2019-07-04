@@ -58,7 +58,7 @@
         android:id="@+id/color_picker"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/single_margin"
+        android:layout_marginStart="@dimen/triple_margin"
         android:layout_marginTop="@dimen/single_margin"
         android:background="?attr/selectableItemBackground"
         app:srcCompat="@drawable/ic_palette_24dp" />
@@ -67,8 +67,18 @@
         android:id="@+id/zigbee_icon"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="start|bottom"
+        android:layout_gravity="start|top"
         android:layout_marginStart="@dimen/single_margin"
-        android:layout_marginBottom="@dimen/single_margin"
+        android:layout_marginTop="@dimen/single_margin"
         app:srcCompat="@drawable/ic_zigbee_24dp" />
+
+    <SeekBar
+        android:id="@+id/leveler"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginStart="@dimen/half_margin"
+        android:layout_marginEnd="@dimen/half_margin"
+        android:layout_marginBottom="@dimen/single_margin"
+        android:max="100" />
 </com.google.android.material.card.MaterialCardView>

@@ -192,6 +192,9 @@ open class ClientBleFragment : BaseFragment(),
     override fun color(device: ZigBeeDevice) {
     }
 
+    override fun level(device: ZigBeeDevice, level: Float) {
+    }
+
     override fun onServiceNamed(name: String) = viewModel.nameServer(name)
 
     private fun onConnectionStateChanged(status: String) {

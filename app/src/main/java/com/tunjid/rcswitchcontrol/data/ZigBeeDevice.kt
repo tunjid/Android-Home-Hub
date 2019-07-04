@@ -5,15 +5,12 @@ import android.os.Parcel
 import android.os.Parcelable
 import com.tunjid.androidbootstrap.recyclerview.diff.Differentiable
 import com.tunjid.rcswitchcontrol.nsd.protocols.ZigBeeProtocol
-import com.tunjid.rcswitchcontrol.zigbee.ColorCommand
-import com.tunjid.rcswitchcontrol.zigbee.OffCommand
-import com.tunjid.rcswitchcontrol.zigbee.OnCommand
-import com.tunjid.rcswitchcontrol.zigbee.RediscoverCommand
+import com.tunjid.rcswitchcontrol.zigbee.*
 
-data class ZigBeeDevice(
-        val ieeeAddress: String,
-        val networkAdress: String,
-        val endpoint: String,
+class ZigBeeDevice(
+        private val ieeeAddress: String,
+        private val networkAdress: String,
+        private val endpoint: String,
         override val name: String
 ) : Parcelable, Device {
 
@@ -25,11 +22,19 @@ data class ZigBeeDevice(
             parcel.readString()!!,
             parcel.readString()!!)
 
+    fun rediscoverCommand() = RediscoverCommand().command.let { ZigBeeCommandArgs(it, arrayOf(it, ieeeAddress)) }
+
     fun toggleCommand(state: Boolean) = (if (state) OnCommand() else OffCommand())
             .command
             .let { ZigBeeCommandArgs(it, arrayOf(it, "$networkAdress/$endpoint")) }
 
-    fun rediscoverCommand() = RediscoverCommand().command.let { ZigBeeCommandArgs(it, arrayOf(it, ieeeAddress)) }
+    fun levelCommand(level: Float) = LevelCommand().command.let {
+        ZigBeeCommandArgs(it, arrayOf(
+                it,
+                "$networkAdress/$endpoint",
+                level.toString()
+        ))
+    }
 
     fun colorCommand(color: Int) = ColorCommand().command.let {
         ZigBeeCommandArgs(it, arrayOf(
@@ -52,6 +57,19 @@ data class ZigBeeDevice(
         parcel.writeString(endpoint)
         parcel.writeString(name)
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as ZigBeeDevice
+
+        if (ieeeAddress != other.ieeeAddress) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int = ieeeAddress.hashCode()
 
     override fun describeContents(): Int = 0
 

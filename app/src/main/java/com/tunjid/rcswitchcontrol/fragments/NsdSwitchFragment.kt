@@ -109,8 +109,7 @@ class NsdSwitchFragment : BaseFragment(),
             .setTitle("Choose color")
             .wheelType(ColorPickerView.WHEEL_TYPE.CIRCLE)
             .showLightnessSlider(true)
-            .showAlphaSlider(true)
-            .density(12)
+            .density(16)
             .setOnColorChangedListener {
                 device.colorCommand(it).let { args ->
                     viewModel.dispatchPayload(device.key) {
@@ -121,6 +120,13 @@ class NsdSwitchFragment : BaseFragment(),
             }
             .build()
             .show()
+
+    override fun level(device: ZigBeeDevice, level: Float) = device.levelCommand(level).let { args ->
+        viewModel.dispatchPayload(device.key) {
+            action = args.command
+            data = args.serialize()
+        }
+    }
 
     override fun onSwitchRenamed(rfSwitch: RfSwitch) {
         listManager.notifyItemChanged(viewModel.devices.indexOf(rfSwitch))

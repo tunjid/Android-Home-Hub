@@ -215,9 +215,9 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
                         val fetchedDevices = payload.extractDevices()
                         val commandInfo = payload.extractCommandInfo()
 
-                        add(diffHistory(payload).let { State.History(key, history, it) })
+                        add(diffHistory(payload).let { State.History(key,commandInfo, history, it) })
                         add(diffCommands(payload).let { State.Commands(key, isNew, getCommands(key), it) })
-                        if (fetchedDevices != null) add(diffDevices(fetchedDevices).let { State.Devices(key, commandInfo, devices, it) })
+                        if (fetchedDevices != null) add(diffDevices(fetchedDevices).let { State.Devices(key, devices, it) })
                     }
                 }
                 .subscribeOn(single())
@@ -251,6 +251,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
     ) {
         class History(
                 override val key: String,
+                val commandInfo: ZigBeeCommandInfo?,
                 internal val current: List<Record>,
                 internal val diff: Diff<Record>
         ) : State(key, diff.result)
@@ -264,7 +265,6 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
 
         class Devices(
                 override val key: String,
-                val commandInfo: ZigBeeCommandInfo?,
                 internal val current: List<Device>,
                 internal val diff: Diff<Device>
         ) : State(key, diff.result)

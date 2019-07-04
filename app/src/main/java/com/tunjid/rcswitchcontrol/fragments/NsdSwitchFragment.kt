@@ -13,16 +13,14 @@ import com.flask.colorpicker.builder.ColorPickerDialogBuilder
 import com.tunjid.androidbootstrap.recyclerview.*
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
-import com.tunjid.rcswitchcontrol.adapters.DeviceViewHolder
 import com.tunjid.rcswitchcontrol.adapters.DeviceAdapter
+import com.tunjid.rcswitchcontrol.adapters.DeviceViewHolder
 import com.tunjid.rcswitchcontrol.adapters.ZigBeeDeviceViewHolder
 import com.tunjid.rcswitchcontrol.data.Device
 import com.tunjid.rcswitchcontrol.data.RfSwitch
-import com.tunjid.rcswitchcontrol.data.ZigBeeCommandArgs
 import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
-import com.tunjid.rcswitchcontrol.dialogfragments.ZigBeeArgumentDialogFragment
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
@@ -33,8 +31,7 @@ typealias ViewHolder = DeviceViewHolder<out InteractiveAdapter.AdapterListener, 
 
 class NsdSwitchFragment : BaseFragment(),
         DeviceAdapter.Listener,
-        RenameSwitchDialogFragment.SwitchNameListener,
-        ZigBeeArgumentDialogFragment.ZigBeeArgsListener {
+        RenameSwitchDialogFragment.SwitchNameListener{
 
     private var isDeleting: Boolean = false
 
@@ -136,16 +133,8 @@ class NsdSwitchFragment : BaseFragment(),
         }
     }
 
-    override fun onArgsEntered(args: ZigBeeCommandArgs) =
-            viewModel.dispatchPayload(args.key) {
-                action = args.command
-                data = args.serialize()
-            }
-
     private fun onPayloadReceived(state: State) {
         listManager.onDiff(state.result)
-        if (state is State.Devices)
-            state.commandInfo?.let { ZigBeeArgumentDialogFragment.newInstance(it).show(childFragmentManager, "info") }
     }
 
     private fun swipeDirection(holder: ViewHolder): Int =

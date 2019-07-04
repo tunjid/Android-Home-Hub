@@ -18,6 +18,7 @@ import com.tunjid.rcswitchcontrol.io.ConsoleWriter
 import com.tunjid.rcswitchcontrol.nsd.protocols.CommsProtocol
 import com.tunjid.rcswitchcontrol.nsd.protocols.ProxyProtocol
 import io.reactivex.disposables.CompositeDisposable
+import org.json.JSONObject
 import java.io.Closeable
 import java.io.IOException
 import java.io.PrintWriter
@@ -164,7 +165,7 @@ class ServerNsdService : Service() {
 
         @Synchronized
         private fun broadcastToClients(output: String) {
-            Log.d(TAG, "Writing to all connections: $output")
+            Log.d(TAG, "Writing to all connections: ${JSONObject(output).toString(4)}")
             pool.execute { portMap.values.forEach { it.outWriter.println(output) } }
         }
 

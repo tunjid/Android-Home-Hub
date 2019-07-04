@@ -24,7 +24,8 @@ import io.reactivex.Flowable
 import io.reactivex.android.schedulers.AndroidSchedulers.mainThread
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.processors.PublishProcessor
-import io.reactivex.schedulers.Schedulers.io
+import io.reactivex.schedulers.Schedulers.single
+import java.util.*
 import java.util.concurrent.TimeUnit
 
 class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
@@ -38,9 +39,13 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
     private val nsdConnection: ServiceConnection<ClientNsdService> = ServiceConnection(ClientNsdService::class.java, this::onServiceConnected)
 
     private val commands: MutableMap<String, MutableList<Record>> = mutableMapOf()
+    private val payloadQueue: Queue<Payload> = LinkedList()
     private val history: MutableList<Record> = mutableListOf()
 
     val devices: MutableList<Device> = mutableListOf()
+
+    @Volatile
+    var isProcessing = false
 
     val keys: Set<String>
         get() = commands.keys
@@ -105,7 +110,12 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
             ClientNsdService.ACTION_SOCKET_DISCONNECTED -> connectionStateProcessor.onNext(getConnectionText(action))
             ClientNsdService.ACTION_START_NSD_DISCOVERY -> connectionStateProcessor.onNext(getConnectionText(ClientNsdService.ACTION_SOCKET_CONNECTING))
             ClientNsdService.ACTION_SERVER_RESPONSE -> intent.getStringExtra(ClientNsdService.DATA_SERVER_RESPONSE)?.apply {
-                if (isNotEmpty()) inPayloadProcessor.onNext(deserialize(Payload::class))
+                if (isEmpty()) return@apply
+                payloadQueue.add(deserialize(Payload::class))
+
+                if (isProcessing) return@apply
+                isProcessing = true
+                inPayloadProcessor.onNext(payloadQueue.poll())
             }
         }
     }
@@ -136,8 +146,8 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
         if (predicate.invoke()) outPayloadProcessor.onNext(this)
     }
 
-    private fun diffDevices(devices: List<Device>): Diff<Device> =
-            Diff.calculate(this.devices, devices) { current, server ->
+    private fun diffDevices(fetched: List<Device>): Diff<Device> =
+            Diff.calculate(devices, fetched) { current, server ->
                 mutableSetOf<Device>().apply {
                     addAll(server)
                     addAll(current)
@@ -146,15 +156,20 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun diffHistory(payload: Payload): Diff<Record> = Diff.calculate(
             history,
-            listOf(Record(payload.key, (payload.response ?: "Unknown response"), true)),
+            listOf(Record(payload.key, payload.getMessage(), true)),
             { current, responses -> current.apply { addAll(responses) } },
-            { response -> Differentiable.fromCharSequence { response.entry } })
+            { response -> Differentiable.fromCharSequence { response.toString() } })
 
     private fun diffCommands(payload: Payload): Diff<Record> = Diff.calculate(
             getCommands(payload.key),
             payload.commands.map { Record(payload.key, it, true) },
             { _, responses -> responses },
-            { response -> Differentiable.fromCharSequence { response.entry } })
+            { response -> Differentiable.fromCharSequence { response.toString() } })
+
+    private fun Payload.getMessage(): String {
+        val read = response ?: return "Blank response"
+        return if (read.isBlank()) "Blank response" else read
+    }
 
     private fun Payload.extractCommandInfo(): ZigBeeCommandInfo? {
         if (RfProtocol::class.java.name == key) return null
@@ -188,33 +203,38 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
                 ClientNsdService.ACTION_SOCKET_DISCONNECTED,
                 ClientNsdService.ACTION_SERVER_RESPONSE,
                 ClientNsdService.ACTION_START_NSD_DISCOVERY)
+                .observeOn(mainThread())
                 .subscribe(this::onIntentReceived) { it.printStackTrace(); listenForBroadcasts() })
     }
 
     private fun listenForInputPayloads() {
-        disposable.add(inPayloadProcessor.concatMapIterable { payload ->
-            mutableListOf<State>().apply {
-                val key = payload.key
-                val isNew = keys.contains(key)
-                val fetchedDevices = payload.extractDevices()
-                val commandInfo = payload.extractCommandInfo()
+        disposable.add(inPayloadProcessor.map { payload ->
+                    mutableListOf<State>().apply {
+                        val key = payload.key
+                        val isNew = !keys.contains(key)
+                        val fetchedDevices = payload.extractDevices()
+                        val commandInfo = payload.extractCommandInfo()
 
-                add(diffHistory(payload).let { State.History(key, commandInfo, history, it) })
-                add(diffCommands(payload).let { State.Commands(key, isNew, getCommands(key), it) })
-                if (fetchedDevices != null) add(diffDevices(fetchedDevices).let { State.Devices(key, devices, it) })
-            }
-        }
-                .onBackpressureBuffer()
-                .subscribeOn(io())
-                .observeOn(mainThread())
-                .doOnNext {
-                    when (it) {
-                        is State.History -> Lists.replace(it.current, it.diff.items)
-                        is State.Commands -> Lists.replace(it.current, it.diff.items)
-                        is State.Devices -> Lists.replace(it.current, it.diff.items)
+                        add(diffHistory(payload).let { State.History(key, history, it) })
+                        add(diffCommands(payload).let { State.Commands(key, isNew, getCommands(key), it) })
+                        if (fetchedDevices != null) add(diffDevices(fetchedDevices).let { State.Devices(key, commandInfo, devices, it) })
                     }
                 }
-                .subscribe(stateProcessor::onNext) { it.printStackTrace(); listenForInputPayloads() })
+                .subscribeOn(single())
+                .observeOn(mainThread())
+                .subscribe({ stateList ->
+                    stateList.forEach {
+                        when (it) {
+                            is State.History -> Lists.replace(it.current, it.diff.items)
+                            is State.Commands -> Lists.replace(it.current, it.diff.items)
+                            is State.Devices -> Lists.replace(it.current, it.diff.items)
+                        }
+                        stateProcessor.onNext(it)
+                    }
+                    if (payloadQueue.isEmpty()) isProcessing = false
+                    else inPayloadProcessor.onNext(payloadQueue.poll())
+                })
+                { it.printStackTrace(); listenForInputPayloads() })
     }
 
     private fun listenForOutputPayloads() {
@@ -227,27 +247,26 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
 
     sealed class State(
             open val key: String,
-            open val commandInfo: ZigBeeCommandInfo?,
             val result: DiffResult
     ) {
         class History(
                 override val key: String,
-                override val commandInfo: ZigBeeCommandInfo?,
                 internal val current: List<Record>,
                 internal val diff: Diff<Record>
-        ) : State(key, commandInfo, diff.result)
+        ) : State(key, diff.result)
 
         class Commands(
                 override val key: String,
                 val isNew: Boolean,
                 internal val current: List<Record>,
                 internal val diff: Diff<Record>
-        ) : State(key, null, diff.result)
+        ) : State(key, diff.result)
 
         class Devices(
                 override val key: String,
+                val commandInfo: ZigBeeCommandInfo?,
                 internal val current: List<Device>,
                 internal val diff: Diff<Device>
-        ) : State(key, null, diff.result)
+        ) : State(key, diff.result)
     }
 }

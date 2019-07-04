@@ -17,15 +17,11 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.activities.MainActivity
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.data.ZigBeeCommandArgs
-import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
-import com.tunjid.rcswitchcontrol.dialogfragments.ZigBeeArgumentDialogFragment
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel.State
 
-class ClientNsdFragment : BaseFragment(),
-        ZigBeeArgumentDialogFragment.ZigBeeArgsListener {
+class ClientNsdFragment : BaseFragment() {
 
     private lateinit var mainPager: ViewPager
     private lateinit var commandsPager: ViewPager
@@ -134,19 +130,12 @@ class ClientNsdFragment : BaseFragment(),
         return super.onOptionsItemSelected(item)
     }
 
-    override fun onArgsEntered(args: ZigBeeCommandArgs) =
-            viewModel.dispatchPayload(args.key) {
-                action = args.command
-                data = args.serialize()
-            }
-
     private fun onConnectionStateChanged(text: String) {
         requireActivity().invalidateOptionsMenu()
         connectionStatus.text = resources.getString(R.string.connection_state, text)
     }
 
     private fun onPayloadReceived(state: State) {
-        state.commandInfo?.let { ZigBeeArgumentDialogFragment.newInstance(it).show(childFragmentManager, "info") }
         if (state is State.Commands && state.isNew) commandsPager.adapter?.notifyDataSetChanged()
     }
 

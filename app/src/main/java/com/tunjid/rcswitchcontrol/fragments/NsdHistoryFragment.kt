@@ -60,8 +60,8 @@ class NsdHistoryFragment : BaseFragment() {
         return root
     }
 
-    override fun onResume() {
-        super.onResume()
+    override fun onStart() {
+        super.onStart()
         disposables.add(viewModel.listen(this::filter).subscribe(this::onPayloadReceived, Throwable::printStackTrace))
     }
 

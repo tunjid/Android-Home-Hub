@@ -225,13 +225,8 @@ class ClientNsdService : Service(), ClientStartedBoundService {
         }
 
         internal fun send(message: String) {
-            if (out.checkError()) {
-                close()
-                Log.d(TAG, "Error writing to server, closing.")
-            } else pool.submit {
-                out.println(message)
-                Log.d(TAG, "Connection sent message: $message")
-            }
+            if (out.checkError()) close()
+            else pool.submit { out.println(message) }
         }
 
         override fun close() {

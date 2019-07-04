@@ -9,6 +9,7 @@ import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deseriali
 
 import java.io.Closeable
 import java.io.PrintWriter
+import java.util.concurrent.Executors
 
 /**
  * Class for Server communication with input from client
@@ -38,6 +39,8 @@ abstract class CommsProtocol internal constructor(internal val printWriter: Prin
 
         const val PING = "Ping"
         internal const val RESET = "Reset"
+
+         val sharedPool = Executors.newFixedThreadPool(5)
     }
 
 }

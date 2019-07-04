@@ -2,8 +2,6 @@ package com.tunjid.rcswitchcontrol.nsd.protocols
 
 
 import android.content.Intent
-import android.os.Handler
-import android.os.HandlerThread
 import android.util.Log
 import com.tunjid.androidbootstrap.core.components.ServiceConnection
 import com.tunjid.rcswitchcontrol.R
@@ -18,7 +16,6 @@ import com.tunjid.rcswitchcontrol.services.ClientBleService.Companion.C_HANDLE_C
 import com.tunjid.rcswitchcontrol.services.ClientBleService.Companion.STATE_SNIFFING
 import io.reactivex.disposables.CompositeDisposable
 import java.io.PrintWriter
-import java.util.*
 
 /**
  * A protocol for communicating with RF 433 MhZ devices
@@ -42,9 +39,6 @@ class RfProtocol internal constructor(printWriter: PrintWriter) : CommsProtocol(
     private val switchStore = RfSwitchDataStore()
     private val switchCreator = RfSwitch.SwitchCreator()
 
-    private val pushThread: HandlerThread = HandlerThread("PushThread").apply { start() }
-    private val pushHandler: Handler = Handler(pushThread.looper)
-
     private val bleConnection: ServiceConnection<ClientBleService> = ServiceConnection(ClientBleService::class.java)
 
     init {
@@ -63,7 +57,6 @@ class RfProtocol internal constructor(printWriter: PrintWriter) : CommsProtocol(
     override fun close() {
         disposable.clear()
 
-        pushThread.quitSafely()
         if (bleConnection.isBound) bleConnection.unbindService()
     }
 
@@ -219,7 +212,7 @@ class RfProtocol internal constructor(printWriter: PrintWriter) : CommsProtocol(
             }
         }
 
-        pushHandler.post { Objects.requireNonNull(printWriter).println(payload.serialize()) }
+        sharedPool.submit { printWriter.println(payload.serialize()) }
         Log.i(TAG, "Received data for: $intentAction")
     }
 

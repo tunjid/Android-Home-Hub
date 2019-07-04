@@ -1,7 +1,5 @@
 package com.tunjid.rcswitchcontrol.nsd.protocols
 
-import android.os.Handler
-import android.os.HandlerThread
 import android.util.Log
 import com.hoho.android.usbserial.driver.UsbSerialDriver
 import com.tunjid.rcswitchcontrol.R
@@ -15,8 +13,19 @@ import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.data.persistence.ZigBeeDataStore
 import com.tunjid.rcswitchcontrol.io.AndroidSerialPort
 import com.tunjid.rcswitchcontrol.io.ConsoleStream
-import com.tunjid.rcswitchcontrol.zigbee.*
-import com.zsmartsystems.zigbee.*
+import com.tunjid.rcswitchcontrol.zigbee.ColorCommand
+import com.tunjid.rcswitchcontrol.zigbee.HelpCommand
+import com.tunjid.rcswitchcontrol.zigbee.LevelCommand
+import com.tunjid.rcswitchcontrol.zigbee.OffCommand
+import com.tunjid.rcswitchcontrol.zigbee.OnCommand
+import com.tunjid.rcswitchcontrol.zigbee.RediscoverCommand
+import com.zsmartsystems.zigbee.ExtendedPanId
+import com.zsmartsystems.zigbee.ZigBeeChannel
+import com.zsmartsystems.zigbee.ZigBeeNetworkManager
+import com.zsmartsystems.zigbee.ZigBeeNetworkNodeListener
+import com.zsmartsystems.zigbee.ZigBeeNetworkState
+import com.zsmartsystems.zigbee.ZigBeeNode
+import com.zsmartsystems.zigbee.ZigBeeStatus
 import com.zsmartsystems.zigbee.app.basic.ZigBeeBasicServerExtension
 import com.zsmartsystems.zigbee.app.discovery.ZigBeeDiscoveryExtension
 import com.zsmartsystems.zigbee.app.iasclient.ZigBeeIasCieExtension
@@ -41,9 +50,6 @@ import java.util.concurrent.TimeUnit
 class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
     private val SAVED_DEVICES = getString(R.string.zigbeeprotocol_saved_devices)
-
-    private val thread = HandlerThread("ZigBee").apply { start() }
-    private val handler = Handler(thread.looper)
 
     private val disposable = CompositeDisposable()
     private val outputProcessor: PublishProcessor<String> = PublishProcessor.create()
@@ -121,7 +127,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
         }
 
         processOutput()
-        handler.post(this::start)
+        sharedPool.submit(this::start)
     }
 
     override fun processInput(payload: Payload): Payload {
@@ -169,7 +175,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
         disposable.add(outputProcessor
                 .onBackpressureBuffer()
                 .concatMap { Flowable.just(it).delay(OUTPUT_BUFFER_RATE, TimeUnit.MILLISECONDS) }
-                .subscribe({ if (thread.isAlive) handler.post { printWriter.println(it) } }, { it.printStackTrace(); processOutput() }))
+                .subscribe({ sharedPool.submit { printWriter.println(it) } }, { it.printStackTrace(); processOutput() }))
     }
 
     private fun start() {
@@ -293,10 +299,12 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
     private fun post(vararg messages: String) {
         val out = messages.commandString()
 
-        if (thread.isAlive) outputProcessor.onNext(Payload(this@ZigBeeProtocol.javaClass.name).apply {
-            response = out
-            appendCommands()
-        }.serialize())
+        sharedPool.submit {
+            outputProcessor.onNext(Payload(this@ZigBeeProtocol.javaClass.name).apply {
+                response = out
+                appendCommands()
+            }.serialize())
+        }
 
         Log.i("ZIGBEE", out)
     }
@@ -306,7 +314,6 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
     override fun close() {
         disposable.clear()
         networkManager.shutdown()
-        thread.quitSafely()
     }
 
     companion object {

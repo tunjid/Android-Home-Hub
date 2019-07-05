@@ -35,7 +35,7 @@ import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deseriali
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serializeList
 import com.tunjid.rcswitchcontrol.data.persistence.ZigBeeDataStore
-import com.tunjid.rcswitchcontrol.io.AndroidSerialPort
+import com.tunjid.rcswitchcontrol.io.AndroidZigBeeSerialPort
 import com.tunjid.rcswitchcontrol.io.ConsoleStream
 import com.tunjid.rcswitchcontrol.zigbee.ColorCommand
 import com.tunjid.rcswitchcontrol.zigbee.HelpCommand
@@ -125,7 +125,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
     ).let { it["help"] = HelpCommand(it); it.toMap() }
 
     init {
-        dongle = ZigBeeDongleTiCc2531(AndroidSerialPort(driver, BAUD_RATE))
+        dongle = ZigBeeDongleTiCc2531(AndroidZigBeeSerialPort(driver, BAUD_RATE))
         networkManager = ZigBeeNetworkManager(dongle).apply {
             setNetworkDataStore(dataStore)
             addExtension(ZigBeeIasCieExtension())

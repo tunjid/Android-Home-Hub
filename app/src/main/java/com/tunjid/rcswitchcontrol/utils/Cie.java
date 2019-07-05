@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.nsd.protocols;
+package com.tunjid.rcswitchcontrol.utils;
 
 
 /**

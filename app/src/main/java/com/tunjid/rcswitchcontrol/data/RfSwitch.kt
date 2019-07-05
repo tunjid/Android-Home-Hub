@@ -28,7 +28,7 @@ import android.os.Parcel
 import android.os.Parcelable
 import android.util.Base64
 import androidx.annotation.StringDef
-import com.tunjid.rcswitchcontrol.nsd.protocols.WiredRFProtocol
+import com.tunjid.rcswitchcontrol.nsd.protocols.SerialRFProtocol
 import java.lang.annotation.Retention
 import java.lang.annotation.RetentionPolicy.SOURCE
 import java.util.*
@@ -44,7 +44,7 @@ class RfSwitch() : Parcelable, Device {
 
     override var name: String = "Switch"
     override val key: String
-        get() = WiredRFProtocol::class.java.name
+        get() = SerialRFProtocol::class.java.name
 
     private var bitLength: Byte = 0
     private var protocol: Byte = 0

@@ -24,7 +24,7 @@
 
 package com.tunjid.rcswitchcontrol.zigbee
 
-import com.tunjid.rcswitchcontrol.nsd.protocols.Cie
+import com.tunjid.rcswitchcontrol.utils.Cie
 import com.zsmartsystems.zigbee.CommandResult
 import com.zsmartsystems.zigbee.ZigBeeAddress
 import com.zsmartsystems.zigbee.ZigBeeEndpointAddress

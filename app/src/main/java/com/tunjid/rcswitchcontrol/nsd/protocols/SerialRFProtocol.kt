@@ -25,63 +25,65 @@
 package com.tunjid.rcswitchcontrol.nsd.protocols
 
 
-import android.content.Intent
+import android.content.Context
+import android.hardware.usb.UsbManager
+import android.util.Base64
 import android.util.Log
-import com.tunjid.androidbootstrap.core.components.ServiceConnection
+import com.hoho.android.usbserial.driver.UsbSerialDriver
+import com.hoho.android.usbserial.driver.UsbSerialPort
+import com.hoho.android.usbserial.util.SerialInputOutputManager
+import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
 import com.tunjid.rcswitchcontrol.data.Payload
 import com.tunjid.rcswitchcontrol.data.RfSwitch
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserialize
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.data.persistence.RfSwitchDataStore
 import com.tunjid.rcswitchcontrol.services.ClientBleService
-import com.tunjid.rcswitchcontrol.services.ClientBleService.Companion.C_HANDLE_CONTROL
-import com.tunjid.rcswitchcontrol.services.ClientBleService.Companion.STATE_SNIFFING
-import io.reactivex.disposables.CompositeDisposable
 import java.io.PrintWriter
 
 /**
- * A protocol for communicating with RF 433 MhZ devices
+ * A protocol for communicating with RF 433 MhZ devices over a serial port
  *
  *
- * Created by tj.dahunsi on 2/11/17.
+ * Created by tj.dahunsi on 5/07/19.
  */
 
 @Suppress("PrivatePropertyName")
-class RfProtocol internal constructor(printWriter: PrintWriter) : CommsProtocol(printWriter) {
+class SerialRFProtocol internal constructor(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
     private val SNIFF: String = appContext.getString(R.string.scanblercprotocol_sniff)
     private val RENAME: String = appContext.getString(R.string.blercprotocol_rename_command)
     private val DELETE: String = appContext.getString(R.string.blercprotocol_delete_command)
-    private val CONNECT: String = appContext.getString(R.string.connect)
-    private val DISCONNECT: String = appContext.getString(R.string.menu_disconnect)
     private val REFRESH_SWITCHES: String = appContext.getString(R.string.blercprotocol_refresh_switches_command)
-
-    private val disposable = CompositeDisposable()
 
     private val switchStore = RfSwitchDataStore()
     private val switchCreator = RfSwitch.SwitchCreator()
 
-    private val bleConnection: ServiceConnection<ClientBleService> = ServiceConnection(ClientBleService::class.java)
+    private val port: UsbSerialPort
+    private val serialInputOutputManager: SerialInputOutputManager
 
     init {
-        bleConnection.with(appContext).bind()
-        disposable.add(Broadcaster.listen(
-                ClientBleService.ACTION_GATT_CONNECTED,
-                ClientBleService.ACTION_GATT_CONNECTING,
-                ClientBleService.ACTION_GATT_DISCONNECTED,
-                ClientBleService.ACTION_GATT_SERVICES_DISCOVERED,
-                ClientBleService.ACTION_CONTROL,
-                ClientBleService.ACTION_SNIFFER,
-                ClientBleService.DATA_AVAILABLE_UNKNOWN)
-                .subscribe(this::onBleIntentReceived, Throwable::printStackTrace))
+        val manager = App.instance.getSystemService(Context.USB_SERVICE) as UsbManager
+        val connection = manager.openDevice(driver.device)
+
+        port = driver.ports[0]
+        port.open(connection)
+        port.setParameters(BAUD_RATE, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE)
+        serialInputOutputManager = SerialInputOutputManager(port, object : SerialInputOutputManager.Listener {
+            override fun onRunError(e: Exception) {
+                e.printStackTrace()
+            }
+
+            override fun onNewData(rawData: ByteArray) = onSerialRead(rawData)
+        })
+
+        sharedPool.submit(serialInputOutputManager)
     }
 
     override fun close() {
-        disposable.clear()
-
-        if (bleConnection.isBound) bleConnection.unbindService()
+        port.close()
+        serialInputOutputManager.stop()
     }
 
     override fun processInput(payload: Payload): Payload {
@@ -89,23 +91,16 @@ class RfProtocol internal constructor(printWriter: PrintWriter) : CommsProtocol(
 
         when (val receivedAction = payload.action) {
             PING, REFRESH_SWITCHES -> output.apply {
+                action = ClientBleService.ACTION_TRANSMITTER
+                data = switchStore.serializedSavedSwitches
                 response = (getString(
                         if (receivedAction == PING) R.string.blercprotocol_ping_response
                         else R.string.blercprotocol_refresh_response
                 ))
-                action = ClientBleService.ACTION_TRANSMITTER
-                data = switchStore.serializedSavedSwitches
-                addCommand(REFRESH_SWITCHES)
-                addCommand(SNIFF)
+                addRefreshAndSniff()
             }
 
-            SNIFF -> output.apply {
-                response = appContext.getString(R.string.blercprotocol_start_sniff_response)
-                addCommand(RESET)
-                addCommand(DISCONNECT)
-                if (bleConnection.isBound) bleConnection.boundService
-                        .writeCharacteristicArray(C_HANDLE_CONTROL, byteArrayOf(STATE_SNIFFING))
-            }
+            SNIFF -> sharedPool.submit { port.write(byteArrayOf(SNIFF_FLAG), SERIAL_TIMEOUT) }
 
             RENAME -> output.apply {
                 val switches = switchStore.savedSwitches
@@ -129,7 +124,7 @@ class RfProtocol internal constructor(printWriter: PrintWriter) : CommsProtocol(
 
                 action = receivedAction
                 data = switchStore.serializedSavedSwitches
-                addCommand(SNIFF)
+                addRefreshAndSniff()
             }
 
             DELETE -> output.apply {
@@ -146,63 +141,54 @@ class RfProtocol internal constructor(printWriter: PrintWriter) : CommsProtocol(
                 output.response = response
                 action = receivedAction
                 data = switchStore.serializedSavedSwitches
-                addCommand(SNIFF)
+                addRefreshAndSniff()
             }
 
             ClientBleService.ACTION_TRANSMITTER -> output.apply {
                 response = getString(R.string.blercprotocol_transmission_response)
-                addCommand(SNIFF)
-                addCommand(REFRESH_SWITCHES)
+                addRefreshAndSniff()
 
-                Broadcaster.push(Intent(ClientBleService.ACTION_TRANSMITTER)
-                        .putExtra(ClientBleService.DATA_AVAILABLE_TRANSMITTER, payload.data))
+                val transmission = Base64.decode(payload.data, Base64.DEFAULT)
+                sharedPool.submit { port.write(transmission, SERIAL_TIMEOUT) }
             }
         }
 
         return output
     }
 
-    private fun onBleIntentReceived(intent: Intent) {
-        val intentAction = intent.action ?: return
+    private fun Payload.addRefreshAndSniff() {
+        addCommand(REFRESH_SWITCHES)
+        addCommand(SNIFF)
+    }
 
-        val payload = Payload(javaClass.name)
+    private fun onSerialRead(rawData: ByteArray) = Payload(this@SerialRFProtocol.javaClass.name).let {
+        it.addCommand(RESET)
 
-        when (intentAction) {
-            ClientBleService.ACTION_GATT_CONNECTED -> payload.apply {
-                response = appContext.getString(R.string.connected)
-                addCommand(SNIFF)
-                addCommand(DISCONNECT)
-            }
-
-            ClientBleService.ACTION_GATT_CONNECTING -> payload.response = appContext.getString(R.string.connecting)
-
-            ClientBleService.ACTION_GATT_DISCONNECTED -> payload.apply {
-                response = appContext.getString(R.string.disconnected)
-                addCommand(CONNECT)
-            }
-
-            ClientBleService.ACTION_CONTROL -> {
-                val rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_CONTROL)
-                if (rawData[0].toInt() == 1) payload.apply {
-                    action = (intentAction)
-                    response = (getString(R.string.blercprotocol_stop_sniff_response))
-                    data = (rawData[0].toString())
-                    addCommand(SNIFF)
-                    addCommand(RESET)
+        when (rawData.size) {
+            NOTIFICATION -> {
+                Log.i("IOT", "RF NOTIFICATION: ${String(rawData)}")
+                val flag = rawData.first()
+                it.response = when (flag) {
+                    TRANSMIT_FLAG -> getString(R.string.blercprotocol_stop_sniff_response)
+                    SNIFF_FLAG -> getString(R.string.blercprotocol_start_sniff_response)
+                    ERROR_FLAG -> getString(R.string.wiredrcprotocol_invalid_command)
+                    else -> String(rawData)
                 }
+                it.action = ClientBleService.DATA_AVAILABLE_CONTROL
+                it.addCommand(REFRESH_SWITCHES)
+                if (flag != SNIFF_FLAG) it.addCommand(SNIFF)
             }
+            SNIFF_PAYLOAD -> {
+                Log.i("IOT", "RF SNIFF: ${String(rawData)}")
+                it.data = switchCreator.state
+                it.action = ClientBleService.ACTION_SNIFFER
 
-            ClientBleService.ACTION_SNIFFER -> {
-                val rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_SNIFFER)
-                payload.data = switchCreator.state
+                it.addRefreshAndSniff()
 
                 when {
-                    RfSwitch.ON_CODE == switchCreator.state -> payload.apply {
+                    RfSwitch.ON_CODE == switchCreator.state -> {
                         switchCreator.withOnCode(rawData)
-                        action = intentAction
-                        response = appContext.getString(R.string.blercprotocol_sniff_on_response)
-                        addCommand(SNIFF)
-                        addCommand(RESET)
+                        it.response = appContext.getString(R.string.blercprotocol_sniff_on_response)
                     }
 
                     RfSwitch.OFF_CODE == switchCreator.state -> {
@@ -212,36 +198,40 @@ class RfProtocol internal constructor(printWriter: PrintWriter) : CommsProtocol(
 
                         rcSwitch.name = "Switch " + (switches.size + 1)
 
-                        payload.apply {
-                            action = (intentAction)
-                            response = getString(
-                                    if (containsSwitch) R.string.scanblercprotocol_sniff_already_exists_response
-                                    else R.string.blercprotocol_sniff_off_response
-                            )
-                            addCommand(SNIFF)
-                            addCommand(REFRESH_SWITCHES)
-                            addCommand(RESET)
-                        }
+                        it.response = getString(
+                                if (containsSwitch) R.string.scanblercprotocol_sniff_already_exists_response
+                                else R.string.blercprotocol_sniff_off_response
+                        )
 
                         if (!containsSwitch) {
                             switches.add(rcSwitch)
                             switchStore.saveSwitches(switches)
-                            payload.apply {
-                                action = (ClientBleService.ACTION_TRANSMITTER)
-                                data = (switchStore.serializedSavedSwitches)
-                            }
+
+                            it.action = (ClientBleService.ACTION_TRANSMITTER)
+                            it.data = (switchStore.serializedSavedSwitches)
                         }
                     }
                 }
             }
+            else -> Log.i("IOT", "RF Unknown read: ${String(rawData)}")
         }
 
-        sharedPool.submit { printWriter.println(payload.serialize()) }
-        Log.i(TAG, "Received data for: $intentAction")
+        sharedPool.submit { printWriter.println(it.serialize()) }
+        Unit
     }
 
     companion object {
+        const val ARDUINO_VENDOR_ID = 0x2341
+        const val ARDUINO_PRODUCT_ID = 0x0010
 
-        private val TAG = RfProtocol::class.java.simpleName
+        const val BAUD_RATE = 38400
+        const val SERIAL_TIMEOUT = 99999
+
+        const val NOTIFICATION = 1
+        const val SNIFF_PAYLOAD = 10
+
+        const val ERROR_FLAG: Byte = 'E'.toByte()
+        const val SNIFF_FLAG: Byte = 'R'.toByte()
+        const val TRANSMIT_FLAG: Byte = 'T'.toByte()
     }
 }

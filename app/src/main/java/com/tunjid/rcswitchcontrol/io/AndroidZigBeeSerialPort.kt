@@ -38,7 +38,7 @@ import jssc.SerialPortException
 import org.slf4j.LoggerFactory
 
 
-class AndroidSerialPort(
+class AndroidZigBeeSerialPort(
         private val driver: UsbSerialDriver,
         private val baudRate: Int
 ) : ZigBeePort, SerialInputOutputManager.Listener {

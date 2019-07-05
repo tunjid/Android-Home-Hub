@@ -57,7 +57,7 @@ import java.util.*
  */
 
 @Suppress("PrivatePropertyName")
-internal class ScanBleRcProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter), BLEScanner.BleScanCallback {
+internal class ScanBLERFProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter), BLEScanner.BleScanCallback {
 
     private val SCAN: String = appContext.getString(R.string.button_scan)
     private val CONNECT: String = appContext.getString(R.string.connect)
@@ -116,7 +116,7 @@ internal class ScanBleRcProtocol(printWriter: PrintWriter) : CommsProtocol(print
         scanner.stopScan()
 
         val resources = appContext.resources
-        val output = Payload(this@ScanBleRcProtocol.javaClass.name)
+        val output = Payload(this@ScanBLERFProtocol.javaClass.name)
         output.addCommand(RESET)
         output.addCommand(SCAN)
 
@@ -195,7 +195,7 @@ internal class ScanBleRcProtocol(printWriter: PrintWriter) : CommsProtocol(print
 
     companion object {
 
-        private val TAG = ScanBleRcProtocol::class.java.simpleName
+        private val TAG = ScanBLERFProtocol::class.java.simpleName
         private const val SCAN_DURATION = 5000
     }
 }

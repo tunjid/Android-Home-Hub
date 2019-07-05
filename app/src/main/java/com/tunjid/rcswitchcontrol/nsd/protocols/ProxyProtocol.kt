@@ -50,10 +50,10 @@ import java.io.PrintWriter
 class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
     private val protocolMap = mutableMapOf(
-            RfProtocol::class.java.name to RfProtocol(printWriter),
+            BLERFProtocol::class.java.name to BLERFProtocol(printWriter),
             KnockKnockProtocol::class.java.name to KnockKnockProtocol(printWriter)
     ).apply {
-        findUsbDriver(WiredRFProtocol.ARDUINO_VENDOR_ID, WiredRFProtocol.ARDUINO_PRODUCT_ID)?.let { driver -> this[WiredRFProtocol::class.java.name] = WiredRFProtocol(driver, printWriter) }
+        findUsbDriver(SerialRFProtocol.ARDUINO_VENDOR_ID, SerialRFProtocol.ARDUINO_PRODUCT_ID)?.let { driver -> this[SerialRFProtocol::class.java.name] = SerialRFProtocol(driver, printWriter) }
         findUsbDriver(ZigBeeProtocol.TI_VENDOR_ID, ZigBeeProtocol.CC2531_PRODUCT_ID)?.let { driver -> this[ZigBeeProtocol::class.java.name] = ZigBeeProtocol(driver, printWriter) }
     }
 

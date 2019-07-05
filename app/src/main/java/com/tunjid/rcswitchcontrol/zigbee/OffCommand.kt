@@ -24,6 +24,8 @@
 
 package com.tunjid.rcswitchcontrol.zigbee
 
+import com.tunjid.rcswitchcontrol.App
+import com.tunjid.rcswitchcontrol.R
 import com.zsmartsystems.zigbee.CommandResult
 import com.zsmartsystems.zigbee.ZigBeeAddress
 import com.zsmartsystems.zigbee.ZigBeeEndpointAddress
@@ -37,7 +39,7 @@ import java.util.concurrent.Future
  */
   class OffCommand : AbsZigBeeCommand() {
 
-    override fun getCommand(): String = "off"
+    override fun getCommand(): String = App.instance.getString(R.string.zigbeeprotocol_off)
 
     override fun getDescription(): String = "Switches device off."
 

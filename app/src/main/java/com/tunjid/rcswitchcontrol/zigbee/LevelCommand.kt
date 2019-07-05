@@ -24,6 +24,8 @@
 
 package com.tunjid.rcswitchcontrol.zigbee
 
+import com.tunjid.rcswitchcontrol.App
+import com.tunjid.rcswitchcontrol.R
 import com.zsmartsystems.zigbee.CommandResult
 import com.zsmartsystems.zigbee.ZigBeeAddress
 import com.zsmartsystems.zigbee.ZigBeeEndpointAddress
@@ -37,7 +39,7 @@ import java.util.concurrent.Future
  */
 class LevelCommand : AbsZigBeeCommand() {
 
-    override fun getCommand(): String = "level"
+    override fun getCommand(): String = App.instance.getString(R.string.zigbeeprotocol_level)
 
     override fun getDescription(): String = "Changes device level for example lamp brightness, where LEVEL is between 0 and 1."
 

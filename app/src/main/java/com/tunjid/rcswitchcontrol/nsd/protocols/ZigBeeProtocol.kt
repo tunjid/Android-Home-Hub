@@ -70,11 +70,11 @@ import io.reactivex.processors.PublishProcessor
 import java.io.PrintWriter
 import java.util.concurrent.TimeUnit
 
-
+@Suppress("PrivatePropertyName")
 class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
-    @Suppress("PrivatePropertyName")
     private val SAVED_DEVICES = getString(R.string.zigbeeprotocol_saved_devices)
+    private val FORM_NETWORK = getString(R.string.zigbeeprotocol_formnet)
 
     private val disposable = CompositeDisposable()
     private val outputProcessor: PublishProcessor<String> = PublishProcessor.create()
@@ -85,42 +85,42 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
     private val dataStore = ZigBeeDataStore("Home")
     private val networkManager: ZigBeeNetworkManager
     private val availableCommands: Map<String, ZigBeeConsoleCommand> = mutableMapOf(
-            "nodes" to ZigBeeConsoleNodeListCommand(),
-            "endpoint" to ZigBeeConsoleDescribeEndpointCommand(),
-            "node" to ZigBeeConsoleDescribeNodeCommand(),
-            "bind" to ZigBeeConsoleBindCommand(),
-            "unbind" to ZigBeeConsoleUnbindCommand(),
-            "bindtable" to ZigBeeConsoleBindingTableCommand(),
+            getString(R.string.zigbeeprotocol_nodes) to ZigBeeConsoleNodeListCommand(),
+            getString(R.string.zigbeeprotocol_endpoint) to ZigBeeConsoleDescribeEndpointCommand(),
+            getString(R.string.zigbeeprotocol_node) to ZigBeeConsoleDescribeNodeCommand(),
+            getString(R.string.zigbeeprotocol_bind) to ZigBeeConsoleBindCommand(),
+            getString(R.string.zigbeeprotocol_unbind) to ZigBeeConsoleUnbindCommand(),
+            getString(R.string.zigbeeprotocol_bind_table) to ZigBeeConsoleBindingTableCommand(),
 
-            "read" to ZigBeeConsoleAttributeReadCommand(),
-            "write" to ZigBeeConsoleAttributeWriteCommand(),
+            getString(R.string.zigbeeprotocol_read) to ZigBeeConsoleAttributeReadCommand(),
+            getString(R.string.zigbeeprotocol_write) to ZigBeeConsoleAttributeWriteCommand(),
 
-            "attsupported" to ZigBeeConsoleAttributeSupportedCommand(),
-            "cmdsupported" to ZigBeeConsoleCommandsSupportedCommand(),
+            getString(R.string.zigbeeprotocol_attsupported) to ZigBeeConsoleAttributeSupportedCommand(),
+            getString(R.string.zigbeeprotocol_cmdsupported) to ZigBeeConsoleCommandsSupportedCommand(),
 
-            "info" to ZigBeeConsoleDeviceInformationCommand(),
-            "join" to ZigBeeConsoleNetworkJoinCommand(),
-            "leave" to ZigBeeConsoleNetworkLeaveCommand(),
+            getString(R.string.zigbeeprotocol_info) to ZigBeeConsoleDeviceInformationCommand(),
+            getString(R.string.zigbeeprotocol_join) to ZigBeeConsoleNetworkJoinCommand(),
+            getString(R.string.zigbeeprotocol_leave) to ZigBeeConsoleNetworkLeaveCommand(),
 
-            "reporting" to ZigBeeConsoleReportingConfigCommand(),
-            "subscribe" to ZigBeeConsoleReportingSubscribeCommand(),
-            "unsubscribe" to ZigBeeConsoleReportingUnsubscribeCommand(),
+            getString(R.string.zigbeeprotocol_reporting) to ZigBeeConsoleReportingConfigCommand(),
+            getString(R.string.zigbeeprotocol_subscribe) to ZigBeeConsoleReportingSubscribeCommand(),
+            getString(R.string.zigbeeprotocol_unsubscribe) to ZigBeeConsoleReportingUnsubscribeCommand(),
 
-            "installkey" to ZigBeeConsoleInstallKeyCommand(),
-            "linkkey" to ZigBeeConsoleLinkKeyCommand(),
+            getString(R.string.zigbeeprotocol_installkey) to ZigBeeConsoleInstallKeyCommand(),
+            getString(R.string.zigbeeprotocol_linkkey) to ZigBeeConsoleLinkKeyCommand(),
 
-            "netstart" to ZigBeeConsoleNetworkStartCommand(),
-            "netbackup" to ZigBeeConsoleNetworkBackupCommand(),
-            "discovery" to ZigBeeConsoleNetworkDiscoveryCommand(),
+            getString(R.string.zigbeeprotocol_netstart) to ZigBeeConsoleNetworkStartCommand(),
+            getString(R.string.zigbeeprotocol_netbackup) to ZigBeeConsoleNetworkBackupCommand(),
+            getString(R.string.zigbeeprotocol_discovery) to ZigBeeConsoleNetworkDiscoveryCommand(),
 
-            "otaupgrade" to ZigBeeConsoleOtaUpgradeCommand(),
-            "channel" to ZigBeeConsoleChannelCommand(),
+            getString(R.string.zigbeeprotocol_otaupgrade) to ZigBeeConsoleOtaUpgradeCommand(),
+            getString(R.string.zigbeeprotocol_channel) to ZigBeeConsoleChannelCommand(),
 
-            "on" to OnCommand(),
-            "off" to OffCommand(),
-            "color" to ColorCommand(),
-            "level" to LevelCommand(),
-            "rediscover" to RediscoverCommand()
+            getString(R.string.zigbeeprotocol_on) to OnCommand(),
+            getString(R.string.zigbeeprotocol_off) to OffCommand(),
+            getString(R.string.zigbeeprotocol_color) to ColorCommand(),
+            getString(R.string.zigbeeprotocol_level) to LevelCommand(),
+            getString(R.string.zigbeeprotocol_rediscover) to RediscoverCommand()
 
     ).let { it["help"] = HelpCommand(it); it.toMap() }
 
@@ -253,7 +253,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
      * @param args the arguments including the command
      */
     private fun executeCommand(networkManager: ZigBeeNetworkManager, args: Array<String>) {
-        val command = availableCommands[args[0].toLowerCase()]
+        val command = availableCommands[args.first()]
                 ?: return post("Unknown command. Use 'help' command to list available commands.")
 
         try {
@@ -347,7 +347,5 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
         const val BAUD_RATE = 115200
         const val MESH_UPDATE_PERIOD = 60
         const val OUTPUT_BUFFER_RATE = 100L
-
-        const val FORM_NETWORK = "formnet"
     }
 }

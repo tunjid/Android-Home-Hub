@@ -24,6 +24,8 @@
 
 package com.tunjid.rcswitchcontrol.zigbee
 
+import com.tunjid.rcswitchcontrol.App
+import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.utils.Cie
 import com.zsmartsystems.zigbee.CommandResult
 import com.zsmartsystems.zigbee.ZigBeeAddress
@@ -38,7 +40,7 @@ import java.util.concurrent.Future
  */
 class ColorCommand : AbsZigBeeCommand() {
 
-    override fun getCommand(): String = "color"
+    override fun getCommand(): String = App.instance.getString(R.string.zigbeeprotocol_color)
 
     override fun getDescription(): String = "Changes light color."
 

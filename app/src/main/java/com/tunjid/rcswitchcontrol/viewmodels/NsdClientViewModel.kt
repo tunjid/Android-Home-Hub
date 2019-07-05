@@ -17,6 +17,7 @@ import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deseriali
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserializeList
 import com.tunjid.rcswitchcontrol.nsd.protocols.CommsProtocol
 import com.tunjid.rcswitchcontrol.nsd.protocols.RfProtocol
+import com.tunjid.rcswitchcontrol.nsd.protocols.WiredRFProtocol
 import com.tunjid.rcswitchcontrol.nsd.protocols.ZigBeeProtocol
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
@@ -154,9 +155,9 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
                 }.toList()
             }
 
-    private fun diffHistory(payload: Payload): Diff<Record> = Diff.calculate(
+    private fun diffHistory(record: Record): Diff<Record> = Diff.calculate(
             history,
-            listOf(Record(payload.key, payload.getMessage(), true)),
+            listOf(record),
             { current, responses -> current.apply { addAll(responses) } },
             { response -> Differentiable.fromCharSequence { response.toString() } })
 
@@ -166,13 +167,13 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
             { _, responses -> responses },
             { response -> Differentiable.fromCharSequence { response.toString() } })
 
-    private fun Payload.getMessage(): String {
-        val read = response ?: return "Blank response"
-        return if (read.isBlank()) "Blank response" else read
+    private fun Payload.extractRecord(): Record? = response.let {
+        if (it == null || it.isBlank()) null
+        else Record(key, it, true)
     }
 
     private fun Payload.extractCommandInfo(): ZigBeeCommandInfo? {
-        if (RfProtocol::class.java.name == key) return null
+        if (RfProtocol::class.java.name == key || WiredRFProtocol::class.java.name == key) return null
         if (extractDevices() != null) return null
         return data?.deserialize(ZigBeeCommandInfo::class)
     }
@@ -182,7 +183,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
         val context = getApplication<Application>()
 
         return when (key) {
-            RfProtocol::class.java.name -> when (action) {
+            RfProtocol::class.java.name, WiredRFProtocol::class.java.name -> when (action) {
                 ClientBleService.ACTION_TRANSMITTER,
                 context.getString(R.string.blercprotocol_delete_command),
                 context.getString(R.string.blercprotocol_rename_command) -> serialized.deserializeList(RfSwitch::class)
@@ -209,17 +210,18 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun listenForInputPayloads() {
         disposable.add(inPayloadProcessor.map { payload ->
-                    mutableListOf<State>().apply {
-                        val key = payload.key
-                        val isNew = !keys.contains(key)
-                        val fetchedDevices = payload.extractDevices()
-                        val commandInfo = payload.extractCommandInfo()
+            mutableListOf<State>().apply {
+                val key = payload.key
+                val isNew = !keys.contains(key)
+                val record = payload.extractRecord()
+                val fetchedDevices = payload.extractDevices()
+                val commandInfo = payload.extractCommandInfo()
 
-                        add(diffHistory(payload).let { State.History(key,commandInfo, history, it) })
-                        add(diffCommands(payload).let { State.Commands(key, isNew, getCommands(key), it) })
-                        if (fetchedDevices != null) add(diffDevices(fetchedDevices).let { State.Devices(key, devices, it) })
-                    }
-                }
+                add(diffCommands(payload).let { State.Commands(key, isNew, getCommands(key), it) })
+                if (record != null) add(diffHistory(record).let { State.History(key, commandInfo, history, it) })
+                if (fetchedDevices != null) add(diffDevices(fetchedDevices).let { State.Devices(key, devices, it) })
+            }
+        }
                 .subscribeOn(single())
                 .observeOn(mainThread())
                 .subscribe({ stateList ->

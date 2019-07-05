@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:tools="http://schemas.android.com/tools"
-    package="com.tunjid.rcswitchcontrol"
-    xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.tunjid.rcswitchcontrol">
 
     <uses-feature android:name="android.hardware.usb.host" />
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
@@ -28,8 +29,8 @@
         <activity android:name=".activities.MainActivity">
             <!-- Launch activity as default from Android Studio -->
             <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
             <!-- Launch activity automatically on boot, and re-launch if the app terminates. -->
@@ -66,5 +67,9 @@
                 <action android:name="com.tunjid.rcswitchcontrol.services.ClientNsdService.start.nsd.discovery" />
             </intent-filter>
         </receiver>
+        <receiver
+            android:name=".USBDeviceReceiver"
+            android:enabled="true"
+            android:exported="true" />
     </application>
 </manifest>

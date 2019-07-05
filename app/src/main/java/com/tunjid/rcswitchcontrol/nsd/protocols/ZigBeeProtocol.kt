@@ -49,6 +49,7 @@ import java.util.concurrent.TimeUnit
 
 class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
+    @Suppress("PrivatePropertyName")
     private val SAVED_DEVICES = getString(R.string.zigbeeprotocol_saved_devices)
 
     private val disposable = CompositeDisposable()
@@ -317,8 +318,8 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
     }
 
     companion object {
-        const val TI_VENDOR_ID = 1105
-        const val CC2531_PRODUCT_ID = 5800
+        const val TI_VENDOR_ID = 0x0451
+        const val CC2531_PRODUCT_ID = 0x16a8
         const val BAUD_RATE = 115200
         const val MESH_UPDATE_PERIOD = 60
         const val OUTPUT_BUFFER_RATE = 100L

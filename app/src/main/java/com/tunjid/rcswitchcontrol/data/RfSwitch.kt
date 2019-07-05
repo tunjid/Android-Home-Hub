@@ -4,7 +4,7 @@ import android.os.Parcel
 import android.os.Parcelable
 import android.util.Base64
 import androidx.annotation.StringDef
-import com.tunjid.rcswitchcontrol.nsd.protocols.RfProtocol
+import com.tunjid.rcswitchcontrol.nsd.protocols.WiredRFProtocol
 import java.lang.annotation.Retention
 import java.lang.annotation.RetentionPolicy.SOURCE
 import java.util.*
@@ -19,7 +19,8 @@ import java.util.*
 class RfSwitch() : Parcelable, Device {
 
     override var name: String = "Switch"
-    override val key: String = RfProtocol::class.java.name
+    override val key: String
+        get() = WiredRFProtocol::class.java.name
 
     private var bitLength: Byte = 0
     private var protocol: Byte = 0
@@ -62,10 +63,9 @@ class RfSwitch() : Parcelable, Device {
         if (this === other) return true
         if (other == null || javaClass != other.javaClass) return false
 
-        val rcSwitch = other as RfSwitch?
+        val rcSwitch = other as RfSwitch? ?: return false
 
-        return Arrays.equals(onCode, rcSwitch!!.onCode) && Arrays.equals(offCode, rcSwitch.offCode)
-
+        return Arrays.equals(onCode, rcSwitch.onCode) && Arrays.equals(offCode, rcSwitch.offCode)
     }
 
     override fun hashCode(): Int {
@@ -74,9 +74,7 @@ class RfSwitch() : Parcelable, Device {
         return result
     }
 
-    override fun describeContents(): Int {
-        return 0
-    }
+    override fun describeContents(): Int = 0
 
     override fun writeToParcel(dest: Parcel, flags: Int) {
         dest.writeString(name)
@@ -90,14 +88,10 @@ class RfSwitch() : Parcelable, Device {
     class SwitchCreator {
         @SwitchCode
         @get:SwitchCode
-        var state: String
+        var state: String= ON_CODE
             internal set
 
         private lateinit var rfSwitch: RfSwitch
-
-        init {
-            state = ON_CODE
-        }
 
         fun withOnCode(code: ByteArray) {
             state = OFF_CODE
@@ -119,13 +113,11 @@ class RfSwitch() : Parcelable, Device {
     }
 
     companion object {
-
         // Shared preference key
         const val SWITCH_PREFS = "SwitchPrefs"
 
         const val ON_CODE = "on"
         const val OFF_CODE = "off"
-
 
         @JvmField
         @Suppress("unused")

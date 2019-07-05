@@ -106,6 +106,7 @@
     <string name="blercprotocol_deleted_response">Deleted %1$s</string>
     <string name="blercprotocol_delete_command">Delete</string>
     <string name="blercprotocol_rename_command">Rename</string>
+    <string name="wiredrcprotocol_invalid_command">Invalid Command</string>
 
     <string name="scanblercprotocol_device_name">Device: %1$s</string>
     <string name="scanblercprotocol_scan_response">Scan complete, found %1$d device(s)</string>

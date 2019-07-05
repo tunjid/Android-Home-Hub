@@ -1,3 +1,27 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2019 Adetunji Dahunsi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package com.tunjid.rcswitchcontrol.viewmodels
 
 import android.app.Application
@@ -16,8 +40,8 @@ import com.tunjid.rcswitchcontrol.data.RfSwitch.Companion.SWITCH_PREFS
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserialize
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserializeList
 import com.tunjid.rcswitchcontrol.nsd.protocols.CommsProtocol
-import com.tunjid.rcswitchcontrol.nsd.protocols.RfProtocol
-import com.tunjid.rcswitchcontrol.nsd.protocols.WiredRFProtocol
+import com.tunjid.rcswitchcontrol.nsd.protocols.BLERFProtocol
+import com.tunjid.rcswitchcontrol.nsd.protocols.SerialRFProtocol
 import com.tunjid.rcswitchcontrol.nsd.protocols.ZigBeeProtocol
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
@@ -173,7 +197,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun Payload.extractCommandInfo(): ZigBeeCommandInfo? {
-        if (RfProtocol::class.java.name == key || WiredRFProtocol::class.java.name == key) return null
+        if (BLERFProtocol::class.java.name == key || SerialRFProtocol::class.java.name == key) return null
         if (extractDevices() != null) return null
         return data?.deserialize(ZigBeeCommandInfo::class)
     }
@@ -183,7 +207,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
         val context = getApplication<Application>()
 
         return when (key) {
-            RfProtocol::class.java.name, WiredRFProtocol::class.java.name -> when (action) {
+            BLERFProtocol::class.java.name, SerialRFProtocol::class.java.name -> when (action) {
                 ClientBleService.ACTION_TRANSMITTER,
                 context.getString(R.string.blercprotocol_delete_command),
                 context.getString(R.string.blercprotocol_rename_command) -> serialized.deserializeList(RfSwitch::class)

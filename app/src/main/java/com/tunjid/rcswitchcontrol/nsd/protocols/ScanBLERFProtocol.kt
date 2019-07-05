@@ -1,3 +1,27 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2019 Adetunji Dahunsi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package com.tunjid.rcswitchcontrol.nsd.protocols
 
 import android.bluetooth.BluetoothDevice
@@ -33,7 +57,7 @@ import java.util.*
  */
 
 @Suppress("PrivatePropertyName")
-internal class ScanBleRcProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter), BLEScanner.BleScanCallback {
+internal class ScanBLERFProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter), BLEScanner.BleScanCallback {
 
     private val SCAN: String = appContext.getString(R.string.button_scan)
     private val CONNECT: String = appContext.getString(R.string.connect)
@@ -92,7 +116,7 @@ internal class ScanBleRcProtocol(printWriter: PrintWriter) : CommsProtocol(print
         scanner.stopScan()
 
         val resources = appContext.resources
-        val output = Payload(this@ScanBleRcProtocol.javaClass.name)
+        val output = Payload(this@ScanBLERFProtocol.javaClass.name)
         output.addCommand(RESET)
         output.addCommand(SCAN)
 
@@ -171,7 +195,7 @@ internal class ScanBleRcProtocol(printWriter: PrintWriter) : CommsProtocol(print
 
     companion object {
 
-        private val TAG = ScanBleRcProtocol::class.java.simpleName
+        private val TAG = ScanBLERFProtocol::class.java.simpleName
         private const val SCAN_DURATION = 5000
     }
 }

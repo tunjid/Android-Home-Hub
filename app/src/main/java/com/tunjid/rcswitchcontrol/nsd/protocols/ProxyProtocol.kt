@@ -1,3 +1,27 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2019 Adetunji Dahunsi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package com.tunjid.rcswitchcontrol.nsd.protocols
 
 import android.app.PendingIntent
@@ -26,10 +50,10 @@ import java.io.PrintWriter
 class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
     private val protocolMap = mutableMapOf(
-            RfProtocol::class.java.name to RfProtocol(printWriter),
+            BLERFProtocol::class.java.name to BLERFProtocol(printWriter),
             KnockKnockProtocol::class.java.name to KnockKnockProtocol(printWriter)
     ).apply {
-        findUsbDriver(WiredRFProtocol.ARDUINO_VENDOR_ID, WiredRFProtocol.ARDUINO_PRODUCT_ID)?.let { driver -> this[WiredRFProtocol::class.java.name] = WiredRFProtocol(driver, printWriter) }
+        findUsbDriver(SerialRFProtocol.ARDUINO_VENDOR_ID, SerialRFProtocol.ARDUINO_PRODUCT_ID)?.let { driver -> this[SerialRFProtocol::class.java.name] = SerialRFProtocol(driver, printWriter) }
         findUsbDriver(ZigBeeProtocol.TI_VENDOR_ID, ZigBeeProtocol.CC2531_PRODUCT_ID)?.let { driver -> this[ZigBeeProtocol::class.java.name] = ZigBeeProtocol(driver, printWriter) }
     }
 

@@ -113,7 +113,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
 
             addNetworkStateListener { state ->
                 post("ZigBee network state updated to $state")
-                if (ZigBeeNetworkState.ONLINE == state) formNetwork()
+                if (dataStore.hasNoDevices && ZigBeeNetworkState.ONLINE == state) formNetwork()
             }
 
             addNetworkNodeListener(object : ZigBeeNetworkNodeListener {
@@ -131,14 +131,16 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
         sharedPool.submit(this::start)
     }
 
-    override fun processInput(payload: Payload): Payload {
-        val output = Payload(javaClass.name)
-        output.addCommand(RESET)
+    override fun processInput(payload: Payload): Payload = Payload(javaClass.name).apply {
+        addCommand(RESET)
 
         when (val action = payload.action ?: "invalid command") {
             RESET -> reset()
-            FORM_NETWORK -> formNetwork()
-            PING, SAVED_DEVICES -> output.apply {
+            FORM_NETWORK -> {
+                response = getString(R.string.zigbeeprotocol_forming_network)
+                formNetwork()
+            }
+            PING, SAVED_DEVICES -> {
                 response = (getString(R.string.zigbeeprotocol_ping))
                 this.action = SAVED_DEVICES
                 data = savedDevices()
@@ -151,22 +153,20 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
 
                 when {
                     needsCommandArgs -> {
-                        output.response = getString(R.string.zigbeeprotocol_enter_args, action)
-                        output.data = ZigBeeCommandInfo(command, description, syntax, help).serialize()
+                        response = getString(R.string.zigbeeprotocol_enter_args, action)
+                        data = ZigBeeCommandInfo(command, description, syntax, help).serialize()
                     }
                     else -> {
                         val args = commandArgs?.args ?: arrayOf(action)
-                        output.response = getString(R.string.zigbeeprotocol_executing, args.commandString())
+                        response = getString(R.string.zigbeeprotocol_executing, args.commandString())
                         execute(args)
                     }
                 }
             }
-            else -> output.response = "Unrecognized command"
+            else -> response = "Unrecognized command"
         }
 
-        output.appendCommands()
-
-        return output
+        appendCommands()
     }
 
     /**
@@ -307,7 +307,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
             }.serialize())
         }
 
-        Log.i("ZIGBEE", out)
+        Log.i("IOT", out)
     }
 
     private fun Array<out String>.commandString() = joinToString(separator = " ")

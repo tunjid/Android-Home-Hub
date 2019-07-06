@@ -25,8 +25,6 @@
 package com.tunjid.rcswitchcontrol.services
 
 import android.annotation.TargetApi
-import android.app.Notification
-import android.app.PendingIntent
 import android.app.Service
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
@@ -43,16 +41,12 @@ import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.IBinder
-import android.text.TextUtils
 import android.util.Base64
 import android.util.Log
 import android.widget.Toast
-import androidx.core.app.NotificationCompat
 import com.tunjid.androidbootstrap.core.components.ServiceConnection
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.activities.MainActivity
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService
 import com.tunjid.rcswitchcontrol.data.RfSwitch.Companion.SWITCH_PREFS
 import io.reactivex.disposables.CompositeDisposable
 import java.util.*
@@ -61,13 +55,14 @@ import java.util.*
  * Service for managing connection and data communication with a GATT server hosted on a
  * given Bluetooth LE device.
  */
-class ClientBleService : Service(), ClientStartedBoundService {
+class ClientBleService : Service() {
+
+    private val isConnected: Boolean
+        get() = connectionState == ACTION_GATT_CONNECTED
 
     private val binder = Binder()
     private val disposable = CompositeDisposable()
     private val serverConnection = ServiceConnection(ServerNsdService::class.java)
-
-    private var isUserInApp: Boolean = false
 
     var connectionState = ACTION_GATT_DISCONNECTED
         private set
@@ -96,12 +91,6 @@ class ClientBleService : Service(), ClientStartedBoundService {
                     getSharedPreferences(SWITCH_PREFS, Context.MODE_PRIVATE).edit()
                             .putString(LAST_PAIRED_DEVICE, connectedDevice!!.address)
                             .apply()
-
-                    // Update the notification
-                    if (!isUserInApp)
-                        startForeground(NOTIFICATION_ID, connectedNotification())
-                    else
-                        stopForeground(true)
                 }
                 BluetoothProfile.STATE_CONNECTING -> {
                     connectionState = ACTION_GATT_CONNECTING
@@ -110,9 +99,6 @@ class ClientBleService : Service(), ClientStartedBoundService {
                 BluetoothProfile.STATE_DISCONNECTED -> {
                     connectionState = ACTION_GATT_DISCONNECTED
                     broadcastUpdate(connectionState)
-
-                    // Remove the notification
-                    if (!isUserInApp) stopForeground(true)
                 }
             }
 
@@ -167,9 +153,6 @@ class ClientBleService : Service(), ClientStartedBoundService {
         }
     }
 
-    override val isConnected: Boolean
-        get() = connectionState == ACTION_GATT_CONNECTED
-
     /**
      * Retrieves a list of supported GATT services on the connected device. This should be
      * invoked only after `BluetoothGatt#discoverServices()` completes successfully.
@@ -181,7 +164,6 @@ class ClientBleService : Service(), ClientStartedBoundService {
 
     override fun onCreate() {
         super.onCreate()
-        addChannel(R.string.switch_service, R.string.switch_service_description)
 
         disposable.add(Broadcaster.listen(ACTION_TRANSMITTER).subscribe({ intent ->
             val data = intent.getStringExtra(DATA_AVAILABLE_TRANSMITTER)
@@ -196,28 +178,27 @@ class ClientBleService : Service(), ClientStartedBoundService {
     }
 
     override fun onBind(intent: Intent): IBinder? {
-        onAppForeGround()
         initialize(intent)
         return binder
     }
 
-    override fun initialize(intent: Intent?) {
+    private fun initialize(intent: Intent?) {
         if (intent == null || isConnected) return
 
-        val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-        bluetoothAdapter = bluetoothManager.adapter
+        val adapter = (getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
+        if (adapter == null || !adapter.isEnabled || ACTION_GATT_CONNECTING == connectionState) return
 
-        if (bluetoothAdapter == null || ACTION_GATT_CONNECTING == connectionState) return
+        bluetoothAdapter = adapter
 
         val sharedPreferences = getSharedPreferences(SWITCH_PREFS, Context.MODE_PRIVATE)
         val lastConnectedDevice = sharedPreferences.getString(LAST_PAIRED_DEVICE, "")
 
-        val bluetoothDevice = if (intent.hasExtra(BLUETOOTH_DEVICE))
-            intent.getParcelableExtra(BLUETOOTH_DEVICE)
-        else if (!TextUtils.isEmpty(lastConnectedDevice))
-            bluetoothAdapter!!.getRemoteDevice(lastConnectedDevice)
-        else
-            null
+        val bluetoothDevice = when {
+            intent.hasExtra(BLUETOOTH_DEVICE) -> intent.getParcelableExtra(BLUETOOTH_DEVICE)
+            lastConnectedDevice != null && lastConnectedDevice.isNotBlank() -> adapter.getRemoteDevice(lastConnectedDevice)
+            else -> null
+        }
+        // Retrieve device from notification intent or shared preferences
 
         if (bluetoothDevice == null && connectedDevice == null) {
             // Service was restarted, but has no device to connect to. Close gatt and stop the service
@@ -232,36 +213,6 @@ class ClientBleService : Service(), ClientStartedBoundService {
         connect(connectedDevice)
 
         Log.i(TAG, "Initialized BLE connection")
-
-        if (getSharedPreferences(SWITCH_PREFS, Context.MODE_PRIVATE).getBoolean(ServerNsdService.SERVER_FLAG, false)) {
-            serverConnection.with(this).start()
-            serverConnection.with(this).bind()
-
-            Log.i(TAG, "Binding to NSD server")
-        }
-    }
-
-    override fun onAppBackground() {
-        isUserInApp = false
-
-        // Use a notification to tell the user the app is running
-        if (isConnected)
-            startForeground(NOTIFICATION_ID, connectedNotification())
-        else
-            stopForeground(true)// Otherwise, remove the notification and wait for a reconnect
-    }
-
-    override fun onAppForeGround() {
-        stopForeground({ isUserInApp = true; isUserInApp }())
-    }
-
-    override fun onRebind(intent: Intent) {
-        onAppForeGround()
-    }
-
-    override fun onUnbind(intent: Intent): Boolean {
-        onAppBackground()
-        return super.onUnbind(intent)
     }
 
     override fun onDestroy() {
@@ -423,28 +374,6 @@ class ClientBleService : Service(), ClientStartedBoundService {
         if (writeQueue.size > 0) bluetoothGatt!!.writeDescriptor(descriptor)
     }
 
-    private fun connectedNotification(): Notification {
-        val resumeIntent = Intent(this, MainActivity::class.java)
-
-        resumeIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
-        resumeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        resumeIntent.putExtra(BLUETOOTH_DEVICE, connectedDevice)
-
-        val activityPendingIntent = PendingIntent.getActivity(
-                this, 0, resumeIntent, PendingIntent.FLAG_CANCEL_CURRENT)
-
-        val notificationBuilder = NotificationCompat.Builder(this, ClientStartedBoundService.NOTIFICATION_TYPE)
-                .setSmallIcon(R.drawable.ic_notification)
-                .setContentTitle(getText(R.string.connected))
-                .setContentText(getText(if (serverConnection.isBound && serverConnection.boundService.isRunning)
-                    R.string.ble_connected_nsd_server
-                else
-                    R.string.connected))
-                .setContentIntent(activityPendingIntent)
-
-        return notificationBuilder.build()
-    }
-
     private inner class Binder : ServiceConnection.Binder<ClientBleService>() {
         override fun getService(): ClientBleService {
             return this@ClientBleService
@@ -456,7 +385,6 @@ class ClientBleService : Service(), ClientStartedBoundService {
         private val TAG = ClientBleService::class.java.simpleName
 
         const val STATE_SNIFFING: Byte = 0
-        const val NOTIFICATION_ID = 1
 
         // Services
         const val CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb"

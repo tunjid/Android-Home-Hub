@@ -55,7 +55,7 @@ typealias ViewHolder = DeviceViewHolder<out InteractiveAdapter.AdapterListener, 
 
 class NsdSwitchFragment : BaseFragment(),
         DeviceAdapter.Listener,
-        RenameSwitchDialogFragment.SwitchNameListener{
+        RenameSwitchDialogFragment.SwitchNameListener {
 
     private var isDeleting: Boolean = false
 
@@ -89,7 +89,7 @@ class NsdSwitchFragment : BaseFragment(),
 
     override fun onStart() {
         super.onStart()
-        disposables.add(viewModel.listen { it is State.Devices }.subscribe(this::onPayloadReceived, Throwable::printStackTrace))
+        disposables.add(viewModel.listen(State.Devices::class.java).subscribe(this::onPayloadReceived, Throwable::printStackTrace))
     }
 
     override fun onDestroyView() {
@@ -157,9 +157,7 @@ class NsdSwitchFragment : BaseFragment(),
         }
     }
 
-    private fun onPayloadReceived(state: State) {
-        listManager.onDiff(state.result)
-    }
+    private fun onPayloadReceived(state: State.Devices) = listManager.onDiff(state.result)
 
     private fun swipeDirection(holder: ViewHolder): Int =
             if (isDeleting || holder is ZigBeeDeviceViewHolder) 0

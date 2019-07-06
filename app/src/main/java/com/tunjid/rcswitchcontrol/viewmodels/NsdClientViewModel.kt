@@ -25,7 +25,6 @@
 package com.tunjid.rcswitchcontrol.viewmodels
 
 import android.app.Application
-import android.content.Context.MODE_PRIVATE
 import android.content.Intent
 import androidx.lifecycle.AndroidViewModel
 import androidx.recyclerview.widget.DiffUtil.DiffResult
@@ -35,16 +34,21 @@ import com.tunjid.androidbootstrap.recyclerview.diff.Diff
 import com.tunjid.androidbootstrap.recyclerview.diff.Differentiable
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.data.*
-import com.tunjid.rcswitchcontrol.data.RfSwitch.Companion.SWITCH_PREFS
+import com.tunjid.rcswitchcontrol.data.Device
+import com.tunjid.rcswitchcontrol.data.Payload
+import com.tunjid.rcswitchcontrol.data.Record
+import com.tunjid.rcswitchcontrol.data.RfSwitch
+import com.tunjid.rcswitchcontrol.data.ZigBeeCommandInfo
+import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserialize
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserializeList
-import com.tunjid.rcswitchcontrol.nsd.protocols.CommsProtocol
 import com.tunjid.rcswitchcontrol.nsd.protocols.BLERFProtocol
+import com.tunjid.rcswitchcontrol.nsd.protocols.CommsProtocol
 import com.tunjid.rcswitchcontrol.nsd.protocols.SerialRFProtocol
 import com.tunjid.rcswitchcontrol.nsd.protocols.ZigBeeProtocol
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
+import com.tunjid.rcswitchcontrol.services.ServerNsdService
 import io.reactivex.Flowable
 import io.reactivex.android.schedulers.AndroidSchedulers.mainThread
 import io.reactivex.disposables.CompositeDisposable
@@ -68,6 +72,9 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
     private val history: MutableList<Record> = mutableListOf()
 
     val devices: MutableList<Device> = mutableListOf()
+    val pages: MutableList<Page> = mutableListOf(Page.HISTORY, Page.DEVICES).apply {
+        if (ServerNsdService.isServer) add(0, Page.HOST)
+    }
 
     @Volatile
     var isProcessing = false
@@ -79,7 +86,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
         get() = nsdConnection.isBound
 
     val isConnected: Boolean
-        get() = nsdConnection.isBound && !nsdConnection.boundService.isConnected
+        get() = nsdConnection.isBound && nsdConnection.boundService.isConnected
 
     init {
         nsdConnection.with(app).bind()
@@ -94,11 +101,14 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
         super.onCleared()
     }
 
-    fun listen(predicate: (state: State) -> Boolean = { true }): Flowable<State> = stateProcessor.filter(predicate)
+    fun <T : State> listen(type: Class<T>, predicate: (state: T) -> Boolean = { true }): Flowable<T> = stateProcessor
+            .filter(type::isInstance)
+            .map(type::cast)
+            .filter(predicate)
 
     fun dispatchPayload(key: String, payloadReceiver: Payload.() -> Unit) = dispatchPayload(key, { true }, payloadReceiver)
 
-    fun onBackground() = nsdConnection.boundService.onAppBackground()
+    fun onBackground() = nsdConnection.boundService?.onAppBackground()
 
     fun getCommands(key: String?) = if (key == null) history else commands.getOrPut(key) { mutableListOf() }
 
@@ -109,8 +119,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
         // onDestroy will be called and the connection unbound
         if (nsdConnection.isBound) nsdConnection.boundService.stopSelf()
 
-        getApplication<Application>().getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE).edit()
-                .remove(ClientNsdService.LAST_CONNECTED_SERVICE).apply()
+        ClientNsdService.lastConnectedService=null
     }
 
     fun connectionState(): Flowable<String> = connectionStateProcessor.startWith({
@@ -233,6 +242,7 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun listenForInputPayloads() {
+        isProcessing = false
         disposable.add(inPayloadProcessor.map { payload ->
             mutableListOf<State>().apply {
                 val key = payload.key
@@ -266,10 +276,11 @@ class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
     private fun listenForOutputPayloads() {
         disposable.add(outPayloadProcessor
                 .sample(200, TimeUnit.MILLISECONDS)
-                .filter { nsdConnection.isBound }
+                .filter { isConnected }
                 .subscribe(nsdConnection.boundService::sendMessage) { it.printStackTrace(); listenForOutputPayloads() })
     }
 
+    enum class Page { HOST, HISTORY, DEVICES }
 
     sealed class State(
             open val key: String,

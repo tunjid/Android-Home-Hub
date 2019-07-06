@@ -73,8 +73,7 @@ class ClientNsdService : Service(), ClientStartedBoundService {
             if (!isUserInApp) startForeground(NOTIFICATION_ID, connectedNotification())
             else stopForeground(true)
 
-            getSharedPreferences(SWITCH_PREFS, Context.MODE_PRIVATE).edit()
-                    .putString(LAST_CONNECTED_SERVICE, currentService!!.serviceName).apply()
+            currentService?.apply { lastConnectedService = serviceName }
         }
 
     private var messageThread: MessageThread? = null
@@ -164,7 +163,7 @@ class ClientNsdService : Service(), ClientStartedBoundService {
         if (messageThread != null) messageThread!!.send(messageQueue.remove())
     }
 
-    protected fun tearDown() {
+    private fun tearDown() {
         nsdHelper.tearDown()
 
         Log.e(TAG, "Tearing down ClientServer")
@@ -203,58 +202,58 @@ class ClientNsdService : Service(), ClientStartedBoundService {
             internal var service: NsdServiceInfo,
             internal var clientNsdService: ClientNsdService) : Thread(), Closeable {
 
-        private lateinit var currentSocket: Socket
-        private lateinit var out: PrintWriter
+        var currentSocket: Socket? = null
+        private var out: PrintWriter? = null
         private val pool = Executors.newSingleThreadExecutor()
 
-        override fun run() {
-            try {
-                Log.d(TAG, "Initializing client-side socket. Host: " + service.host + ", Port: " + service.port)
+        override fun run() = try {
+            Log.d(TAG, "Initializing client-side socket. Host: " + service.host + ", Port: " + service.port)
 
-                currentSocket = Socket(service.host, service.port)
+            currentSocket = Socket(service.host, service.port)
 
-                out = createPrintWriter(currentSocket)
-                val `in` = createBufferedReader(currentSocket)
+            out = createPrintWriter(currentSocket)
+            val `in` = createBufferedReader(currentSocket)
 
-                Log.d(TAG, "Connection-side socket initialized.")
+            Log.d(TAG, "Connection-side socket initialized.")
 
-                clientNsdService.connectionState = ACTION_SOCKET_CONNECTED
+            clientNsdService.connectionState = ACTION_SOCKET_CONNECTED
 
-                if (!clientNsdService.messageQueue.isEmpty()) {
-                    out.println(clientNsdService.messageQueue.remove())
-                }
-
-                while (true) {
-                    val fromServer = `in`.readLine() ?: break
-
-                    Log.i(TAG, "Server: $fromServer")
-
-                    val serverResponse = Intent()
-                    serverResponse.action = ACTION_SERVER_RESPONSE
-                    serverResponse.putExtra(DATA_SERVER_RESPONSE, fromServer)
-
-                    Broadcaster.push(serverResponse)
-
-                    if (fromServer == "Bye.") {
-                        clientNsdService.connectionState = ACTION_SOCKET_DISCONNECTED
-                        break
-                    }
-                }
-            } catch (e: IOException) {
-                e.printStackTrace()
-                clientNsdService.connectionState = ACTION_SOCKET_DISCONNECTED
-            } finally {
-                close()
+            if (!clientNsdService.messageQueue.isEmpty()) {
+                out?.println(clientNsdService.messageQueue.remove())
             }
+
+            while (true) {
+                val fromServer = `in`.readLine() ?: break
+
+                Log.i(TAG, "Server: $fromServer")
+
+                val serverResponse = Intent()
+                serverResponse.action = ACTION_SERVER_RESPONSE
+                serverResponse.putExtra(DATA_SERVER_RESPONSE, fromServer)
+
+                Broadcaster.push(serverResponse)
+
+                if (fromServer == "Bye.") {
+                    clientNsdService.connectionState = ACTION_SOCKET_DISCONNECTED
+                    break
+                }
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
+            clientNsdService.connectionState = ACTION_SOCKET_DISCONNECTED
+        } finally {
+            close()
         }
 
         internal fun send(message: String) {
-            if (out.checkError()) close()
-            else pool.submit { out.println(message) }
+            out?.let {
+                if (it.checkError()) close()
+                else pool.submit { it.println(message) }
+            }
         }
 
         override fun close() {
-            App.catcher(TAG, "Exiting message thread") { currentSocket.close() }
+            App.catcher(TAG, "Exiting message thread") { currentSocket?.close() }
             clientNsdService.connectionState = ACTION_SOCKET_DISCONNECTED
         }
     }
@@ -262,10 +261,10 @@ class ClientNsdService : Service(), ClientStartedBoundService {
     companion object {
 
         const val NOTIFICATION_ID = 2
-        private val TAG = ClientNsdService::class.java.simpleName
-
-        const val LAST_CONNECTED_SERVICE = "com.tunjid.rcswitchcontrol.services.ClientNsdService.last connected service"
         const val NSD_SERVICE_INFO_KEY = "current Service key"
+
+        private val TAG = ClientNsdService::class.java.simpleName
+        private const val LAST_CONNECTED_SERVICE = "com.tunjid.rcswitchcontrol.services.ClientNsdService.last connected service"
 
         const val ACTION_STOP = "com.tunjid.rcswitchcontrol.services.ClientNsdService.stop"
         const val ACTION_SERVER_RESPONSE = "com.tunjid.rcswitchcontrol.services.ClientNsdService.service.response"
@@ -275,5 +274,13 @@ class ClientNsdService : Service(), ClientStartedBoundService {
         const val ACTION_START_NSD_DISCOVERY = "com.tunjid.rcswitchcontrol.services.ClientNsdService.start.nsd.discovery"
 
         const val DATA_SERVER_RESPONSE = "service_response"
+
+        var lastConnectedService: String?
+            get() = App.instance.getSharedPreferences(SWITCH_PREFS, Context.MODE_PRIVATE).getString(LAST_CONNECTED_SERVICE, null)
+            set(value) = when (value) {
+                null -> App.instance.getSharedPreferences(SWITCH_PREFS, Context.MODE_PRIVATE).edit()
+                        .remove(LAST_CONNECTED_SERVICE).apply()
+                else -> App.instance.getSharedPreferences(SWITCH_PREFS, Context.MODE_PRIVATE).edit().putString(LAST_CONNECTED_SERVICE, value).apply()
+            }
     }
 }

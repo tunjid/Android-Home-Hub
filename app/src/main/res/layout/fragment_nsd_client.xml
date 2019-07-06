@@ -68,6 +68,7 @@
                 android:id="@+id/tabs"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:backgroundTint="?app_background_color"
                 app:tabMode="fixed"
                 app:tabSelectedTextColor="?tab_text_selected_color"
                 app:tabTextColor="?tab_text_unselected_color" />
@@ -88,6 +89,7 @@
                 android:id="@+id/command_tabs"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:backgroundTint="?app_background_color"
                 app:tabMode="scrollable"
                 app:tabSelectedTextColor="?tab_text_selected_color"
                 app:tabTextColor="?tab_text_unselected_color" />

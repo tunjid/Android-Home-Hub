@@ -86,7 +86,10 @@ class NsdHistoryFragment : BaseFragment() {
 
     override fun onStart() {
         super.onStart()
-        disposables.add(viewModel.listen(this::filter).subscribe(this::onPayloadReceived, Throwable::printStackTrace))
+        disposables.add(
+                if (key == null) viewModel.listen(State.History::class.java).subscribe(this::onHistoryStateReceived, Throwable::printStackTrace)
+                else viewModel.listen(State.Commands::class.java) { key == it.key }.subscribe(this::onCommandStateReceived, Throwable::printStackTrace)
+        )
     }
 
     override fun onDestroyView() {
@@ -94,15 +97,14 @@ class NsdHistoryFragment : BaseFragment() {
         listManager.clear()
     }
 
-    private fun filter(state: State): Boolean = if (key == null) state is State.History else key == state.key && state is State.Commands
-
-    private fun onPayloadReceived(state: State) {
+    private fun onHistoryStateReceived(state: State.History) {
         listManager.onDiff(state.result)
 
-        if (viewModel.getCommands(key).isNotEmpty()) listManager.post {
-            listManager.recyclerView?.smoothScrollToPosition(viewModel.lastIndex(key))
-        }
+        if (viewModel.getCommands(key).isNotEmpty())
+            listManager.post { listManager.recyclerView?.smoothScrollToPosition(viewModel.lastIndex(key)) }
     }
+
+    private fun onCommandStateReceived(state: State.Commands) = listManager.onDiff(state.result)
 
     companion object {
 

@@ -34,6 +34,7 @@ import com.tunjid.androidbootstrap.communications.nsd.NsdHelper
 import com.tunjid.androidbootstrap.communications.nsd.NsdHelper.createBufferedReader
 import com.tunjid.androidbootstrap.communications.nsd.NsdHelper.createPrintWriter
 import com.tunjid.androidbootstrap.core.components.ServiceConnection
+import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.App.Companion.catcher
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
 import com.tunjid.rcswitchcontrol.data.RfSwitch.Companion.SWITCH_PREFS
@@ -41,6 +42,7 @@ import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.io.ConsoleWriter
 import com.tunjid.rcswitchcontrol.nsd.protocols.CommsProtocol
 import com.tunjid.rcswitchcontrol.nsd.protocols.ProxyProtocol
+import com.tunjid.rcswitchcontrol.services.ClientNsdService.Companion.ACTION_START_NSD_DISCOVERY
 import io.reactivex.disposables.CompositeDisposable
 import org.json.JSONObject
 import java.io.Closeable
@@ -58,15 +60,10 @@ class ServerNsdService : Service() {
 
     private lateinit var nsdHelper: NsdHelper
     private lateinit var serverThread: ServerThread
-    var serviceName: String? = null
-        private set
 
     private val binder = Binder()
 
     private val disposable = CompositeDisposable()
-
-    val isRunning: Boolean
-        get() = serverThread.isRunning
 
     override fun onCreate() {
         super.onCreate()
@@ -100,8 +97,7 @@ class ServerNsdService : Service() {
     }
 
     private fun initialize() {
-        val initialServiceName = getSharedPreferences(SWITCH_PREFS, Context.MODE_PRIVATE)
-                .getString(SERVICE_NAME_KEY, WIRELESS_SWITCH_SERVICE)
+        val initialServiceName = serviceName
 
         // Since discovery will happen via Nsd, we don't need to care which port is
         // used, just grab an avaialable one and advertise it via Nsd.
@@ -122,13 +118,12 @@ class ServerNsdService : Service() {
     }
 
     private fun onNsdServiceRegistered(service: NsdServiceInfo) {
+        isServer = true
         serviceName = service.serviceName
-        getSharedPreferences(SWITCH_PREFS, Context.MODE_PRIVATE).edit()
-                .putString(SERVICE_NAME_KEY, serviceName)
-                .putBoolean(SERVER_FLAG, true)
-                .apply()
+        ClientNsdService.lastConnectedService = service.serviceName
 
-        Log.i(TAG, "Registered data for: " + serviceName!!)
+        Log.i(TAG, "Registered data for: " + service.serviceName)
+        Broadcaster.push(Intent(ACTION_START_NSD_DISCOVERY).putExtra(ClientNsdService.NSD_SERVICE_INFO_KEY, service))
     }
 
     /**
@@ -259,10 +254,25 @@ class ServerNsdService : Service() {
 
         private val TAG = ServerNsdService::class.java.simpleName
 
-        const val SERVER_FLAG = "com.tunjid.rcswitchcontrol.ServerNsdService.services.server.flag"
         const val ACTION_STOP = "com.tunjid.rcswitchcontrol.ServerNsdService.services.server.stop"
-        const val SERVICE_NAME_KEY = "com.tunjid.rcswitchcontrol.ServerNsdService.services.server.serviceName"
-        const val WIRELESS_SWITCH_SERVICE = "Wireless Switch Service"
+        private const val SERVER_FLAG = "com.tunjid.rcswitchcontrol.ServerNsdService.services.server.flag"
+        private const val SERVICE_NAME_KEY = "com.tunjid.rcswitchcontrol.ServerNsdService.services.server.serviceName"
+        private const val WIRELESS_SWITCH_SERVICE = "Wireless Switch Service"
+
+        var serviceName: String
+            get() = App.instance.getSharedPreferences(SWITCH_PREFS, Context.MODE_PRIVATE)
+                    .getString(SERVICE_NAME_KEY, WIRELESS_SWITCH_SERVICE) ?: WIRELESS_SWITCH_SERVICE
+            set(value) = App.instance.getSharedPreferences(SWITCH_PREFS, Context.MODE_PRIVATE).edit()
+                    .putString(SERVICE_NAME_KEY, value)
+                    .apply()
+
+        var isServer: Boolean
+            get() = App.instance.getSharedPreferences(SWITCH_PREFS, Context.MODE_PRIVATE)
+                    .getBoolean(SERVER_FLAG, false)
+            set(value) = App.instance.getSharedPreferences(SWITCH_PREFS, Context.MODE_PRIVATE)
+                    .edit()
+                    .putBoolean(SERVER_FLAG, value)
+                    .apply()
     }
 
 }

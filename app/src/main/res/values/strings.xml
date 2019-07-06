@@ -49,6 +49,11 @@
     <string name="unknown_device">Unknown Device</string>
     <string name="device_name_address">%1$s\n%2$s</string>
 
+    <!-- Host Fragment -->
+    <string name="rename_server">Rename</string>
+    <string name="restart_server">Restart</string>
+    <string name="stop_server">Stop</string>
+
     <!-- Control Fragment -->
     <string name="switches">Switches</string>
     <string name="sniff_code">Sniff %1$s Code</string>
@@ -62,6 +67,7 @@
     <string name="connected_to">Connected to %1$s</string>
     <string name="connecting_to">Connecting to %1$s</string>
     <string name="disconnected">Disconnected</string>
+    <string name="host">Host</string>
     <string name="history">History</string>
     <string name="devices">Devices</string>
 

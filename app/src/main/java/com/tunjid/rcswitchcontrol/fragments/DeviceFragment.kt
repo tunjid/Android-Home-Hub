@@ -48,23 +48,23 @@ import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
-import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel
-import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel.State
+import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
+import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.State
 
 typealias ViewHolder = DeviceViewHolder<out InteractiveAdapter.AdapterListener, out Any>
 
-class NsdSwitchFragment : BaseFragment(),
+class DeviceFragment : BaseFragment(),
         DeviceAdapter.Listener,
-        RenameSwitchDialogFragment.SwitchNameListener{
+        RenameSwitchDialogFragment.SwitchNameListener {
 
     private var isDeleting: Boolean = false
 
-    private lateinit var viewModel: NsdClientViewModel
+    private lateinit var viewModel: ControlViewModel
     private lateinit var listManager: ListManager<ViewHolder, ListPlaceholder<*>>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        viewModel = ViewModelProviders.of(parentFragment!!).get(NsdClientViewModel::class.java)
+        viewModel = ViewModelProviders.of(parentFragment!!).get(ControlViewModel::class.java)
     }
 
     override fun onCreateView(inflater: LayoutInflater,
@@ -89,7 +89,7 @@ class NsdSwitchFragment : BaseFragment(),
 
     override fun onStart() {
         super.onStart()
-        disposables.add(viewModel.listen { it is State.Devices }.subscribe(this::onPayloadReceived, Throwable::printStackTrace))
+        disposables.add(viewModel.listen(State.Devices::class.java).subscribe(this::onPayloadReceived, Throwable::printStackTrace))
     }
 
     override fun onDestroyView() {
@@ -157,9 +157,7 @@ class NsdSwitchFragment : BaseFragment(),
         }
     }
 
-    private fun onPayloadReceived(state: State) {
-        listManager.onDiff(state.result)
-    }
+    private fun onPayloadReceived(state: State.Devices) = listManager.onDiff(state.result)
 
     private fun swipeDirection(holder: ViewHolder): Int =
             if (isDeleting || holder is ZigBeeDeviceViewHolder) 0
@@ -204,8 +202,8 @@ class NsdSwitchFragment : BaseFragment(),
 
     companion object {
 
-        fun newInstance(): NsdSwitchFragment {
-            val fragment = NsdSwitchFragment()
+        fun newInstance(): DeviceFragment {
+            val fragment = DeviceFragment()
             val bundle = Bundle()
 
             fragment.arguments = bundle

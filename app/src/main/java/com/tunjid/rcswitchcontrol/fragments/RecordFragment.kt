@@ -39,22 +39,26 @@ import com.tunjid.androidbootstrap.recyclerview.ListManagerBuilder
 import com.tunjid.androidbootstrap.recyclerview.ListPlaceholder
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
-import com.tunjid.rcswitchcontrol.adapters.ChatAdapter
+import com.tunjid.rcswitchcontrol.adapters.RecordAdapter
 import com.tunjid.rcswitchcontrol.data.Record
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
-import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel
-import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel.State
+import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
+import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.State
 
-class NsdHistoryFragment : BaseFragment() {
+sealed class RecordFragment : BaseFragment() {
+
+    class HistoryFragment : RecordFragment()
+
+    class CommandsFragment : RecordFragment()
 
     private lateinit var listManager: ListManager<RecyclerView.ViewHolder, ListPlaceholder<*>>
 
-    private lateinit var viewModel: NsdClientViewModel
+    private lateinit var viewModel: ControlViewModel
     private var key: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        viewModel = ViewModelProviders.of(parentFragment!!).get(NsdClientViewModel::class.java)
+        viewModel = ViewModelProviders.of(parentFragment!!).get(ControlViewModel::class.java)
         key = arguments?.getString(KEY)
     }
 
@@ -65,7 +69,7 @@ class NsdHistoryFragment : BaseFragment() {
         val root = inflater.inflate(R.layout.fragment_list, container, false)
         val builder = ListManagerBuilder<RecyclerView.ViewHolder, ListPlaceholder<*>>()
                 .withRecyclerView(root.findViewById(R.id.list))
-                .withAdapter(ChatAdapter(viewModel.getCommands(key), object : ChatAdapter.ChatAdapterListener {
+                .withAdapter(RecordAdapter(viewModel.getCommands(key), object : RecordAdapter.ChatAdapterListener {
                     override fun onRecordClicked(record: Record) {
                         if (key != null) viewModel.dispatchPayload(record.key) { action = record.entry }
                     }
@@ -86,7 +90,10 @@ class NsdHistoryFragment : BaseFragment() {
 
     override fun onStart() {
         super.onStart()
-        disposables.add(viewModel.listen(this::filter).subscribe(this::onPayloadReceived, Throwable::printStackTrace))
+        disposables.add(
+                if (key == null) viewModel.listen(State.History::class.java).subscribe(this::onHistoryStateReceived, Throwable::printStackTrace)
+                else viewModel.listen(State.Commands::class.java) { key == it.key }.subscribe(this::onCommandStateReceived, Throwable::printStackTrace)
+        )
     }
 
     override fun onDestroyView() {
@@ -94,26 +101,21 @@ class NsdHistoryFragment : BaseFragment() {
         listManager.clear()
     }
 
-    private fun filter(state: State): Boolean = if (key == null) state is State.History else key == state.key && state is State.Commands
-
-    private fun onPayloadReceived(state: State) {
+    private fun onHistoryStateReceived(state: State.History) {
         listManager.onDiff(state.result)
 
-        if (viewModel.getCommands(key).isNotEmpty()) listManager.post {
-            listManager.recyclerView?.smoothScrollToPosition(viewModel.lastIndex(key))
-        }
+        if (viewModel.getCommands(key).isNotEmpty())
+            listManager.post { listManager.recyclerView?.smoothScrollToPosition(viewModel.lastIndex(key)) }
     }
+
+    private fun onCommandStateReceived(state: State.Commands) = listManager.onDiff(state.result)
 
     companion object {
 
         const val KEY = "KEY"
 
-        fun newInstance(key: String? = null): NsdHistoryFragment {
-            val fragment = NsdHistoryFragment()
-            val bundle = Bundle().apply { putString(KEY, key) }
+        fun historyInstance(): HistoryFragment = HistoryFragment().apply { arguments = Bundle() }
 
-            fragment.arguments = bundle
-            return fragment
-        }
+        fun commandInstance(key: String): CommandsFragment = CommandsFragment().apply { arguments = Bundle().apply { putString(KEY, key) } }
     }
 }

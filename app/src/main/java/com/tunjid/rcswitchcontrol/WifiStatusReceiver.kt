@@ -26,7 +26,6 @@ package com.tunjid.rcswitchcontrol
 
 import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.Context.MODE_PRIVATE
 import android.content.Context.WIFI_SERVICE
 import android.content.Intent
 import android.net.NetworkInfo
@@ -38,12 +37,8 @@ import android.os.Handler
 import android.os.Looper
 import com.tunjid.androidbootstrap.communications.nsd.NsdHelper
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.data.RfSwitch.Companion.SWITCH_PREFS
-import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
-import com.tunjid.rcswitchcontrol.services.ClientNsdService.Companion.LAST_CONNECTED_SERVICE
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
-import com.tunjid.rcswitchcontrol.services.ServerNsdService.Companion.SERVER_FLAG
 import java.util.concurrent.atomic.AtomicReference
 
 class WifiStatusReceiver : BroadcastReceiver() {
@@ -67,15 +62,10 @@ class WifiStatusReceiver : BroadcastReceiver() {
     private fun connectLastNsdService(context: Context) {
         if (isSearching) return
 
-        val preferences = context.getSharedPreferences(SWITCH_PREFS, MODE_PRIVATE)
+        // If we're designated as a NSD server, start it.
+        if (ServerNsdService.isServer) context.startService(Intent(context, ServerNsdService::class.java))
 
-        // If we're running the BLE service, and we were designated as a NSD server, start it.
-        if (App.isServiceRunning(ClientBleService::class.java) && preferences.getBoolean(SERVER_FLAG, false)) {
-            context.startService(Intent(context, ServerNsdService::class.java))
-            return
-        }
-
-        val lastServer = preferences.getString(LAST_CONNECTED_SERVICE, "") ?: return
+        val lastServer = ClientNsdService.lastConnectedService ?: return
         val helperReference = AtomicReference<NsdHelper>()
 
         val nsdHelper = NsdHelper.getBuilder(context)

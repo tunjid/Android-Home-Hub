@@ -32,6 +32,7 @@ import android.view.ViewGroup
 
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
+import com.tunjid.rcswitchcontrol.services.ServerNsdService
 
 class StartFragment : BaseFragment(), View.OnClickListener {
 
@@ -50,8 +51,11 @@ class StartFragment : BaseFragment(), View.OnClickListener {
 
     override fun onClick(v: View) {
         when (v.id) {
-            R.id.server -> showFragment(InitializeFragment.newInstance())
-            R.id.client -> showFragment(NsdScanFragment.newInstance())
+            R.id.server -> {
+                ServerNsdService.isServer = true
+                showFragment(ControlFragment.newInstance())
+            }
+            R.id.client -> showFragment(HostScanFragment.newInstance())
         }
     }
 

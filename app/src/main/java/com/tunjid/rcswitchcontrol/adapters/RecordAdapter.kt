@@ -33,10 +33,10 @@ import com.tunjid.androidbootstrap.recyclerview.InteractiveViewHolder
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.data.Record
 
-class ChatAdapter(
+class RecordAdapter(
         private val responses: List<Record>,
         listener: ChatAdapterListener
-        ) : InteractiveAdapter<ChatAdapter.TextViewHolder, ChatAdapter.ChatAdapterListener>(listener) {
+        ) : InteractiveAdapter<RecordAdapter.TextViewHolder, RecordAdapter.ChatAdapterListener>(listener) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TextViewHolder =
             TextViewHolder(getItemView(R.layout.viewholder_responses, parent), adapterListener)

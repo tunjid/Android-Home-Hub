@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ MIT License
+  ~
+  ~ Copyright (c) 2019 Adetunji Dahunsi
+  ~
+  ~ Permission is hereby granted, free of charge, to any person obtaining a copy
+  ~ of this software and associated documentation files (the "Software"), to deal
+  ~ in the Software without restriction, including without limitation the rights
+  ~ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  ~ copies of the Software, and to permit persons to whom the Software is
+  ~ furnished to do so, subject to the following conditions:
+  ~
+  ~ The above copyright notice and this permission notice shall be included in all
+  ~ copies or substantial portions of the Software.
+  ~
+  ~ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  ~ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  ~ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  ~ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  ~ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  ~ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  ~ SOFTWARE.
+  -->
+
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/rename_server"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:backgroundTint="?card_background_color"
+            android:elevation="@dimen/eigth_margin"
+            android:paddingHorizontal="@dimen/single_margin"
+            android:paddingVertical="@dimen/quarter_margin"
+            android:text="@string/rename_server"
+            android:textColor="?text_color"
+            android:textSize="@dimen/medium_text"
+            app:cornerRadius="@dimen/triple_and_half_margin"
+            app:layout_constraintBottom_toTopOf="@+id/stop_server"
+            app:layout_constraintDimensionRatio="H, 1:1"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toLeftOf="@+id/restart_server"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintWidth_percent=".4" />
+
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/restart_server"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:backgroundTint="?card_background_color"
+            android:elevation="@dimen/eigth_margin"
+            android:paddingHorizontal="@dimen/single_margin"
+            android:paddingVertical="@dimen/quarter_margin"
+            android:text="@string/restart_server"
+            android:textColor="?text_color"
+            android:textSize="@dimen/medium_text"
+            app:cornerRadius="@dimen/triple_and_half_margin"
+            app:layout_constraintBottom_toTopOf="@+id/stop_server"
+            app:layout_constraintDimensionRatio="H, 1:1"
+            app:layout_constraintLeft_toRightOf="@+id/rename_server"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintWidth_percent=".4" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/stop_server"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:backgroundTint="?card_background_color"
+            android:elevation="@dimen/eigth_margin"
+            android:paddingHorizontal="@dimen/single_margin"
+            android:paddingVertical="@dimen/quarter_margin"
+            android:text="@string/stop_server"
+            android:textColor="?text_color"
+            android:textSize="@dimen/medium_text"
+            app:cornerRadius="@dimen/triple_and_half_margin"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintDimensionRatio="H, 1:1"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/restart_server"
+            app:layout_constraintWidth_percent=".4" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.core.widget.NestedScrollView>

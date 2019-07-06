@@ -24,11 +24,9 @@
 
 package com.tunjid.rcswitchcontrol.activities
 
-import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.text.TextUtils
 import android.transition.AutoTransition
 import android.transition.TransitionManager
 import android.view.View
@@ -43,6 +41,7 @@ import androidx.fragment.app.FragmentManager
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
 import com.tunjid.androidbootstrap.core.abstractclasses.BaseActivity
+import com.tunjid.androidbootstrap.core.components.ServiceConnection
 import com.tunjid.androidbootstrap.material.animator.FabExtensionAnimator
 import com.tunjid.androidbootstrap.view.animator.ViewHider
 import com.tunjid.androidbootstrap.view.util.ViewUtil
@@ -51,14 +50,10 @@ import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.fragments.ClientBleFragment
-import com.tunjid.rcswitchcontrol.fragments.ClientNsdFragment
+import com.tunjid.rcswitchcontrol.fragments.ControlFragment
 import com.tunjid.rcswitchcontrol.fragments.StartFragment
-import com.tunjid.rcswitchcontrol.fragments.ThingsFragment
-import com.tunjid.rcswitchcontrol.data.RfSwitch
-import com.tunjid.rcswitchcontrol.services.ClientBleService
-import com.tunjid.rcswitchcontrol.services.ClientBleService.Companion.BLUETOOTH_DEVICE
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
+import com.tunjid.rcswitchcontrol.services.ServerNsdService
 
 class MainActivity : BaseActivity() {
 
@@ -107,33 +102,18 @@ class MainActivity : BaseActivity() {
         supportFragmentManager.registerFragmentLifecycleCallbacks(fragmentViewCreatedCallback, false)
         setContentView(R.layout.activity_main)
 
-        val preferences = getSharedPreferences(RfSwitch.SWITCH_PREFS, Context.MODE_PRIVATE)
-
-        val lastConnectedDevice = preferences.getString(ClientBleService.LAST_PAIRED_DEVICE, "")
-        val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-        val bluetoothAdapter = bluetoothManager.adapter
         val startIntent = intent
 
-        // Retrieve device from notification intent or shared preferences
-        val device = when {
-            startIntent.hasExtra(BLUETOOTH_DEVICE) -> startIntent.getParcelableExtra(BLUETOOTH_DEVICE)
-            !TextUtils.isEmpty(lastConnectedDevice) && bluetoothAdapter != null && bluetoothAdapter.isEnabled -> bluetoothAdapter.getRemoteDevice(lastConnectedDevice)
-            else -> null
-        }
-
         val isSavedInstance = savedInstanceState != null
-        val isNsdClient = startIntent.hasExtra(ClientNsdService.NSD_SERVICE_INFO_KEY) || !TextUtils.isEmpty(preferences.getString(ClientNsdService.LAST_CONNECTED_SERVICE, ""))
+        val isNsdServer = ServerNsdService.isServer
+        val isNsdClient = startIntent.hasExtra(ClientNsdService.NSD_SERVICE_INFO_KEY) || ClientNsdService.lastConnectedService != null
 
-        if (device != null) startService(Intent(this, ClientBleService::class.java)
-                .putExtra(BLUETOOTH_DEVICE, device))
-
+        if (isNsdServer) ServiceConnection(ServerNsdService::class.java).with(applicationContext).start()
         if (isNsdClient) Broadcaster.push(Intent(ClientNsdService.ACTION_START_NSD_DISCOVERY))
 
         if (!isSavedInstance) showFragment(when {
-            App.isAndroidThings -> ThingsFragment.newInstance(device)
-            isNsdClient -> ClientNsdFragment.newInstance()
-            device == null -> StartFragment.newInstance()
-            else -> ClientBleFragment.newInstance(device)
+            App.isAndroidThings || isNsdClient || isNsdServer -> ControlFragment.newInstance()
+            else -> StartFragment.newInstance()
         })
     }
 

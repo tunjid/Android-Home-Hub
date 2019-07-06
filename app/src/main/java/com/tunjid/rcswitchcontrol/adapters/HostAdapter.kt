@@ -41,19 +41,19 @@ import com.tunjid.rcswitchcontrol.R
  * Created by tj.dahunsi on 2/4/17.
  */
 
-class NSDAdapter(
+class HostAdapter(
         listener: ServiceClickedListener,
-        private val infoList: List<NsdServiceInfo>
-) : InteractiveAdapter<NSDAdapter.NSDViewHolder, NSDAdapter.ServiceClickedListener>(listener) {
+        private val hosts: List<NsdServiceInfo>
+) : InteractiveAdapter<HostAdapter.NSDViewHolder, HostAdapter.ServiceClickedListener>(listener) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): NSDViewHolder {
         return NSDViewHolder(getItemView(R.layout.viewholder_nsd_list, parent), adapterListener)
     }
 
     override fun onBindViewHolder(holder: NSDViewHolder, position: Int) =
-            holder.bind(infoList[position], adapterListener)
+            holder.bind(hosts[position], adapterListener)
 
-    override fun getItemCount(): Int = infoList.size
+    override fun getItemCount(): Int = hosts.size
 
     interface ServiceClickedListener : AdapterListener {
         fun onServiceClicked(serviceInfo: NsdServiceInfo)

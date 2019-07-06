@@ -48,23 +48,23 @@ import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
-import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel
-import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel.State
+import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
+import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.State
 
 typealias ViewHolder = DeviceViewHolder<out InteractiveAdapter.AdapterListener, out Any>
 
-class NsdSwitchFragment : BaseFragment(),
+class DeviceFragment : BaseFragment(),
         DeviceAdapter.Listener,
         RenameSwitchDialogFragment.SwitchNameListener {
 
     private var isDeleting: Boolean = false
 
-    private lateinit var viewModel: NsdClientViewModel
+    private lateinit var viewModel: ControlViewModel
     private lateinit var listManager: ListManager<ViewHolder, ListPlaceholder<*>>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        viewModel = ViewModelProviders.of(parentFragment!!).get(NsdClientViewModel::class.java)
+        viewModel = ViewModelProviders.of(parentFragment!!).get(ControlViewModel::class.java)
     }
 
     override fun onCreateView(inflater: LayoutInflater,
@@ -202,8 +202,8 @@ class NsdSwitchFragment : BaseFragment(),
 
     companion object {
 
-        fun newInstance(): NsdSwitchFragment {
-            val fragment = NsdSwitchFragment()
+        fun newInstance(): DeviceFragment {
+            val fragment = DeviceFragment()
             val bundle = Bundle()
 
             fragment.arguments = bundle

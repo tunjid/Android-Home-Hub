@@ -53,33 +53,33 @@ import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.dialogfragments.ZigBeeArgumentDialogFragment
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
-import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel
-import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel.Page
-import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel.Page.DEVICES
-import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel.Page.HISTORY
-import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel.Page.HOST
-import com.tunjid.rcswitchcontrol.viewmodels.NsdClientViewModel.State
+import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
+import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.Page
+import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.Page.DEVICES
+import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.Page.HISTORY
+import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.Page.HOST
+import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.State
 
-class ClientNsdFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsListener {
+class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsListener {
 
     private lateinit var mainPager: ViewPager
     private lateinit var commandsPager: ViewPager
 
     private lateinit var connectionStatus: TextView
 
-    private lateinit var viewModel: NsdClientViewModel
+    private lateinit var viewModel: ControlViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
-        viewModel = ViewModelProviders.of(this).get(NsdClientViewModel::class.java)
+        viewModel = ViewModelProviders.of(this).get(ControlViewModel::class.java)
     }
 
     override fun onCreateView(inflater: LayoutInflater,
                               container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
 
-        val root = inflater.inflate(R.layout.fragment_nsd_client, container, false)
+        val root = inflater.inflate(R.layout.fragment_control, container, false)
         val tabs = root.findViewById<TabLayout>(R.id.tabs)
         val commandTabs = root.findViewById<TabLayout>(R.id.command_tabs)
         val bottomSheet = root.findViewById<ViewGroup>(R.id.bottom_sheet)
@@ -195,8 +195,8 @@ class ClientNsdFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArg
 
     companion object {
 
-        fun newInstance(): ClientNsdFragment {
-            val fragment = ClientNsdFragment()
+        fun newInstance(): ControlFragment {
+            val fragment = ControlFragment()
             val bundle = Bundle()
 
             fragment.arguments = bundle
@@ -207,8 +207,8 @@ class ClientNsdFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArg
 
             override fun getItem(position: Int): Fragment = when (pages[position]) {
                 HOST -> HostFragment.newInstance()
-                HISTORY -> NsdHistoryFragment.newInstance()
-                DEVICES -> NsdSwitchFragment.newInstance()
+                HISTORY -> RecordFragment.historyInstance()
+                DEVICES -> DeviceFragment.newInstance()
             }
 
             override fun getPageTitle(position: Int): CharSequence? = when (pages[position]) {
@@ -222,7 +222,7 @@ class ClientNsdFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArg
 
         fun commandAdapter(keys: Set<String>, fragmentManager: FragmentManager) = object : FragmentStatePagerAdapter(fragmentManager, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
 
-            override fun getItem(position: Int): Fragment = NsdHistoryFragment.newInstance(item(position))
+            override fun getItem(position: Int): Fragment = RecordFragment.commandInstance(item(position))
 
             override fun getPageTitle(position: Int): CharSequence? = item(position).split(".").last().toUpperCase().removeSuffix("PROTOCOL")
 

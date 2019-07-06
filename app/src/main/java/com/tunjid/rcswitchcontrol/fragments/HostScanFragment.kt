@@ -42,18 +42,18 @@ import com.tunjid.androidbootstrap.recyclerview.ListManagerBuilder
 import com.tunjid.androidbootstrap.recyclerview.ListPlaceholder
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
-import com.tunjid.rcswitchcontrol.adapters.NSDAdapter
+import com.tunjid.rcswitchcontrol.adapters.HostAdapter
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.viewmodels.NsdScanViewModel
 
 /**
  * A [androidx.fragment.app.Fragment] listing supported NSD servers
  */
-class NsdScanFragment : BaseFragment(), NSDAdapter.ServiceClickedListener {
+class HostScanFragment : BaseFragment(), HostAdapter.ServiceClickedListener {
 
     private var isScanning: Boolean = false
 
-    private lateinit var scrollManager: ListManager<NSDAdapter.NSDViewHolder, ListPlaceholder<*>>
+    private lateinit var scrollManager: ListManager<HostAdapter.NSDViewHolder, ListPlaceholder<*>>
     private lateinit var viewModel: NsdScanViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -66,10 +66,10 @@ class NsdScanFragment : BaseFragment(), NSDAdapter.ServiceClickedListener {
                               container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
         val root = inflater.inflate(R.layout.fragment_nsd_scan, container, false)
-        scrollManager = ListManagerBuilder<NSDAdapter.NSDViewHolder, ListPlaceholder<*>>()
+        scrollManager = ListManagerBuilder<HostAdapter.NSDViewHolder, ListPlaceholder<*>>()
                 .withRecyclerView(root.findViewById(R.id.list))
                 .addDecoration(DividerItemDecoration(requireActivity(), VERTICAL))
-                .withAdapter(NSDAdapter(this, viewModel.services))
+                .withAdapter(HostAdapter(this, viewModel.services))
                 .withLinearLayoutManager()
                 .build()
 
@@ -117,7 +117,7 @@ class NsdScanFragment : BaseFragment(), NSDAdapter.ServiceClickedListener {
         intent.putExtra(ClientNsdService.NSD_SERVICE_INFO_KEY, serviceInfo)
         requireContext().startService(intent)
 
-        showFragment(ClientNsdFragment.newInstance())
+        showFragment(ControlFragment.newInstance())
     }
 
     override fun isSelf(serviceInfo: NsdServiceInfo): Boolean {
@@ -141,8 +141,8 @@ class NsdScanFragment : BaseFragment(), NSDAdapter.ServiceClickedListener {
 
     companion object {
 
-        fun newInstance(): NsdScanFragment {
-            val fragment = NsdScanFragment()
+        fun newInstance(): HostScanFragment {
+            val fragment = HostScanFragment()
             val bundle = Bundle()
 
             fragment.arguments = bundle

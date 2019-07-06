@@ -57,7 +57,7 @@ import io.reactivex.schedulers.Schedulers.single
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-class NsdClientViewModel(app: Application) : AndroidViewModel(app) {
+class ControlViewModel(app: Application) : AndroidViewModel(app) {
 
     private val disposable: CompositeDisposable = CompositeDisposable()
 

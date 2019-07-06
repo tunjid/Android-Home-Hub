@@ -50,7 +50,7 @@ import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.fragments.ClientNsdFragment
+import com.tunjid.rcswitchcontrol.fragments.ControlFragment
 import com.tunjid.rcswitchcontrol.fragments.StartFragment
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
@@ -112,7 +112,7 @@ class MainActivity : BaseActivity() {
         if (isNsdClient) Broadcaster.push(Intent(ClientNsdService.ACTION_START_NSD_DISCOVERY))
 
         if (!isSavedInstance) showFragment(when {
-            App.isAndroidThings || isNsdClient || isNsdServer -> ClientNsdFragment.newInstance()
+            App.isAndroidThings || isNsdClient || isNsdServer -> ControlFragment.newInstance()
             else -> StartFragment.newInstance()
         })
     }

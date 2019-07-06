@@ -27,7 +27,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:layout_marginTop="?attr/actionBarSize"
-    tools:clientNsdService="com.tunjid.rcswitchcontrol.fragments.NsdScanFragment">
+    tools:clientNsdService="com.tunjid.rcswitchcontrol.fragments.HostScanFragment">
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/list"

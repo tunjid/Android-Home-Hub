@@ -53,9 +53,9 @@ class StartFragment : BaseFragment(), View.OnClickListener {
         when (v.id) {
             R.id.server -> {
                 ServerNsdService.isServer = true
-                showFragment(ClientNsdFragment.newInstance())
+                showFragment(ControlFragment.newInstance())
             }
-            R.id.client -> showFragment(NsdScanFragment.newInstance())
+            R.id.client -> showFragment(HostScanFragment.newInstance())
         }
     }
 

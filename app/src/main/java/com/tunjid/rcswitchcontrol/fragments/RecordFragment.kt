@@ -47,10 +47,9 @@ import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.State
 
 sealed class RecordFragment : BaseFragment() {
 
-    class HistoryFragment(): RecordFragment()
+    class HistoryFragment : RecordFragment()
 
-    class CommandsFragment(): RecordFragment()
-
+    class CommandsFragment : RecordFragment()
 
     private lateinit var listManager: ListManager<RecyclerView.ViewHolder, ListPlaceholder<*>>
 

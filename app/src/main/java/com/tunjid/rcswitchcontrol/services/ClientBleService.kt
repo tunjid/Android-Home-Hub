@@ -85,7 +85,7 @@ class ClientBleService : Service() {
             when (newState) {
                 BluetoothProfile.STATE_CONNECTED -> {
                     connectionState = ACTION_GATT_CONNECTED
-                    bluetoothGatt!!.discoverServices()
+                    bluetoothGatt?.discoverServices()
 
                     // Save this device for connnecting later
                     getSharedPreferences(SWITCH_PREFS, Context.MODE_PRIVATE).edit()
@@ -124,7 +124,7 @@ class ClientBleService : Service() {
             if (status == BluetoothGatt.GATT_SUCCESS && writeQueue.size > 0) writeQueue.remove()
 
             // Read the top of the queue
-            if (writeQueue.size > 0) bluetoothGatt!!.writeDescriptor(writeQueue.element())
+            if (writeQueue.size > 0) bluetoothGatt?.writeDescriptor(writeQueue.element())
         }
 
         override// Checks queue for characteristics to be read and reads them
@@ -141,7 +141,7 @@ class ClientBleService : Service() {
                 else -> broadcastUpdate(DATA_AVAILABLE_UNKNOWN, characteristic)
             }
 
-            if (readQueue.size > 0) bluetoothGatt!!.readCharacteristic(readQueue.element())
+            if (readQueue.size > 0) bluetoothGatt?.readCharacteristic(readQueue.element())
         }
 
         override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
@@ -160,7 +160,7 @@ class ClientBleService : Service() {
      * @return A `List` of supported services.
      */
     private val supportedGattServices: List<BluetoothGattService>?
-        get() = if (bluetoothGatt == null) null else bluetoothGatt!!.services
+        get() = if (bluetoothGatt == null) null else bluetoothGatt?.services
 
     override fun onCreate() {
         super.onCreate()
@@ -240,8 +240,8 @@ class ClientBleService : Service() {
         if (bluetoothDevice == connectedDevice && bluetoothGatt != null) {
             showToast(this, R.string.ble_service_reconnecting)
 
-            when {
-                bluetoothGatt!!.connect() -> broadcastUpdate({ connectionState = ACTION_GATT_CONNECTING; connectionState }())
+            when (bluetoothGatt?.connect()) {
+                true -> broadcastUpdate({ connectionState = ACTION_GATT_CONNECTING; connectionState }())
                 else -> showToast(this, R.string.ble_service_failed_to_connect)
             }
         } else {
@@ -264,7 +264,7 @@ class ClientBleService : Service() {
      * `BluetoothGattCallback#onConnectionStateChange(android.bluetooth.BluetoothGatt, int, int)`
      * callback.
      */
-    fun disconnect() = withBluetooth { bluetoothGatt!!.disconnect() }
+    fun disconnect() = withBluetooth { bluetoothGatt?.disconnect() }
 
     /**
      * After using a given BLE device, the app must call this method to ensure resources are
@@ -274,7 +274,7 @@ class ClientBleService : Service() {
         connectionState = ACTION_GATT_DISCONNECTED
         if (bluetoothGatt == null) return
 
-        bluetoothGatt!!.close()
+        bluetoothGatt?.close()
         bluetoothGatt = null
     }
 
@@ -288,7 +288,7 @@ class ClientBleService : Service() {
             }
 
             characteristic.value = values
-            bluetoothGatt!!.writeCharacteristic(characteristic)
+            bluetoothGatt?.writeCharacteristic(characteristic)
         }
     }
 
@@ -359,7 +359,7 @@ class ClientBleService : Service() {
     private fun setCharacteristicIndication(uuid: String) {
         val characteristic = characteristicMap[uuid] ?: return
 
-        bluetoothGatt!!.setCharacteristicNotification(characteristic, true)
+        bluetoothGatt?.setCharacteristicNotification(characteristic, true)
         val descriptor = characteristic.getDescriptor(UUID.fromString(CLIENT_CHARACTERISTIC_CONFIG))
 
         descriptor.value = BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
@@ -371,7 +371,7 @@ class ClientBleService : Service() {
         writeQueue.add(descriptor)
 
         //if there is only 1 item in the queue, then write it.  If more than 1, we handle asynchronously in the callback above
-        if (writeQueue.size > 0) bluetoothGatt!!.writeDescriptor(descriptor)
+        if (writeQueue.size > 0) bluetoothGatt?.writeDescriptor(descriptor)
     }
 
     private inner class Binder : ServiceConnection.Binder<ClientBleService>() {

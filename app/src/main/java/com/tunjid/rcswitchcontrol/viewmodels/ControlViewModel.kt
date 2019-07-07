@@ -119,7 +119,7 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
         // onDestroy will be called and the connection unbound
         if (nsdConnection.isBound) nsdConnection.boundService.stopSelf()
 
-        ClientNsdService.lastConnectedService=null
+        ClientNsdService.lastConnectedService = null
     }
 
     fun connectionState(): Flowable<String> = connectionStateProcessor.startWith({

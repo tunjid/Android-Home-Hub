@@ -25,7 +25,6 @@
 package com.tunjid.rcswitchcontrol.services
 
 import android.app.Service
-import android.content.Context
 import android.content.Intent
 import android.net.nsd.NsdServiceInfo
 import android.os.IBinder
@@ -37,7 +36,6 @@ import com.tunjid.androidbootstrap.core.components.ServiceConnection
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.App.Companion.catcher
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.data.RfSwitch.Companion.SWITCH_PREFS
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.io.ConsoleWriter
 import com.tunjid.rcswitchcontrol.nsd.protocols.CommsProtocol
@@ -260,19 +258,13 @@ class ServerNsdService : Service() {
         private const val WIRELESS_SWITCH_SERVICE = "Wireless Switch Service"
 
         var serviceName: String
-            get() = App.instance.getSharedPreferences(SWITCH_PREFS, Context.MODE_PRIVATE)
-                    .getString(SERVICE_NAME_KEY, WIRELESS_SWITCH_SERVICE) ?: WIRELESS_SWITCH_SERVICE
-            set(value) = App.instance.getSharedPreferences(SWITCH_PREFS, Context.MODE_PRIVATE).edit()
-                    .putString(SERVICE_NAME_KEY, value)
-                    .apply()
+            get() = App.preferences.getString(SERVICE_NAME_KEY, WIRELESS_SWITCH_SERVICE)
+                    ?: WIRELESS_SWITCH_SERVICE
+            set(value) = App.preferences.edit().putString(SERVICE_NAME_KEY, value).apply()
 
         var isServer: Boolean
-            get() = App.instance.getSharedPreferences(SWITCH_PREFS, Context.MODE_PRIVATE)
-                    .getBoolean(SERVER_FLAG, false)
-            set(value) = App.instance.getSharedPreferences(SWITCH_PREFS, Context.MODE_PRIVATE)
-                    .edit()
-                    .putBoolean(SERVER_FLAG, value)
-                    .apply()
+            get() = App.preferences.getBoolean(SERVER_FLAG, false)
+            set(value) = App.preferences.edit().putBoolean(SERVER_FLAG, value).apply()
     }
 
 }

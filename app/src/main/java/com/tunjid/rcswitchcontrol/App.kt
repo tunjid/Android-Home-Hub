@@ -30,11 +30,13 @@ import android.app.ActivityManager
 import android.app.Service
 import android.content.Context
 import android.content.IntentFilter
+import android.content.SharedPreferences
 import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.util.Log
 import com.google.android.things.pio.PeripheralManager
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
+import com.tunjid.rcswitchcontrol.data.RfSwitch
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 
 /**
@@ -54,8 +56,7 @@ class App : android.app.Application() {
         instance = this
 
         Broadcaster.listen(ClientNsdService.ACTION_START_NSD_DISCOVERY)
-                .subscribe({ intent -> if (receiver != null) receiver!!.onReceive(this, intent) },
-                        Throwable::printStackTrace)
+                .subscribe({ intent -> receiver?.onReceive(this, intent) }, Throwable::printStackTrace)
 
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
@@ -94,22 +95,21 @@ class App : android.app.Application() {
             val activityManager = instance.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
             val services = activityManager.getRunningServices(Integer.MAX_VALUE)
 
-            for (info in services) {
-                if (info.service.className == service.name) return true
-            }
+            for (info in services) if (info.service.className == service.name) return true
             return false
         }
+
+        val preferences: SharedPreferences
+            get() = instance.getSharedPreferences(RfSwitch.SWITCH_PREFS, Context.MODE_PRIVATE)
 
         // Thrown on non Android things devices
         val isAndroidThings: Boolean
             get() {
-                try {
-                    PeripheralManager.getInstance()
+                return try {
+                    PeripheralManager.getInstance().let { true }
                 } catch (e: NoClassDefFoundError) {
-                    return false
+                    false
                 }
-
-                return true
             }
 
         fun catcher(tag: String, log: String, runnable: () -> Unit) {

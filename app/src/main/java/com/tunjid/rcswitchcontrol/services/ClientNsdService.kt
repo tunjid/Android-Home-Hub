@@ -27,7 +27,6 @@ package com.tunjid.rcswitchcontrol.services
 import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
-import android.content.Context
 import android.content.Intent
 import android.net.nsd.NsdServiceInfo
 import android.os.IBinder
@@ -43,15 +42,12 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.activities.MainActivity
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
 import com.tunjid.rcswitchcontrol.data.Payload
-import com.tunjid.rcswitchcontrol.data.RfSwitch.Companion.SWITCH_PREFS
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService
 import io.reactivex.disposables.CompositeDisposable
 import java.io.Closeable
 import java.io.IOException
 import java.io.PrintWriter
-import java.lang.annotation.Retention
-import java.lang.annotation.RetentionPolicy.SOURCE
 import java.net.Socket
 import java.util.*
 import java.util.concurrent.Executors
@@ -88,7 +84,7 @@ class ClientNsdService : Service(), ClientStartedBoundService {
     val serviceName: String?
         get() = if (currentService == null) null else currentService!!.serviceName
 
-    @Retention(SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @StringDef(ACTION_SOCKET_CONNECTED, ACTION_SOCKET_CONNECTING, ACTION_SOCKET_DISCONNECTED)
     internal annotation class ConnectionState
 
@@ -276,11 +272,10 @@ class ClientNsdService : Service(), ClientStartedBoundService {
         const val DATA_SERVER_RESPONSE = "service_response"
 
         var lastConnectedService: String?
-            get() = App.instance.getSharedPreferences(SWITCH_PREFS, Context.MODE_PRIVATE).getString(LAST_CONNECTED_SERVICE, null)
+            get() = App.preferences.getString(LAST_CONNECTED_SERVICE, null)
             set(value) = when (value) {
-                null -> App.instance.getSharedPreferences(SWITCH_PREFS, Context.MODE_PRIVATE).edit()
-                        .remove(LAST_CONNECTED_SERVICE).apply()
-                else -> App.instance.getSharedPreferences(SWITCH_PREFS, Context.MODE_PRIVATE).edit().putString(LAST_CONNECTED_SERVICE, value).apply()
+                null -> App.preferences.edit().remove(LAST_CONNECTED_SERVICE).apply()
+                else -> App.preferences.edit().putString(LAST_CONNECTED_SERVICE, value).apply()
             }
     }
 }

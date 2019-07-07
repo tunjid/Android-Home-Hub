@@ -29,8 +29,6 @@ import android.os.Parcelable
 import android.util.Base64
 import androidx.annotation.StringDef
 import com.tunjid.rcswitchcontrol.nsd.protocols.SerialRFProtocol
-import java.lang.annotation.Retention
-import java.lang.annotation.RetentionPolicy.SOURCE
 import java.util.*
 
 /**
@@ -53,7 +51,7 @@ class RfSwitch() : Parcelable, Device {
     private var onCode = ByteArray(4)
     private var offCode = ByteArray(4)
 
-    @Retention(SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @StringDef(ON_CODE, OFF_CODE)
     internal annotation class SwitchCode {}
 
@@ -66,7 +64,7 @@ class RfSwitch() : Parcelable, Device {
         pulseLength = `in`.createByteArray()!!
     }
 
-    fun getTransmission(state: Boolean): ByteArray {
+   private fun getTransmission(state: Boolean): ByteArray {
         val transmission = ByteArray(10)
 
         System.arraycopy(if (state) onCode else offCode, 0, transmission, 0, onCode.size)

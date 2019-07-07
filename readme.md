@@ -1,4 +1,4 @@
-AndroidHAB
+Android Home
 =======
 
 ### About
@@ -41,12 +41,10 @@ This protocol pretty much just proxies [Zsmartsystems](https://github.com/zsmart
 Theoretically, any supported dongle there can be supported here provided a supported serial implementation is provided.
 The current Serial implementation has no support for flow control, and so is limited to the TI CC2531.
 
-This Project contains an Android app and an Arduino sketch to sniff 433/315Mhz device codes
-from a remote, and reproduce the same codes, essentially replacing the remote.
-
 #### RcProtocols
 
-Controls 433 MHz devices with an Arduino, a video overview can be see [here](https://youtu.be/FrNVvwTE1eg).
+Sniffs and controls 433 MHz devices with an Arduino, essentially replacing the device's bundled remote.
+A video overview can be see [here](https://youtu.be/FrNVvwTE1eg).
 
 There are two implementations:
 

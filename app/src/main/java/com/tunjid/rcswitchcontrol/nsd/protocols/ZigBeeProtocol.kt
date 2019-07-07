@@ -178,7 +178,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
                 when {
                     needsCommandArgs -> {
                         response = getString(R.string.zigbeeprotocol_enter_args, action)
-                        data = ZigBeeCommandInfo(command, description, syntax, help).serialize()
+                        data = ZigBeeCommandInfo(action, description, syntax, help).serialize()
                     }
                     else -> {
                         val args = commandArgs?.args ?: arrayOf(action)

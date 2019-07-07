@@ -33,6 +33,7 @@ import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deseriali
 
 import java.io.Closeable
 import java.io.PrintWriter
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 /**
@@ -46,6 +47,8 @@ abstract class CommsProtocol internal constructor(internal val printWriter: Prin
 
     val appContext: Context = App.instance
 
+    abstract fun processInput(payload: Payload): Payload
+
     fun processInput(input: String?): Payload = processInput(when (input) {
         null, PING -> Payload(CommsProtocol::class.java.name).apply { action = PING }
         RESET -> Payload(CommsProtocol::class.java.name).apply { action = RESET }
@@ -54,17 +57,14 @@ abstract class CommsProtocol internal constructor(internal val printWriter: Prin
 
     protected fun getString(@StringRes id: Int): String = appContext.getString(id)
 
-    protected fun getString(@StringRes id: Int, vararg args: Any): String =
-            appContext.getString(id, *args)
-
-    abstract fun processInput(payload: Payload): Payload
+    protected fun getString(@StringRes id: Int, vararg args: Any): String = appContext.getString(id, *args)
 
     companion object {
 
         const val PING = "Ping"
         internal const val RESET = "Reset"
 
-         val sharedPool = Executors.newFixedThreadPool(5)
+        val sharedPool: ExecutorService = Executors.newFixedThreadPool(5)
     }
 
 }

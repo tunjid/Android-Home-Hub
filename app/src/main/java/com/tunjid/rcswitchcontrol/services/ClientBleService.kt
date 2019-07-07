@@ -57,7 +57,7 @@ import java.util.*
  */
 class ClientBleService : Service() {
 
-    private val isConnected: Boolean
+    val isConnected: Boolean
         get() = connectionState == ACTION_GATT_CONNECTED
 
     private val binder = Binder()

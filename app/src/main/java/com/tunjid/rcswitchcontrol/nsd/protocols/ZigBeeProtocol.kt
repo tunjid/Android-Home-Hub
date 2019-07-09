@@ -256,20 +256,22 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
         val command = availableCommands[args.first()]
                 ?: return post("Unknown command. Use 'help' command to list available commands.")
 
-        try {
-            command.process(networkManager, args, outStream)
-        } catch (e: IllegalArgumentException) {
-            post(
-                    "Error executing command: ${e.message}",
-                    "${command.command} ${command.syntax}"
-            )
-        } catch (e: IllegalStateException) {
-            post(
-                    "Error executing command: " + e.message,
-                    command.command + " " + command.syntax
-            )
-        } catch (e: Exception) {
-            post("Error executing command: $e")
+        sharedPool.submit {
+            try {
+                command.process(networkManager, args, outStream)
+            } catch (e: IllegalArgumentException) {
+                post(
+                        "Error executing command: ${e.message}",
+                        "${command.command} ${command.syntax}"
+                )
+            } catch (e: IllegalStateException) {
+                post(
+                        "Error executing command: " + e.message,
+                        command.command + " " + command.syntax
+                )
+            } catch (e: Exception) {
+                post("Error executing command: $e")
+            }
         }
     }
 
@@ -302,7 +304,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
         post(stringBuilder.toString())
     }
 
-    private fun formNetwork() = executeCommand(networkManager, arrayOf("netstart", "form", "${networkManager.zigBeePanId}", "${networkManager.zigBeeExtendedPanId}"))
+    private fun formNetwork() = executeCommand(networkManager, arrayOf(getString(R.string.zigbeeprotocol_netstart), "form", "${networkManager.zigBeePanId}", "${networkManager.zigBeeExtendedPanId}"))
 
     private fun savedDevices() = dataStore.readNetworkNodes()
             .map(dataStore::readNode)

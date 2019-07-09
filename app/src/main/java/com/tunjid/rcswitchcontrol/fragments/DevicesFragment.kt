@@ -53,7 +53,7 @@ import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.State
 
 typealias ViewHolder = DeviceViewHolder<out InteractiveAdapter.AdapterListener, out Any>
 
-class DeviceFragment : BaseFragment(),
+class DevicesFragment : BaseFragment(),
         DeviceAdapter.Listener,
         RenameSwitchDialogFragment.SwitchNameListener {
 
@@ -130,7 +130,7 @@ class DeviceFragment : BaseFragment(),
             .setTitle("Choose color")
             .wheelType(ColorPickerView.WHEEL_TYPE.CIRCLE)
             .showLightnessSlider(true)
-            .density(16)
+            .density(12)
             .setOnColorChangedListener {
                 device.colorCommand(it).let { args ->
                     viewModel.dispatchPayload(device.key) {
@@ -202,8 +202,8 @@ class DeviceFragment : BaseFragment(),
 
     companion object {
 
-        fun newInstance(): DeviceFragment {
-            val fragment = DeviceFragment()
+        fun newInstance(): DevicesFragment {
+            val fragment = DevicesFragment()
             val bundle = Bundle()
 
             fragment.arguments = bundle

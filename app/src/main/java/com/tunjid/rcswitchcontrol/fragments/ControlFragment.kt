@@ -208,7 +208,7 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
             override fun getItem(position: Int): Fragment = when (pages[position]) {
                 HOST -> HostFragment.newInstance()
                 HISTORY -> RecordFragment.historyInstance()
-                DEVICES -> DeviceFragment.newInstance()
+                DEVICES -> DevicesFragment.newInstance()
             }
 
             override fun getPageTitle(position: Int): CharSequence? = when (pages[position]) {

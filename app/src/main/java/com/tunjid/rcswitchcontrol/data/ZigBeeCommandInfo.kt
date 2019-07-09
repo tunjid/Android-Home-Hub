@@ -53,7 +53,7 @@ class ZigBeeCommandInfo(
     fun serialize(): String = converter.toJson(this)
 
     fun toArgs(): ZigBeeCommandArgs {
-        val args = entries.map { it.value }.toMutableList()
+        val args = entries.map { it.value }.filter(String::isNotBlank).toMutableList()
         args.add(0, command)
 
         return ZigBeeCommandArgs(command, args.toTypedArray())

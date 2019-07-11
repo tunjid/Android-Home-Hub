@@ -41,7 +41,7 @@ abstract class AbsZigBeeCommand : ZigBeeConsoleCommand {
     abstract val args: String
 
     protected fun Array<out String>.expect(expected: Int) {
-        if (size != expected) throw IllegalArgumentException("Invalid number of command arguments, expected $expected, got ${size}")
+        if (size != expected) throw IllegalArgumentException("Invalid number of command arguments, expected $expected, got $size")
     }
 
     protected fun <T> T?.then(function: (T) -> Future<CommandResult>?, done: (CommandResult) -> Unit) {

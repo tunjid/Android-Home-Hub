@@ -38,12 +38,11 @@ import java.util.concurrent.Future
  * Switches a device on.
  */
 class OnCommand : AbsZigBeeCommand() {
+    override val args: String = "DEVICEID/DEVICELABEL/GROUPID"
 
     override fun getCommand(): String = App.instance.getString(R.string.zigbeeprotocol_on)
 
     override fun getDescription(): String = "Switches device on."
-
-    override fun getSyntax(): String = "on DEVICEID/DEVICELABEL/GROUPID"
 
     @Throws(Exception::class)
     override fun process(networkManager: ZigBeeNetworkManager, args: Array<out String>, out: PrintStream) {

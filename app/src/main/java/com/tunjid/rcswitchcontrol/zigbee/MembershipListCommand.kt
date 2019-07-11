@@ -16,11 +16,11 @@ import java.util.concurrent.Future
  * Lists group memberships from device.
  */
 class MembershipListCommand : AbsZigBeeCommand() {
+    override val args: String = "[DEVICE]"
+
     override fun getCommand(): String = App.instance.getString(R.string.zigbeeprotocol_joined_groups)
 
     override fun getDescription(): String = "Lists group memberships from device."
-
-    override fun getSyntax(): String = "membershiplist [DEVICE]"
 
     @Throws(Exception::class)
     override fun process(networkManager: ZigBeeNetworkManager, args: Array<String>, out: PrintStream) {

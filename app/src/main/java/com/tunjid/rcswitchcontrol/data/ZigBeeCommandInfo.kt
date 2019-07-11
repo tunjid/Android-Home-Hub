@@ -38,9 +38,11 @@ class ZigBeeCommandInfo(
     val entries: List<Entry>
 
     init {
-        entries = syntax.split(" ")
+        entries = syntax.removePrefix(command)
+                .split(" ")
                 .toMutableList()
                 .apply { if (contains(command)) remove(command) }
+                .filter { it.isNotBlank() }
                 .map { Entry(it, "") }
     }
 
@@ -70,7 +72,7 @@ class ZigBeeCommandInfo(
 
     class Entry(var key: String, var value: String)
 
-    companion object CREATOR :Parcelable.Creator<ZigBeeCommandInfo> {
+    companion object CREATOR : Parcelable.Creator<ZigBeeCommandInfo> {
 
         override fun createFromParcel(parcel: Parcel): ZigBeeCommandInfo = ZigBeeCommandInfo(parcel)
 

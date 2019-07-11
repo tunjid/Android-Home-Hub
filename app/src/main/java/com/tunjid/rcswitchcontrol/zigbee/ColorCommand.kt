@@ -39,13 +39,11 @@ import java.util.concurrent.Future
  * Changes a light color on device.
  */
 class ColorCommand : AbsZigBeeCommand() {
+    override val args: String = "DEVICEID RED GREEN BLUE"
 
     override fun getCommand(): String = App.instance.getString(R.string.zigbeeprotocol_color)
 
     override fun getDescription(): String = "Changes light color."
-
-    override fun getSyntax(): String = "color DEVICEID RED GREEN BLUE"
-
 
     @Throws(Exception::class)
     override fun process(networkManager: ZigBeeNetworkManager, args: Array<out String>, out: PrintStream) {

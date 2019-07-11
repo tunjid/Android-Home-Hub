@@ -16,11 +16,11 @@ import java.util.concurrent.Future
  * Views group name from device group membership.
  */
 class MembershipViewCommand : AbsZigBeeCommand() {
+    override val args: String = "[DEVICE] [GROUPID]"
+
     override fun getCommand(): String = App.instance.getString(R.string.zigbeeprotocol_name_group)
 
     override fun getDescription(): String = "Views group name from device group membership."
-
-    override fun getSyntax(): String = "membershipview [DEVICE] [GROUPID]"
 
     @Throws(Exception::class)
     override fun process(networkManager: ZigBeeNetworkManager, args: Array<String>, out: PrintStream) {

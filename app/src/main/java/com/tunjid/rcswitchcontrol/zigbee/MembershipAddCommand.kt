@@ -14,12 +14,11 @@ import java.util.concurrent.Future
  * Adds group membership to device.
  */
 class MembershipAddCommand : AbsZigBeeCommand() {
+    override val args: String = "[DEVICE] [GROUPID] [GROUPNAME]"
 
     override fun getCommand(): String = App.instance.getString(R.string.zigbeeprotocol_join_group)
 
     override fun getDescription(): String = "Adds group membership to device."
-
-    override fun getSyntax(): String = "membershipadd [DEVICE] [GROUPID] [GROUPNAME]"
 
     @Throws(Exception::class)
     override fun process(networkManager: ZigBeeNetworkManager, args: Array<String>, out: PrintStream) {

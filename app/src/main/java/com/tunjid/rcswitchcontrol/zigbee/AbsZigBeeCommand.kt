@@ -34,7 +34,11 @@ import java.util.concurrent.Future
 
 abstract class AbsZigBeeCommand : ZigBeeConsoleCommand {
 
+    override fun getSyntax(): String = "$command $args"
+
     override fun getHelp(): String = "Command: $command\nDescription: $description\n Syntax: $syntax"
+
+    abstract val args: String
 
     protected fun Array<out String>.expect(expected: Int) {
         if (size != expected) throw IllegalArgumentException("Invalid number of command arguments, expected $expected, got ${size}")

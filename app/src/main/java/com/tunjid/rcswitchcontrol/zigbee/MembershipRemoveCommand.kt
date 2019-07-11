@@ -14,11 +14,11 @@ import java.util.concurrent.Future
  * Removes device group membership from device.
  */
 class MembershipRemoveCommand : AbsZigBeeCommand() {
+    override val args: String = "[DEVICE] [GROUPID]"
+
     override fun getCommand(): String = App.instance.getString(R.string.zigbeeprotocol_joined_groups)
 
     override fun getDescription(): String = "Removes group membership from device."
-
-    override fun getSyntax(): String = "membershipremove [DEVICE] [GROUPID]"
 
     @Throws(Exception::class)
     override fun process(networkManager: ZigBeeNetworkManager, args: Array<String>, out: PrintStream) {

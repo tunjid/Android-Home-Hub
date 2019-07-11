@@ -11,11 +11,11 @@ import java.io.PrintStream
  * Removes group from network state but does not affect actual ZigBeet network.
  */
 class GroupRemoveCommand : AbsZigBeeCommand() {
+    override val args: String = "GROUP"
+
     override fun getCommand(): String = App.instance.getString(R.string.zigbeeprotocol_remove_group)
 
     override fun getDescription(): String = "Removes group from gateway network state."
-
-    override fun getSyntax(): String = "groupremove GROUP"
 
     @Throws(Exception::class)
     override fun process(networkManager: ZigBeeNetworkManager, args: Array<String>, out: PrintStream) {

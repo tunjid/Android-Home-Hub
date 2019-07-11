@@ -38,12 +38,11 @@ import java.util.concurrent.Future
  * Changes a device level for example lamp brightness.
  */
 class LevelCommand : AbsZigBeeCommand() {
+    override val args: String = "DEVICEID LEVEL [RATE]"
 
     override fun getCommand(): String = App.instance.getString(R.string.zigbeeprotocol_level)
 
     override fun getDescription(): String = "Changes device level for example lamp brightness, where LEVEL is between 0 and 1."
-
-    override fun getSyntax(): String = "level DEVICEID LEVEL [RATE]"
 
     @Throws(Exception::class)
     override fun process(networkManager: ZigBeeNetworkManager, args: Array<out String>, out: PrintStream) {

@@ -37,12 +37,7 @@ import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.data.persistence.ZigBeeDataStore
 import com.tunjid.rcswitchcontrol.io.AndroidZigBeeSerialPort
 import com.tunjid.rcswitchcontrol.io.ConsoleStream
-import com.tunjid.rcswitchcontrol.zigbee.ColorCommand
-import com.tunjid.rcswitchcontrol.zigbee.HelpCommand
-import com.tunjid.rcswitchcontrol.zigbee.LevelCommand
-import com.tunjid.rcswitchcontrol.zigbee.OffCommand
-import com.tunjid.rcswitchcontrol.zigbee.OnCommand
-import com.tunjid.rcswitchcontrol.zigbee.RediscoverCommand
+import com.tunjid.rcswitchcontrol.zigbee.*
 import com.zsmartsystems.zigbee.ExtendedPanId
 import com.zsmartsystems.zigbee.ZigBeeChannel
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager
@@ -67,6 +62,7 @@ import com.zsmartsystems.zigbee.zcl.protocol.ZclClusterType
 import io.reactivex.Flowable
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.processors.PublishProcessor
+import java.io.PrintStream
 import java.io.PrintWriter
 import java.util.concurrent.TimeUnit
 
@@ -116,11 +112,23 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
             getString(R.string.zigbeeprotocol_otaupgrade) to ZigBeeConsoleOtaUpgradeCommand(),
             getString(R.string.zigbeeprotocol_channel) to ZigBeeConsoleChannelCommand(),
 
-            getString(R.string.zigbeeprotocol_on) to OnCommand(),
-            getString(R.string.zigbeeprotocol_off) to OffCommand(),
-            getString(R.string.zigbeeprotocol_color) to ColorCommand(),
-            getString(R.string.zigbeeprotocol_level) to LevelCommand(),
-            getString(R.string.zigbeeprotocol_rediscover) to RediscoverCommand()
+            // These commands are created locally and have localized command names
+
+            OnCommand().let { Pair(it.command, it) },
+            OffCommand().let { Pair(it.command, it) },
+            ColorCommand().let { Pair(it.command, it) },
+            LevelCommand().let { Pair(it.command, it) },
+
+            GroupAddCommand().let { Pair(it.command, it) },
+            GroupRemoveCommand().let { Pair(it.command, it) },
+            GroupListCommand().let { Pair(it.command, it) },
+
+            MembershipAddCommand().let { Pair(it.command, it) },
+            MembershipRemoveCommand().let { Pair(it.command, it) },
+            MembershipViewCommand().let { Pair(it.command, it) },
+            MembershipListCommand().let { Pair(it.command, it) },
+
+            RediscoverCommand().let { Pair(it.command, it) }
 
     ).let { it["help"] = HelpCommand(it); it.toMap() }
 

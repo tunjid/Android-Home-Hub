@@ -190,6 +190,15 @@
     <string name="zigbeeprotocol_level">Level</string>
     <string name="zigbeeprotocol_rediscover">Rediscover</string>
 
+    <string name="zigbeeprotocol_add_group">Add Group</string>
+    <string name="zigbeeprotocol_remove_group">Remove Groups</string>
+    <string name="zigbeeprotocol_list_groups">List Groups</string>
+
+    <string name="zigbeeprotocol_join_group">Join Group</string>
+    <string name="zigbeeprotocol_leave_group">Leave Group</string>
+    <string name="zigbeeprotocol_name_group">Name Group</string>
+    <string name="zigbeeprotocol_joined_groups">Joined Groups</string>
+
     <string name="zigbeeprotocol_formnet">Form Network</string>
 
     <string name="knockknockprotocol_no">no</string>

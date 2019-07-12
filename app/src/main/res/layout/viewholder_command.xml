@@ -23,7 +23,6 @@
   -->
 
 <com.google.android.material.chip.Chip xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/text"
     android:layout_width="wrap_content"
@@ -32,6 +31,5 @@
     android:backgroundTint="@color/app_background"
     android:textAllCaps="false"
     android:textColor="@color/text_color"
-    android:textIsSelectable="true"
     android:textSize="@dimen/small_text"
     tools:text="I'm a chip that contains some text for demo purposes. I'm also a bit long for testing" />

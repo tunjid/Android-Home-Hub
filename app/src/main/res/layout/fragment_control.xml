@@ -77,7 +77,7 @@
         <LinearLayout
             android:id="@+id/bottom_sheet"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:background="?card_background_color"
             android:orientation="vertical"
             app:behavior_fitToContents="false"
@@ -97,7 +97,7 @@
             <androidx.viewpager.widget.ViewPager
                 android:id="@+id/commands"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:layout_marginLeft="@dimen/half_margin"
                 android:layout_marginRight="@dimen/half_margin" />
 

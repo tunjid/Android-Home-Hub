@@ -67,6 +67,8 @@ class ZigBeeArgumentDialogFragment : DialogFragment() {
         recyclerView.adapter = Adapter(commandInfo)
         recyclerView.layoutManager = LinearLayoutManager(view.context)
 
+        view.postDelayed(this::dismiss, 20000)
+
         return AlertDialog.Builder(activity, R.style.DialogTheme)
                 .setView(view)
                 .setTitle(getString(R.string.zigbee_command_arguments_title, commandInfo.command))

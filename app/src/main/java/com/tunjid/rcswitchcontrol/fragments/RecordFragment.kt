@@ -70,6 +70,8 @@ sealed class RecordFragment : BaseFragment() {
         val builder = ListManagerBuilder<RecyclerView.ViewHolder, ListPlaceholder<*>>()
                 .withRecyclerView(root.findViewById(R.id.list))
                 .withAdapter(RecordAdapter(viewModel.getCommands(key), object : RecordAdapter.ChatAdapterListener {
+                    override val layoutRes: Int = if (key != null) R.layout.viewholder_command else R.layout.viewholder_history
+
                     override fun onRecordClicked(record: Record) {
                         if (key != null) viewModel.dispatchPayload(record.key) { action = record.entry }
                     }

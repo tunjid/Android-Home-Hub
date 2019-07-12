@@ -39,7 +39,7 @@ class RecordAdapter(
         ) : InteractiveAdapter<RecordAdapter.TextViewHolder, RecordAdapter.ChatAdapterListener>(listener) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TextViewHolder =
-            TextViewHolder(getItemView(R.layout.viewholder_responses, parent), adapterListener)
+            TextViewHolder(getItemView(adapterListener.layoutRes, parent), adapterListener)
 
     override fun onBindViewHolder(holder: TextViewHolder, position: Int) =
             holder.bind(responses[position])
@@ -47,6 +47,8 @@ class RecordAdapter(
     override fun getItemCount(): Int = responses.size
 
     interface ChatAdapterListener : AdapterListener {
+        val layoutRes:Int
+
         fun onRecordClicked(record: Record)
     }
 

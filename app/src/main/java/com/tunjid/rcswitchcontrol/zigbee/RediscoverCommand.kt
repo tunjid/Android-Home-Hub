@@ -34,12 +34,11 @@ import java.io.PrintStream
  * Rediscover a node from its IEEE address.
  */
 class RediscoverCommand : AbsZigBeeCommand() {
+    override val args: String = "IEEEADDRESS"
 
     override fun getCommand(): String = App.instance.getString(R.string.zigbeeprotocol_rediscover)
 
     override fun getDescription(): String = "Rediscover a node from its IEEE address."
-
-    override fun getSyntax(): String = "rediscover IEEEADDRESS"
 
     @Throws(Exception::class)
     override fun process(networkManager: ZigBeeNetworkManager, args: Array<out String>, out: PrintStream) {

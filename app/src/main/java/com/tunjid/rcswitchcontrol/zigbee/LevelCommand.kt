@@ -38,21 +38,23 @@ import java.util.concurrent.Future
  * Changes a device level for example lamp brightness.
  */
 class LevelCommand : AbsZigBeeCommand() {
+    override val args: String = "DEVICEID LEVEL [RATE]"
 
     override fun getCommand(): String = App.instance.getString(R.string.zigbeeprotocol_level)
 
     override fun getDescription(): String = "Changes device level for example lamp brightness, where LEVEL is between 0 and 1."
 
-    override fun getSyntax(): String = "level DEVICEID LEVEL [RATE]"
-
     @Throws(Exception::class)
     override fun process(networkManager: ZigBeeNetworkManager, args: Array<out String>, out: PrintStream) {
-        invoke(args, 3, networkManager, out) {
-            val level: Float = parse(args[2])
-            val time = if (args.size == 4) parse(args[3]) else 1.0.toFloat()
+        args.expect(3)
 
-            level(it, networkManager, level.toDouble(), time.toDouble())
-        }
+        val level = args[2].toDouble()
+        val time = if (args.size == 4) args[3].toDouble() else 1.0
+
+        networkManager.findDestination(args[1]).then(
+                { networkManager.level(it, level, time) },
+                { onCommandProcessed(it, out) }
+        )
     }
 
     /**
@@ -63,23 +65,18 @@ class LevelCommand : AbsZigBeeCommand() {
      * @param time the transition time
      * @return the command result future.
      */
-    fun level(destination: ZigBeeAddress, networkManager: ZigBeeNetworkManager, level: Double, time: Double): Future<CommandResult>? {
-
+    private fun ZigBeeNetworkManager.level(destination: ZigBeeAddress, level: Double, time: Double): Future<CommandResult>? {
         var l = (level * 254).toInt()
-        if (l > 254) {
-            l = 254
-        }
-        if (l < 0) {
-            l = 0
-        }
 
-        if (destination !is ZigBeeEndpointAddress) {
-            return null
-        }
-        val endpoint = networkManager.getNode(destination.address)
-                .getEndpoint(destination.endpoint) ?: return null
-        val cluster = endpoint
-                .getInputCluster(ZclLevelControlCluster.CLUSTER_ID) as ZclLevelControlCluster
+        if (l > 254) l = 254
+        if (l < 0) l = 0
+
+        if (destination !is ZigBeeEndpointAddress) return null
+
+        val endpoint = getNode(destination.address).getEndpoint(destination.endpoint) ?: return null
+
+        val cluster = endpoint.getInputCluster(ZclLevelControlCluster.CLUSTER_ID) as ZclLevelControlCluster
+
         return cluster.moveToLevelWithOnOffCommand(l, (time * 10).toInt())
     }
 }

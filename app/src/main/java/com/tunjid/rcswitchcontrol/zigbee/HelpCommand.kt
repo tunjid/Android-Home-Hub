@@ -33,12 +33,11 @@ import java.util.ArrayList
  * Prints help on console.
  */
 class HelpCommand(private val commands: Map<String, ZigBeeConsoleCommand>) : AbsZigBeeCommand() {
+    override val args: String = "[COMMAND]"
 
     override fun getDescription(): String = "View command help."
 
     override fun getCommand(): String = "help"
-
-    override fun getSyntax(): String = "help [command]"
 
     override fun process(networkManager: ZigBeeNetworkManager, args: Array<out String>, out: PrintStream) = when {
         args.size == 2 -> if (commands.containsKey(args[1])) {

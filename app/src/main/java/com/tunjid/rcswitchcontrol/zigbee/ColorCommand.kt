@@ -39,27 +39,24 @@ import java.util.concurrent.Future
  * Changes a light color on device.
  */
 class ColorCommand : AbsZigBeeCommand() {
+    override val args: String = "DEVICEID RED GREEN BLUE"
 
     override fun getCommand(): String = App.instance.getString(R.string.zigbeeprotocol_color)
 
     override fun getDescription(): String = "Changes light color."
 
-    override fun getSyntax(): String = "color DEVICEID RED GREEN BLUE"
-
-    /**
-     * {@inheritDoc}
-     */
     @Throws(Exception::class)
     override fun process(networkManager: ZigBeeNetworkManager, args: Array<out String>, out: PrintStream) {
-        invoke(args, 5,  networkManager, out) {
-            val red: Float = parse(args[2])
+        args.expect(5)
 
-            val green: Float = parse(args[3])
+        val red = args[2].toDouble()
+        val green = args[3].toDouble()
+        val blue = args[4].toDouble()
 
-            val blue: Float = parse(args[4])
-
-            color(it, networkManager, red.toDouble(), green.toDouble(), blue.toDouble(), 1.0)
-        }
+        networkManager.findDestination(args[1]).then(
+                { networkManager.color(it, red, green, blue, 1.0) },
+                { onCommandProcessed(it, out) }
+        )
     }
 
     /**
@@ -72,30 +69,23 @@ class ColorCommand : AbsZigBeeCommand() {
      * @param time the in seconds
      * @return the command result future.
      */
-    fun color(destination: ZigBeeAddress,
-              networkManager: ZigBeeNetworkManager,
-              red: Double,
-              green: Double,
-              blue: Double, time: Double): Future<CommandResult>? {
-
+    private fun ZigBeeNetworkManager.color(destination: ZigBeeAddress,
+                                           red: Double,
+                                           green: Double,
+                                           blue: Double, time: Double): Future<CommandResult>? {
         val cie = Cie.rgb2cie(red, green, blue)
 
         var x = (cie.x * 65536).toInt()
         var y = (cie.y * 65536).toInt()
-        if (x > 65279) {
-            x = 65279
-        }
-        if (y > 65279) {
-            y = 65279
-        }
 
-        if (destination !is ZigBeeEndpointAddress) {
-            return null
-        }
-        val endpoint = networkManager.getNode(destination.address)
-                .getEndpoint(destination.endpoint) ?: return null
-        val cluster = endpoint
-                .getInputCluster(ZclColorControlCluster.CLUSTER_ID) as ZclColorControlCluster
+        if (x > 65279) x = 65279
+        if (y > 65279) y = 65279
+
+        if (destination !is ZigBeeEndpointAddress) return null
+
+        val endpoint = getNode(destination.address).getEndpoint(destination.endpoint) ?: return null
+        val cluster = endpoint.getInputCluster(ZclColorControlCluster.CLUSTER_ID) as ZclColorControlCluster
+
         return cluster.moveToColorCommand(x, y, (time * 10).toInt())
     }
 }

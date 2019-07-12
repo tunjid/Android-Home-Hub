@@ -38,24 +38,29 @@ import java.util.concurrent.Future
  * Switches a device on.
  */
 class OnCommand : AbsZigBeeCommand() {
+    override val args: String = "DEVICEID/DEVICELABEL/GROUPID"
 
     override fun getCommand(): String = App.instance.getString(R.string.zigbeeprotocol_on)
 
     override fun getDescription(): String = "Switches device on."
 
-    override fun getSyntax(): String = "on DEVICEID/DEVICELABEL/GROUPID"
-
     @Throws(Exception::class)
-    override fun process(networkManager: ZigBeeNetworkManager, args: Array<out String>, out: PrintStream) =
-            invoke(args, 2,  networkManager, out) { on(it, networkManager) }
+    override fun process(networkManager: ZigBeeNetworkManager, args: Array<out String>, out: PrintStream) {
+        args.expect(2)
 
-    fun on(destination: ZigBeeAddress, networkManager: ZigBeeNetworkManager): Future<CommandResult>? {
-        if (destination !is ZigBeeEndpointAddress) {
-            return null
-        }
-        val endpoint = networkManager.getNode(destination.address)
-                .getEndpoint(destination.endpoint) ?: return null
+        networkManager.findDestination(args[1]).then(
+                { networkManager.on(it) },
+                { onCommandProcessed(it, out) }
+        )
+    }
+
+    private fun ZigBeeNetworkManager.on(destination: ZigBeeAddress): Future<CommandResult>? {
+        if (destination !is ZigBeeEndpointAddress) return null
+
+        val endpoint = getNode(destination.address).getEndpoint(destination.endpoint) ?: return null
+
         val cluster = endpoint.getInputCluster(ZclOnOffCluster.CLUSTER_ID) as ZclOnOffCluster
+
         return cluster.onCommand()
     }
 }

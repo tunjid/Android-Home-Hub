@@ -34,23 +34,22 @@ import java.util.concurrent.Future
 
 abstract class AbsZigBeeCommand : ZigBeeConsoleCommand {
 
+    override fun getSyntax(): String = "$command $args"
+
     override fun getHelp(): String = "Command: $command\nDescription: $description\n Syntax: $syntax"
 
-    fun invoke(
-            args: Array<out String>,
-            expectedArgs: Int,
-            networkManager: ZigBeeNetworkManager,
-            out: PrintStream,
-            implementation: (destination: ZigBeeAddress) -> Future<CommandResult>?) {
-        if (args.size != expectedArgs) throw IllegalArgumentException("Invalid command arguments")
+    abstract val args: String
 
-        val destination = getDestination(args[1], networkManager)
-                ?: throw IllegalArgumentException("Destination not found")
+    protected fun Array<out String>.expect(expected: Int) {
+        if (size != expected) throw IllegalArgumentException("Invalid number of command arguments, expected $expected, got $size")
+    }
 
-        val response = implementation(destination)?.get()
+    protected fun <T> T?.then(function: (T) -> Future<CommandResult>?, done: (CommandResult) -> Unit) {
+        this ?: throw IllegalArgumentException("Target not found")
+        val result = function.invoke(this)?.get()
                 ?: throw IllegalArgumentException("Unable to execute command")
 
-        defaultResponseProcessing(response, out)
+        done(result)
     }
 
     /**
@@ -60,33 +59,9 @@ abstract class AbsZigBeeCommand : ZigBeeConsoleCommand {
      * @param out the output
      * @return TRUE if result is success
      */
-    private fun defaultResponseProcessing(result: CommandResult, out: PrintStream) =
+    protected open fun onCommandProcessed(result: CommandResult, out: PrintStream) =
             if (result.isSuccess) out.println("Success response received.")
             else out.println("Error executing command \"$command\": $result")
-
-    /**
-     * Gets destination by device identifier or group ID.
-     *
-     * @param destinationIdentifier the device identifier or group ID
-     * @return the device
-     */
-    private fun getDestination(
-            destinationIdentifier: String,
-            networkManager: ZigBeeNetworkManager
-    ): ZigBeeAddress? {
-        val device = getDevice(destinationIdentifier, networkManager)
-
-        if (device != null) return device.endpointAddress
-
-        try {
-            for (group in networkManager.groups) if (destinationIdentifier == group.label) return group
-
-            val groupId = Integer.parseInt(destinationIdentifier)
-            return networkManager.getGroup(groupId)
-        } catch (e: NumberFormatException) {
-            return null
-        }
-    }
 
     /**
      * Gets device by device identifier.
@@ -94,16 +69,32 @@ abstract class AbsZigBeeCommand : ZigBeeConsoleCommand {
      * @param deviceIdentifier the device identifier
      * @return the device
      */
-    private fun getDevice(
-            deviceIdentifier: String,
-            networkManager: ZigBeeNetworkManager
-    ): ZigBeeEndpoint? {
-        for (node in networkManager.nodes)
+
+    protected fun ZigBeeNetworkManager.findDevice(deviceIdentifier: String): ZigBeeEndpoint? {
+        for (node in nodes)
             for (endpoint in node.endpoints)
                 if (deviceIdentifier == node.networkAddress.toString() + "/" + endpoint.endpointId)
                     return endpoint
 
         return null
+    }
+
+    /**
+     * Gets destination by device identifier or group ID.
+     *
+     * @param destinationIdentifier the device identifier or group ID
+     * @return the device
+     */
+    protected fun ZigBeeNetworkManager.findDestination(destinationIdentifier: String): ZigBeeAddress? {
+        findDevice(destinationIdentifier)?.let { return it.endpointAddress }
+        try {
+            for (group in groups) if (destinationIdentifier == group.label) return group
+
+            val groupId = destinationIdentifier.toInt()
+            return getGroup(groupId)
+        } catch (e: NumberFormatException) {
+            return null
+        }
     }
 
     /**
@@ -113,9 +104,4 @@ abstract class AbsZigBeeCommand : ZigBeeConsoleCommand {
      */
     fun print(line: String, out: PrintStream) = out.println("\r" + line)
 
-    fun parse(value: String): Float = try {
-        java.lang.Float.parseFloat(value)
-    } catch (e: NumberFormatException) {
-        throw IllegalArgumentException("Invalid blue color")
-    }
 }

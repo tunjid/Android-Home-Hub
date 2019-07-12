@@ -37,17 +37,22 @@ import java.util.concurrent.Future
 /**
  * Switches a device off.
  */
-  class OffCommand : AbsZigBeeCommand() {
+class OffCommand : AbsZigBeeCommand() {
+    override val args: String = "DEVICEID/DEVICELABEL/GROUPID"
 
     override fun getCommand(): String = App.instance.getString(R.string.zigbeeprotocol_off)
 
     override fun getDescription(): String = "Switches device off."
 
-    override fun getSyntax(): String = "off DEVICEID/DEVICELABEL/GROUPID"
-
     @Throws(Exception::class)
-    override fun process(networkManager: ZigBeeNetworkManager, args: Array<out String>, out: PrintStream) =
-            invoke(args, 2,  networkManager, out) { off(it, networkManager) }
+    override fun process(networkManager: ZigBeeNetworkManager, args: Array<out String>, out: PrintStream) {
+        args.expect(2)
+
+        networkManager.findDestination(args[1]).then(
+                { networkManager.off(it)  },
+                { onCommandProcessed(it, out) }
+        )
+    }
 
     /**
      * Switches destination off.
@@ -55,13 +60,13 @@ import java.util.concurrent.Future
      * @param destination the [ZigBeeAddress]
      * @return the command result future.
      */
-    fun off(destination: ZigBeeAddress, networkManager: ZigBeeNetworkManager): Future<CommandResult>? {
-        if (destination !is ZigBeeEndpointAddress) {
-            return null
-        }
-        val endpoint = networkManager.getNode(destination.address)
-                .getEndpoint(destination.endpoint) ?: return null
+    private fun ZigBeeNetworkManager.off(destination: ZigBeeAddress): Future<CommandResult>? {
+        if (destination !is ZigBeeEndpointAddress) return null
+
+        val endpoint = getNode(destination.address).getEndpoint(destination.endpoint) ?: return null
+
         val cluster = endpoint.getInputCluster(ZclOnOffCluster.CLUSTER_ID) as ZclOnOffCluster
+
         return cluster.offCommand()
     }
 }

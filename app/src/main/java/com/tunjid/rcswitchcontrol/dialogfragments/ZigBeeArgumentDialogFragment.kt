@@ -29,7 +29,6 @@ import android.app.Dialog
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
@@ -37,6 +36,8 @@ import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.DialogFragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.tunjid.androidbootstrap.recyclerview.InteractiveAdapter
+import com.tunjid.androidbootstrap.recyclerview.InteractiveViewHolder
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.data.ZigBeeCommandArgs
 import com.tunjid.rcswitchcontrol.data.ZigBeeCommandInfo
@@ -45,6 +46,7 @@ import com.tunjid.rcswitchcontrol.data.ZigBeeCommandInfo
 @SuppressLint("InflateParams")
 class ZigBeeArgumentDialogFragment : DialogFragment() {
 
+    private var done = 0L
     private lateinit var commandInfo: ZigBeeCommandInfo
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -64,10 +66,10 @@ class ZigBeeArgumentDialogFragment : DialogFragment() {
 
         val view = inflater.inflate(R.layout.dialog_zigbee_args, null)
         val recyclerView = view.findViewById<RecyclerView>(R.id.list)
-        recyclerView.adapter = Adapter(commandInfo)
         recyclerView.layoutManager = LinearLayoutManager(view.context)
-
-        view.postDelayed(this::dismiss, 20000)
+        recyclerView.adapter = Adapter(commandInfo, object : Listener{
+            override fun push() = this@ZigBeeArgumentDialogFragment.push()
+        })
 
         return AlertDialog.Builder(activity, R.style.DialogTheme)
                 .setView(view)
@@ -75,6 +77,23 @@ class ZigBeeArgumentDialogFragment : DialogFragment() {
                 .setPositiveButton(R.string.ok) { _, _ -> listener?.onArgsEntered(commandInfo.toArgs()) }
                 .setNegativeButton(R.string.cancel) { _, _ -> dismiss() }
                 .create()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        push()
+        check()
+    }
+
+    private fun check() {
+        System.currentTimeMillis().apply {
+            if (this >= done) dismiss()
+            else dialog?.window?.decorView?.postDelayed(this@ZigBeeArgumentDialogFragment::check, this - done)
+        }
+    }
+
+    private fun push() {
+        done = System.currentTimeMillis() + 20000
     }
 
     interface ZigBeeArgsListener {
@@ -95,10 +114,12 @@ class ZigBeeArgumentDialogFragment : DialogFragment() {
         }
     }
 
-    class Adapter(private val commandInfo: ZigBeeCommandInfo) : RecyclerView.Adapter<ViewHolder>() {
+    class Adapter(
+            private val commandInfo: ZigBeeCommandInfo,
+            listener: Listener
+    ) : InteractiveAdapter<ViewHolder, Listener>(listener) {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder =
-                ViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.dialog_rename_switch, parent, false))
-
+                ViewHolder(getItemView(R.layout.dialog_rename_switch, parent), adapterListener)
 
         override fun getItemCount(): Int =
                 commandInfo.entries.size
@@ -114,7 +135,10 @@ class ZigBeeArgumentDialogFragment : DialogFragment() {
         }
     }
 
-    class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView), TextWatcher {
+    class ViewHolder(
+            itemView: View,
+            listener: Listener
+    ) : InteractiveViewHolder<Listener>(itemView, listener), TextWatcher {
 
         private lateinit var entry: ZigBeeCommandInfo.Entry
         private val editText = itemView as EditText
@@ -131,10 +155,15 @@ class ZigBeeArgumentDialogFragment : DialogFragment() {
 
         override fun afterTextChanged(s: Editable) {
             entry.value = s.toString()
+            adapterListener.push()
         }
 
         override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
 
         override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+    }
+
+    interface Listener : InteractiveAdapter.AdapterListener {
+        fun push()
     }
 }

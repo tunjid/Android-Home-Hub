@@ -82,7 +82,7 @@ sealed class RecordFragment : BaseFragment() {
         else builder.withCustomLayoutManager(FlexboxLayoutManager(inflater.context).apply {
             alignItems = AlignItems.CENTER
             flexDirection = FlexDirection.ROW
-            justifyContent = JustifyContent.FLEX_START
+            justifyContent = JustifyContent.CENTER
         })
 
         listManager = builder.build()

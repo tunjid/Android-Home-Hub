@@ -36,7 +36,7 @@ void setup() {
   // open Arduino USB serial
   // use 38400 since it works at 8MHz as well as 16MHz
 
-  Serial.begin(38400);
+  Serial.begin(115200);
   while (!Serial);
 
   Serial.println("Start");
@@ -81,12 +81,13 @@ void loop() {
 
         // Write to serial
         Serial.write(sniffedData, 10);
-        Serial.flush();
-
-        // Revert state to sending
-        state = STATE_SNIFFING;
       }
+
       transceiver.resetAvailable();
+
+      // Revert state to sending
+      state = STATE_SENDING;
+      transceiver.enableTransmit(PIN_TX);
     }
   }
   else if (Serial.available()) {

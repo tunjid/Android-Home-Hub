@@ -71,9 +71,7 @@ class SerialRFProtocol internal constructor(driver: UsbSerialDriver, printWriter
         port.open(connection)
         port.setParameters(BAUD_RATE, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE)
         serialInputOutputManager = SerialInputOutputManager(port, object : SerialInputOutputManager.Listener {
-            override fun onRunError(e: Exception) {
-                e.printStackTrace()
-            }
+            override fun onRunError(e: Exception) = e.printStackTrace()
 
             override fun onNewData(rawData: ByteArray) = onSerialRead(rawData)
         })
@@ -213,7 +211,7 @@ class SerialRFProtocol internal constructor(driver: UsbSerialDriver, printWriter
                     }
                 }
             }
-            else -> Log.i("IOT", "RF Unknown read: ${String(rawData)}")
+            else -> Log.i("IOT", "RF Unknown read. Size: ${rawData.size}, as String: ${String(rawData)}")
         }
 
         sharedPool.submit { printWriter.println(it.serialize()) }
@@ -224,7 +222,7 @@ class SerialRFProtocol internal constructor(driver: UsbSerialDriver, printWriter
         const val ARDUINO_VENDOR_ID = 0x2341
         const val ARDUINO_PRODUCT_ID = 0x0010
 
-        const val BAUD_RATE = 38400
+        const val BAUD_RATE = 115200
         const val SERIAL_TIMEOUT = 99999
 
         const val NOTIFICATION = 1

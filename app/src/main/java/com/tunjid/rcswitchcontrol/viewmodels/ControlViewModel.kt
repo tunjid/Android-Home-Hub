@@ -79,8 +79,7 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
     @Volatile
     var isProcessing = false
 
-    val keys: Set<String>
-        get() = commands.keys
+    val keys: List<String> = mutableListOf()
 
     val isBound: Boolean
         get() = nsdConnection.isBound
@@ -246,14 +245,14 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
         disposable.add(inPayloadProcessor.map { payload ->
             mutableListOf<State>().apply {
                 val key = payload.key
-                val isNew = !keys.contains(key)
+                val isNew = !commands.keys.contains(key)
                 val record = payload.extractRecord()
                 val fetchedDevices = payload.extractDevices()
                 val commandInfo = payload.extractCommandInfo()
 
-                add(diffCommands(payload).let { State.Commands(key, isNew, getCommands(key), it) })
-                if (record != null) add(diffHistory(record).let { State.History(key, commandInfo, history, it) })
-                if (fetchedDevices != null) add(diffDevices(fetchedDevices).let { State.Devices(key, devices, it) })
+                add(diffCommands(payload).let { State.Commands(key, isNew, it) })
+                if (record != null) add(diffHistory(record).let { State.History(key, commandInfo, it) })
+                if (fetchedDevices != null) add(diffDevices(fetchedDevices).let { State.Devices(key, it) })
             }
         }
                 .subscribeOn(single())
@@ -261,9 +260,12 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
                 .subscribe({ stateList ->
                     stateList.forEach {
                         when (it) {
-                            is State.History -> Lists.replace(it.current, it.diff.items)
-                            is State.Commands -> Lists.replace(it.current, it.diff.items)
-                            is State.Devices -> Lists.replace(it.current, it.diff.items)
+                            is State.Devices -> Lists.replace(devices, it.diff.items)
+                            is State.History -> Lists.replace(history, it.diff.items)
+                            is State.Commands -> {
+                                Lists.replace(getCommands(it.key), it.diff.items)
+                                if (it.isNew) Lists.replace(keys, commands.keys.sorted())
+                            }
                         }
                         stateProcessor.onNext(it)
                     }
@@ -289,20 +291,17 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
         class History(
                 override val key: String,
                 val commandInfo: ZigBeeCommandInfo?,
-                internal val current: List<Record>,
                 internal val diff: Diff<Record>
         ) : State(key, diff.result)
 
         class Commands(
                 override val key: String,
                 val isNew: Boolean,
-                internal val current: List<Record>,
                 internal val diff: Diff<Record>
         ) : State(key, diff.result)
 
         class Devices(
                 override val key: String,
-                internal val current: List<Device>,
                 internal val diff: Diff<Device>
         ) : State(key, diff.result)
     }

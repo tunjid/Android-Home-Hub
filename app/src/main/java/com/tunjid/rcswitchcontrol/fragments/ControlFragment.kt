@@ -26,6 +26,7 @@ package com.tunjid.rcswitchcontrol.fragments
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.*
 import android.widget.TextView
 import androidx.core.view.doOnNextLayout
@@ -35,7 +36,9 @@ import androidx.fragment.app.FragmentStatePagerAdapter
 import androidx.lifecycle.ViewModelProviders
 import androidx.viewpager.widget.ViewPager
 import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetBehavior.*
+import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED
+import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HALF_EXPANDED
+import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN
 import com.google.android.material.bottomsheet.setupForBottomSheet
 import com.google.android.material.tabs.TabLayout
 import com.tunjid.rcswitchcontrol.App
@@ -138,9 +141,8 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
         disposables.add(viewModel.connectionState().subscribe(this::onConnectionStateChanged, Throwable::printStackTrace))
     }
 
-    override fun onPause() {
-        super.onPause()
-        disposables.clear()
+    override fun onStop() {
+        super.onStop()
         viewModel.onBackground()
     }
 
@@ -183,7 +185,10 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
     }
 
     private fun onPayloadReceived(state: State) {
-        if (state is State.Commands && state.isNew) commandsPager.adapter?.notifyDataSetChanged()
+        if (state is State.Commands && state.isNew) {
+            Log.i("DIFF BUG", "Calling onPayloadReceived in View")
+            commandsPager.adapter?.notifyDataSetChanged()
+        }
         if (state is State.History)
             state.commandInfo?.let { ZigBeeArgumentDialogFragment.newInstance(it).show(childFragmentManager, "info") }
     }
@@ -221,7 +226,7 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
             override fun getCount(): Int = pages.size
         }
 
-        fun commandAdapter(keys: Set<String>, fragmentManager: FragmentManager) = object : FragmentStatePagerAdapter(fragmentManager, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
+        fun commandAdapter(keys: List<String>, fragmentManager: FragmentManager) = object : FragmentStatePagerAdapter(fragmentManager, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
 
             override fun getItem(position: Int): Fragment = RecordFragment.commandInstance(item(position))
 
@@ -229,7 +234,7 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
 
             override fun getCount(): Int = keys.size
 
-            private fun item(index: Int) = keys.map { it }.sorted()[index]
+            private fun item(index: Int) = keys[index]
         }
     }
 }

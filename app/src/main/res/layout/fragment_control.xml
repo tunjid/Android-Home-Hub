@@ -83,7 +83,7 @@
             app:behavior_fitToContents="false"
             app:behavior_hideable="true"
             app:behavior_peekHeight="@dimen/sextuple_margin"
-            app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
+            app:layout_behavior="com.google.android.material.bottomsheet.ViewPagerBottomSheetBehavior">
 
             <com.google.android.material.tabs.TabLayout
                 android:id="@+id/command_tabs"

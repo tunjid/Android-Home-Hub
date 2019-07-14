@@ -22,26 +22,39 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.adapters
+package com.tunjid.rcswitchcontrol.utils
 
-import android.view.View
-import com.tunjid.androidbootstrap.recyclerview.InteractiveAdapter
-import com.tunjid.rcswitchcontrol.data.RfSwitch
+import android.view.animation.AccelerateDecelerateInterpolator
+import android.widget.ImageView
+import android.widget.TextView
+import androidx.appcompat.widget.ActionMenuView
+import androidx.appcompat.widget.Toolbar
+import com.tunjid.rcswitchcontrol.R
 
-// ViewHolder for actual content
-class RfDeviceViewHolder internal constructor(
-        itemView: View,
-        listener: Listener
-) : DeviceViewHolder<RfDeviceViewHolder.Listener, RfSwitch>(itemView, listener) {
+fun Toolbar.update(menu: Int, title: CharSequence) {
+    if (id == R.id.alt_toolbar || childCount <= 2) {
+        setTitle(title)
+        replaceMenu(menu)
+    } else for (i in 0 until childCount) {
+        val child = getChildAt(i)
+        if (child is ImageView) continue
 
-    override fun bind(device: RfSwitch) {
-        super.bind(device)
+        child.animate().alpha(0f).setDuration(TOOLBAR_ANIM_DELAY.toLong()).withEndAction {
+            if (child is TextView) setTitle(title)
+            else if (child is ActionMenuView) replaceMenu(menu)
 
-        deviceName.text = device.name
-
-        offSwitch.setOnClickListener { adapterListener.onSwitchToggled(device, false) }
-        onSwitch.setOnClickListener { adapterListener.onSwitchToggled(device, true) }
+            child.animate()
+                    .setDuration(TOOLBAR_ANIM_DELAY.toLong())
+                    .setInterpolator(AccelerateDecelerateInterpolator())
+                    .alpha(1f)
+                    .start()
+        }.start()
     }
-
-    interface Listener : InteractiveAdapter.AdapterListener, DeviceLongClickListener
 }
+
+fun Toolbar.replaceMenu(menu: Int) {
+    this.menu.clear()
+    if (menu != 0) inflateMenu(menu)
+}
+
+const val TOOLBAR_ANIM_DELAY = 200

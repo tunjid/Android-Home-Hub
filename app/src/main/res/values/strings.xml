@@ -23,7 +23,7 @@
   -->
 
 <resources>
-    <string name="app_name">RC Remote</string>
+    <string name="app_name">Home Hub</string>
     <string name="hello_world">Hello world!</string>
 
     <!-- Start Fragment -->
@@ -70,6 +70,10 @@
     <string name="host">Host</string>
     <string name="history">History</string>
     <string name="devices">Devices</string>
+
+    <!-- Devices Fragment -->
+    <string name="devices_selected">%1$d selected</string>
+    <string name="create_group">Create Group</string>
 
     <!-- Rename switch -->
     <string name="rename_switch">Rename Switch</string>

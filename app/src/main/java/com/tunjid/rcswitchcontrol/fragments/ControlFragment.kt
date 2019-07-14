@@ -61,14 +61,26 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
 
     private lateinit var mainPager: ViewPager
     private lateinit var commandsPager: ViewPager
-
     private lateinit var connectionStatus: TextView
 
     private lateinit var viewModel: ControlViewModel
 
+    private val currentPage: BaseFragment?
+        get() = if (viewModel.pages.isEmpty()) null else fromPager(mainPager.currentItem)
+
+    override val toolBarMenuRes: Int = R.menu.menu_fragment_nsd_client
+
+    override val altToolBarRes: Int
+        get() = currentPage?.altToolBarRes ?: super.altToolBarRes
+
+    override val altToolbarText: CharSequence
+        get() = currentPage?.altToolbarText ?: super.altToolbarText
+
+    override val showsAltToolBar: Boolean
+        get() = currentPage?.showsAltToolBar ?: super.showsAltToolBar
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setHasOptionsMenu(true)
         viewModel = ViewModelProviders.of(this).get(ControlViewModel::class.java)
     }
 
@@ -91,7 +103,10 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
             (-height * multiplier) - bottomSheetBehavior.peekHeight
         }
 
-        val onPageSelected: (position: Int) -> Unit = { bottomSheetBehavior.state = if (viewModel.pages[it] == HISTORY) STATE_HALF_EXPANDED else STATE_HIDDEN }
+        val onPageSelected: (position: Int) -> Unit = {
+            bottomSheetBehavior.state = if (viewModel.pages[it] == HISTORY) STATE_HALF_EXPANDED else STATE_HIDDEN
+            togglePersistentUi()
+        }
 
         connectionStatus = root.findViewById(R.id.connection_status)
 
@@ -146,15 +161,20 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
         viewModel.onBackground()
     }
 
-    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
-        inflater.inflate(R.menu.menu_fragment_nsd_client, menu)
-        super.onCreateOptionsMenu(menu, inflater)
-    }
-
     override fun onPrepareOptionsMenu(menu: Menu) {
         menu.findItem(R.id.menu_connect)?.isVisible = !viewModel.isConnected
         menu.findItem(R.id.menu_forget)?.isVisible = !ServerNsdService.isServer
         super.onPrepareOptionsMenu(menu)
+    }
+
+    override fun handledBackPress(): Boolean {
+        if (!viewModel.hasSelections()) return super.handledBackPress()
+
+        viewModel.clearSelections()
+        (getPage(DEVICES) as? DevicesFragment)?.refresh()
+
+        togglePersistentUi()
+        return true
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -193,11 +213,17 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
             state.commandInfo?.let { ZigBeeArgumentDialogFragment.newInstance(it).show(childFragmentManager, "info") }
     }
 
-    override fun onArgsEntered(args: ZigBeeCommandArgs) =
-            viewModel.dispatchPayload(args.key) {
-                action = args.command
-                data = args.serialize()
-            }
+    private fun getPage(page: Page): BaseFragment? = fromPager(viewModel.pages.indexOf(page))
+
+    private fun fromPager(index: Int): BaseFragment? = mainPager.adapter?.let {
+        if (index < 0) return null
+        it.instantiateItem(mainPager, index) as? BaseFragment
+    }
+
+    override fun onArgsEntered(args: ZigBeeCommandArgs) = viewModel.dispatchPayload(args.key) {
+        action = args.command
+        data = args.serialize()
+    }
 
     companion object {
 

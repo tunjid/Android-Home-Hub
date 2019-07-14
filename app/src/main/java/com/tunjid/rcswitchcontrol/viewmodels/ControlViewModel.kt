@@ -67,13 +67,14 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
     private val connectionStateProcessor: PublishProcessor<String> = PublishProcessor.create()
     private val nsdConnection: ServiceConnection<ClientNsdService> = ServiceConnection(ClientNsdService::class.java, this::onServiceConnected)
 
+    private val selectedDevices: MutableSet<Device> = mutableSetOf()
     private val commands: MutableMap<String, MutableList<Record>> = mutableMapOf()
     private val payloadQueue: Queue<Payload> = LinkedList()
     private val history: MutableList<Record> = mutableListOf()
 
     val devices: MutableList<Device> = mutableListOf()
     val pages: MutableList<Page> = mutableListOf(Page.HISTORY, Page.DEVICES).apply {
-        if (ServerNsdService.isServer) add(0, Page.HOST)
+        if (ServerNsdService.isServer) add(Page.HOST)
     }
 
     @Volatile
@@ -130,6 +131,20 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
                 else ClientNsdService.ACTION_SOCKET_DISCONNECTED)
 
     }()).observeOn(mainThread())
+
+    fun select(device: Device): Boolean {
+        val contains = selectedDevices.contains(device)
+        if (contains) selectedDevices.remove(device) else selectedDevices.add(device)
+        return !contains
+    }
+
+    fun isSelected(device: Device) = selectedDevices.contains(device)
+
+    fun hasSelections() = selectedDevices.isNotEmpty()
+
+    fun numSelections() = selectedDevices.size
+
+    fun clearSelections() = selectedDevices.clear()
 
     private fun onServiceConnected(service: ClientNsdService) {
         connectionStateProcessor.onNext(getConnectionText(service.connectionState))

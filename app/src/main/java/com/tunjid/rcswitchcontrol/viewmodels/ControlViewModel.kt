@@ -74,7 +74,7 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
 
     val devices: MutableList<Device> = mutableListOf()
     val pages: MutableList<Page> = mutableListOf(Page.HISTORY, Page.DEVICES).apply {
-        if (ServerNsdService.isServer) add(Page.HOST)
+        if (ServerNsdService.isServer) add(0, Page.HOST)
     }
 
     @Volatile

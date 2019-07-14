@@ -40,7 +40,7 @@ class ViewPagerBottomSheetBehavior<V : View> : BottomSheetBehavior<V> {
     }
 
     fun invalidateScrollingChild() {
-        val view = viewRef.get() ?: return
+        val view = viewRef?.get() ?: return
         val scrollingChild = findScrollingChild(view)
         nestedScrollingChildRef = WeakReference(scrollingChild)
     }

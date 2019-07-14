@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
+<?xml version="1.0" encoding="utf-8"?><!--
   ~ MIT License
   ~
   ~ Copyright (c) 2019 Adetunji Dahunsi
@@ -32,17 +31,18 @@
     tools:clientNsdService="com.tunjid.rcswitchcontrol.activities.MainActivity">
 
     <include
-        android:id="@+id/toolbar"
+        android:id="@+id/alt_toolbar"
         layout="@layout/toolbar"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:background="?attr/colorPrimary"
+        android:visibility="invisible"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/top_inset" />
 
     <include
-        android:id="@+id/alt_toolbar"
+        android:id="@+id/toolbar"
         layout="@layout/toolbar"
         android:layout_width="0dp"
         android:layout_height="wrap_content"

@@ -34,10 +34,16 @@ import androidx.recyclerview.widget.ItemTouchHelper.Callback.makeMovementFlags
 import androidx.recyclerview.widget.RecyclerView
 import com.flask.colorpicker.ColorPickerView
 import com.flask.colorpicker.builder.ColorPickerDialogBuilder
-import com.tunjid.androidbootstrap.recyclerview.*
+import com.tunjid.androidbootstrap.recyclerview.InteractiveAdapter
+import com.tunjid.androidbootstrap.recyclerview.InteractiveViewHolder
+import com.tunjid.androidbootstrap.recyclerview.ListManager
+import com.tunjid.androidbootstrap.recyclerview.ListManagerBuilder
+import com.tunjid.androidbootstrap.recyclerview.ListPlaceholder
+import com.tunjid.androidbootstrap.recyclerview.SwipeDragOptionsBuilder
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.adapters.DeviceAdapter
+import com.tunjid.rcswitchcontrol.adapters.DeviceAdapterListener
 import com.tunjid.rcswitchcontrol.adapters.DeviceViewHolder
 import com.tunjid.rcswitchcontrol.adapters.ZigBeeDeviceViewHolder
 import com.tunjid.rcswitchcontrol.data.Device
@@ -51,16 +57,25 @@ import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.State
 
-typealias ViewHolder = DeviceViewHolder<out InteractiveAdapter.AdapterListener, out Any>
+typealias ViewHolder = InteractiveViewHolder<out InteractiveAdapter.AdapterListener>
 
 class DevicesFragment : BaseFragment(),
-        DeviceAdapter.Listener,
+        DeviceAdapterListener,
         RenameSwitchDialogFragment.SwitchNameListener {
 
     private var isDeleting: Boolean = false
 
     private lateinit var viewModel: ControlViewModel
     private lateinit var listManager: ListManager<ViewHolder, ListPlaceholder<*>>
+
+    override val altToolBarRes: Int
+        get() = R.menu.menu_alt_devices
+
+    override val altToolbarText: CharSequence
+        get() = getString(R.string.devices_selected, viewModel.numSelections())
+
+    override val showsAltToolBar: Boolean
+        get() = viewModel.hasSelections()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -97,23 +112,38 @@ class DevicesFragment : BaseFragment(),
         super.onDestroyView()
     }
 
-    override fun onLongClicked(rfSwitch: RfSwitch) =
-            RenameSwitchDialogFragment.newInstance(rfSwitch).show(childFragmentManager, "")
+    // Leave to parent fragment
+    override fun togglePersistentUi() = (parentFragment as? BaseFragment)?.togglePersistentUi()
+            ?: Unit
 
-    override fun onSwitchToggled(rfSwitch: RfSwitch, state: Boolean) =
-            viewModel.dispatchPayload(rfSwitch.key) {
-                action = ClientBleService.ACTION_TRANSMITTER
-                data = rfSwitch.getEncodedTransmission(state)
-            }
+    override fun isSelected(device: Device): Boolean = viewModel.isSelected(device)
 
-    override fun onLongClicked(device: ZigBeeDevice) {
+    override fun onClicked(device: Device) {
+        if (viewModel.hasSelections()) longClickDevice(device)
     }
 
-    override fun onSwitchToggled(device: ZigBeeDevice, state: Boolean) =
-            device.toggleCommand(state).let {
-                viewModel.dispatchPayload(device.key) {
-                    action = it.command
-                    data = it.serialize()
+    override fun onLongClicked(device: Device): Boolean {
+//        if (device is RfSwitch) RenameSwitchDialogFragment.newInstance(device).show(childFragmentManager, "")
+//        else if (device is ZigBeeDevice) viewModel.devices.add(device)
+//
+        val result = viewModel.select(device)
+
+        togglePersistentUi()
+        return result
+    }
+
+    override fun onSwitchToggled(device: Device, state: Boolean) =
+            viewModel.dispatchPayload(device.key) {
+                when (device) {
+                    is RfSwitch -> {
+                        action = ClientBleService.ACTION_TRANSMITTER
+                        data = device.getEncodedTransmission(state)
+                    }
+                    is ZigBeeDevice -> {
+                        val zigBeeCommandArgs = device.toggleCommand(state)
+                        action = zigBeeCommandArgs.command
+                        data = zigBeeCommandArgs.serialize()
+                    }
                 }
             }
 
@@ -162,6 +192,13 @@ class DevicesFragment : BaseFragment(),
     private fun swipeDirection(holder: ViewHolder): Int =
             if (isDeleting || holder is ZigBeeDeviceViewHolder) 0
             else makeMovementFlags(0, ItemTouchHelper.LEFT)
+
+    private fun longClickDevice(device: Device) {
+        val holder = listManager.findViewHolderForItemId(device.hashCode().toLong()) as? DeviceViewHolder<*, *>
+                ?: return
+
+        holder.performLongClick()
+    }
 
     private fun onDelete(viewHolder: RecyclerView.ViewHolder) {
         if (isDeleting) return

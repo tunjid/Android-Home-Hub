@@ -103,6 +103,9 @@ sealed class RecordFragment : BaseFragment() {
         listManager.clear()
     }
 
+    // Leave to parent fragment
+    override fun togglePersistentUi() = Unit
+
     private fun onHistoryStateReceived(state: State.History) {
         listManager.onDiff(state.result)
 

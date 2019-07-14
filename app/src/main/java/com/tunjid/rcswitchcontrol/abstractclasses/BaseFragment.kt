@@ -27,9 +27,14 @@ package com.tunjid.rcswitchcontrol.abstractclasses
 
 import android.util.Log
 import android.view.View
+import androidx.annotation.ColorInt
+import androidx.annotation.DrawableRes
+import androidx.annotation.MenuRes
+import androidx.annotation.StringRes
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat.getDrawable
 import com.google.android.material.snackbar.Snackbar
+import com.tunjid.UiState
 import com.tunjid.androidbootstrap.material.animator.FabExtensionAnimator
 import com.tunjid.androidbootstrap.view.util.InsetFlags
 import com.tunjid.rcswitchcontrol.R
@@ -50,17 +55,44 @@ abstract class BaseFragment : com.tunjid.androidbootstrap.core.abstractclasses.B
     protected open val fabState: FabExtensionAnimator.GlyphState
         get() = FabExtensionAnimator.newState(getText(R.string.app_name), getDrawable(requireContext(), R.drawable.ic_connect_24dp))
 
-    protected open val fabClickListener: View.OnClickListener
-        get() = View.OnClickListener { }
-
     private val hostingActivity: MainActivity
         get() = requireActivity() as MainActivity
 
-    override fun onResume() {
-        super.onResume()
+    protected open val fabIconRes: Int
+        @DrawableRes get() = 0
 
-        hostingActivity.toggleToolbar(showsToolBar())
-    }
+    protected open val fabTextRes: Int
+        @StringRes get() = 0
+
+    protected open val navBarColor: Int
+        @ColorInt get() = 0
+
+    open val toolBarMenuRes: Int
+        @MenuRes get() = 0
+
+    open val altToolBarRes: Int
+        @MenuRes get() = 0
+
+    protected open val showsFab: Boolean
+        get() = false
+
+    open val showsAltToolBar: Boolean
+        get() = false
+
+    open val showsToolBar: Boolean
+        get() = true
+
+    open val insetFlags: InsetFlags
+        get() = InsetFlags.ALL
+
+    open val toolbarText: CharSequence
+        get() = getText(R.string.app_name)
+
+    open val altToolbarText: CharSequence
+        get() = ""
+
+    protected open val fabClickListener: View.OnClickListener
+        get() = View.OnClickListener { }
 
     override fun onStop() {
         disposables.clear()
@@ -72,16 +104,6 @@ abstract class BaseFragment : com.tunjid.androidbootstrap.core.abstractclasses.B
         super.onDestroyView()
     }
 
-    protected fun toggleFab(show: Boolean) = hostingActivity.toggleFab(show)
-
-    protected fun toggleToolbar(show: Boolean) = hostingActivity.toggleToolbar(show)
-
-    protected open fun showsFab(): Boolean = false
-
-    protected open fun showsToolBar(): Boolean = true
-
-    fun insetFlags(): InsetFlags = InsetFlags.ALL
-
     protected fun setFabExtended(extended: Boolean) = hostingActivity.setFabExtended(extended)
 
     fun onInconsistentList(exception: Exception) {
@@ -89,17 +111,29 @@ abstract class BaseFragment : com.tunjid.androidbootstrap.core.abstractclasses.B
         Log.i("RecyclerView", "Inconsistency in ${javaClass.simpleName}", exception)
     }
 
-    fun togglePersistentUi() {
-        toggleFab(showsFab())
-        toggleToolbar(showsToolBar())
+    open fun togglePersistentUi() {
+        hostingActivity.update(fromThis())
         if (!restoredFromBackStack()) setFabExtended(true)
-
-        val hostingActivity = hostingActivity
-        hostingActivity.updateFab(fabState)
-        hostingActivity.setFabClickListener(fabClickListener)
     }
 
     protected fun showSnackBar(consumer: (snackbar: Snackbar) -> Unit) =
             hostingActivity.showSnackBar(consumer)
+
+    private fun fromThis(): UiState {
+        return UiState(
+                this.fabIconRes,
+                this.fabTextRes,
+                this.toolBarMenuRes,
+                this.altToolBarRes,
+                this.navBarColor,
+                this.showsFab,
+                this.showsToolBar,
+                this.showsAltToolBar,
+                this.insetFlags,
+                this.toolbarText,
+                this.altToolbarText,
+                if (view == null) null else fabClickListener
+        )
+    }
 
 }

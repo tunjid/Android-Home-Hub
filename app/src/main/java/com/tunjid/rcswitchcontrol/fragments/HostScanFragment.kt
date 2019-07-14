@@ -30,7 +30,6 @@ import android.net.nsd.NsdServiceInfo
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.Menu
-import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
@@ -58,7 +57,6 @@ class HostScanFragment : BaseFragment(), HostAdapter.ServiceClickedListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setHasOptionsMenu(true)
         viewModel = ViewModelProviders.of(this).get(NsdScanViewModel::class.java)
     }
 
@@ -86,16 +84,18 @@ class HostScanFragment : BaseFragment(), HostAdapter.ServiceClickedListener {
         scrollManager.clear()
     }
 
-    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
-        inflater.inflate(R.menu.menu_nsd_scan, menu)
+    override val toolBarMenuRes: Int
+        get() = R.menu.menu_nsd_scan
 
-        menu.findItem(R.id.menu_stop).isVisible = isScanning
-        menu.findItem(R.id.menu_scan).isVisible = !isScanning
+    override fun onPrepareOptionsMenu(menu: Menu) {
+        super.onPrepareOptionsMenu(menu)
+        menu.findItem(R.id.menu_stop)?.isVisible = isScanning
+        menu.findItem(R.id.menu_scan)?.isVisible = !isScanning
 
         val refresh = menu.findItem(R.id.menu_refresh)
 
-        refresh.isVisible = isScanning
-        if (isScanning) refresh.setActionView(R.layout.actionbar_indeterminate_progress)
+        refresh?.isVisible = isScanning
+        if (isScanning) refresh?.setActionView(R.layout.actionbar_indeterminate_progress)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {

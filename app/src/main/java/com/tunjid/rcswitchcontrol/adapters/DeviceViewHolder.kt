@@ -24,14 +24,17 @@
 
 package com.tunjid.rcswitchcontrol.adapters
 
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
 import android.view.View
 import android.widget.TextView
-import com.tunjid.androidbootstrap.recyclerview.InteractiveAdapter
+import com.google.android.material.card.MaterialCardView
 import com.tunjid.androidbootstrap.recyclerview.InteractiveViewHolder
 import com.tunjid.rcswitchcontrol.R
+import com.tunjid.rcswitchcontrol.data.Device
 
 // ViewHolder for actual content
-open class DeviceViewHolder<T : InteractiveAdapter.AdapterListener, S : Any> internal constructor(
+open class DeviceViewHolder<T : DeviceLongClickListener, S : Device> internal constructor(
         itemView: View,
         listener: T
 ) : InteractiveViewHolder<T>(itemView, listener) {
@@ -41,9 +44,51 @@ open class DeviceViewHolder<T : InteractiveAdapter.AdapterListener, S : Any> int
     open var deviceName: TextView = itemView.findViewById(R.id.switch_name)
     open var offSwitch: View = itemView.findViewById(R.id.off_switch)
     open var onSwitch: View = itemView.findViewById(R.id.on_switch)
+    private var cardView = (itemView as MaterialCardView)
+
+    init {
+        cardView.setOnClickListener { adapterListener.onClicked(device) }
+        cardView.setOnLongClickListener {
+            performLongClick()
+            true
+        }
+    }
 
     open fun bind(device: S) {
         this.device = device
+        highlightViewHolder(adapterListener::isSelected)
+    }
 
+    fun performLongClick(): Boolean {
+        highlightViewHolder(adapterListener::onLongClicked)
+        return true
+    }
+
+    private fun highlightViewHolder(selectionFunction: (Device) -> Boolean) {
+        val isSelected = selectionFunction.invoke(device)
+        scale(isSelected)
+    }
+
+    private fun scale(isSelected: Boolean) {
+        val end = if (isSelected) FOUR_FIFTH_SCALE else FULL_SCALE
+
+        val set = AnimatorSet()
+        val scaleDownX = animateProperty(SCALE_X_PROPERTY, itemView.scaleX, end)
+        val scaleDownY = animateProperty(SCALE_Y_PROPERTY, itemView.scaleY, end)
+
+        set.playTogether(scaleDownX, scaleDownY)
+        set.start()
+    }
+
+    private fun animateProperty(property: String, start: Float, end: Float): ObjectAnimator {
+        return ObjectAnimator.ofFloat(itemView, property, start, end).setDuration(DURATION.toLong())
+    }
+
+    companion object {
+        private const val FULL_SCALE = 1f
+        private const val FOUR_FIFTH_SCALE = 0.8f
+        private const val DURATION = 200
+        private const val SCALE_X_PROPERTY = "scaleX"
+        private const val SCALE_Y_PROPERTY = "scaleY"
     }
 }

@@ -29,17 +29,22 @@ import android.content.Intent
 import android.os.Bundle
 import android.transition.AutoTransition
 import android.transition.TransitionManager
+import android.view.MenuItem
 import android.view.View
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.appcompat.widget.Toolbar
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.postDelayed
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
+import com.tunjid.UiState
 import com.tunjid.androidbootstrap.core.abstractclasses.BaseActivity
 import com.tunjid.androidbootstrap.core.components.ServiceConnection
 import com.tunjid.androidbootstrap.material.animator.FabExtensionAnimator
@@ -54,6 +59,9 @@ import com.tunjid.rcswitchcontrol.fragments.ControlFragment
 import com.tunjid.rcswitchcontrol.fragments.StartFragment
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
+import com.tunjid.rcswitchcontrol.utils.TOOLBAR_ANIM_DELAY
+import com.tunjid.rcswitchcontrol.utils.update
+import com.tunjid.androidbootstrap.material.animator.FabExtensionAnimator.newState as glyphState
 
 class MainActivity : BaseActivity() {
 
@@ -71,11 +79,13 @@ class MainActivity : BaseActivity() {
     private lateinit var keyboardPadding: View
 
     lateinit var toolbar: Toolbar
-        private set
-
+    private lateinit var altToolbar: Toolbar
     private lateinit var fab: MaterialButton
     private lateinit var constraintLayout: ConstraintLayout
     private lateinit var coordinatorLayout: CoordinatorLayout
+
+    private lateinit var uiState: UiState
+
 
     private val fragmentViewCreatedCallback: FragmentManager.FragmentLifecycleCallbacks = object : FragmentManager.FragmentLifecycleCallbacks() {
 
@@ -102,6 +112,8 @@ class MainActivity : BaseActivity() {
         supportFragmentManager.registerFragmentLifecycleCallbacks(fragmentViewCreatedCallback, false)
         setContentView(R.layout.activity_main)
 
+        uiState = if (savedInstanceState == null) UiState.freshState() else savedInstanceState.getParcelable(UI_STATE)
+
         val startIntent = intent
 
         val isSavedInstance = savedInstanceState != null
@@ -122,6 +134,7 @@ class MainActivity : BaseActivity() {
 
         fab = findViewById(R.id.fab)
         toolbar = findViewById(R.id.toolbar)
+        altToolbar = findViewById(R.id.alt_toolbar)
         topInsetView = findViewById(R.id.top_inset)
         bottomInsetView = findViewById(R.id.bottom_inset)
         keyboardPadding = findViewById(R.id.keyboard_padding)
@@ -133,29 +146,74 @@ class MainActivity : BaseActivity() {
         fabExtensionAnimator = FabExtensionAnimator(fab)
         fabExtensionAnimator.isExtended = true
 
-        setSupportActionBar(this.toolbar)
+        toolbar.setOnMenuItemClickListener(this::onMenuItemClicked)
+        altToolbar.setOnMenuItemClickListener(this::onMenuItemClicked)
 
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
         setOnApplyWindowInsetsListener(this.constraintLayout) { _, insets -> consumeSystemInsets(insets) }
     }
 
-    fun toggleToolbar(show: Boolean) =
-            if (show) toolbarHider.show()
-            else toolbarHider.hide()
+    override fun onStart() {
+        super.onStart()
+        updateUI(true, uiState)
+    }
 
-    fun toggleFab(show: Boolean) =
+    public override fun onSaveInstanceState(outState: Bundle) {
+        outState.putParcelable(UI_STATE, uiState)
+        super.onSaveInstanceState(outState)
+    }
+
+    override fun invalidateOptionsMenu() {
+        super.invalidateOptionsMenu()
+        toolbar.postDelayed(TOOLBAR_ANIM_DELAY.toLong()) {
+            currentFragment?.onPrepareOptionsMenu(toolbar.menu)
+        }
+    }
+
+    override fun getCurrentFragment(): BaseFragment? = super.getCurrentFragment() as? BaseFragment
+
+    fun update(state: UiState) = updateUI(false, state)
+
+    private fun updateMainToolBar(menu: Int, title: CharSequence) = toolbar.update(menu, title).also {
+        currentFragment?.onPrepareOptionsMenu(toolbar.menu)
+    }
+
+    private fun updateAltToolbar(menu: Int, title: CharSequence) = altToolbar.update(menu, title)
+
+    private fun toggleAltToolbar(show: Boolean) {
+        val current = currentFragment
+        if (show) toggleToolbar(false)
+        else if (current != null) toggleToolbar(current.showsToolBar)
+
+        altToolbar.visibility = if (show) View.VISIBLE else View.INVISIBLE
+    }
+
+    private fun toggleToolbar(show: Boolean) {
+        if (show) toolbarHider.show()
+        else toolbarHider.hide()
+        altToolbar.visibility = View.INVISIBLE
+    }
+
+    private fun setNavBarColor(color: Int) {
+        window.navigationBarColor = color
+    }
+
+    private fun setFabIcon(@DrawableRes icon: Int, @StringRes title: Int) = runOnUiThread {
+        if (icon != 0 && title != 0) fabExtensionAnimator.updateGlyphs(glyphState(
+                getText(title),
+                ContextCompat.getDrawable(this@MainActivity, icon)))
+    }
+
+    private fun toggleFab(show: Boolean) =
             if (show) this.fabHider.show()
             else this.fabHider.hide()
+
+    private fun setFabClickListener(onClickListener: View.OnClickListener?) =
+            fab.setOnClickListener(onClickListener)
 
     fun setFabExtended(extended: Boolean) {
         fabExtensionAnimator.isExtended = extended
     }
-
-    fun updateFab(glyphState: FabExtensionAnimator.GlyphState) =
-            this.fabExtensionAnimator.updateGlyphs(glyphState)
-
-    fun setFabClickListener(onClickListener: View.OnClickListener) =
-            fab.setOnClickListener(onClickListener)
 
     fun showSnackBar(consumer: (snackbar: Snackbar) -> Unit) {
         val snackbar = Snackbar.make(coordinatorLayout, "", Snackbar.LENGTH_SHORT)
@@ -164,6 +222,13 @@ class MainActivity : BaseActivity() {
         setOnApplyWindowInsetsListener(snackbar.view) { _, insets -> insets }
         consumer.invoke(snackbar)
         snackbar.show()
+    }
+
+    private fun onMenuItemClicked(item: MenuItem): Boolean {
+        val fragment = currentFragment
+        val selected = fragment != null && fragment.onOptionsItemSelected(item)
+
+        return selected || onOptionsItemSelected(item)
     }
 
     private fun isNotInMainFragmentContainer(view: View): Boolean {
@@ -193,12 +258,10 @@ class MainActivity : BaseActivity() {
         return insets
     }
 
-    private fun adjustInsetForFragment(fragment: Fragment) {
-        if (fragment !is BaseFragment) {
-            return
-        }
+    private fun adjustInsetForFragment(fragment: Fragment?) {
+        if (fragment !is BaseFragment) return
 
-        val insetFlags = fragment.insetFlags()
+        val insetFlags = fragment.insetFlags
         ViewUtil.getLayoutParams(toolbar).topMargin = if (insetFlags.hasTopInset()) 0 else topInset
         TransitionManager.beginDelayedTransition(constraintLayout, AutoTransition()
                 .addTarget(R.id.main_fragment_container)
@@ -209,9 +272,25 @@ class MainActivity : BaseActivity() {
         constraintLayout.setPadding(if (insetFlags.hasLeftInset()) this.leftInset else 0, 0, if (insetFlags.hasRightInset()) this.rightInset else 0, 0)
     }
 
+    private fun updateUI(force: Boolean, state: UiState) {
+        uiState = uiState.diff(force,
+                state,
+                this::toggleFab,
+                this::toggleToolbar,
+                this::toggleAltToolbar,
+                this::setNavBarColor,
+                {},
+                this::setFabIcon,
+                this::updateMainToolBar,
+                this::updateAltToolbar,
+                this::setFabClickListener
+        )
+    }
+
     companion object {
 
         const val ANIMATION_DURATION = 300
+        private const val UI_STATE = "APP_UI_STATE"
 
         var topInset: Int = 0
     }

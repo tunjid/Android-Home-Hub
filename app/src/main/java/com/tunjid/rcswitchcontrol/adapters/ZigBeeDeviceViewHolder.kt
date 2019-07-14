@@ -33,7 +33,7 @@ import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
 // ViewHolder for actual content
 class ZigBeeDeviceViewHolder internal constructor(
         itemView: View,
-        listener: ZigBeeDeviceViewHolder.Listener
+        listener: Listener
 ) : DeviceViewHolder<ZigBeeDeviceViewHolder.Listener, ZigBeeDevice>(itemView, listener) {
 
     private val colorPicker = itemView.findViewById<View>(R.id.color_picker)
@@ -59,17 +59,9 @@ class ZigBeeDeviceViewHolder internal constructor(
         colorPicker.setOnClickListener { adapterListener.color(device) }
         offSwitch.setOnClickListener { adapterListener.onSwitchToggled(device, false) }
         onSwitch.setOnClickListener { adapterListener.onSwitchToggled(device, true) }
-        itemView.setOnLongClickListener {
-            adapterListener.onLongClicked(device)
-            true
-        }
     }
 
-    interface Listener : InteractiveAdapter.AdapterListener {
-        fun onLongClicked(device: ZigBeeDevice)
-
-        fun onSwitchToggled(device: ZigBeeDevice, state: Boolean)
-
+    interface Listener : InteractiveAdapter.AdapterListener, DeviceLongClickListener {
         fun rediscover(device: ZigBeeDevice)
 
         fun color(device: ZigBeeDevice)

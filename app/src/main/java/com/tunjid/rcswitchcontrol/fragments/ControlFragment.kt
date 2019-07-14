@@ -66,9 +66,26 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
 
     private lateinit var viewModel: ControlViewModel
 
+    private val currentPage: BaseFragment?
+        get() = mainPager.adapter?.let {
+            if (viewModel.pages.isEmpty()) return null
+            it.instantiateItem(mainPager, mainPager.currentItem) as? BaseFragment
+        }
+
+    override val toolBarMenuRes: Int
+        get() = R.menu.menu_fragment_nsd_client
+
+    override val altToolBarRes: Int
+        get() = currentPage?.altToolBarRes ?: super.altToolBarRes
+
+    override val altToolbarText: CharSequence
+        get() = currentPage?.altToolbarText ?: super.altToolbarText
+
+    override val showsAltToolBar: Boolean
+        get() = currentPage?.showsAltToolBar ?: super.showsAltToolBar
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setHasOptionsMenu(true)
         viewModel = ViewModelProviders.of(this).get(ControlViewModel::class.java)
     }
 
@@ -91,7 +108,10 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
             (-height * multiplier) - bottomSheetBehavior.peekHeight
         }
 
-        val onPageSelected: (position: Int) -> Unit = { bottomSheetBehavior.state = if (viewModel.pages[it] == HISTORY) STATE_HALF_EXPANDED else STATE_HIDDEN }
+        val onPageSelected: (position: Int) -> Unit = {
+            bottomSheetBehavior.state = if (viewModel.pages[it] == HISTORY) STATE_HALF_EXPANDED else STATE_HIDDEN
+            togglePersistentUi()
+        }
 
         connectionStatus = root.findViewById(R.id.connection_status)
 

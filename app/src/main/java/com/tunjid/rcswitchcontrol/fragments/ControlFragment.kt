@@ -29,6 +29,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.*
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.core.view.doOnNextLayout
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
@@ -41,10 +42,12 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HALF_EX
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN
 import com.google.android.material.bottomsheet.setupForBottomSheet
 import com.google.android.material.tabs.TabLayout
+import com.tunjid.androidbootstrap.view.util.InsetFlags
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.activities.MainActivity
+import com.tunjid.rcswitchcontrol.activities.MainActivity.Companion.bottomInset
 import com.tunjid.rcswitchcontrol.activities.MainActivity.Companion.topInset
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
 import com.tunjid.rcswitchcontrol.data.ZigBeeCommandArgs
@@ -68,6 +71,9 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
     private val currentPage: BaseFragment?
         get() = if (viewModel.pages.isEmpty()) null else fromPager(mainPager.currentItem)
 
+    override val navBarColor: Int
+        get() = ContextCompat.getColor(requireContext(), R.color.black_50)
+
     override val toolBarMenuRes: Int = R.menu.menu_fragment_nsd_client
 
     override val altToolBarRes: Int
@@ -78,6 +84,8 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
 
     override val showsAltToolBar: Boolean
         get() = currentPage?.showsAltToolBar ?: super.showsAltToolBar
+
+    override val insetFlags: InsetFlags = InsetFlags.create(true, true, true, false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -127,6 +135,7 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
 
         bottomSheet.doOnNextLayout {
             bottomSheet.layoutParams.height = root.height - topInset - resources.getDimensionPixelSize(R.dimen.double_and_half_margin)
+            bottomSheetBehavior.peekHeight = resources.getDimensionPixelSize(R.dimen.sextuple_margin) + bottomInset
         }
 
         bottomSheetBehavior.setExpandedOffset(offset)

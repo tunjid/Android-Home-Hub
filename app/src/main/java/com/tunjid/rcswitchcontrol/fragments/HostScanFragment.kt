@@ -34,14 +34,13 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.lifecycle.ViewModelProviders
-import androidx.recyclerview.widget.DividerItemDecoration
-import androidx.recyclerview.widget.DividerItemDecoration.VERTICAL
 import com.tunjid.androidbootstrap.recyclerview.ListManager
 import com.tunjid.androidbootstrap.recyclerview.ListManagerBuilder
 import com.tunjid.androidbootstrap.recyclerview.ListPlaceholder
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.adapters.HostAdapter
+import com.tunjid.rcswitchcontrol.adapters.withPaddedAdapter
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.viewmodels.NsdScanViewModel
 
@@ -66,8 +65,7 @@ class HostScanFragment : BaseFragment(), HostAdapter.ServiceClickedListener {
         val root = inflater.inflate(R.layout.fragment_nsd_scan, container, false)
         scrollManager = ListManagerBuilder<HostAdapter.NSDViewHolder, ListPlaceholder<*>>()
                 .withRecyclerView(root.findViewById(R.id.list))
-                .addDecoration(DividerItemDecoration(requireActivity(), VERTICAL))
-                .withAdapter(HostAdapter(this, viewModel.services))
+                .withPaddedAdapter(HostAdapter(this, viewModel.services))
                 .withLinearLayoutManager()
                 .build()
 

@@ -26,11 +26,17 @@ package com.tunjid.rcswitchcontrol.activities
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.transition.AutoTransition
 import android.transition.TransitionManager
 import android.view.MenuItem
 import android.view.View
+import android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+import android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+import android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+import android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.appcompat.widget.Toolbar
@@ -68,7 +74,6 @@ class MainActivity : BaseActivity() {
     private var insetsApplied: Boolean = false
     private var leftInset: Int = 0
     private var rightInset: Int = 0
-    private var bottomInset: Int = 0
 
     private lateinit var fabHider: ViewHider
     private lateinit var toolbarHider: ViewHider
@@ -77,6 +82,7 @@ class MainActivity : BaseActivity() {
     private lateinit var topInsetView: View
     private lateinit var bottomInsetView: View
     private lateinit var keyboardPadding: View
+    private lateinit var navBackgroundView: View
 
     lateinit var toolbar: Toolbar
     private lateinit var altToolbar: Toolbar
@@ -138,6 +144,7 @@ class MainActivity : BaseActivity() {
         topInsetView = findViewById(R.id.top_inset)
         bottomInsetView = findViewById(R.id.bottom_inset)
         keyboardPadding = findViewById(R.id.keyboard_padding)
+        navBackgroundView = findViewById(R.id.nav_background)
         constraintLayout = findViewById(R.id.constraint_layout)
         coordinatorLayout = findViewById(R.id.coordinator_layout)
 
@@ -149,7 +156,8 @@ class MainActivity : BaseActivity() {
         toolbar.setOnMenuItemClickListener(this::onMenuItemClicked)
         altToolbar.setOnMenuItemClickListener(this::onMenuItemClicked)
 
-        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+        window.navigationBarColor = Color.TRANSPARENT
+        window.decorView.systemUiVisibility = DEFAULT_SYSTEM_UI_FLAGS
         setOnApplyWindowInsetsListener(this.constraintLayout) { _, insets -> consumeSystemInsets(insets) }
     }
 
@@ -195,7 +203,9 @@ class MainActivity : BaseActivity() {
     }
 
     private fun setNavBarColor(color: Int) {
-        window.navigationBarColor = color
+        navBackgroundView.background = GradientDrawable(
+                GradientDrawable.Orientation.BOTTOM_TOP,
+                intArrayOf(color, Color.TRANSPARENT))
     }
 
     private fun setFabIcon(@DrawableRes icon: Int, @StringRes title: Int) = runOnUiThread {
@@ -244,8 +254,9 @@ class MainActivity : BaseActivity() {
         rightInset = insets.systemWindowInsetRight
         bottomInset = insets.systemWindowInsetBottom
 
-        ViewUtil.getLayoutParams(this.topInsetView).height = topInset
-        ViewUtil.getLayoutParams(this.bottomInsetView).height = bottomInset
+        topInsetView.layoutParams.height = topInset
+        bottomInsetView.layoutParams.height = bottomInset
+        navBackgroundView.layoutParams.height = bottomInset
 
         adjustInsetForFragment(currentFragment)
 
@@ -269,6 +280,7 @@ class MainActivity : BaseActivity() {
         )
 
         topInsetView.visibility = if (insetFlags.hasTopInset()) View.VISIBLE else View.GONE
+        bottomInsetView.visibility = if (insetFlags.hasBottomInset()) View.VISIBLE else View.GONE
         constraintLayout.setPadding(if (insetFlags.hasLeftInset()) this.leftInset else 0, 0, if (insetFlags.hasRightInset()) this.rightInset else 0, 0)
     }
 
@@ -292,6 +304,12 @@ class MainActivity : BaseActivity() {
         const val ANIMATION_DURATION = 300
         private const val UI_STATE = "APP_UI_STATE"
 
+        private const val DEFAULT_SYSTEM_UI_FLAGS = (SYSTEM_UI_FLAG_LAYOUT_STABLE
+                or SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                or SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                or FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
+
         var topInset: Int = 0
+        var bottomInset: Int = 0
     }
 }

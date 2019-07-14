@@ -28,6 +28,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ItemTouchHelper.Callback.makeMovementFlags
@@ -46,6 +47,7 @@ import com.tunjid.rcswitchcontrol.adapters.DeviceAdapter
 import com.tunjid.rcswitchcontrol.adapters.DeviceAdapterListener
 import com.tunjid.rcswitchcontrol.adapters.DeviceViewHolder
 import com.tunjid.rcswitchcontrol.adapters.ZigBeeDeviceViewHolder
+import com.tunjid.rcswitchcontrol.adapters.withPaddedAdapter
 import com.tunjid.rcswitchcontrol.data.Device
 import com.tunjid.rcswitchcontrol.data.RfSwitch
 import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
@@ -86,11 +88,12 @@ class DevicesFragment : BaseFragment(),
                               container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
 
+        val spanCount = SpanCountCalculator.spanCount
         val root = inflater.inflate(R.layout.fragment_list, container, false)
         listManager = ListManagerBuilder<ViewHolder, ListPlaceholder<*>>()
                 .withRecyclerView(root.findViewById(R.id.list))
-                .withGridLayoutManager(SpanCountCalculator.spanCount)
-                .withAdapter(DeviceAdapter(this, viewModel.devices))
+                .withGridLayoutManager(spanCount)
+                .withPaddedAdapter(DeviceAdapter(this, viewModel.devices), spanCount)
                 .withSwipeDragOptions(SwipeDragOptionsBuilder<ViewHolder>()
                         .setSwipeConsumer { viewHolder, _ -> onDelete(viewHolder) }
                         .setMovementFlagsFunction(this::swipeDirection)

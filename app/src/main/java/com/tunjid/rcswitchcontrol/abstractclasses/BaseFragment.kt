@@ -32,6 +32,7 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.MenuRes
 import androidx.annotation.StringRes
 import androidx.appcompat.widget.Toolbar
+import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.getDrawable
 import com.google.android.material.snackbar.Snackbar
 import com.tunjid.UiState
@@ -65,7 +66,7 @@ abstract class BaseFragment : com.tunjid.androidbootstrap.core.abstractclasses.B
         @StringRes get() = 0
 
     protected open val navBarColor: Int
-        @ColorInt get() = 0
+        @ColorInt get() = ContextCompat.getColor(requireContext(), R.color.transparent)
 
     open val toolBarMenuRes: Int
         @MenuRes get() = 0

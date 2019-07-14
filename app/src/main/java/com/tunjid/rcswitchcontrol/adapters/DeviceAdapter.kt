@@ -43,22 +43,22 @@ class DeviceAdapter(
         setHasStableIds(true)
     }
 
-    override fun onCreateViewHolder(viewGroup: ViewGroup, viewType: Int): ViewHolder = when (viewType) {
+    override fun onCreateViewHolder(viewGroup: ViewGroup, viewType: Int) = when (viewType) {
         RF_DEVICE -> RfDeviceViewHolder(getItemView(R.layout.viewholder_remote_switch, viewGroup), adapterListener)
         ZIG_BEE_DEVICE -> ZigBeeDeviceViewHolder(getItemView(R.layout.viewholder_zigbee_device, viewGroup), adapterListener)
-        else -> throw IllegalArgumentException("Invalid object type")
+        else -> object : InteractiveViewHolder<DeviceAdapterListener>(getItemView(R.layout.viewholder_padding, viewGroup), adapterListener) {}
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) = when (val device = switches[position]) {
         is RfSwitch -> (holder as RfDeviceViewHolder).bind(device)
         is ZigBeeDevice -> (holder as ZigBeeDeviceViewHolder).bind(device)
-        else -> throw IllegalArgumentException("Invalid object type")
+        else -> Unit
     }
 
     override fun getItemViewType(position: Int): Int = when (switches[position]) {
         is RfSwitch -> RF_DEVICE
         is ZigBeeDevice -> ZIG_BEE_DEVICE
-        else -> throw IllegalArgumentException("Invalid object type")
+        else -> Int.MAX_VALUE
     }
 
     override fun getItemCount(): Int = switches.size

@@ -36,23 +36,28 @@ import com.tunjid.rcswitchcontrol.data.Record
 class RecordAdapter(
         private val responses: List<Record>,
         listener: ChatAdapterListener
-        ) : InteractiveAdapter<RecordAdapter.TextViewHolder, RecordAdapter.ChatAdapterListener>(listener) {
+) : InteractiveAdapter<ViewHolder, RecordAdapter.ChatAdapterListener>(listener) {
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TextViewHolder =
-            TextViewHolder(getItemView(adapterListener.layoutRes, parent), adapterListener)
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = when(viewType) {
+        RECORD -> RecordViewHolder(getItemView(adapterListener.layoutRes, parent), adapterListener)
+        else -> object : InteractiveViewHolder<ChatAdapterListener>(getItemView(R.layout.viewholder_padding, parent), adapterListener) {}
+    }
 
-    override fun onBindViewHolder(holder: TextViewHolder, position: Int) =
-            holder.bind(responses[position])
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        if (holder is RecordViewHolder) holder.bind(responses[position])
+    }
 
     override fun getItemCount(): Int = responses.size
 
+    override fun getItemViewType(position: Int): Int = RECORD
+
     interface ChatAdapterListener : AdapterListener {
-        val layoutRes:Int
+        val layoutRes: Int
 
         fun onRecordClicked(record: Record)
     }
 
-    class TextViewHolder internal constructor(
+    class RecordViewHolder internal constructor(
             itemView: View,
             listener: ChatAdapterListener
     ) : InteractiveViewHolder<ChatAdapterListener>(itemView, listener) {
@@ -70,5 +75,9 @@ class RecordAdapter(
             textView.text = record.entry
             textView.isClickable = adapterListener != null
         }
+    }
+
+    companion object {
+        private const val RECORD = 1
     }
 }

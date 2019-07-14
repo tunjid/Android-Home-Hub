@@ -29,7 +29,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.lifecycle.ViewModelProviders
-import androidx.recyclerview.widget.RecyclerView
 import com.google.android.flexbox.AlignItems
 import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.FlexboxLayoutManager
@@ -40,8 +39,8 @@ import com.tunjid.androidbootstrap.recyclerview.ListPlaceholder
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.adapters.RecordAdapter
+import com.tunjid.rcswitchcontrol.adapters.withPaddedAdapter
 import com.tunjid.rcswitchcontrol.data.Record
-import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.State
 
@@ -51,7 +50,7 @@ sealed class RecordFragment : BaseFragment() {
 
     class CommandsFragment : RecordFragment()
 
-    private lateinit var listManager: ListManager<RecyclerView.ViewHolder, ListPlaceholder<*>>
+    private lateinit var listManager: ListManager<ViewHolder, ListPlaceholder<*>>
 
     private lateinit var viewModel: ControlViewModel
     private var key: String? = null
@@ -67,9 +66,9 @@ sealed class RecordFragment : BaseFragment() {
                               savedInstanceState: Bundle?): View? {
 
         val root = inflater.inflate(R.layout.fragment_list, container, false)
-        val builder = ListManagerBuilder<RecyclerView.ViewHolder, ListPlaceholder<*>>()
+        val builder = ListManagerBuilder<ViewHolder, ListPlaceholder<*>>()
                 .withRecyclerView(root.findViewById(R.id.list))
-                .withAdapter(RecordAdapter(viewModel.getCommands(key), object : RecordAdapter.ChatAdapterListener {
+                .withPaddedAdapter(RecordAdapter(viewModel.getCommands(key), object : RecordAdapter.ChatAdapterListener {
                     override val layoutRes: Int = if (key != null) R.layout.viewholder_command else R.layout.viewholder_history
 
                     override fun onRecordClicked(record: Record) {
@@ -78,7 +77,7 @@ sealed class RecordFragment : BaseFragment() {
                 }))
                 .withInconsistencyHandler(this::onInconsistentList)
 
-        if (key == null) builder.withGridLayoutManager(SpanCountCalculator.spanCount)
+        if (key == null) builder.withLinearLayoutManager()
         else builder.withCustomLayoutManager(FlexboxLayoutManager(inflater.context).apply {
             alignItems = AlignItems.CENTER
             flexDirection = FlexDirection.ROW

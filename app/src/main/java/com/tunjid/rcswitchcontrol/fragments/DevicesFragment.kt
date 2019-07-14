@@ -124,42 +124,39 @@ class DevicesFragment : BaseFragment(),
 
     override fun onLongClicked(device: Device): Boolean {
 //        if (device is RfSwitch) RenameSwitchDialogFragment.newInstance(device).show(childFragmentManager, "")
-//        else if (device is ZigBeeDevice) viewModel.devices.add(device)
-//
         val result = viewModel.select(device)
 
         togglePersistentUi()
         return result
     }
 
-    override fun onSwitchToggled(device: Device, state: Boolean) =
-            viewModel.dispatchPayload(device.key) {
-                when (device) {
-                    is RfSwitch -> {
-                        action = ClientBleService.ACTION_TRANSMITTER
-                        data = device.getEncodedTransmission(state)
-                    }
-                    is ZigBeeDevice -> {
-                        val zigBeeCommandArgs = device.toggleCommand(state)
-                        action = zigBeeCommandArgs.command
-                        data = zigBeeCommandArgs.serialize()
-                    }
-                }
+    override fun onSwitchToggled(device: Device, state: Boolean) = viewModel.dispatchPayload(device.key) {
+        when (device) {
+            is RfSwitch -> {
+                action = ClientBleService.ACTION_TRANSMITTER
+                data = device.getEncodedTransmission(state)
             }
+            is ZigBeeDevice -> {
+                val zigBeeCommandArgs = device.toggleCommand(state)
+                action = zigBeeCommandArgs.command
+                data = zigBeeCommandArgs.serialize()
+            }
+        }
+    }
 
-    override fun rediscover(device: ZigBeeDevice) =
-            device.rediscoverCommand().let { args ->
-                viewModel.dispatchPayload(device.key) {
-                    action = args.command
-                    data = args.serialize()
-                }
-            }
+    override fun rediscover(device: ZigBeeDevice) = device.rediscoverCommand().let { args ->
+        viewModel.dispatchPayload(device.key) {
+            action = args.command
+            data = args.serialize()
+        }
+    }
 
     override fun color(device: ZigBeeDevice) = ColorPickerDialogBuilder
             .with(context)
             .setTitle("Choose color")
             .wheelType(ColorPickerView.WHEEL_TYPE.CIRCLE)
             .showLightnessSlider(true)
+            .showAlphaSlider(false)
             .density(12)
             .setOnColorChangedListener {
                 device.colorCommand(it).let { args ->
@@ -186,6 +183,8 @@ class DevicesFragment : BaseFragment(),
             data = rfSwitch.serialize()
         }
     }
+
+    fun refresh() = listManager.notifyDataSetChanged()
 
     private fun onPayloadReceived(state: State.Devices) = listManager.onDiff(state.result)
 

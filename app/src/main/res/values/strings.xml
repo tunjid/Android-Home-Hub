@@ -72,7 +72,7 @@
     <string name="devices">Devices</string>
 
     <!-- Devices Fragment -->
-    <string name="devices_selected">%1$s selected</string>
+    <string name="devices_selected">%1$d selected</string>
     <string name="create_group">Create Group</string>
 
     <!-- Rename switch -->

@@ -144,6 +144,8 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
 
     fun numSelections() = selectedDevices.size
 
+    fun clearSelections() = selectedDevices.clear()
+
     private fun onServiceConnected(service: ClientNsdService) {
         connectionStateProcessor.onNext(getConnectionText(service.connectionState))
         dispatchPayload(CommsProtocol::class.java.name, commands::isEmpty) { action = CommsProtocol.PING }

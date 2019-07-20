@@ -73,6 +73,7 @@
 
     <!-- Devices Fragment -->
     <string name="devices_selected">%1$d selected</string>
+    <string name="edit_device">Edit Device</string>
     <string name="create_group">Create Group</string>
 
     <!-- Rename switch -->

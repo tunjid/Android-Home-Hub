@@ -176,6 +176,7 @@ class MainActivity : BaseActivity() {
         toolbar.postDelayed(TOOLBAR_ANIM_DELAY.toLong()) {
             currentFragment?.onPrepareOptionsMenu(toolbar.menu)
         }
+            currentFragment?.onPrepareOptionsMenu(altToolbar.menu)
     }
 
     override fun getCurrentFragment(): BaseFragment? = super.getCurrentFragment() as? BaseFragment

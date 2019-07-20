@@ -138,13 +138,11 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
         return !contains
     }
 
-    fun isSelected(device: Device) = selectedDevices.contains(device)
-
-    fun hasSelections() = selectedDevices.isNotEmpty()
-
     fun numSelections() = selectedDevices.size
 
     fun clearSelections() = selectedDevices.clear()
+
+    fun <T> withSelectedDevices(function: (Set<Device>) -> T): T = function.invoke(selectedDevices)
 
     private fun onServiceConnected(service: ClientNsdService) {
         connectionStateProcessor.onNext(getConnectionText(service.connectionState))

@@ -25,29 +25,17 @@
 package com.tunjid.rcswitchcontrol.fragments
 
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import androidx.core.content.ContextCompat
+import android.view.*
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ItemTouchHelper.Callback.makeMovementFlags
 import androidx.recyclerview.widget.RecyclerView
 import com.flask.colorpicker.ColorPickerView
 import com.flask.colorpicker.builder.ColorPickerDialogBuilder
-import com.tunjid.androidbootstrap.recyclerview.InteractiveAdapter
-import com.tunjid.androidbootstrap.recyclerview.InteractiveViewHolder
-import com.tunjid.androidbootstrap.recyclerview.ListManager
-import com.tunjid.androidbootstrap.recyclerview.ListManagerBuilder
-import com.tunjid.androidbootstrap.recyclerview.ListPlaceholder
-import com.tunjid.androidbootstrap.recyclerview.SwipeDragOptionsBuilder
+import com.tunjid.androidbootstrap.recyclerview.*
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
-import com.tunjid.rcswitchcontrol.adapters.DeviceAdapter
-import com.tunjid.rcswitchcontrol.adapters.DeviceAdapterListener
-import com.tunjid.rcswitchcontrol.adapters.DeviceViewHolder
-import com.tunjid.rcswitchcontrol.adapters.ZigBeeDeviceViewHolder
-import com.tunjid.rcswitchcontrol.adapters.withPaddedAdapter
+import com.tunjid.rcswitchcontrol.adapters.*
 import com.tunjid.rcswitchcontrol.data.Device
 import com.tunjid.rcswitchcontrol.data.RfSwitch
 import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
@@ -77,7 +65,7 @@ class DevicesFragment : BaseFragment(),
         get() = getString(R.string.devices_selected, viewModel.numSelections())
 
     override val showsAltToolBar: Boolean
-        get() = viewModel.hasSelections()
+        get() = viewModel.withSelectedDevices { it.isNotEmpty() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -115,21 +103,35 @@ class DevicesFragment : BaseFragment(),
         super.onDestroyView()
     }
 
+    override fun onPrepareOptionsMenu(menu: Menu) {
+        menu.findItem(R.id.menu_rename_device)?.isVisible = viewModel.withSelectedDevices { it.size == 1 && it.first() is RfSwitch }
+        menu.findItem(R.id.menu_create_group)?.isVisible = viewModel.withSelectedDevices { it.find { device -> device is RfSwitch } == null }
+
+        super.onPrepareOptionsMenu(menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
+        R.id.menu_rename_device -> RenameSwitchDialogFragment.newInstance(
+                viewModel.withSelectedDevices { it.first() } as RfSwitch
+        ).show(childFragmentManager, "").let { true }
+        else -> super.onOptionsItemSelected(item)
+    }
+
     // Leave to parent fragment
     override fun togglePersistentUi() = (parentFragment as? BaseFragment)?.togglePersistentUi()
             ?: Unit
 
-    override fun isSelected(device: Device): Boolean = viewModel.isSelected(device)
+    override fun isSelected(device: Device): Boolean = viewModel.withSelectedDevices { it.contains(device) }
 
     override fun onClicked(device: Device) {
-        if (viewModel.hasSelections()) longClickDevice(device)
+        if (viewModel.withSelectedDevices { it.isNotEmpty() }) longClickDevice(device)
     }
 
     override fun onLongClicked(device: Device): Boolean {
-//        if (device is RfSwitch) RenameSwitchDialogFragment.newInstance(device).show(childFragmentManager, "")
         val result = viewModel.select(device)
 
         togglePersistentUi()
+        requireActivity().invalidateOptionsMenu()
         return result
     }
 

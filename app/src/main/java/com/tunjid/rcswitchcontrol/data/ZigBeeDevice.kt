@@ -38,6 +38,8 @@ class ZigBeeDevice(
         override val name: String
 ) : Parcelable, Device {
 
+    internal val zigBeeId: String get() = "$networkAdress/$endpoint"
+
     override val key: String = ZigBeeProtocol::class.java.name
 
     constructor(parcel: Parcel) : this(
@@ -50,12 +52,12 @@ class ZigBeeDevice(
 
     fun toggleCommand(state: Boolean) = (if (state) OnCommand() else OffCommand())
             .command
-            .let { ZigBeeCommandArgs(it, arrayOf(it, "$networkAdress/$endpoint")) }
+            .let { ZigBeeCommandArgs(it, arrayOf(it, zigBeeId)) }
 
     fun levelCommand(level: Float) = LevelCommand().command.let {
         ZigBeeCommandArgs(it, arrayOf(
                 it,
-                "$networkAdress/$endpoint",
+                zigBeeId,
                 level.toString()
         ))
     }
@@ -63,7 +65,7 @@ class ZigBeeDevice(
     fun colorCommand(color: Int) = ColorCommand().command.let {
         ZigBeeCommandArgs(it, arrayOf(
                 it,
-                "$networkAdress/$endpoint",
+                zigBeeId,
                 Color.red(color).toString(),
                 Color.green(color).toString(),
                 Color.blue(color).toString()
@@ -103,4 +105,17 @@ class ZigBeeDevice(
 
         override fun newArray(size: Int): Array<ZigBeeDevice?> = arrayOfNulls(size)
     }
+}
+
+fun List<ZigBeeDevice>.createGroupSequence(groupName: String): List<ZigBeeCommandArgs> {
+    val result = mutableListOf<ZigBeeCommandArgs>()
+
+    val groupId = groupName.hashCode().toString()
+
+    result.add(GroupAddCommand().command.let { ZigBeeCommandArgs(it, arrayOf(it, groupId, groupName)) })
+    result.addAll(map { device ->
+        MembershipAddCommand().command.let { ZigBeeCommandArgs(it, arrayOf(it, device.zigBeeId, groupId, groupName)) }
+    })
+
+    return result
 }

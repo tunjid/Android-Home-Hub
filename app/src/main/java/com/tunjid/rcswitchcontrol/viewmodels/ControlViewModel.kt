@@ -34,12 +34,7 @@ import com.tunjid.androidbootstrap.recyclerview.diff.Diff
 import com.tunjid.androidbootstrap.recyclerview.diff.Differentiable
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.data.Device
-import com.tunjid.rcswitchcontrol.data.Payload
-import com.tunjid.rcswitchcontrol.data.Record
-import com.tunjid.rcswitchcontrol.data.RfSwitch
-import com.tunjid.rcswitchcontrol.data.ZigBeeCommandInfo
-import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
+import com.tunjid.rcswitchcontrol.data.*
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserialize
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserializeList
 import com.tunjid.rcswitchcontrol.nsd.protocols.BLERFProtocol
@@ -55,7 +50,6 @@ import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.processors.PublishProcessor
 import io.reactivex.schedulers.Schedulers.single
 import java.util.*
-import java.util.concurrent.TimeUnit
 
 class ControlViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -290,7 +284,6 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun listenForOutputPayloads() {
         disposable.add(outPayloadProcessor
-                .sample(200, TimeUnit.MILLISECONDS)
                 .filter { isConnected }
                 .subscribe(nsdConnection.boundService::sendMessage) { it.printStackTrace(); listenForOutputPayloads() })
     }

@@ -39,8 +39,11 @@ import com.tunjid.rcswitchcontrol.adapters.*
 import com.tunjid.rcswitchcontrol.data.Device
 import com.tunjid.rcswitchcontrol.data.RfSwitch
 import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
+import com.tunjid.rcswitchcontrol.data.createGroupSequence
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
+import com.tunjid.rcswitchcontrol.dialogfragments.GroupDeviceDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
+import com.tunjid.rcswitchcontrol.dialogfragments.throttleColorChanges
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
@@ -51,6 +54,7 @@ typealias ViewHolder = InteractiveViewHolder<out InteractiveAdapter.AdapterListe
 
 class DevicesFragment : BaseFragment(),
         DeviceAdapterListener,
+        GroupDeviceDialogFragment.GroupNameListener,
         RenameSwitchDialogFragment.SwitchNameListener {
 
     private var isDeleting: Boolean = false
@@ -113,7 +117,8 @@ class DevicesFragment : BaseFragment(),
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
         R.id.menu_rename_device -> RenameSwitchDialogFragment.newInstance(
                 viewModel.withSelectedDevices { it.first() } as RfSwitch
-        ).show(childFragmentManager, "").let { true }
+        ).show(childFragmentManager, item.itemId.toString()).let { true }
+        R.id.menu_create_group -> GroupDeviceDialogFragment.newInstance.show(childFragmentManager, item.itemId.toString()).let { true }
         else -> super.onOptionsItemSelected(item)
     }
 
@@ -163,7 +168,7 @@ class DevicesFragment : BaseFragment(),
             .showLightnessSlider(true)
             .showAlphaSlider(false)
             .density(12)
-            .setOnColorChangedListener {
+            .throttleColorChanges {
                 device.colorCommand(it).let { args ->
                     viewModel.dispatchPayload(device.key) {
                         action = args.command
@@ -179,6 +184,22 @@ class DevicesFragment : BaseFragment(),
             action = args.command
             data = args.serialize()
         }
+    }
+
+    override fun onGroupNamed(groupName: CharSequence) = viewModel.run {
+        withSelectedDevices { devices ->
+            devices.filterIsInstance(ZigBeeDevice::class.java)
+                    .createGroupSequence(groupName.toString())
+                    .forEach {
+                        dispatchPayload(it.key) {
+                            action = it.command
+                            data = it.serialize()
+                        }
+                    }
+        }
+        clearSelections()
+        togglePersistentUi()
+        refresh()
     }
 
     override fun onSwitchRenamed(rfSwitch: RfSwitch) {

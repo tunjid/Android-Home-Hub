@@ -32,32 +32,27 @@ import com.tunjid.rcswitchcontrol.R
 
 
 @SuppressLint("InflateParams")
-class NameServiceDialogFragment : DialogFragment() {
+class GroupDeviceDialogFragment : DialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog = editTextDialog { editText, builder ->
-        val nameListener = parentFragment as? ServiceNameListener
+        val listener = parentFragment as? GroupNameListener
 
         builder
-                .setTitle(R.string.name_nsd_service)
-                .setPositiveButton(R.string.ok) { _, _ ->
-                    nameListener?.onServiceNamed(editText.text.toString())
+                .setTitle(R.string.zigbee_create_group)
+                .setPositiveButton(R.string.zigbee_add_group) { _, _ ->
+                    listener?.onGroupNamed(editText.text)
                     dismiss()
                 }
     }
 
-
-    interface ServiceNameListener {
-        fun onServiceNamed(name: String)
+    interface GroupNameListener {
+        fun onGroupNamed(groupName: CharSequence)
     }
 
     companion object {
 
-        fun newInstance(): NameServiceDialogFragment {
+        val newInstance: GroupDeviceDialogFragment
+            get() = GroupDeviceDialogFragment().apply { arguments = Bundle() }
 
-            val fragment = NameServiceDialogFragment()
-            val args = Bundle()
-            fragment.arguments = args
-            return fragment
-        }
     }
 }

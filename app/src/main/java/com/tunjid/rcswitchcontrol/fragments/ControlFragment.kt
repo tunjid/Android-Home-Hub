@@ -50,6 +50,7 @@ import com.tunjid.rcswitchcontrol.activities.MainActivity
 import com.tunjid.rcswitchcontrol.activities.MainActivity.Companion.bottomInset
 import com.tunjid.rcswitchcontrol.activities.MainActivity.Companion.topInset
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
+import com.tunjid.rcswitchcontrol.data.Device
 import com.tunjid.rcswitchcontrol.data.ZigBeeCommandArgs
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.dialogfragments.ZigBeeArgumentDialogFragment
@@ -173,11 +174,12 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
     override fun onPrepareOptionsMenu(menu: Menu) {
         menu.findItem(R.id.menu_connect)?.isVisible = !viewModel.isConnected
         menu.findItem(R.id.menu_forget)?.isVisible = !ServerNsdService.isServer
+        currentPage?.onPrepareOptionsMenu(menu)
         super.onPrepareOptionsMenu(menu)
     }
 
     override fun handledBackPress(): Boolean {
-        if (!viewModel.hasSelections()) return super.handledBackPress()
+        if (viewModel.withSelectedDevices(Set<Device>::isEmpty)) return super.handledBackPress()
 
         viewModel.clearSelections()
         (getPage(DEVICES) as? DevicesFragment)?.refresh()
@@ -189,23 +191,21 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         if (!viewModel.isBound) return super.onOptionsItemSelected(item)
 
-        when (item.itemId) {
-            R.id.menu_connect -> {
-                Broadcaster.push(Intent(ClientNsdService.ACTION_START_NSD_DISCOVERY))
-                return true
-            }
-            R.id.menu_forget -> {
+        return when (item.itemId) {
+            R.id.menu_connect -> Broadcaster.push(Intent(ClientNsdService.ACTION_START_NSD_DISCOVERY)).let { true }
+            R.id.menu_forget -> requireActivity().let {
                 viewModel.forgetService()
 
-                startActivity(Intent(requireActivity(), MainActivity::class.java)
+                startActivity(Intent(it, MainActivity::class.java)
                         .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                requireActivity().finish()
-                return true
-            }
-        }
 
-        return super.onOptionsItemSelected(item)
+                it.finish()
+
+                true
+            }
+            else -> currentPage?.onOptionsItemSelected(item) ?: super.onOptionsItemSelected(item)
+        }
     }
 
     private fun onConnectionStateChanged(text: String) {

@@ -73,6 +73,7 @@
 
     <!-- Devices Fragment -->
     <string name="devices_selected">%1$d selected</string>
+    <string name="edit_device">Edit Device</string>
     <string name="create_group">Create Group</string>
 
     <!-- Rename switch -->
@@ -83,6 +84,10 @@
     <!-- ZigBee Command Arguments -->
     <string name="zigbee_command_arguments_title">Command: %1$s</string>
     <string name="zigbee_command_arguments_description">Description: %1$s</string>
+
+    <!-- ZigBee Command Arguments -->
+    <string name="zigbee_create_group">Create ZigBee Group</string>
+    <string name="zigbee_add_group">Add Group</string>
 
     <!-- Notification channel -->
     <string name="switch_service">Switch service</string>

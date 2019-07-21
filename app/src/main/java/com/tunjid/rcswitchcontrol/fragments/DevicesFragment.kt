@@ -163,7 +163,7 @@ class DevicesFragment : BaseFragment(),
 
     override fun color(device: ZigBeeDevice) = ColorPickerDialogBuilder
             .with(context)
-            .setTitle("Choose color")
+            .setTitle(R.string.color_picker_choose)
             .wheelType(ColorPickerView.WHEEL_TYPE.CIRCLE)
             .showLightnessSlider(true)
             .showAlphaSlider(false)

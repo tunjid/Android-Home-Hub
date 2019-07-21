@@ -81,6 +81,9 @@
     <string name="rename">Rename</string>
     <string name="cancel">Cancel</string>
 
+    <!-- Color Picker Dialog -->
+    <string name="color_picker_choose">Choose Color</string>
+
     <!-- ZigBee Command Arguments -->
     <string name="zigbee_command_arguments_title">Command: %1$s</string>
     <string name="zigbee_command_arguments_description">Description: %1$s</string>

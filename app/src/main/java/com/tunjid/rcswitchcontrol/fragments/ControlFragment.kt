@@ -172,8 +172,10 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
     }
 
     override fun onPrepareOptionsMenu(menu: Menu) {
+        menu.findItem(R.id.menu_ping)?.isVisible = viewModel.isConnected
         menu.findItem(R.id.menu_connect)?.isVisible = !viewModel.isConnected
         menu.findItem(R.id.menu_forget)?.isVisible = !ServerNsdService.isServer
+
         currentPage?.onPrepareOptionsMenu(menu)
         super.onPrepareOptionsMenu(menu)
     }
@@ -192,6 +194,7 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
         if (!viewModel.isBound) return super.onOptionsItemSelected(item)
 
         return when (item.itemId) {
+            R.id.menu_ping -> viewModel.pingServer().let { true }
             R.id.menu_connect -> Broadcaster.push(Intent(ClientNsdService.ACTION_START_NSD_DISCOVERY)).let { true }
             R.id.menu_forget -> requireActivity().let {
                 viewModel.forgetService()

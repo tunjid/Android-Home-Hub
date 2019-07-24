@@ -138,9 +138,11 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
 
     fun <T> withSelectedDevices(function: (Set<Device>) -> T): T = function.invoke(selectedDevices)
 
+    fun pingServer() = dispatchPayload(CommsProtocol::class.java.name, commands::isEmpty) { action = (CommsProtocol.PING) }
+
     private fun onServiceConnected(service: ClientNsdService) {
         connectionStateProcessor.onNext(getConnectionText(service.connectionState))
-        dispatchPayload(CommsProtocol::class.java.name, commands::isEmpty) { action = CommsProtocol.PING }
+        pingServer()
     }
 
     private fun onIntentReceived(intent: Intent) {
@@ -167,7 +169,7 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
 
         when (newState) {
             ClientNsdService.ACTION_SOCKET_CONNECTED -> {
-                dispatchPayload(CommsProtocol::class.java.name, commands::isEmpty) { action = (CommsProtocol.PING) }
+                pingServer()
                 text = if (!isBound) context.getString(R.string.connected)
                 else context.getString(R.string.connected_to, nsdConnection.boundService.serviceName)
             }

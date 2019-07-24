@@ -32,9 +32,14 @@
         android:title="@string/connect"
         compat:showAsAction="ifRoom" />
     <item
+        android:id="@+id/menu_ping"
+        android:orderInCategory="101"
+        android:title="@string/menu_ping_server"
+        compat:showAsAction="never" />
+    <item
         android:id="@+id/menu_forget"
         android:icon="@drawable/ic_disconnect_24dp"
-        android:orderInCategory="101"
+        android:orderInCategory="102"
         android:title="@string/menu_forget_server"
         compat:showAsAction="never" />
 </menu>

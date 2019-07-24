@@ -29,6 +29,7 @@ import android.widget.SeekBar
 import com.tunjid.androidbootstrap.recyclerview.InteractiveAdapter
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
+import com.tunjid.rcswitchcontrol.dialogfragments.Throttle
 
 // ViewHolder for actual content
 class ZigBeeDeviceViewHolder internal constructor(
@@ -45,20 +46,19 @@ class ZigBeeDeviceViewHolder internal constructor(
 
         deviceName.text = device.name
 
-        leveler.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) =
-                    adapterListener.level(device, progress/100F)
-
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {
-            }
-
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {
-            }
-        })
         zigBeeIcon.setOnClickListener { adapterListener.rediscover(device) }
         colorPicker.setOnClickListener { adapterListener.color(device) }
         offSwitch.setOnClickListener { adapterListener.onSwitchToggled(device, false) }
         onSwitch.setOnClickListener { adapterListener.onSwitchToggled(device, true) }
+        leveler.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            val throttle = Throttle { adapterListener.level(device, it / 100F) }
+
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) = throttle.run(progress)
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) = Unit
+
+            override fun onStopTrackingTouch(seekBar: SeekBar?) = Unit
+        })
     }
 
     interface Listener : InteractiveAdapter.AdapterListener, DeviceLongClickListener {

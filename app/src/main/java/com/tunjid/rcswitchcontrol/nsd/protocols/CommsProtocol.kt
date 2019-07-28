@@ -26,11 +26,10 @@ package com.tunjid.rcswitchcontrol.nsd.protocols
 
 import android.content.Context
 import androidx.annotation.StringRes
-
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.data.Payload
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserialize
-
+import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import java.io.Closeable
 import java.io.PrintWriter
 import java.util.concurrent.ExecutorService
@@ -43,7 +42,7 @@ import java.util.concurrent.Executors
  * Created by tj.dahunsi on 2/6/17.
  */
 
-abstract class CommsProtocol internal constructor(internal val printWriter: PrintWriter) : Closeable {
+abstract class CommsProtocol internal constructor(private val printWriter: PrintWriter) : Closeable {
 
     val appContext: Context = App.instance
 
@@ -55,7 +54,9 @@ abstract class CommsProtocol internal constructor(internal val printWriter: Prin
         else -> input.deserialize(Payload::class)
     })
 
-    protected fun getString(@StringRes id: Int): String = appContext.getString(id)
+    fun pushOut(payload: Payload) = printWriter.println(payload.serialize())
+
+    protected fun getString(@StringRes id: Int): String = appContext      n                n                                         v                       .getString(id)
 
     protected fun getString(@StringRes id: Int, vararg args: Any): String = appContext.getString(id, *args)
 

@@ -37,7 +37,6 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.data.Payload
 import com.tunjid.rcswitchcontrol.data.RfSwitch
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserialize
-import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.data.persistence.RfSwitchDataStore
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import java.io.PrintWriter
@@ -214,7 +213,7 @@ class SerialRFProtocol internal constructor(driver: UsbSerialDriver, printWriter
             else -> Log.i("IOT", "RF Unknown read. Size: ${rawData.size}, as String: ${String(rawData)}")
         }
 
-        sharedPool.submit { printWriter.println(it.serialize()) }
+        sharedPool.submit { pushOut(it) }
         Unit
     }
 

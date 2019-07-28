@@ -29,7 +29,10 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
-import android.os.*
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.os.ParcelUuid
 import android.util.Log
 import com.tunjid.androidbootstrap.communications.bluetooth.BLEScanner
 import com.tunjid.androidbootstrap.communications.bluetooth.ScanFilterCompat
@@ -39,7 +42,6 @@ import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
 import com.tunjid.rcswitchcontrol.data.Payload
 import com.tunjid.rcswitchcontrol.data.RfSwitch
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserialize
-import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.data.persistence.RfSwitchDataStore
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.services.ClientBleService.Companion.C_HANDLE_CONTROL
@@ -286,7 +288,7 @@ class BLERFProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
             }
         }
 
-        sharedPool.submit { printWriter.println(serialize()) }
+        sharedPool.submit { pushOut(this) }
         Log.i(TAG, "Received data for: $intentAction")
     }
 
@@ -303,7 +305,7 @@ class BLERFProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
         for (device in deviceMap.values) output.addCommand(device.name)
 
         output.response = resources.getString(R.string.scanblercprotocol_scan_response, deviceMap.size)
-        printWriter.println(output.serialize())
+        pushOut(output)
     }
 
     companion object {

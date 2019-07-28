@@ -36,7 +36,6 @@ import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.USBDeviceReceiver
 import com.tunjid.rcswitchcontrol.data.Payload
-import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import java.io.IOException
 import java.io.PrintWriter
 
@@ -72,7 +71,7 @@ class ProxyProtocol(printWriter: PrintWriter) : CommsProtocol(printWriter) {
     }
 
     private fun pingAll(): Payload {
-        protocolMap.values.forEach { printWriter.println(it.processInput(PING).serialize()) }
+        protocolMap.values.forEach { pushOut(it.processInput(PING)) }
         return Payload(CommsProtocol::class.java.name).apply { addCommand(PING) }
     }
 

@@ -32,12 +32,23 @@ import com.tunjid.rcswitchcontrol.data.ZigBeeCommandArgs
 import com.tunjid.rcswitchcontrol.data.ZigBeeCommandInfo
 import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserialize
-import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serializeList
 import com.tunjid.rcswitchcontrol.data.persistence.ZigBeeDataStore
 import com.tunjid.rcswitchcontrol.io.AndroidZigBeeSerialPort
 import com.tunjid.rcswitchcontrol.io.ConsoleStream
-import com.tunjid.rcswitchcontrol.zigbee.*
+import com.tunjid.rcswitchcontrol.zigbee.ColorCommand
+import com.tunjid.rcswitchcontrol.zigbee.GroupAddCommand
+import com.tunjid.rcswitchcontrol.zigbee.GroupListCommand
+import com.tunjid.rcswitchcontrol.zigbee.GroupRemoveCommand
+import com.tunjid.rcswitchcontrol.zigbee.HelpCommand
+import com.tunjid.rcswitchcontrol.zigbee.LevelCommand
+import com.tunjid.rcswitchcontrol.zigbee.MembershipAddCommand
+import com.tunjid.rcswitchcontrol.zigbee.MembershipListCommand
+import com.tunjid.rcswitchcontrol.zigbee.MembershipRemoveCommand
+import com.tunjid.rcswitchcontrol.zigbee.MembershipViewCommand
+import com.tunjid.rcswitchcontrol.zigbee.OffCommand
+import com.tunjid.rcswitchcontrol.zigbee.OnCommand
+import com.tunjid.rcswitchcontrol.zigbee.RediscoverCommand
 import com.zsmartsystems.zigbee.ExtendedPanId
 import com.zsmartsystems.zigbee.ZigBeeChannel
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager
@@ -62,7 +73,6 @@ import com.zsmartsystems.zigbee.zcl.protocol.ZclClusterType
 import io.reactivex.Flowable
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.processors.PublishProcessor
-import java.io.PrintStream
 import java.io.PrintWriter
 import java.util.concurrent.TimeUnit
 
@@ -73,7 +83,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
     private val FORM_NETWORK = getString(R.string.zigbeeprotocol_formnet)
 
     private val disposable = CompositeDisposable()
-    private val outputProcessor: PublishProcessor<String> = PublishProcessor.create()
+    private val outputProcessor: PublishProcessor<Payload> = PublishProcessor.create()
 
     private val outStream = ConsoleStream { post(it) }
 
@@ -208,7 +218,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
         disposable.add(outputProcessor
                 .onBackpressureBuffer()
                 .concatMap { Flowable.just(it).delay(OUTPUT_BUFFER_RATE, TimeUnit.MILLISECONDS) }
-                .subscribe({ sharedPool.submit { printWriter.println(it) } }, { it.printStackTrace(); processOutput() }))
+                .subscribe({ sharedPool.submit { pushOut(it) } }, { it.printStackTrace(); processOutput() }))
     }
 
     private fun start() {
@@ -338,7 +348,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
             outputProcessor.onNext(Payload(this@ZigBeeProtocol.javaClass.name).apply {
                 response = out
                 appendCommands()
-            }.serialize())
+            })
         }
 
         Log.i("IOT", out)

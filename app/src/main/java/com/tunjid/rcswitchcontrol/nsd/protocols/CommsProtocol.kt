@@ -56,7 +56,7 @@ abstract class CommsProtocol internal constructor(private val printWriter: Print
 
     fun pushOut(payload: Payload) = printWriter.println(payload.serialize())
 
-    protected fun getString(@StringRes id: Int): String = appContext      n                n                                         v                       .getString(id)
+    protected fun getString(@StringRes id: Int): String = appContext.getString(id)
 
     protected fun getString(@StringRes id: Int, vararg args: Any): String = appContext.getString(id, *args)
 

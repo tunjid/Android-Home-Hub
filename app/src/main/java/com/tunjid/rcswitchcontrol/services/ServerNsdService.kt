@@ -263,7 +263,7 @@ class ServerNsdService : Service() {
             set(value) = App.preferences.edit().putString(SERVICE_NAME_KEY, value).apply()
 
         var isServer: Boolean
-            get() = App.preferences.getBoolean(SERVER_FLAG, false)
+            get() = App.preferences.getBoolean(SERVER_FLAG, App.isAndroidThings)
             set(value) = App.preferences.edit().putBoolean(SERVER_FLAG, value).apply()
     }
 

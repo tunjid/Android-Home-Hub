@@ -42,20 +42,17 @@ class HelpCommand(private val commands: Map<String, ZigBeeConsoleCommand>) : Abs
     override fun process(networkManager: ZigBeeNetworkManager, args: Array<out String>, out: PrintStream) = when {
         args.size == 2 -> if (commands.containsKey(args[1])) {
             val command = commands[args[1]]
-            print(command!!.description, out)
-            print("", out)
-            print("Syntax: " + command.syntax, out)
-        } else {
-            throw IllegalArgumentException("Command ${args[1]} does not exist")
-        }
+            out.push(command!!.description)
+            out.push("")
+            out.push("Syntax: " + command.syntax)
+        } else throw IllegalArgumentException("Command ${args[1]} does not exist")
+
         args.size == 1 -> {
             val commandList = ArrayList(commands.keys)
             commandList.sort()
-            print("Commands:", out)
+            out.push("Commands:")
 
-            for (command in commands.keys) {
-                print(command + " - " + commands.getValue(command).description, out)
-            }
+            for (command in commands.keys) out.push("$command - ${commands.getValue(command).description}")
         }
         else -> throw IllegalArgumentException("Invalid command arguments")
     }

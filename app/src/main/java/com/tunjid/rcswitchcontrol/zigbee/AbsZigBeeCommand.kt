@@ -97,11 +97,6 @@ abstract class AbsZigBeeCommand : ZigBeeConsoleCommand {
         }
     }
 
-    /**
-     * Prints line to console.
-     *
-     * @param line the line
-     */
-    fun print(line: String, out: PrintStream) = out.println("\r" + line)
+    fun PrintStream.push(line: String) =  println(line)
 
 }

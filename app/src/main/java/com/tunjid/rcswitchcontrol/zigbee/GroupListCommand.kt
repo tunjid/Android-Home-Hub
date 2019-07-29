@@ -18,8 +18,6 @@ class GroupListCommand : AbsZigBeeCommand() {
     override fun process(networkManager: ZigBeeNetworkManager, args: Array<String>, out: PrintStream) {
         val groups = networkManager.groups
 
-        for (group in groups) {
-            print("${group.groupId.toString().padStart(10)}      ${group.label}", out)
-        }
+        for (group in groups) out.push("${group.groupId.toString().padStart(10)}      ${group.label}")
     }
 }

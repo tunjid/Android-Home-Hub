@@ -46,7 +46,7 @@ class RediscoverCommand : AbsZigBeeCommand() {
 
         val address = IeeeAddress(args[1])
 
-        print("Sending rediscovery request for address $address", out)
+        out.push("Sending rediscovery request for address $address")
         networkManager.rediscoverNode(address)
     }
 }

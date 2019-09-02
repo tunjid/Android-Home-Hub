@@ -118,7 +118,7 @@ class MainActivity : BaseActivity() {
         supportFragmentManager.registerFragmentLifecycleCallbacks(fragmentViewCreatedCallback, false)
         setContentView(R.layout.activity_main)
 
-        uiState = if (savedInstanceState == null) UiState.freshState() else savedInstanceState.getParcelable(UI_STATE)
+        uiState = if (savedInstanceState == null) UiState.freshState() else savedInstanceState.getParcelable(UI_STATE)!!
 
         val startIntent = intent
 
@@ -274,7 +274,7 @@ class MainActivity : BaseActivity() {
         if (fragment !is BaseFragment) return
 
         val insetFlags = fragment.insetFlags
-        ViewUtil.getLayoutParams(toolbar).topMargin = if (insetFlags.hasTopInset()) 0 else topInset
+        getLayoutParams(toolbar).topMargin = if (insetFlags.hasTopInset()) 0 else topInset
         TransitionManager.beginDelayedTransition(constraintLayout, AutoTransition()
                 .addTarget(R.id.main_fragment_container)
                 .setDuration(ANIMATION_DURATION.toLong())

@@ -97,7 +97,7 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
 
     fun <T : State> listen(type: Class<T>, predicate: (state: T) -> Boolean = { true }): Flowable<T> = stateProcessor
             .filter(type::isInstance)
-            .map(type::cast)
+            .map { type.cast(it)!! }
             .filter(predicate)
 
     fun dispatchPayload(key: String, payloadReceiver: Payload.() -> Unit) = dispatchPayload(key, { true }, payloadReceiver)

@@ -29,9 +29,10 @@ import android.animation.ObjectAnimator
 import android.view.View
 import android.widget.TextView
 import com.google.android.material.card.MaterialCardView
-import com.tunjid.androidbootstrap.recyclerview.InteractiveViewHolder
+import com.tunjid.androidx.recyclerview.InteractiveViewHolder
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.data.Device
+import com.tunjid.rcswitchcontrol.utils.unwrapped
 
 // ViewHolder for actual content
 open class DeviceViewHolder<T : DeviceLongClickListener, S : Device> internal constructor(
@@ -47,7 +48,7 @@ open class DeviceViewHolder<T : DeviceLongClickListener, S : Device> internal co
     private var cardView = (itemView as MaterialCardView)
 
     init {
-        cardView.setOnClickListener { adapterListener.onClicked(device) }
+        cardView.setOnClickListener { delegate?.onClicked(device) }
         cardView.setOnLongClickListener {
             performLongClick()
             true
@@ -56,11 +57,11 @@ open class DeviceViewHolder<T : DeviceLongClickListener, S : Device> internal co
 
     open fun bind(device: S) {
         this.device = device
-        highlightViewHolder(adapterListener::isSelected)
+        highlightViewHolder(delegate.unwrapped::isSelected)
     }
 
     fun performLongClick(): Boolean {
-        highlightViewHolder(adapterListener::onLongClicked)
+        highlightViewHolder(delegate.unwrapped::onLongClicked)
         return true
     }
 

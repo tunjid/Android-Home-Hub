@@ -29,10 +29,10 @@ import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
 import androidx.lifecycle.AndroidViewModel
 import androidx.recyclerview.widget.DiffUtil
-import com.tunjid.androidbootstrap.communications.nsd.NsdHelper
-import com.tunjid.androidbootstrap.functions.collections.Lists
-import com.tunjid.androidbootstrap.recyclerview.diff.Diff
-import com.tunjid.androidbootstrap.recyclerview.diff.Differentiable
+import com.tunjid.androidx.communications.nsd.NsdHelper
+import com.tunjid.androidx.functions.collections.replace
+import com.tunjid.androidx.recyclerview.diff.Diff
+import com.tunjid.androidx.recyclerview.diff.Differentiable
 import io.reactivex.Flowable
 import io.reactivex.android.schedulers.AndroidSchedulers.mainThread
 import io.reactivex.processors.PublishProcessor
@@ -45,10 +45,9 @@ class NsdScanViewModel(application: Application) : AndroidViewModel(application)
     val services: MutableList<NsdServiceInfo>
 
     private val nsdHelper: NsdHelper
-    private var processor: PublishProcessor<Diff<NsdServiceInfo>>? = null
+    private lateinit var processor: PublishProcessor<Diff<NsdServiceInfo>>
 
     init {
-
         nsdHelper = NsdHelper.getBuilder(getApplication())
                 .setServiceFoundConsumer(this::onServiceFound)
                 .setResolveSuccessConsumer(this::onServiceResolved)
@@ -76,18 +75,17 @@ class NsdScanViewModel(application: Application) : AndroidViewModel(application)
                     { _, _ -> emptyList() },
                     { info -> Differentiable.fromCharSequence { info.serviceName } })
         }
-                .concatWith(processor!!.take(SCAN_PERIOD, TimeUnit.SECONDS, Schedulers.io()))
+                .concatWith(processor.take(SCAN_PERIOD, TimeUnit.SECONDS, Schedulers.io()))
                 .subscribeOn(Schedulers.io())
                 .observeOn(mainThread()).map { diff ->
-                    Lists.replace(services, diff.items)
+                    services.replace(diff.items)
                     diff.result
                 }
     }
 
     fun stopScanning() {
-        if (processor == null)
-            processor = PublishProcessor.create()
-        else if (!processor!!.hasComplete()) processor!!.onComplete()
+        if (!::processor.isInitialized) processor = PublishProcessor.create()
+        else if (!processor.hasComplete()) processor.onComplete()
 
         nsdHelper.stopServiceDiscovery()
     }
@@ -106,20 +104,17 @@ class NsdScanViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun onServiceResolved(service: NsdServiceInfo) {
-        if (!processor!!.hasComplete())
-            processor!!.onNext(Diff.calculate(
-                    services,
-                    listOf(service),
-                    { currentServices, foundServices -> this.addServices(currentServices, foundServices) },
-                    { info -> Differentiable.fromCharSequence { info.serviceName } }))
+        if (!processor.hasComplete()) processor.onNext(Diff.calculate(
+                services,
+                listOf(service),
+                { currentServices, foundServices -> this.addServices(currentServices, foundServices) },
+                { info -> Differentiable.fromCharSequence { info.serviceName } }))
     }
 
-    private fun addServices(currentServices: MutableList<NsdServiceInfo>, foundServices: List<NsdServiceInfo>): List<NsdServiceInfo> {
-        val union = Lists.union<NsdServiceInfo, String>(currentServices, foundServices) { it.serviceName }
-        Lists.replace(currentServices, union)
-        currentServices.sortWith(Comparator { a, b -> a.serviceName.compareTo(b.serviceName) })
-        return currentServices
-    }
+    private fun addServices(currentServices: List<NsdServiceInfo>, foundServices: List<NsdServiceInfo>): List<NsdServiceInfo> =
+            (currentServices + foundServices)
+                    .distinctBy(NsdServiceInfo::getServiceName)
+                    .sortedBy(NsdServiceInfo::getServiceName)
 
     companion object {
 

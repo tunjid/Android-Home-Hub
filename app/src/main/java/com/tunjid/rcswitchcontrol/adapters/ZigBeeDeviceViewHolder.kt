@@ -26,7 +26,6 @@ package com.tunjid.rcswitchcontrol.adapters
 
 import android.view.View
 import android.widget.SeekBar
-import com.tunjid.androidbootstrap.recyclerview.InteractiveAdapter
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
 import com.tunjid.rcswitchcontrol.dialogfragments.Throttle
@@ -46,12 +45,12 @@ class ZigBeeDeviceViewHolder internal constructor(
 
         deviceName.text = device.name
 
-        zigBeeIcon.setOnClickListener { adapterListener.rediscover(device) }
-        colorPicker.setOnClickListener { adapterListener.color(device) }
-        offSwitch.setOnClickListener { adapterListener.onSwitchToggled(device, false) }
-        onSwitch.setOnClickListener { adapterListener.onSwitchToggled(device, true) }
+        zigBeeIcon.setOnClickListener { delegate?.rediscover(device) }
+        colorPicker.setOnClickListener { delegate?.color(device) }
+        offSwitch.setOnClickListener { delegate?.onSwitchToggled(device, false) }
+        onSwitch.setOnClickListener { delegate?.onSwitchToggled(device, true) }
         leveler.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            val throttle = Throttle { adapterListener.level(device, it / 100F) }
+            val throttle = Throttle { delegate?.level(device, it / 100F) }
 
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) = throttle.run(progress)
 
@@ -61,7 +60,7 @@ class ZigBeeDeviceViewHolder internal constructor(
         })
     }
 
-    interface Listener : InteractiveAdapter.AdapterListener, DeviceLongClickListener {
+    interface Listener : DeviceLongClickListener {
         fun rediscover(device: ZigBeeDevice)
 
         fun color(device: ZigBeeDevice)

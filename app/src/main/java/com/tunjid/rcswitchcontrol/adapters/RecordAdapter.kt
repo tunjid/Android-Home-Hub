@@ -28,8 +28,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 
-import com.tunjid.androidbootstrap.recyclerview.InteractiveAdapter
-import com.tunjid.androidbootstrap.recyclerview.InteractiveViewHolder
+import com.tunjid.androidx.recyclerview.InteractiveAdapter
+import com.tunjid.androidx.recyclerview.InteractiveViewHolder
+import com.tunjid.androidx.view.util.inflate
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.data.Record
 
@@ -39,8 +40,8 @@ class RecordAdapter(
 ) : InteractiveAdapter<ViewHolder, RecordAdapter.ChatAdapterListener>(listener) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = when(viewType) {
-        RECORD -> RecordViewHolder(getItemView(adapterListener.layoutRes, parent), adapterListener)
-        else -> object : InteractiveViewHolder<ChatAdapterListener>(getItemView(R.layout.viewholder_padding, parent), adapterListener) {}
+        RECORD -> RecordViewHolder(parent.inflate(delegate.layoutRes), delegate)
+        else -> object : InteractiveViewHolder<ChatAdapterListener>(parent.inflate(R.layout.viewholder_padding), delegate) {}
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
@@ -51,7 +52,7 @@ class RecordAdapter(
 
     override fun getItemViewType(position: Int): Int = RECORD
 
-    interface ChatAdapterListener : AdapterListener {
+    interface ChatAdapterListener {
         val layoutRes: Int
 
         fun onRecordClicked(record: Record)
@@ -66,14 +67,14 @@ class RecordAdapter(
         private val textView: TextView = itemView.findViewById(R.id.text)
 
         init {
-            textView.setOnClickListener { adapterListener?.onRecordClicked(record) }
+            textView.setOnClickListener { delegate?.onRecordClicked(record) }
         }
 
         internal fun bind(record: Record) {
             this.record = record
 
             textView.text = record.entry
-            textView.isClickable = adapterListener != null
+            textView.isClickable = delegate != null
         }
     }
 

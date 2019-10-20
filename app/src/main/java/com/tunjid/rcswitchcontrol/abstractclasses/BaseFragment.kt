@@ -33,67 +33,56 @@ import androidx.annotation.MenuRes
 import androidx.annotation.StringRes
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
-import androidx.core.content.ContextCompat.getDrawable
+import androidx.fragment.app.Fragment
 import com.google.android.material.snackbar.Snackbar
 import com.tunjid.UiState
-import com.tunjid.androidbootstrap.material.animator.FabExtensionAnimator
-import com.tunjid.androidbootstrap.view.util.InsetFlags
+import com.tunjid.androidx.navigation.Navigator
+import com.tunjid.androidx.navigation.activityNavigatorController
+import com.tunjid.androidx.view.util.InsetFlags
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.activities.MainActivity
 import io.reactivex.disposables.CompositeDisposable
-import java.lang.Exception
 
 /**
  * Base fragment
  */
-abstract class BaseFragment : com.tunjid.androidbootstrap.core.abstractclasses.BaseFragment() {
+abstract class BaseFragment(layoutRes: Int = 0) : Fragment(layoutRes),
+        Navigator.Controller,
+        Navigator.TagProvider {
 
-    protected var disposables = CompositeDisposable()
+    override val stableTag: String = javaClass.simpleName
 
-    protected val toolBar: Toolbar
-        get() = hostingActivity.toolbar
+    protected open val fabIconRes: Int @DrawableRes get() = 0
 
-    protected open val fabState: FabExtensionAnimator.GlyphState
-        get() = FabExtensionAnimator.newState(getText(R.string.app_name), getDrawable(requireContext(), R.drawable.ic_connect_24dp))
+    protected open val fabTextRes: Int @StringRes get() = 0
 
-    private val hostingActivity: MainActivity
-        get() = requireActivity() as MainActivity
+    protected open val navBarColor: Int @ColorInt get() = ContextCompat.getColor(requireContext(), R.color.transparent)
 
-    protected open val fabIconRes: Int
-        @DrawableRes get() = 0
+    open val toolBarMenuRes: Int @MenuRes get() = 0
 
-    protected open val fabTextRes: Int
-        @StringRes get() = 0
+    open val altToolBarRes: Int @MenuRes get() = 0
 
-    protected open val navBarColor: Int
-        @ColorInt get() = ContextCompat.getColor(requireContext(), R.color.transparent)
+    protected open val showsFab: Boolean get() = false
 
-    open val toolBarMenuRes: Int
-        @MenuRes get() = 0
+    open val showsAltToolBar: Boolean get() = false
 
-    open val altToolBarRes: Int
-        @MenuRes get() = 0
+    open val showsToolBar: Boolean get() = true
 
-    protected open val showsFab: Boolean
-        get() = false
+    open val insetFlags: InsetFlags get() = InsetFlags.ALL
 
-    open val showsAltToolBar: Boolean
-        get() = false
+    open val toolbarText: CharSequence get() = getText(R.string.app_name)
 
-    open val showsToolBar: Boolean
-        get() = true
+    open val altToolbarText: CharSequence get() = ""
 
-    open val insetFlags: InsetFlags
-        get() = InsetFlags.ALL
+    protected open val fabClickListener: View.OnClickListener get() = View.OnClickListener { }
 
-    open val toolbarText: CharSequence
-        get() = getText(R.string.app_name)
+    protected val disposables = CompositeDisposable()
 
-    open val altToolbarText: CharSequence
-        get() = ""
+    protected val toolBar: Toolbar get() = hostingActivity.toolbar
 
-    protected open val fabClickListener: View.OnClickListener
-        get() = View.OnClickListener { }
+    private val hostingActivity: MainActivity get() = requireActivity() as MainActivity
+
+    override val navigator: Navigator by activityNavigatorController()
 
     override fun onStop() {
         disposables.clear()
@@ -113,15 +102,14 @@ abstract class BaseFragment : com.tunjid.androidbootstrap.core.abstractclasses.B
     }
 
     open fun togglePersistentUi() {
-        hostingActivity.update(fromThis())
-        if (!restoredFromBackStack()) setFabExtended(true)
+        hostingActivity.update(uiState)
     }
 
     protected fun showSnackBar(consumer: (snackbar: Snackbar) -> Unit) =
             hostingActivity.showSnackBar(consumer)
 
-    private fun fromThis(): UiState {
-        return UiState(
+    private val uiState: UiState
+        get() = UiState(
                 this.fabIconRes,
                 this.fabTextRes,
                 this.toolBarMenuRes,
@@ -135,6 +123,5 @@ abstract class BaseFragment : com.tunjid.androidbootstrap.core.abstractclasses.B
                 this.altToolbarText,
                 if (view == null) null else fabClickListener
         )
-    }
 
 }

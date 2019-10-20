@@ -27,7 +27,7 @@ package com.tunjid.rcswitchcontrol.data
 import android.graphics.Color
 import android.os.Parcel
 import android.os.Parcelable
-import com.tunjid.androidbootstrap.recyclerview.diff.Differentiable
+import com.tunjid.androidx.recyclerview.diff.Differentiable
 import com.tunjid.rcswitchcontrol.nsd.protocols.ZigBeeProtocol
 import com.tunjid.rcswitchcontrol.zigbee.*
 
@@ -41,6 +41,9 @@ class ZigBeeDevice(
     internal val zigBeeId: String get() = "$networkAdress/$endpoint"
 
     override val key: String = ZigBeeProtocol::class.java.name
+
+    override val diffId
+        get() = ieeeAddress
 
     constructor(parcel: Parcel) : this(
             parcel.readString()!!,
@@ -72,9 +75,7 @@ class ZigBeeDevice(
         ))
     }
 
-    override fun getId(): String = ieeeAddress
-
-    override fun areContentsTheSame(other: Differentiable?): Boolean =
+    override fun areContentsTheSame(other: Differentiable): Boolean =
             if (other is ZigBeeDevice) other.networkAdress == networkAdress else false
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {

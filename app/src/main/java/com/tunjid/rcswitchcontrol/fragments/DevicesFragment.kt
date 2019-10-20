@@ -32,7 +32,7 @@ import androidx.recyclerview.widget.ItemTouchHelper.Callback.makeMovementFlags
 import androidx.recyclerview.widget.RecyclerView
 import com.flask.colorpicker.ColorPickerView
 import com.flask.colorpicker.builder.ColorPickerDialogBuilder
-import com.tunjid.androidbootstrap.recyclerview.*
+import com.tunjid.androidx.recyclerview.*
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.adapters.*
@@ -50,7 +50,7 @@ import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.State
 
-typealias ViewHolder = InteractiveViewHolder<out InteractiveAdapter.AdapterListener>
+typealias ViewHolder = InteractiveViewHolder<out Any>
 
 class DevicesFragment : BaseFragment(),
         DeviceAdapterListener,
@@ -86,11 +86,11 @@ class DevicesFragment : BaseFragment(),
                 .withRecyclerView(root.findViewById(R.id.list))
                 .withGridLayoutManager(spanCount)
                 .withPaddedAdapter(DeviceAdapter(this, viewModel.devices), spanCount)
-                .withSwipeDragOptions(SwipeDragOptionsBuilder<ViewHolder>()
-                        .setSwipeConsumer { viewHolder, _ -> onDelete(viewHolder) }
-                        .setMovementFlagsFunction(this::swipeDirection)
-                        .setItemViewSwipeSupplier { true }
-                        .build())
+                .withSwipeDragOptions(SwipeDragOptions(
+                        swipeConsumer = { viewHolder, _ -> onDelete(viewHolder) },
+                        movementFlagFunction = this::swipeDirection,
+                        itemViewSwipeSupplier = { true }
+                ))
                 .withInconsistencyHandler(this::onInconsistentList)
                 .build()
 

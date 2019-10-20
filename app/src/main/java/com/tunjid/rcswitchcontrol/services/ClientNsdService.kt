@@ -29,14 +29,14 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.net.nsd.NsdServiceInfo
-import android.os.IBinder
 import android.util.Log
 import androidx.annotation.StringDef
 import androidx.core.app.NotificationCompat
-import com.tunjid.androidbootstrap.communications.nsd.NsdHelper
-import com.tunjid.androidbootstrap.communications.nsd.NsdHelper.createBufferedReader
-import com.tunjid.androidbootstrap.communications.nsd.NsdHelper.createPrintWriter
-import com.tunjid.androidbootstrap.core.components.ServiceConnection
+import com.tunjid.androidx.communications.nsd.NsdHelper
+import com.tunjid.androidx.communications.nsd.NsdHelper.createBufferedReader
+import com.tunjid.androidx.communications.nsd.NsdHelper.createPrintWriter
+import com.tunjid.androidx.core.components.services.SelfBinder
+import com.tunjid.androidx.core.components.services.SelfBindingService
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.activities.MainActivity
@@ -53,7 +53,7 @@ import java.util.*
 import java.util.concurrent.Executors
 
 
-class ClientNsdService : Service(), ClientStartedBoundService {
+class ClientNsdService : Service(), SelfBindingService<ClientNsdService>, ClientStartedBoundService {
 
     private var isUserInApp: Boolean = false
     private lateinit var nsdHelper: NsdHelper
@@ -105,7 +105,7 @@ class ClientNsdService : Service(), ClientStartedBoundService {
         return super.onStartCommand(intent, flags, startId)
     }
 
-    override fun onBind(intent: Intent): IBinder? {
+    override fun onBind(intent: Intent): SelfBinder<ClientNsdService> {
         onAppForeGround()
         initialize(intent)
         return binder
@@ -187,11 +187,9 @@ class ClientNsdService : Service(), ClientStartedBoundService {
         return notificationBuilder.build()
     }
 
-    private inner class NsdClientBinder : ServiceConnection.Binder<ClientNsdService>() {
-        // Binding impl
-        override fun getService(): ClientNsdService {
-            return this@ClientNsdService
-        }
+    private inner class NsdClientBinder : SelfBinder<ClientNsdService>() {
+        override val service: ClientNsdService
+            get() = this@ClientNsdService
     }
 
     private class MessageThread internal constructor(

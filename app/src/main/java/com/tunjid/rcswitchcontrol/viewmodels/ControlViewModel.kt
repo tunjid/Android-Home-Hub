@@ -28,10 +28,10 @@ import android.app.Application
 import android.content.Intent
 import androidx.lifecycle.AndroidViewModel
 import androidx.recyclerview.widget.DiffUtil.DiffResult
-import com.tunjid.androidbootstrap.core.components.ServiceConnection
-import com.tunjid.androidbootstrap.functions.collections.Lists
-import com.tunjid.androidbootstrap.recyclerview.diff.Diff
-import com.tunjid.androidbootstrap.recyclerview.diff.Differentiable
+import com.tunjid.androidx.core.components.services.HardServiceConnection
+import com.tunjid.androidx.functions.collections.replace
+import com.tunjid.androidx.recyclerview.diff.Diff
+import com.tunjid.androidx.recyclerview.diff.Differentiable
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
 import com.tunjid.rcswitchcontrol.data.*
@@ -59,12 +59,13 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
     private val inPayloadProcessor: PublishProcessor<Payload> = PublishProcessor.create()
     private val outPayloadProcessor: PublishProcessor<Payload> = PublishProcessor.create()
     private val connectionStateProcessor: PublishProcessor<String> = PublishProcessor.create()
-    private val nsdConnection: ServiceConnection<ClientNsdService> = ServiceConnection(ClientNsdService::class.java, this::onServiceConnected)
+    private val nsdConnection = HardServiceConnection(app, ClientNsdService::class.java, this::onServiceConnected)
 
     private val selectedDevices: MutableSet<Device> = mutableSetOf()
     private val commands: MutableMap<String, MutableList<Record>> = mutableMapOf()
     private val payloadQueue: Queue<Payload> = LinkedList()
     private val history: MutableList<Record> = mutableListOf()
+    private val actualKeys: MutableList<String> = mutableListOf()
 
     val devices: MutableList<Device> = mutableListOf()
     val pages: MutableList<Page> = mutableListOf(Page.HISTORY, Page.DEVICES).apply {
@@ -74,16 +75,17 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
     @Volatile
     var isProcessing = false
 
-    val keys: List<String> = mutableListOf()
+    val keys: List<String>
+        get() = actualKeys
 
     val isBound: Boolean
-        get() = nsdConnection.isBound
+        get() = nsdConnection.boundService != null
 
     val isConnected: Boolean
-        get() = nsdConnection.isBound && nsdConnection.boundService.isConnected
+        get() = nsdConnection.boundService?.isConnected == true
 
     init {
-        nsdConnection.with(app).bind()
+        nsdConnection.bind()
         listenForOutputPayloads()
         listenForInputPayloads()
         listenForBroadcasts()
@@ -97,7 +99,7 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
 
     fun <T : State> listen(type: Class<T>, predicate: (state: T) -> Boolean = { true }): Flowable<T> = stateProcessor
             .filter(type::isInstance)
-            .map(type::cast)
+            .cast(type)
             .filter(predicate)
 
     fun dispatchPayload(key: String, payloadReceiver: Payload.() -> Unit) = dispatchPayload(key, { true }, payloadReceiver)
@@ -111,18 +113,17 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
     fun forgetService() {
         // Don't call unbind, when the hosting activity is finished,
         // onDestroy will be called and the connection unbound
-        if (nsdConnection.isBound) nsdConnection.boundService.stopSelf()
+        nsdConnection.boundService?.stopSelf()
 
         ClientNsdService.lastConnectedService = null
     }
 
     fun connectionState(): Flowable<String> = connectionStateProcessor.startWith({
-        val bound = nsdConnection.isBound
-        if (bound) nsdConnection.boundService.onAppForeGround()
+        val boundService = nsdConnection.boundService
+        boundService?.onAppForeGround()
 
-        getConnectionText(
-                if (bound) nsdConnection.boundService.connectionState
-                else ClientNsdService.ACTION_SOCKET_DISCONNECTED)
+        getConnectionText(boundService?.connectionState
+                ?: ClientNsdService.ACTION_SOCKET_DISCONNECTED)
 
     }()).observeOn(mainThread())
 
@@ -165,18 +166,18 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
     private fun getConnectionText(newState: String): String {
         var text = ""
         val context = getApplication<Application>()
-        val isBound = nsdConnection.isBound
+        val boundService = nsdConnection.boundService
 
         when (newState) {
             ClientNsdService.ACTION_SOCKET_CONNECTED -> {
                 pingServer()
-                text = if (!isBound) context.getString(R.string.connected)
-                else context.getString(R.string.connected_to, nsdConnection.boundService.serviceName)
+                text = if (boundService == null) context.getString(R.string.connected)
+                else context.getString(R.string.connected_to, boundService.serviceName)
             }
 
             ClientNsdService.ACTION_SOCKET_CONNECTING -> text =
-                    if (!isBound) context.getString(R.string.connecting)
-                    else context.getString(R.string.connecting_to, nsdConnection.boundService.serviceName)
+                    if (boundService == null) context.getString(R.string.connecting)
+                    else context.getString(R.string.connecting_to, boundService.serviceName)
 
             ClientNsdService.ACTION_SOCKET_DISCONNECTED -> text = context.getString(R.string.disconnected)
         }
@@ -199,7 +200,7 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
     private fun diffHistory(record: Record): Diff<Record> = Diff.calculate(
             history,
             listOf(record),
-            { current, responses -> current.apply { addAll(responses) } },
+            { current, responses -> current + responses },
             { response -> Differentiable.fromCharSequence { response.toString() } })
 
     private fun diffCommands(payload: Payload): Diff<Record> = Diff.calculate(
@@ -269,11 +270,11 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
                 .subscribe({ stateList ->
                     stateList.forEach {
                         when (it) {
-                            is State.Devices -> Lists.replace(devices, it.diff.items)
-                            is State.History -> Lists.replace(history, it.diff.items)
+                            is State.Devices -> devices.replace(it.diff.items)
+                            is State.History -> history.replace(it.diff.items)
                             is State.Commands -> {
-                                Lists.replace(getCommands(it.key), it.diff.items)
-                                if (it.isNew) Lists.replace(keys, commands.keys.sorted())
+                                getCommands(it.key).replace(it.diff.items)
+                                if (it.isNew) actualKeys.replace(commands.keys.sorted())
                             }
                         }
                         stateProcessor.onNext(it)
@@ -287,7 +288,7 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
     private fun listenForOutputPayloads() {
         disposable.add(outPayloadProcessor
                 .filter { isConnected }
-                .subscribe(nsdConnection.boundService::sendMessage) { it.printStackTrace(); listenForOutputPayloads() })
+                .subscribe({ nsdConnection.boundService?.sendMessage(it) }) { it.printStackTrace(); listenForOutputPayloads() })
     }
 
     enum class Page { HOST, HISTORY, DEVICES }

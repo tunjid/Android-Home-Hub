@@ -34,9 +34,9 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.lifecycle.ViewModelProviders
-import com.tunjid.androidbootstrap.recyclerview.ListManager
-import com.tunjid.androidbootstrap.recyclerview.ListManagerBuilder
-import com.tunjid.androidbootstrap.recyclerview.ListPlaceholder
+import com.tunjid.androidx.recyclerview.ListManager
+import com.tunjid.androidx.recyclerview.ListManagerBuilder
+import com.tunjid.androidx.recyclerview.ListPlaceholder
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.adapters.HostAdapter
@@ -115,7 +115,7 @@ class HostScanFragment : BaseFragment(), HostAdapter.ServiceClickedListener {
         intent.putExtra(ClientNsdService.NSD_SERVICE_INFO_KEY, serviceInfo)
         requireContext().startService(intent)
 
-        showFragment(ControlFragment.newInstance())
+        navigator.push(ControlFragment.newInstance())
     }
 
     override fun isSelf(serviceInfo: NsdServiceInfo): Boolean {

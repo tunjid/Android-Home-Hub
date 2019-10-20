@@ -27,17 +27,17 @@ package com.tunjid.rcswitchcontrol.viewmodels
 import android.app.Application
 import android.content.Intent
 import androidx.lifecycle.AndroidViewModel
-import com.tunjid.androidbootstrap.core.components.ServiceConnection
+import com.tunjid.androidx.core.components.services.HardServiceConnection
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
 import io.reactivex.disposables.CompositeDisposable
 
-class HostViewModel(application: Application) : AndroidViewModel(application) {
+class HostViewModel(app: Application) : AndroidViewModel(app) {
 
     private val disposable: CompositeDisposable = CompositeDisposable()
 
-    private val serverConnection: ServiceConnection<ServerNsdService> = ServiceConnection(ServerNsdService::class.java)
+    private val serverConnection = HardServiceConnection(app, ServerNsdService::class.java)
 
     override fun onCleared() {
         super.onCleared()
@@ -46,7 +46,7 @@ class HostViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun restartServer() {
-        if (serverConnection.isBound) serverConnection.boundService.restart()
+        serverConnection.boundService?.restart()
     }
 
     fun stop() {
@@ -59,8 +59,7 @@ class HostViewModel(application: Application) : AndroidViewModel(application) {
         ServerNsdService.isServer = true
         ServerNsdService.serviceName = name
 
-        val context = getApplication<Application>()
-        serverConnection.with(context).start()
-        serverConnection.with(context).bind()
+        serverConnection.start()
+        serverConnection.bind()
     }
 }

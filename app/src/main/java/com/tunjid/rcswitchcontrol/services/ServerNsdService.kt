@@ -27,12 +27,12 @@ package com.tunjid.rcswitchcontrol.services
 import android.app.Service
 import android.content.Intent
 import android.net.nsd.NsdServiceInfo
-import android.os.IBinder
 import android.util.Log
-import com.tunjid.androidbootstrap.communications.nsd.NsdHelper
-import com.tunjid.androidbootstrap.communications.nsd.NsdHelper.createBufferedReader
-import com.tunjid.androidbootstrap.communications.nsd.NsdHelper.createPrintWriter
-import com.tunjid.androidbootstrap.core.components.ServiceConnection
+import com.tunjid.androidx.communications.nsd.NsdHelper
+import com.tunjid.androidx.communications.nsd.NsdHelper.createBufferedReader
+import com.tunjid.androidx.communications.nsd.NsdHelper.createPrintWriter
+import com.tunjid.androidx.core.components.services.SelfBinder
+import com.tunjid.androidx.core.components.services.SelfBindingService
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.App.Companion.catcher
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
@@ -54,7 +54,7 @@ import java.util.concurrent.Executors
 /**
  * Service hosting a [CommsProtocol] on network service discovery
  */
-class ServerNsdService : Service() {
+class ServerNsdService : Service(), SelfBindingService<ServerNsdService> {
 
     private lateinit var nsdHelper: NsdHelper
     private lateinit var serverThread: ServerThread
@@ -73,9 +73,7 @@ class ServerNsdService : Service() {
         }, Throwable::printStackTrace))
     }
 
-    override fun onBind(intent: Intent): IBinder? {
-        return binder
-    }
+    override fun onBind(intent: Intent): SelfBinder<ServerNsdService> = binder
 
     private fun tearDown() {
         serverThread.close()
@@ -127,8 +125,9 @@ class ServerNsdService : Service() {
     /**
      * [android.os.Binder] for [ServerNsdService]
      */
-    private inner class Binder : ServiceConnection.Binder<ServerNsdService>() {
-        override fun getService(): ServerNsdService = this@ServerNsdService
+    private inner class Binder : SelfBinder<ServerNsdService>() {
+        override val service: ServerNsdService
+            get() = this@ServerNsdService
     }
 
     /**

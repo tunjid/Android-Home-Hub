@@ -29,6 +29,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.*
 import android.widget.TextView
+import androidx.activity.addCallback
 import androidx.core.content.ContextCompat
 import androidx.core.view.doOnNextLayout
 import androidx.fragment.app.Fragment
@@ -42,7 +43,7 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HALF_EX
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN
 import com.google.android.material.bottomsheet.setupForBottomSheet
 import com.google.android.material.tabs.TabLayout
-import com.tunjid.androidbootstrap.view.util.InsetFlags
+import com.tunjid.androidx.view.util.InsetFlags
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
@@ -86,11 +87,23 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
     override val showsAltToolBar: Boolean
         get() = currentPage?.showsAltToolBar ?: super.showsAltToolBar
 
-    override val insetFlags: InsetFlags = InsetFlags.create(true, true, true, false)
+    override val insetFlags: InsetFlags = InsetFlags(hasLeftInset = true, hasTopInset = true, hasRightInset = true, hasBottomInset = false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         viewModel = ViewModelProviders.of(this).get(ControlViewModel::class.java)
+
+        activity?.onBackPressedDispatcher?.addCallback(this) {
+            isEnabled = viewModel.withSelectedDevices(Set<Device>::isEmpty)
+
+            if (!isEnabled) activity?.onBackPressed()
+            else {
+                viewModel.clearSelections()
+                (getPage(DEVICES) as? DevicesFragment)?.refresh()
+
+                togglePersistentUi()
+            }
+        }
     }
 
     override fun onCreateView(inflater: LayoutInflater,
@@ -140,7 +153,7 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
         }
 
         bottomSheetBehavior.setExpandedOffset(offset)
-        bottomSheetBehavior.setBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
+        bottomSheetBehavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onSlide(bottomSheet: View, slideOffset: Float) {
                 mainPager.translationY = calculateTranslation(slideOffset)
             }
@@ -178,16 +191,6 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
 
         currentPage?.onPrepareOptionsMenu(menu)
         super.onPrepareOptionsMenu(menu)
-    }
-
-    override fun handledBackPress(): Boolean {
-        if (viewModel.withSelectedDevices(Set<Device>::isEmpty)) return super.handledBackPress()
-
-        viewModel.clearSelections()
-        (getPage(DEVICES) as? DevicesFragment)?.refresh()
-
-        togglePersistentUi()
-        return true
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {

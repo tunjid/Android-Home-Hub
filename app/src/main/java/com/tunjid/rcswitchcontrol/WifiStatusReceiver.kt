@@ -35,7 +35,7 @@ import android.net.wifi.WifiManager.EXTRA_SUPPLICANT_CONNECTED
 import android.net.wifi.WifiManager.WIFI_STATE_ENABLED
 import android.os.Handler
 import android.os.Looper
-import com.tunjid.androidbootstrap.communications.nsd.NsdHelper
+import com.tunjid.androidx.communications.nsd.NsdHelper
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService

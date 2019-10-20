@@ -36,8 +36,9 @@ import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.DialogFragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.tunjid.androidbootstrap.recyclerview.InteractiveAdapter
-import com.tunjid.androidbootstrap.recyclerview.InteractiveViewHolder
+import com.tunjid.androidx.recyclerview.InteractiveAdapter
+import com.tunjid.androidx.recyclerview.InteractiveViewHolder
+import com.tunjid.androidx.view.util.inflate
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.data.ZigBeeCommandArgs
 import com.tunjid.rcswitchcontrol.data.ZigBeeCommandInfo
@@ -119,7 +120,7 @@ class ZigBeeArgumentDialogFragment : DialogFragment() {
             listener: Listener
     ) : InteractiveAdapter<ViewHolder, Listener>(listener) {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder =
-                ViewHolder(getItemView(R.layout.dialog_rename_switch, parent), adapterListener)
+                ViewHolder(parent.inflate(R.layout.dialog_rename_switch), delegate)
 
         override fun getItemCount(): Int =
                 commandInfo.entries.size
@@ -155,7 +156,7 @@ class ZigBeeArgumentDialogFragment : DialogFragment() {
 
         override fun afterTextChanged(s: Editable) {
             entry.value = s.toString()
-            adapterListener.push()
+            delegate?.push()
         }
 
         override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
@@ -163,7 +164,7 @@ class ZigBeeArgumentDialogFragment : DialogFragment() {
         override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
     }
 
-    interface Listener : InteractiveAdapter.AdapterListener {
+    interface Listener {
         fun push()
     }
 }

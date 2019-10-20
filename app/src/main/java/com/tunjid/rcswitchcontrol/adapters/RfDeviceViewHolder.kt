@@ -25,7 +25,6 @@
 package com.tunjid.rcswitchcontrol.adapters
 
 import android.view.View
-import com.tunjid.androidbootstrap.recyclerview.InteractiveAdapter
 import com.tunjid.rcswitchcontrol.data.RfSwitch
 
 // ViewHolder for actual content
@@ -39,9 +38,9 @@ class RfDeviceViewHolder internal constructor(
 
         deviceName.text = device.name
 
-        offSwitch.setOnClickListener { adapterListener.onSwitchToggled(device, false) }
-        onSwitch.setOnClickListener { adapterListener.onSwitchToggled(device, true) }
+        offSwitch.setOnClickListener { delegate?.onSwitchToggled(device, false) }
+        onSwitch.setOnClickListener { delegate?.onSwitchToggled(device, true) }
     }
 
-    interface Listener : InteractiveAdapter.AdapterListener, DeviceLongClickListener
+    interface Listener : DeviceLongClickListener
 }

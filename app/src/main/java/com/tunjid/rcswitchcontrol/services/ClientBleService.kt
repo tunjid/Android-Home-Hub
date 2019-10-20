@@ -26,25 +26,18 @@ package com.tunjid.rcswitchcontrol.services
 
 import android.annotation.TargetApi
 import android.app.Service
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothDevice
-import android.bluetooth.BluetoothGatt
-import android.bluetooth.BluetoothGattCallback
-import android.bluetooth.BluetoothGattCharacteristic
-import android.bluetooth.BluetoothGattDescriptor
-import android.bluetooth.BluetoothGattService
-import android.bluetooth.BluetoothManager
-import android.bluetooth.BluetoothProfile
+import android.bluetooth.*
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
-import android.os.IBinder
 import android.util.Base64
 import android.util.Log
 import android.widget.Toast
-import com.tunjid.androidbootstrap.core.components.ServiceConnection
+import com.tunjid.androidx.core.components.services.HardServiceConnection
+import com.tunjid.androidx.core.components.services.SelfBinder
+import com.tunjid.androidx.core.components.services.SelfBindingService
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
 import com.tunjid.rcswitchcontrol.data.RfSwitch.Companion.SWITCH_PREFS
@@ -55,14 +48,13 @@ import java.util.*
  * Service for managing connection and data communication with a GATT server hosted on a
  * given Bluetooth LE device.
  */
-class ClientBleService : Service() {
+class ClientBleService : Service(), SelfBindingService<ClientBleService> {
 
     val isConnected: Boolean
         get() = connectionState == ACTION_GATT_CONNECTED
 
     private val binder = Binder()
     private val disposable = CompositeDisposable()
-    private val serverConnection = ServiceConnection(ServerNsdService::class.java)
 
     var connectionState = ACTION_GATT_DISCONNECTED
         private set
@@ -177,7 +169,7 @@ class ClientBleService : Service() {
         return super.onStartCommand(intent, flags, startId)
     }
 
-    override fun onBind(intent: Intent): IBinder? {
+    override fun onBind(intent: Intent): SelfBinder<ClientBleService> {
         initialize(intent)
         return binder
     }
@@ -217,7 +209,6 @@ class ClientBleService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        if (serverConnection.isBound) serverConnection.unbindService()
         disposable.clear()
         close()
     }
@@ -374,10 +365,9 @@ class ClientBleService : Service() {
         if (writeQueue.size > 0) bluetoothGatt?.writeDescriptor(descriptor)
     }
 
-    private inner class Binder : ServiceConnection.Binder<ClientBleService>() {
-        override fun getService(): ClientBleService {
-            return this@ClientBleService
-        }
+    private inner class Binder : SelfBinder<ClientBleService>() {
+        override val service
+            get() = this@ClientBleService
     }
 
     companion object {

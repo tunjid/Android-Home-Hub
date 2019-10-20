@@ -24,7 +24,7 @@
 
 package com.tunjid.rcswitchcontrol.data
 
-import com.tunjid.androidbootstrap.recyclerview.diff.Differentiable
+import com.tunjid.androidx.recyclerview.diff.Differentiable
 
 interface Device : Differentiable {
     val key: String

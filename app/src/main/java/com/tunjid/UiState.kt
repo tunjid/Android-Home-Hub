@@ -33,7 +33,7 @@ import androidx.annotation.ColorInt
 import androidx.annotation.DrawableRes
 import androidx.annotation.MenuRes
 import androidx.annotation.StringRes
-import com.tunjid.androidbootstrap.view.util.InsetFlags
+import com.tunjid.androidx.view.util.InsetFlags
 
 class UiState : Parcelable {
 
@@ -145,7 +145,7 @@ class UiState : Parcelable {
         val hasTopInset = `in`.readByte().toInt() != 0x00
         val hasRightInset = `in`.readByte().toInt() != 0x00
         val hasBottomInset = `in`.readByte().toInt() != 0x00
-        insetFlags = InsetFlags.create(hasLeftInset, hasTopInset, hasRightInset, hasBottomInset)
+        insetFlags = InsetFlags(hasLeftInset, hasTopInset, hasRightInset, hasBottomInset)
 
         toolbarTitle = TextUtils.CHAR_SEQUENCE_CREATOR.createFromParcel(`in`)
         altToolbarTitle = TextUtils.CHAR_SEQUENCE_CREATOR.createFromParcel(`in`)
@@ -166,10 +166,10 @@ class UiState : Parcelable {
         dest.writeByte((if (showsFab) 0x01 else 0x00).toByte())
         dest.writeByte((if (showsToolbar) 0x01 else 0x00).toByte())
         dest.writeByte((if (showsAltToolbar) 0x01 else 0x00).toByte())
-        dest.writeByte((if (insetFlags.hasLeftInset()) 0x01 else 0x00).toByte())
-        dest.writeByte((if (insetFlags.hasTopInset()) 0x01 else 0x00).toByte())
-        dest.writeByte((if (insetFlags.hasRightInset()) 0x01 else 0x00).toByte())
-        dest.writeByte((if (insetFlags.hasBottomInset()) 0x01 else 0x00).toByte())
+        dest.writeByte((if (insetFlags.hasLeftInset) 0x01 else 0x00).toByte())
+        dest.writeByte((if (insetFlags.hasTopInset) 0x01 else 0x00).toByte())
+        dest.writeByte((if (insetFlags.hasRightInset) 0x01 else 0x00).toByte())
+        dest.writeByte((if (insetFlags.hasBottomInset) 0x01 else 0x00).toByte())
 
         TextUtils.writeToParcel(toolbarTitle, dest, 0)
         TextUtils.writeToParcel(altToolbarTitle, dest, 0)

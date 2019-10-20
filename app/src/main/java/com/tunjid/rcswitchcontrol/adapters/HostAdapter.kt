@@ -30,8 +30,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.text.scale
-import com.tunjid.androidbootstrap.recyclerview.InteractiveAdapter
-import com.tunjid.androidbootstrap.recyclerview.InteractiveViewHolder
+import com.tunjid.androidx.recyclerview.InteractiveAdapter
+import com.tunjid.androidx.recyclerview.InteractiveViewHolder
+import com.tunjid.androidx.view.util.inflate
 import com.tunjid.rcswitchcontrol.R
 
 /**
@@ -47,15 +48,15 @@ class HostAdapter(
 ) : InteractiveAdapter<HostAdapter.NSDViewHolder, HostAdapter.ServiceClickedListener>(listener) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): NSDViewHolder {
-        return NSDViewHolder(getItemView(R.layout.viewholder_nsd_list, parent), adapterListener)
+        return NSDViewHolder(parent.inflate(R.layout.viewholder_nsd_list), delegate)
     }
 
     override fun onBindViewHolder(holder: NSDViewHolder, position: Int) =
-            holder.bind(hosts[position], adapterListener)
+            holder.bind(hosts[position], delegate)
 
     override fun getItemCount(): Int = hosts.size
 
-    interface ServiceClickedListener : AdapterListener {
+    interface ServiceClickedListener {
         fun onServiceClicked(serviceInfo: NsdServiceInfo)
 
         fun isSelf(serviceInfo: NsdServiceInfo): Boolean
@@ -70,16 +71,16 @@ class HostAdapter(
         private val textView: TextView = itemView as TextView
 
         init {
-            itemView.setOnClickListener { adapterListener.onServiceClicked(serviceInfo) }
+            itemView.setOnClickListener { delegate?.onServiceClicked(serviceInfo) }
         }
 
         internal fun bind(info: NsdServiceInfo, listener: ServiceClickedListener) {
             serviceInfo = info
-            adapterListener = listener
+            delegate = listener
 
             textView.text = SpannableStringBuilder()
                     .append(info.serviceName)
-                    .apply { if (adapterListener.isSelf(info)) append(" (SELF)") }
+                    .apply { if (delegate?.isSelf(info) == true) append(" (SELF)") }
                     .append("\n")
                     .scale(0.8F) { append(info.host.hostAddress) }
         }

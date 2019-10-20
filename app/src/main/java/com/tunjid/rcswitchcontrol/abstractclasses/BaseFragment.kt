@@ -33,9 +33,12 @@ import androidx.annotation.MenuRes
 import androidx.annotation.StringRes
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.Fragment
 import com.google.android.material.snackbar.Snackbar
 import com.tunjid.UiState
-import com.tunjid.androidbootstrap.view.util.InsetFlags
+import com.tunjid.androidx.navigation.Navigator
+import com.tunjid.androidx.navigation.activityNavigatorController
+import com.tunjid.androidx.view.util.InsetFlags
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.activities.MainActivity
 import io.reactivex.disposables.CompositeDisposable
@@ -43,7 +46,11 @@ import io.reactivex.disposables.CompositeDisposable
 /**
  * Base fragment
  */
-abstract class BaseFragment : com.tunjid.androidbootstrap.core.abstractclasses.BaseFragment() {
+abstract class BaseFragment(layoutRes: Int = 0) : Fragment(layoutRes),
+        Navigator.Controller,
+        Navigator.TagProvider {
+
+    override val stableTag: String = javaClass.simpleName
 
     protected open val fabIconRes: Int @DrawableRes get() = 0
 
@@ -75,6 +82,8 @@ abstract class BaseFragment : com.tunjid.androidbootstrap.core.abstractclasses.B
 
     private val hostingActivity: MainActivity get() = requireActivity() as MainActivity
 
+    override val navigator: Navigator by activityNavigatorController()
+
     override fun onStop() {
         disposables.clear()
         super.onStop()
@@ -94,7 +103,6 @@ abstract class BaseFragment : com.tunjid.androidbootstrap.core.abstractclasses.B
 
     open fun togglePersistentUi() {
         hostingActivity.update(uiState)
-        if (!restoredFromBackStack()) setFabExtended(true)
     }
 
     protected fun showSnackBar(consumer: (snackbar: Snackbar) -> Unit) =

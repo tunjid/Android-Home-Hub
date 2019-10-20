@@ -33,9 +33,9 @@ import com.google.android.flexbox.AlignItems
 import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.FlexboxLayoutManager
 import com.google.android.flexbox.JustifyContent
-import com.tunjid.androidbootstrap.recyclerview.ListManager
-import com.tunjid.androidbootstrap.recyclerview.ListManagerBuilder
-import com.tunjid.androidbootstrap.recyclerview.ListPlaceholder
+import com.tunjid.androidx.recyclerview.ListManager
+import com.tunjid.androidx.recyclerview.ListManagerBuilder
+import com.tunjid.androidx.recyclerview.ListPlaceholder
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.adapters.RecordAdapter
@@ -109,7 +109,7 @@ sealed class RecordFragment : BaseFragment() {
         listManager.onDiff(state.result)
 
         if (viewModel.getCommands(key).isNotEmpty())
-            listManager.post { listManager.recyclerView?.smoothScrollToPosition(viewModel.lastIndex(key)) }
+            listManager.post(Runnable { listManager.recyclerView?.smoothScrollToPosition(viewModel.lastIndex(key)) })
     }
 
     private fun onCommandStateReceived(state: State.Commands) = listManager.onDiff(state.result)

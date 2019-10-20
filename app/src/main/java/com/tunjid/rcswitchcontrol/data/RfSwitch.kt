@@ -29,7 +29,6 @@ import android.os.Parcelable
 import android.util.Base64
 import androidx.annotation.StringDef
 import com.tunjid.rcswitchcontrol.nsd.protocols.SerialRFProtocol
-import java.util.*
 
 /**
  * A model representing an RF switch
@@ -51,6 +50,9 @@ class RfSwitch() : Parcelable, Device {
     private var onCode = ByteArray(4)
     private var offCode = ByteArray(4)
 
+    override val diffId
+        get() = "$onCode-$offCode"
+
     @Retention(AnnotationRetention.SOURCE)
     @StringDef(ON_CODE, OFF_CODE)
     internal annotation class SwitchCode {}
@@ -64,7 +66,7 @@ class RfSwitch() : Parcelable, Device {
         pulseLength = `in`.createByteArray()!!
     }
 
-   private fun getTransmission(state: Boolean): ByteArray {
+    private fun getTransmission(state: Boolean): ByteArray {
         val transmission = ByteArray(10)
 
         System.arraycopy(if (state) onCode else offCode, 0, transmission, 0, onCode.size)
@@ -78,8 +80,6 @@ class RfSwitch() : Parcelable, Device {
     fun getEncodedTransmission(state: Boolean): String =
             Base64.encodeToString(getTransmission(state), Base64.DEFAULT)
 
-    override fun getId(): String = "$onCode-$offCode"
-
     // Equals considers the code only, not the name
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -87,12 +87,12 @@ class RfSwitch() : Parcelable, Device {
 
         val rcSwitch = other as RfSwitch? ?: return false
 
-        return Arrays.equals(onCode, rcSwitch.onCode) && Arrays.equals(offCode, rcSwitch.offCode)
+        return onCode.contentEquals(rcSwitch.onCode) && offCode.contentEquals(rcSwitch.offCode)
     }
 
     override fun hashCode(): Int {
-        var result = Arrays.hashCode(onCode)
-        result = 31 * result + Arrays.hashCode(offCode)
+        var result = onCode.contentHashCode()
+        result = 31 * result + offCode.contentHashCode()
         return result
     }
 
@@ -110,7 +110,7 @@ class RfSwitch() : Parcelable, Device {
     class SwitchCreator {
         @SwitchCode
         @get:SwitchCode
-        var state: String= ON_CODE
+        var state: String = ON_CODE
             internal set
 
         private lateinit var rfSwitch: RfSwitch

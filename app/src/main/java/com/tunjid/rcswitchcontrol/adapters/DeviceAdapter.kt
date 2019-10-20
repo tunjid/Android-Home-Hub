@@ -25,14 +25,15 @@
 package com.tunjid.rcswitchcontrol.adapters
 
 import android.view.ViewGroup
-import com.tunjid.androidbootstrap.recyclerview.InteractiveAdapter
-import com.tunjid.androidbootstrap.recyclerview.InteractiveViewHolder
+import com.tunjid.androidx.recyclerview.InteractiveAdapter
+import com.tunjid.androidx.recyclerview.InteractiveViewHolder
+import com.tunjid.androidx.view.util.inflate
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.data.Device
 import com.tunjid.rcswitchcontrol.data.RfSwitch
 import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
 
-typealias ViewHolder = InteractiveViewHolder<out InteractiveAdapter.AdapterListener>
+typealias ViewHolder = InteractiveViewHolder<out Any>
 
 class DeviceAdapter(
         switchListener: DeviceAdapterListener,
@@ -44,9 +45,9 @@ class DeviceAdapter(
     }
 
     override fun onCreateViewHolder(viewGroup: ViewGroup, viewType: Int) = when (viewType) {
-        RF_DEVICE -> RfDeviceViewHolder(getItemView(R.layout.viewholder_remote_switch, viewGroup), adapterListener)
-        ZIG_BEE_DEVICE -> ZigBeeDeviceViewHolder(getItemView(R.layout.viewholder_zigbee_device, viewGroup), adapterListener)
-        else -> object : InteractiveViewHolder<DeviceAdapterListener>(getItemView(R.layout.viewholder_padding, viewGroup), adapterListener) {}
+        RF_DEVICE -> RfDeviceViewHolder(viewGroup.inflate(R.layout.viewholder_remote_switch), delegate)
+        ZIG_BEE_DEVICE -> ZigBeeDeviceViewHolder(viewGroup.inflate(R.layout.viewholder_zigbee_device), delegate)
+        else -> object : InteractiveViewHolder<DeviceAdapterListener>(viewGroup.inflate(R.layout.viewholder_padding), delegate) {}
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) = when (val device = switches[position]) {
@@ -71,7 +72,7 @@ class DeviceAdapter(
     }
 }
 
-interface DeviceLongClickListener : InteractiveAdapter.AdapterListener {
+interface DeviceLongClickListener {
     fun onClicked(device: Device)
 
     fun onLongClicked(device: Device): Boolean
@@ -81,7 +82,7 @@ interface DeviceLongClickListener : InteractiveAdapter.AdapterListener {
     fun isSelected(device: Device): Boolean
 }
 
-interface DeviceAdapterListener : InteractiveAdapter.AdapterListener,
+interface DeviceAdapterListener :
         DeviceLongClickListener,
         RfDeviceViewHolder.Listener,
         ZigBeeDeviceViewHolder.Listener

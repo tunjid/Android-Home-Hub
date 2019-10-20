@@ -34,9 +34,9 @@ import android.os.Handler
 import android.os.Looper
 import android.os.ParcelUuid
 import android.util.Log
-import com.tunjid.androidbootstrap.communications.bluetooth.BLEScanner
-import com.tunjid.androidbootstrap.communications.bluetooth.ScanFilterCompat
-import com.tunjid.androidbootstrap.core.components.ServiceConnection
+import com.tunjid.androidx.communications.bluetooth.BLEScanner
+import com.tunjid.androidx.communications.bluetooth.ScanFilterCompat
+import com.tunjid.androidx.core.components.services.HardServiceConnection
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
 import com.tunjid.rcswitchcontrol.data.Payload
@@ -73,13 +73,13 @@ class BLERFProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
     private val switchStore = RfSwitchDataStore()
     private val switchCreator = RfSwitch.SwitchCreator()
 
-    private val bleConnection: ServiceConnection<ClientBleService> = ServiceConnection(ClientBleService::class.java)
+    private val bleConnection = HardServiceConnection(appContext, ClientBleService::class.java)
 
     private val scanner: BLEScanner
     private val scanHandler = Handler(Looper.getMainLooper())
 
     private val isConnected: Boolean
-        get() = bleConnection.isBound && bleConnection.boundService.isConnected
+        get() = bleConnection.boundService?.isConnected == true
 
     init {
         val bluetoothManager = appContext.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
@@ -100,7 +100,7 @@ class BLERFProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
                 }
                 .build()
 
-        bleConnection.with(appContext).bind()
+        bleConnection.bind()
         disposable.add(Broadcaster.listen(
                 ClientBleService.ACTION_GATT_CONNECTED,
                 ClientBleService.ACTION_GATT_CONNECTING,
@@ -114,7 +114,7 @@ class BLERFProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
 
     override fun close() {
         disposable.clear()
-        if (bleConnection.isBound) bleConnection.unbindService()
+        bleConnection.unbindService()
     }
 
     override fun processInput(payload: Payload): Payload {
@@ -143,22 +143,21 @@ class BLERFProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
                 output.response = getString(R.string.scanblercprotocol_start_scan_reponse)
             }
 
-            DISCONNECT -> if (bleConnection.isBound) bleConnection.boundService.disconnect()
+            DISCONNECT -> bleConnection.boundService?.disconnect()
 
             in deviceMap -> {
                 val extras = Bundle()
                 extras.putParcelable(ClientBleService.BLUETOOTH_DEVICE, deviceMap[receivedAction])
 
-                bleConnection.with(appContext).setExtras(extras).start()
-                bleConnection.with(appContext).setExtras(extras).bind()
+                bleConnection.start { replaceExtras(extras) }
+                bleConnection.bind { replaceExtras(extras) }
             }
 
             SNIFF -> output.apply {
                 response = appContext.getString(R.string.blercprotocol_start_sniff_response)
                 addCommand(RESET)
                 addCommand(DISCONNECT)
-                if (bleConnection.isBound) bleConnection.boundService
-                        .writeCharacteristicArray(C_HANDLE_CONTROL, byteArrayOf(STATE_SNIFFING))
+                bleConnection.boundService?.writeCharacteristicArray(C_HANDLE_CONTROL, byteArrayOf(STATE_SNIFFING))
             }
 
             RENAME -> output.apply {

@@ -29,20 +29,17 @@ import android.os.Bundle
 import android.util.Log
 import android.view.*
 import android.widget.TextView
-import androidx.activity.addCallback
-import androidx.core.content.ContextCompat
 import androidx.core.view.doOnNextLayout
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentStatePagerAdapter
-import androidx.lifecycle.ViewModelProviders
+import androidx.fragment.app.viewModels
 import androidx.viewpager.widget.ViewPager
 import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED
-import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HALF_EXPANDED
-import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN
+import com.google.android.material.bottomsheet.BottomSheetBehavior.*
 import com.google.android.material.bottomsheet.setupForBottomSheet
 import com.google.android.material.tabs.TabLayout
+import com.tunjid.androidx.core.content.colorAt
 import com.tunjid.androidx.view.util.InsetFlags
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
@@ -51,7 +48,6 @@ import com.tunjid.rcswitchcontrol.activities.MainActivity
 import com.tunjid.rcswitchcontrol.activities.MainActivity.Companion.bottomInset
 import com.tunjid.rcswitchcontrol.activities.MainActivity.Companion.topInset
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.data.Device
 import com.tunjid.rcswitchcontrol.data.ZigBeeCommandArgs
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.dialogfragments.ZigBeeArgumentDialogFragment
@@ -68,47 +64,26 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
     private lateinit var commandsPager: ViewPager
     private lateinit var connectionStatus: TextView
 
-    private lateinit var viewModel: ControlViewModel
+    private val viewModel by viewModels<ControlViewModel>()
 
     private val currentPage: BaseFragment?
-        get() = if (viewModel.pages.isEmpty()) null else fromPager(mainPager.currentItem)
-
-    override val navBarColor: Int
-        get() = ContextCompat.getColor(requireContext(), R.color.black_50)
-
-    override val toolBarMenuRes: Int = R.menu.menu_fragment_nsd_client
-
-    override val altToolBarRes: Int
-        get() = currentPage?.altToolBarRes ?: super.altToolBarRes
-
-    override val altToolbarText: CharSequence
-        get() = currentPage?.altToolbarText ?: super.altToolbarText
-
-    override val showsAltToolBar: Boolean
-        get() = currentPage?.showsAltToolBar ?: super.showsAltToolBar
+        get() = when {
+            !::mainPager.isInitialized -> null
+            viewModel.pages.isEmpty() -> null
+            else -> fromPager(mainPager.currentItem)
+        }
 
     override val insetFlags: InsetFlags = InsetFlags(hasLeftInset = true, hasTopInset = true, hasRightInset = true, hasBottomInset = false)
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        viewModel = ViewModelProviders.of(this).get(ControlViewModel::class.java)
-
-        activity?.onBackPressedDispatcher?.addCallback(this) {
-            isEnabled = viewModel.withSelectedDevices(Set<Device>::isEmpty)
-
-            if (!isEnabled) activity?.onBackPressed()
-            else {
-                viewModel.clearSelections()
-                (getPage(DEVICES) as? DevicesFragment)?.refresh()
-
-                togglePersistentUi()
-            }
-        }
-    }
 
     override fun onCreateView(inflater: LayoutInflater,
                               container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
+
+        defaultUi(
+                toolbarTitle = getString(R.string.switches),
+                toolBarMenu = R.menu.menu_fragment_nsd_client,
+                navBarColor = inflater.context.colorAt(R.color.black_50)
+        )
 
         val root = inflater.inflate(R.layout.fragment_control, container, false)
         val tabs = root.findViewById<TabLayout>(R.id.tabs)
@@ -127,7 +102,6 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
 
         val onPageSelected: (position: Int) -> Unit = {
             bottomSheetBehavior.state = if (viewModel.pages[it] == HISTORY) STATE_HALF_EXPANDED else STATE_HIDDEN
-            togglePersistentUi()
         }
 
         connectionStatus = root.findViewById(R.id.connection_status)
@@ -166,11 +140,6 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
         onPageSelected(mainPager.currentItem)
 
         return root
-    }
-
-    override fun onActivityCreated(savedInstanceState: Bundle?) {
-        super.onActivityCreated(savedInstanceState)
-        toolBar.setTitle(R.string.switches)
     }
 
     override fun onStart() {
@@ -215,7 +184,7 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
     }
 
     private fun onConnectionStateChanged(text: String) {
-        requireActivity().invalidateOptionsMenu()
+        updateUi(toolbarInvalidated = true)
         connectionStatus.text = resources.getString(R.string.connection_state, text)
     }
 

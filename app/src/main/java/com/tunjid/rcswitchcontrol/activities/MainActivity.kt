@@ -27,18 +27,13 @@ package com.tunjid.rcswitchcontrol.activities
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
-import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.transition.AutoTransition
 import android.transition.TransitionManager
 import android.view.MenuItem
 import android.view.View
-import android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-import android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-import android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+import android.view.View.*
 import android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS
-import androidx.annotation.DrawableRes
-import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -50,13 +45,9 @@ import androidx.core.view.postDelayed
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.snackbar.Snackbar
-import com.tunjid.UiState
 import com.tunjid.androidx.core.components.services.HardServiceConnection
-import com.tunjid.androidx.core.content.drawableAt
 import com.tunjid.androidx.material.animator.FabExtensionAnimator
 import com.tunjid.androidx.navigation.Navigator
-import com.tunjid.androidx.navigation.stackNavigationController
 import com.tunjid.androidx.view.animator.ViewHider
 import com.tunjid.androidx.view.util.marginLayoutParams
 import com.tunjid.rcswitchcontrol.App
@@ -67,11 +58,14 @@ import com.tunjid.rcswitchcontrol.fragments.ControlFragment
 import com.tunjid.rcswitchcontrol.fragments.StartFragment
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
+import com.tunjid.rcswitchcontrol.utils.AppNavigator
+import com.tunjid.rcswitchcontrol.utils.GlobalUiController
 import com.tunjid.rcswitchcontrol.utils.TOOLBAR_ANIM_DELAY
-import com.tunjid.rcswitchcontrol.utils.update
-import com.tunjid.androidx.material.animator.FabExtensionAnimator.SimpleGlyphState as GlyphState
+import com.tunjid.rcswitchcontrol.utils.globalUiDriver
 
-class MainActivity : AppCompatActivity(R.layout.activity_main), Navigator.Controller {
+class MainActivity : AppCompatActivity(R.layout.activity_main),
+        GlobalUiController,
+        Navigator.Controller {
 
     private var insetsApplied: Boolean = false
     private var leftInset: Int = 0
@@ -92,9 +86,9 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), Navigator.Contro
     private lateinit var constraintLayout: ConstraintLayout
     private lateinit var coordinatorLayout: CoordinatorLayout
 
-    private lateinit var uiState: UiState
+    override val navigator: Navigator by lazy { AppNavigator(this) }
 
-    override val navigator: Navigator by stackNavigationController(R.id.main_fragment_container)
+    override var uiState by globalUiDriver(currentSource = navigator::current)
 
     private val fragmentViewCreatedCallback: FragmentManager.FragmentLifecycleCallbacks = object : FragmentManager.FragmentLifecycleCallbacks() {
 
@@ -107,10 +101,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), Navigator.Contro
                                            savedInstanceState: Bundle?) {
             if (isNotInMainFragmentContainer(v)) return
 
-            val fragment = f as BaseFragment
             adjustInsetForFragment(f)
-
-            fragment.togglePersistentUi()
             setOnApplyWindowInsetsListener(v) { _, insets -> consumeFragmentInsets(insets) }
         }
     }
@@ -121,7 +112,8 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), Navigator.Contro
         supportFragmentManager.registerFragmentLifecycleCallbacks(fragmentViewCreatedCallback, false)
         setContentView(R.layout.activity_main)
 
-        uiState = if (savedInstanceState == null) UiState.freshState() else savedInstanceState.getParcelable(UI_STATE)!!
+        uiState = uiState.copy(fabShows = false)
+//        uiState = if (savedInstanceState == null) UiState.freshState() else savedInstanceState.getParcelable(UI_STATE)!!
 
         val startIntent = intent
 
@@ -164,76 +156,12 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), Navigator.Contro
         setOnApplyWindowInsetsListener(this.constraintLayout) { _, insets -> consumeSystemInsets(insets) }
     }
 
-    override fun onStart() {
-        super.onStart()
-        updateUI(true, uiState)
-    }
-
-    public override fun onSaveInstanceState(outState: Bundle) {
-        outState.putParcelable(UI_STATE, uiState)
-        super.onSaveInstanceState(outState)
-    }
-
     override fun invalidateOptionsMenu() {
         super.invalidateOptionsMenu()
         toolbar.postDelayed(TOOLBAR_ANIM_DELAY.toLong()) {
             navigator.current?.onPrepareOptionsMenu(toolbar.menu)
         }
         navigator.current?.onPrepareOptionsMenu(altToolbar.menu)
-    }
-
-    fun update(state: UiState) = updateUI(false, state)
-
-    private fun updateMainToolBar(menu: Int, title: CharSequence) = toolbar.update(menu, title).also {
-        navigator.current?.onPrepareOptionsMenu(toolbar.menu)
-    }
-
-    private fun updateAltToolbar(menu: Int, title: CharSequence) = altToolbar.update(menu, title)
-
-    private fun toggleAltToolbar(show: Boolean) {
-        val current = navigator.current
-        if (show) toggleToolbar(false)
-        else if (current is BaseFragment) toggleToolbar(current.showsToolBar)
-
-        altToolbar.visibility = if (show) View.VISIBLE else View.INVISIBLE
-    }
-
-    private fun toggleToolbar(show: Boolean) {
-        if (show) toolbarHider.show()
-        else toolbarHider.hide()
-        altToolbar.visibility = View.INVISIBLE
-    }
-
-    private fun setNavBarColor(color: Int) {
-        navBackgroundView.background = GradientDrawable(
-                GradientDrawable.Orientation.BOTTOM_TOP,
-                intArrayOf(color, Color.TRANSPARENT))
-    }
-
-    private fun setFabIcon(@DrawableRes icon: Int, @StringRes title: Int) = runOnUiThread {
-        if (icon != 0 && title != 0) fabExtensionAnimator.updateGlyphs(GlyphState(
-                getText(title),
-                drawableAt(icon)!!))
-    }
-
-    private fun toggleFab(show: Boolean) =
-            if (show) this.fabHider.show()
-            else this.fabHider.hide()
-
-    private fun setFabClickListener(onClickListener: View.OnClickListener?) =
-            fab.setOnClickListener(onClickListener)
-
-    fun setFabExtended(extended: Boolean) {
-        fabExtensionAnimator.isExtended = extended
-    }
-
-    fun showSnackBar(consumer: (snackbar: Snackbar) -> Unit) {
-        val snackbar = Snackbar.make(coordinatorLayout, "", Snackbar.LENGTH_SHORT)
-
-        // Necessary to remove snackBar padding for keyboard on older versions of Android
-        setOnApplyWindowInsetsListener(snackbar.view) { _, insets -> insets }
-        consumer.invoke(snackbar)
-        snackbar.show()
     }
 
     private fun onMenuItemClicked(item: MenuItem): Boolean {
@@ -286,25 +214,9 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), Navigator.Contro
         constraintLayout.setPadding(if (insetFlags.hasLeftInset) this.leftInset else 0, 0, if (insetFlags.hasRightInset) this.rightInset else 0, 0)
     }
 
-    private fun updateUI(force: Boolean, state: UiState) {
-        uiState = uiState.diff(force,
-                state,
-                this::toggleFab,
-                this::toggleToolbar,
-                this::toggleAltToolbar,
-                this::setNavBarColor,
-                {},
-                this::setFabIcon,
-                this::updateMainToolBar,
-                this::updateAltToolbar,
-                this::setFabClickListener
-        )
-    }
-
     companion object {
 
         const val ANIMATION_DURATION = 300
-        private const val UI_STATE = "APP_UI_STATE"
 
         private const val DEFAULT_SYSTEM_UI_FLAGS = (SYSTEM_UI_FLAG_LAYOUT_STABLE
                 or SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION

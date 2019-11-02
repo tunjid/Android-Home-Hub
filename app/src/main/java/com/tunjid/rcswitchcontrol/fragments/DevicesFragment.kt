@@ -26,6 +26,7 @@ package com.tunjid.rcswitchcontrol.fragments
 
 import android.os.Bundle
 import android.view.*
+import androidx.activity.addCallback
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ItemTouchHelper.Callback.makeMovementFlags
@@ -36,7 +37,6 @@ import com.tunjid.androidx.recyclerview.*
 import com.tunjid.androidx.view.util.inflate
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
-import com.tunjid.rcswitchcontrol.viewholders.*
 import com.tunjid.rcswitchcontrol.data.Device
 import com.tunjid.rcswitchcontrol.data.RfSwitch
 import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
@@ -48,6 +48,7 @@ import com.tunjid.rcswitchcontrol.dialogfragments.throttleColorChanges
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
+import com.tunjid.rcswitchcontrol.viewholders.*
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.State
 
@@ -61,18 +62,20 @@ class DevicesFragment : BaseFragment(),
     private lateinit var viewModel: ControlViewModel
     private lateinit var listManager: ListManager<RecyclerView.ViewHolder, ListPlaceholder<*>>
 
-    override val altToolBarRes: Int
-        get() = R.menu.menu_alt_devices
-
-    override val altToolbarText: CharSequence
-        get() = getString(R.string.devices_selected, viewModel.numSelections())
-
-    override val showsAltToolBar: Boolean
-        get() = viewModel.withSelectedDevices { it.isNotEmpty() }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         viewModel = ViewModelProviders.of(parentFragment!!).get(ControlViewModel::class.java)
+
+        activity?.onBackPressedDispatcher?.addCallback(this) {
+            isEnabled = viewModel.withSelectedDevices(Set<Device>::isEmpty)
+
+            if (!isEnabled) activity?.onBackPressed()
+            else {
+                viewModel.clearSelections()
+                refresh()
+                refreshUi()
+            }
+        }
     }
 
     override fun onCreateView(inflater: LayoutInflater,
@@ -102,6 +105,19 @@ class DevicesFragment : BaseFragment(),
         return root
     }
 
+    override fun onResume() {
+        super.onResume()
+        refreshUi()
+    }
+
+    private fun refreshUi() {
+        updateUi(
+                altToolBarMenu = R.menu.menu_alt_devices,
+                altToolbarTitle = getString(R.string.devices_selected, viewModel.numSelections()),
+                altToolBarShows = viewModel.withSelectedDevices { it.isNotEmpty() }
+        )
+    }
+
     override fun onStart() {
         super.onStart()
         disposables.add(viewModel.listen(State.Devices::class.java).subscribe(this::onPayloadReceived, Throwable::printStackTrace))
@@ -127,10 +143,6 @@ class DevicesFragment : BaseFragment(),
         else -> super.onOptionsItemSelected(item)
     }
 
-    // Leave to parent fragment
-    override fun togglePersistentUi() = (parentFragment as? BaseFragment)?.togglePersistentUi()
-            ?: Unit
-
     override fun isSelected(device: Device): Boolean = viewModel.withSelectedDevices { it.contains(device) }
 
     override fun onClicked(device: Device) {
@@ -140,7 +152,8 @@ class DevicesFragment : BaseFragment(),
     override fun onLongClicked(device: Device): Boolean {
         val result = viewModel.select(device)
 
-        togglePersistentUi()
+        refreshUi()
+
         requireActivity().invalidateOptionsMenu()
         return result
     }
@@ -203,7 +216,7 @@ class DevicesFragment : BaseFragment(),
                     }
         }
         clearSelections()
-        togglePersistentUi()
+        refreshUi()
         refresh()
     }
 
@@ -271,7 +284,7 @@ class DevicesFragment : BaseFragment(),
         devices.removeAt(position)
         listManager.notifyItemRemoved(position)
 
-        showSnackBar { snackBar ->
+        navigator.transientBarDriver.showSnackBar { snackBar ->
             snackBar.setText(R.string.deleted_switch)
                     .addCallback(deletionHandler)
                     .setAction(R.string.undo) {

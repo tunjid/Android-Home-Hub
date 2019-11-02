@@ -61,6 +61,9 @@ class HostScanFragment : BaseFragment(), ServiceClickedListener {
     override fun onCreateView(inflater: LayoutInflater,
                               container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
+
+        updateUi(toolBarMenu = R.menu.menu_nsd_scan)
+
         val root = inflater.inflate(R.layout.fragment_nsd_scan, container, false)
         scrollManager = ListManagerBuilder<HostScanViewHolder, ListPlaceholder<*>>()
                 .withRecyclerView(root.findViewById(R.id.list))
@@ -84,9 +87,6 @@ class HostScanFragment : BaseFragment(), ServiceClickedListener {
         super.onDestroyView()
         scrollManager.clear()
     }
-
-    override val toolBarMenuRes: Int
-        get() = R.menu.menu_nsd_scan
 
     override fun onPrepareOptionsMenu(menu: Menu) {
         super.onPrepareOptionsMenu(menu)
@@ -129,7 +129,7 @@ class HostScanFragment : BaseFragment(), ServiceClickedListener {
         isScanning = enable
 
         if (isScanning) disposables.add(viewModel.findDevices()
-                .doOnSubscribe { requireActivity().invalidateOptionsMenu() }
+                .doOnSubscribe { updateUi(toolbarInvalidated = true) }
                 .doFinally(this::onScanningStopped)
                 .subscribe(scrollManager::onDiff, Throwable::printStackTrace))
         else viewModel.stopScanning()
@@ -137,7 +137,7 @@ class HostScanFragment : BaseFragment(), ServiceClickedListener {
 
     private fun onScanningStopped() {
         isScanning = false
-        requireActivity().invalidateOptionsMenu()
+        updateUi(toolbarInvalidated = true)
     }
 
     companion object {

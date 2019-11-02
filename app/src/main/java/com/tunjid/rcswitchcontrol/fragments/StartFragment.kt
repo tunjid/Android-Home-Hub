@@ -39,6 +39,9 @@ class StartFragment : BaseFragment(), View.OnClickListener {
     override fun onCreateView(inflater: LayoutInflater,
                               container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
+
+        defaultUi(toolbarTitle = getString(R.string.app_name))
+
         val rootView = inflater.inflate(R.layout.fragment_start, container, false)
         val serverButton = rootView.findViewById<View>(R.id.server)
         val clientButton = rootView.findViewById<View>(R.id.client)

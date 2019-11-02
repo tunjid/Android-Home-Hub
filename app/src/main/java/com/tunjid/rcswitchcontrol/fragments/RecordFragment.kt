@@ -97,6 +97,11 @@ sealed class RecordFragment : BaseFragment() {
         return root
     }
 
+    override fun onResume() {
+        super.onResume()
+        updateUi(altToolBarShows = false)
+    }
+
     override fun onStart() {
         super.onStart()
         disposables.add(
@@ -109,9 +114,6 @@ sealed class RecordFragment : BaseFragment() {
         super.onDestroyView()
         listManager.clear()
     }
-
-    // Leave to parent fragment
-    override fun togglePersistentUi() = Unit
 
     private fun onHistoryStateReceived(state: State.History) {
         listManager.onDiff(state.result)

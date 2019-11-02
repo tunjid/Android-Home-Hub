@@ -69,7 +69,7 @@ dependencies {
 
     compileOnly 'com.google.android.things:androidthings:1.0'
     implementation 'com.tunjid.androidx:communications:1.0.0-rc01'
-    implementation 'com.tunjid.androidx:recyclerview:1.0.0-rc01'
+    implementation 'com.tunjid.androidx:recyclerview:1.0.0-rc02'
     implementation 'com.tunjid.androidx:navigation:1.0.0-rc03'
     implementation 'com.tunjid.androidx:functions:1.0.0-rc01'
     implementation 'com.tunjid.androidx:material:1.0.0-rc01'

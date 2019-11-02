@@ -36,8 +36,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.DialogFragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.tunjid.androidx.recyclerview.InteractiveAdapter
-import com.tunjid.androidx.recyclerview.InteractiveViewHolder
+import com.tunjid.androidx.recyclerview.adapterOf
 import com.tunjid.androidx.view.util.inflate
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.data.ZigBeeCommandArgs
@@ -66,11 +65,16 @@ class ZigBeeArgumentDialogFragment : DialogFragment() {
         val inflater = activity.layoutInflater
 
         val view = inflater.inflate(R.layout.dialog_zigbee_args, null)
-        val recyclerView = view.findViewById<RecyclerView>(R.id.list)
-        recyclerView.layoutManager = LinearLayoutManager(view.context)
-        recyclerView.adapter = Adapter(commandInfo, object : Listener{
-            override fun push() = this@ZigBeeArgumentDialogFragment.push()
-        })
+        view.findViewById<RecyclerView>(R.id.list).apply {
+            layoutManager = LinearLayoutManager(view.context)
+            adapter = adapterOf(
+                    itemsSource = commandInfo::entries,
+                    viewHolderCreator = { parent, _ -> ViewHolder(parent.inflate(R.layout.dialog_rename_switch), this@ZigBeeArgumentDialogFragment::push) },
+                    viewHolderBinder = { holder, entry, _ -> holder.bind(entry) },
+                    onViewHolderRecycled = ViewHolder::unbind,
+                    onViewHolderRecycleFailed = { it.unbind().let { false } }
+            )
+        }
 
         return AlertDialog.Builder(activity, R.style.DialogTheme)
                 .setView(view)
@@ -115,31 +119,10 @@ class ZigBeeArgumentDialogFragment : DialogFragment() {
         }
     }
 
-    class Adapter(
-            private val commandInfo: ZigBeeCommandInfo,
-            listener: Listener
-    ) : InteractiveAdapter<ViewHolder, Listener>(listener) {
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder =
-                ViewHolder(parent.inflate(R.layout.dialog_rename_switch), delegate)
-
-        override fun getItemCount(): Int =
-                commandInfo.entries.size
-
-        override fun onBindViewHolder(holder: ViewHolder, position: Int) =
-                holder.bind(commandInfo.entries[position])
-
-        override fun onViewRecycled(holder: ViewHolder) = holder.unBind()
-
-        override fun onFailedToRecycleView(holder: ViewHolder): Boolean {
-            holder.unBind()
-            return super.onFailedToRecycleView(holder)
-        }
-    }
-
     class ViewHolder(
             itemView: View,
-            listener: Listener
-    ) : InteractiveViewHolder<Listener>(itemView, listener), TextWatcher {
+            private val listener: () -> Unit
+    ) : RecyclerView.ViewHolder(itemView), TextWatcher {
 
         private lateinit var entry: ZigBeeCommandInfo.Entry
         private val editText = itemView as EditText
@@ -152,19 +135,15 @@ class ZigBeeArgumentDialogFragment : DialogFragment() {
             editText.addTextChangedListener(this)
         }
 
-        fun unBind() = editText.removeTextChangedListener(this)
+        fun unbind() = editText.removeTextChangedListener(this)
 
         override fun afterTextChanged(s: Editable) {
             entry.value = s.toString()
-            delegate?.push()
+            listener()
         }
 
         override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
 
         override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
-    }
-
-    interface Listener {
-        fun push()
     }
 }

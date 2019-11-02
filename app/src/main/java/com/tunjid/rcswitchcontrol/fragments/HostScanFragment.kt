@@ -28,30 +28,29 @@ package com.tunjid.rcswitchcontrol.fragments
 import android.content.Intent
 import android.net.nsd.NsdServiceInfo
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuItem
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import androidx.lifecycle.ViewModelProviders
 import com.tunjid.androidx.recyclerview.ListManager
 import com.tunjid.androidx.recyclerview.ListManagerBuilder
 import com.tunjid.androidx.recyclerview.ListPlaceholder
+import com.tunjid.androidx.recyclerview.adapterOf
+import com.tunjid.androidx.view.util.inflate
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
-import com.tunjid.rcswitchcontrol.adapters.HostAdapter
-import com.tunjid.rcswitchcontrol.adapters.withPaddedAdapter
+import com.tunjid.rcswitchcontrol.viewholders.HostScanViewHolder
+import com.tunjid.rcswitchcontrol.viewholders.ServiceClickedListener
+import com.tunjid.rcswitchcontrol.viewholders.withPaddedAdapter
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.viewmodels.NsdScanViewModel
 
 /**
  * A [androidx.fragment.app.Fragment] listing supported NSD servers
  */
-class HostScanFragment : BaseFragment(), HostAdapter.ServiceClickedListener {
+class HostScanFragment : BaseFragment(), ServiceClickedListener {
 
     private var isScanning: Boolean = false
 
-    private lateinit var scrollManager: ListManager<HostAdapter.NSDViewHolder, ListPlaceholder<*>>
+    private lateinit var scrollManager: ListManager<HostScanViewHolder, ListPlaceholder<*>>
     private lateinit var viewModel: NsdScanViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,9 +62,13 @@ class HostScanFragment : BaseFragment(), HostAdapter.ServiceClickedListener {
                               container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
         val root = inflater.inflate(R.layout.fragment_nsd_scan, container, false)
-        scrollManager = ListManagerBuilder<HostAdapter.NSDViewHolder, ListPlaceholder<*>>()
+        scrollManager = ListManagerBuilder<HostScanViewHolder, ListPlaceholder<*>>()
                 .withRecyclerView(root.findViewById(R.id.list))
-                .withPaddedAdapter(HostAdapter(this, viewModel.services))
+                .withPaddedAdapter(adapterOf(
+                        itemsSource = viewModel::services,
+                        viewHolderCreator = { parent, _ -> HostScanViewHolder(parent.inflate(R.layout.viewholder_nsd_list), this) },
+                        viewHolderBinder = { holder, service, _ -> holder.bind(service) }
+                ))
                 .withLinearLayoutManager()
                 .build()
 

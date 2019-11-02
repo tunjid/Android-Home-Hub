@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.adapters
+package com.tunjid.rcswitchcontrol.viewholders
 
 import android.view.View
 import android.view.View.GONE

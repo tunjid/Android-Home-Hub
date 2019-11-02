@@ -33,9 +33,10 @@ import androidx.recyclerview.widget.RecyclerView
 import com.flask.colorpicker.ColorPickerView
 import com.flask.colorpicker.builder.ColorPickerDialogBuilder
 import com.tunjid.androidx.recyclerview.*
+import com.tunjid.androidx.view.util.inflate
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
-import com.tunjid.rcswitchcontrol.adapters.*
+import com.tunjid.rcswitchcontrol.viewholders.*
 import com.tunjid.rcswitchcontrol.data.Device
 import com.tunjid.rcswitchcontrol.data.RfSwitch
 import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
@@ -50,8 +51,6 @@ import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.State
 
-typealias ViewHolder = InteractiveViewHolder<out Any>
-
 class DevicesFragment : BaseFragment(),
         DeviceAdapterListener,
         GroupDeviceDialogFragment.GroupNameListener,
@@ -60,7 +59,7 @@ class DevicesFragment : BaseFragment(),
     private var isDeleting: Boolean = false
 
     private lateinit var viewModel: ControlViewModel
-    private lateinit var listManager: ListManager<ViewHolder, ListPlaceholder<*>>
+    private lateinit var listManager: ListManager<RecyclerView.ViewHolder, ListPlaceholder<*>>
 
     override val altToolBarRes: Int
         get() = R.menu.menu_alt_devices
@@ -82,12 +81,18 @@ class DevicesFragment : BaseFragment(),
 
         val spanCount = SpanCountCalculator.spanCount
         val root = inflater.inflate(R.layout.fragment_list, container, false)
-        listManager = ListManagerBuilder<ViewHolder, ListPlaceholder<*>>()
+        listManager = ListManagerBuilder<RecyclerView.ViewHolder, ListPlaceholder<*>>()
                 .withRecyclerView(root.findViewById(R.id.list))
                 .withGridLayoutManager(spanCount)
-                .withPaddedAdapter(DeviceAdapter(this, viewModel.devices), spanCount)
+                .withPaddedAdapter(adapterOf(
+                        itemsSource = viewModel::devices,
+                        viewHolderCreator = this::createViewHolder,
+                        viewTypeFunction = this::getDeviceViewType,
+                        viewHolderBinder = { holder, device, _ -> bindDevice(holder, device) },
+                        itemIdFunction = { it.hashCode().toLong() }
+                ), spanCount)
                 .withSwipeDragOptions(SwipeDragOptions(
-                        swipeConsumer = { viewHolder, _ -> onDelete(viewHolder) },
+                        swipeConsumer = { viewHolder: RecyclerView.ViewHolder, _ -> onDelete(viewHolder) },
                         movementFlagFunction = this::swipeDirection,
                         itemViewSwipeSupplier = { true }
                 ))
@@ -214,7 +219,25 @@ class DevicesFragment : BaseFragment(),
 
     private fun onPayloadReceived(state: State.Devices) = listManager.onDiff(state.result)
 
-    private fun swipeDirection(holder: ViewHolder): Int =
+    private fun getDeviceViewType(device: Device) = when (device) {
+        is RfSwitch -> RF_DEVICE
+        is ZigBeeDevice -> ZIG_BEE_DEVICE
+        else -> Int.MAX_VALUE
+    }
+
+    private fun createViewHolder(parent: ViewGroup, viewType: Int) = when (viewType) {
+        RF_DEVICE -> RfDeviceViewHolder(parent.inflate(R.layout.viewholder_remote_switch), this)
+        ZIG_BEE_DEVICE -> ZigBeeDeviceViewHolder(parent.inflate(R.layout.viewholder_zigbee_device), this)
+        else -> object : RecyclerView.ViewHolder(parent.inflate(R.layout.viewholder_padding)) {}
+    }
+
+    private fun bindDevice(holder: RecyclerView.ViewHolder, device: Device) = when {
+        holder is RfDeviceViewHolder && device is RfSwitch -> holder.bind(device)
+        holder is ZigBeeDeviceViewHolder && device is ZigBeeDevice -> holder.bind(device)
+        else -> Unit
+    }
+
+    private fun swipeDirection(holder: RecyclerView.ViewHolder): Int =
             if (isDeleting || holder is ZigBeeDeviceViewHolder) 0
             else makeMovementFlags(0, ItemTouchHelper.LEFT)
 
@@ -263,6 +286,9 @@ class DevicesFragment : BaseFragment(),
     }
 
     companion object {
+
+        private const val RF_DEVICE = 1
+        private const val ZIG_BEE_DEVICE = 2
 
         fun newInstance(): DevicesFragment {
             val fragment = DevicesFragment()

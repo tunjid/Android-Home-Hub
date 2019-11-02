@@ -22,25 +22,30 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.adapters
+package com.tunjid.rcswitchcontrol.viewholders
 
 import android.view.View
-import com.tunjid.rcswitchcontrol.data.RfSwitch
+import android.widget.TextView
+import androidx.recyclerview.widget.RecyclerView
+import com.tunjid.rcswitchcontrol.R
+import com.tunjid.rcswitchcontrol.data.Record
 
-// ViewHolder for actual content
-class RfDeviceViewHolder internal constructor(
+class RecordViewHolder internal constructor(
         itemView: View,
-        listener: Listener
-) : DeviceViewHolder<RfDeviceViewHolder.Listener, RfSwitch>(itemView, listener) {
+        private val listener: ((Record) -> Unit)?
+) : RecyclerView.ViewHolder(itemView) {
 
-    override fun bind(device: RfSwitch) {
-        super.bind(device)
+    private lateinit var record: Record
+    private val textView: TextView = itemView.findViewById(R.id.text)
 
-        deviceName.text = device.name
-
-        offSwitch.setOnClickListener { delegate?.onSwitchToggled(device, false) }
-        onSwitch.setOnClickListener { delegate?.onSwitchToggled(device, true) }
+    init {
+        textView.setOnClickListener { listener?.invoke(record) }
     }
 
-    interface Listener : DeviceLongClickListener
+    internal fun bind(record: Record) {
+        this.record = record
+
+        textView.text = record.entry
+        textView.isClickable = listener != null
+    }
 }

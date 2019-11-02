@@ -109,7 +109,7 @@ sealed class RecordFragment : BaseFragment() {
         listManager.onDiff(state.result)
 
         if (viewModel.getCommands(key).isNotEmpty())
-            listManager.post(Runnable { listManager.recyclerView?.smoothScrollToPosition(viewModel.lastIndex(key)) })
+            listManager.post { listManager.recyclerView?.smoothScrollToPosition(viewModel.lastIndex(key)) }
     }
 
     private fun onCommandStateReceived(state: State.Commands) = listManager.onDiff(state.result)

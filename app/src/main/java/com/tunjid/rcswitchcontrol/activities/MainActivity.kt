@@ -53,6 +53,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
 import com.tunjid.UiState
 import com.tunjid.androidx.core.components.services.HardServiceConnection
+import com.tunjid.androidx.core.content.drawableAt
 import com.tunjid.androidx.material.animator.FabExtensionAnimator
 import com.tunjid.androidx.navigation.Navigator
 import com.tunjid.androidx.navigation.stackNavigationController
@@ -68,7 +69,7 @@ import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
 import com.tunjid.rcswitchcontrol.utils.TOOLBAR_ANIM_DELAY
 import com.tunjid.rcswitchcontrol.utils.update
-import com.tunjid.androidx.material.animator.FabExtensionAnimator.newState as glyphState
+import com.tunjid.androidx.material.animator.FabExtensionAnimator.SimpleGlyphState as GlyphState
 
 class MainActivity : AppCompatActivity(R.layout.activity_main), Navigator.Controller {
 
@@ -210,9 +211,9 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), Navigator.Contro
     }
 
     private fun setFabIcon(@DrawableRes icon: Int, @StringRes title: Int) = runOnUiThread {
-        if (icon != 0 && title != 0) fabExtensionAnimator.updateGlyphs(glyphState(
+        if (icon != 0 && title != 0) fabExtensionAnimator.updateGlyphs(GlyphState(
                 getText(title),
-                ContextCompat.getDrawable(this@MainActivity, icon)))
+                drawableAt(icon)!!))
     }
 
     private fun toggleFab(show: Boolean) =

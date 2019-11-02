@@ -27,7 +27,11 @@ package com.tunjid.rcswitchcontrol.fragments
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import android.view.*
+import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuItem
+import android.view.View
+import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.view.doOnNextLayout
 import androidx.fragment.app.Fragment
@@ -36,7 +40,9 @@ import androidx.fragment.app.FragmentStatePagerAdapter
 import androidx.fragment.app.viewModels
 import androidx.viewpager.widget.ViewPager
 import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetBehavior.*
+import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED
+import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HALF_EXPANDED
+import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN
 import com.google.android.material.bottomsheet.setupForBottomSheet
 import com.google.android.material.tabs.TabLayout
 import com.tunjid.androidx.core.content.colorAt
@@ -45,18 +51,21 @@ import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.activities.MainActivity
-import com.tunjid.rcswitchcontrol.activities.MainActivity.Companion.bottomInset
-import com.tunjid.rcswitchcontrol.activities.MainActivity.Companion.topInset
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
 import com.tunjid.rcswitchcontrol.data.ZigBeeCommandArgs
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.dialogfragments.ZigBeeArgumentDialogFragment
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
+import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.bottomInset
+import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.topInset
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.Page
-import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.Page.*
+import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.Page.DEVICES
+import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.Page.HISTORY
+import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.Page.HOST
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.State
+import java.util.*
 
 class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsListener {
 
@@ -197,8 +206,6 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
             state.commandInfo?.let { ZigBeeArgumentDialogFragment.newInstance(it).show(childFragmentManager, "info") }
     }
 
-    private fun getPage(page: Page): BaseFragment? = fromPager(viewModel.pages.indexOf(page))
-
     private fun fromPager(index: Int): BaseFragment? = mainPager.adapter?.let {
         if (index < 0) return null
         it.instantiateItem(mainPager, index) as? BaseFragment
@@ -240,7 +247,7 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
 
             override fun getItem(position: Int): Fragment = RecordFragment.commandInstance(item(position))
 
-            override fun getPageTitle(position: Int): CharSequence? = item(position).split(".").last().toUpperCase().removeSuffix("PROTOCOL")
+            override fun getPageTitle(position: Int): CharSequence? = item(position).split(".").last().toUpperCase(Locale.US).removeSuffix("PROTOCOL")
 
             override fun getCount(): Int = keys.size
 

@@ -40,7 +40,7 @@ class TransientBarDriver(
         snackbar.show()
     }
 
-    private fun clearTransientBars() {
+    fun clearTransientBars() {
         for (bar in transientBottomBars) bar.dismiss()
         transientBottomBars.clear()
     }

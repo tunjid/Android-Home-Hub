@@ -34,7 +34,6 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.MenuRes
 import androidx.annotation.StringRes
 import androidx.fragment.app.Fragment
-import com.google.android.material.snackbar.Snackbar
 import com.tunjid.androidx.core.content.colorAt
 import com.tunjid.androidx.navigation.Navigator
 import com.tunjid.androidx.navigation.activityNavigatorController
@@ -42,6 +41,7 @@ import com.tunjid.androidx.view.util.InsetFlags
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.utils.AppNavigator
 import com.tunjid.rcswitchcontrol.utils.GlobalUiController
+import com.tunjid.rcswitchcontrol.utils.InsetProvider
 import com.tunjid.rcswitchcontrol.utils.activityGlobalUiController
 import io.reactivex.disposables.CompositeDisposable
 
@@ -49,13 +49,14 @@ import io.reactivex.disposables.CompositeDisposable
  * Base fragment
  */
 abstract class BaseFragment(layoutRes: Int = 0) : Fragment(layoutRes),
+        InsetProvider,
         GlobalUiController,
         Navigator.Controller,
         Navigator.TagProvider {
 
     override val stableTag: String = javaClass.simpleName
 
-    open val insetFlags: InsetFlags get() = InsetFlags.ALL
+    override val insetFlags: InsetFlags get() = InsetFlags.ALL
 
     protected val disposables = CompositeDisposable()
 
@@ -77,9 +78,6 @@ abstract class BaseFragment(layoutRes: Int = 0) : Fragment(layoutRes),
         activity?.recreate()
         Log.i("RecyclerView", "Inconsistency in ${javaClass.simpleName}", exception)
     }
-
-    protected fun showSnackBar(consumer: (snackbar: Snackbar) -> Unit) = Unit
-//            hostingActivity.showSnackBar(consumer)
 
     protected fun defaultUi(
             @DrawableRes fabIcon: Int = uiState.fabIcon,

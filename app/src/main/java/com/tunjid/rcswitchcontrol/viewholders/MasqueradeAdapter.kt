@@ -33,7 +33,7 @@ import androidx.core.view.forEach
 import androidx.recyclerview.widget.RecyclerView
 import com.tunjid.androidx.recyclerview.AbstractListManagerBuilder
 import com.tunjid.androidx.recyclerview.ListManager
-import com.tunjid.rcswitchcontrol.activities.MainActivity.Companion.bottomInset
+import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.bottomInset
 
 /**
  * A Proxy Adapter that adds extra items to the bottom of the actual adapter for over scrolling

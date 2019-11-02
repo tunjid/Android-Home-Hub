@@ -36,10 +36,12 @@ import com.google.android.flexbox.JustifyContent
 import com.tunjid.androidx.recyclerview.ListManager
 import com.tunjid.androidx.recyclerview.ListManagerBuilder
 import com.tunjid.androidx.recyclerview.ListPlaceholder
+import com.tunjid.androidx.recyclerview.adapterOf
+import com.tunjid.androidx.view.util.inflate
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
-import com.tunjid.rcswitchcontrol.adapters.RecordAdapter
-import com.tunjid.rcswitchcontrol.adapters.withPaddedAdapter
+import com.tunjid.rcswitchcontrol.viewholders.RecordViewHolder
+import com.tunjid.rcswitchcontrol.viewholders.withPaddedAdapter
 import com.tunjid.rcswitchcontrol.data.Record
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.State
@@ -50,7 +52,7 @@ sealed class RecordFragment : BaseFragment() {
 
     class CommandsFragment : RecordFragment()
 
-    private lateinit var listManager: ListManager<ViewHolder, ListPlaceholder<*>>
+    private lateinit var listManager: ListManager<RecordViewHolder, ListPlaceholder<*>>
 
     private lateinit var viewModel: ControlViewModel
     private var key: String? = null
@@ -65,16 +67,22 @@ sealed class RecordFragment : BaseFragment() {
                               container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
 
-        val root = inflater.inflate(R.layout.fragment_list, container, false)
-        val builder = ListManagerBuilder<ViewHolder, ListPlaceholder<*>>()
-                .withRecyclerView(root.findViewById(R.id.list))
-                .withPaddedAdapter(RecordAdapter(viewModel.getCommands(key), object : RecordAdapter.ChatAdapterListener {
-                    override val layoutRes: Int = if (key != null) R.layout.viewholder_command else R.layout.viewholder_history
 
-                    override fun onRecordClicked(record: Record) {
-                        if (key != null) viewModel.dispatchPayload(record.key) { action = record.entry }
-                    }
-                }))
+        val root = inflater.inflate(R.layout.fragment_list, container, false)
+        val builder = ListManagerBuilder<RecordViewHolder, ListPlaceholder<*>>()
+                .withRecyclerView(root.findViewById(R.id.list))
+                .withPaddedAdapter(
+                        adapterOf(
+                                itemsSource = { viewModel.getCommands(key) },
+                                viewHolderCreator = { parent, _ ->
+                                    RecordViewHolder(
+                                            parent.inflate(if (key == null) R.layout.viewholder_history else R.layout.viewholder_command),
+                                            if (key == null) null else this::onRecordClicked
+                                    )
+                                },
+                                viewHolderBinder = { holder, record, _ -> holder.bind(record) }
+                        )
+                )
                 .withInconsistencyHandler(this::onInconsistentList)
 
         if (key == null) builder.withLinearLayoutManager()
@@ -87,6 +95,11 @@ sealed class RecordFragment : BaseFragment() {
         listManager = builder.build()
 
         return root
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateUi(altToolBarShows = false)
     }
 
     override fun onStart() {
@@ -102,15 +115,15 @@ sealed class RecordFragment : BaseFragment() {
         listManager.clear()
     }
 
-    // Leave to parent fragment
-    override fun togglePersistentUi() = Unit
-
     private fun onHistoryStateReceived(state: State.History) {
         listManager.onDiff(state.result)
 
         if (viewModel.getCommands(key).isNotEmpty())
             listManager.post { listManager.recyclerView?.smoothScrollToPosition(viewModel.lastIndex(key)) }
     }
+
+    private fun onRecordClicked(record: Record) =
+            viewModel.dispatchPayload(record.key) { action = record.entry }
 
     private fun onCommandStateReceived(state: State.Commands) = listManager.onDiff(state.result)
 

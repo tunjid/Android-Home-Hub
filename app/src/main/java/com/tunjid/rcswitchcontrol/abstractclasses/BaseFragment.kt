@@ -25,64 +25,44 @@
 package com.tunjid.rcswitchcontrol.abstractclasses
 
 
+import android.graphics.Color
+import android.os.Build
 import android.util.Log
 import android.view.View
 import androidx.annotation.ColorInt
 import androidx.annotation.DrawableRes
 import androidx.annotation.MenuRes
 import androidx.annotation.StringRes
-import androidx.appcompat.widget.Toolbar
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import com.google.android.material.snackbar.Snackbar
-import com.tunjid.UiState
+import com.tunjid.androidx.core.content.colorAt
 import com.tunjid.androidx.navigation.Navigator
 import com.tunjid.androidx.navigation.activityNavigatorController
 import com.tunjid.androidx.view.util.InsetFlags
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.activities.MainActivity
+import com.tunjid.rcswitchcontrol.utils.AppNavigator
+import com.tunjid.rcswitchcontrol.utils.GlobalUiController
+import com.tunjid.rcswitchcontrol.utils.InsetProvider
+import com.tunjid.rcswitchcontrol.utils.activityGlobalUiController
 import io.reactivex.disposables.CompositeDisposable
 
 /**
  * Base fragment
  */
 abstract class BaseFragment(layoutRes: Int = 0) : Fragment(layoutRes),
+        InsetProvider,
+        GlobalUiController,
         Navigator.Controller,
         Navigator.TagProvider {
 
     override val stableTag: String = javaClass.simpleName
 
-    protected open val fabIconRes: Int @DrawableRes get() = 0
-
-    protected open val fabTextRes: Int @StringRes get() = 0
-
-    protected open val navBarColor: Int @ColorInt get() = ContextCompat.getColor(requireContext(), R.color.transparent)
-
-    open val toolBarMenuRes: Int @MenuRes get() = 0
-
-    open val altToolBarRes: Int @MenuRes get() = 0
-
-    protected open val showsFab: Boolean get() = false
-
-    open val showsAltToolBar: Boolean get() = false
-
-    open val showsToolBar: Boolean get() = true
-
-    open val insetFlags: InsetFlags get() = InsetFlags.ALL
-
-    open val toolbarText: CharSequence get() = getText(R.string.app_name)
-
-    open val altToolbarText: CharSequence get() = ""
-
-    protected open val fabClickListener: View.OnClickListener get() = View.OnClickListener { }
+    override val insetFlags: InsetFlags get() = InsetFlags.ALL
 
     protected val disposables = CompositeDisposable()
 
-    protected val toolBar: Toolbar get() = hostingActivity.toolbar
+    override val navigator by activityNavigatorController<AppNavigator>()
 
-    private val hostingActivity: MainActivity get() = requireActivity() as MainActivity
-
-    override val navigator: Navigator by activityNavigatorController()
+    override var uiState by activityGlobalUiController()
 
     override fun onStop() {
         disposables.clear()
@@ -94,34 +74,84 @@ abstract class BaseFragment(layoutRes: Int = 0) : Fragment(layoutRes),
         super.onDestroyView()
     }
 
-    protected fun setFabExtended(extended: Boolean) = hostingActivity.setFabExtended(extended)
-
     fun onInconsistentList(exception: Exception) {
-        hostingActivity.recreate()
+        activity?.recreate()
         Log.i("RecyclerView", "Inconsistency in ${javaClass.simpleName}", exception)
     }
 
-    open fun togglePersistentUi() {
-        hostingActivity.update(uiState)
-    }
+    protected fun defaultUi(
+            @DrawableRes fabIcon: Int = uiState.fabIcon,
+            @StringRes fabText: Int = uiState.fabText,
+            fabShows: Boolean = false,
+            fabExtended: Boolean = uiState.fabExtended,
+            @MenuRes toolBarMenu: Int = 0,
+            toolbarShows: Boolean = true,
+            toolbarInvalidated: Boolean = false,
+            toolbarTitle: CharSequence = "",
+            @MenuRes altToolBarMenu: Int = 0,
+            altToolBarShows: Boolean = false,
+            altToolbarInvalidated: Boolean = false,
+            altToolbarTitle: CharSequence = "",
+            @ColorInt navBarColor: Int = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) requireActivity().colorAt(R.color.transparent) else Color.BLACK,
+            systemUiShows: Boolean = true,
+            hasLightNavBar: Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O,
+            fabClickListener: View.OnClickListener? = null
+    ) = updateUi(
+            fabIcon,
+            fabText,
+            fabShows,
+            fabExtended,
+            toolBarMenu,
+            toolbarShows,
+            toolbarInvalidated,
+            toolbarTitle,
+            altToolBarMenu,
+            altToolBarShows,
+            altToolbarInvalidated,
+            altToolbarTitle,
+            navBarColor,
+            systemUiShows,
+            hasLightNavBar,
+            fabClickListener
+    )
 
-    protected fun showSnackBar(consumer: (snackbar: Snackbar) -> Unit) =
-            hostingActivity.showSnackBar(consumer)
 
-    private val uiState: UiState
-        get() = UiState(
-                this.fabIconRes,
-                this.fabTextRes,
-                this.toolBarMenuRes,
-                this.altToolBarRes,
-                this.navBarColor,
-                this.showsFab,
-                this.showsToolBar,
-                this.showsAltToolBar,
-                this.insetFlags,
-                this.toolbarText,
-                this.altToolbarText,
-                if (view == null) null else fabClickListener
+    protected fun updateUi(
+            @DrawableRes fabIcon: Int = uiState.fabIcon,
+            @StringRes fabText: Int = uiState.fabText,
+            fabShows: Boolean = uiState.fabShows,
+            fabExtended: Boolean = uiState.fabExtended,
+            @MenuRes toolBarMenu: Int = uiState.toolBarMenu,
+            toolbarShows: Boolean = uiState.toolbarShows,
+            toolbarInvalidated: Boolean = uiState.toolbarInvalidated,
+            toolbarTitle: CharSequence = uiState.toolbarTitle,
+            @MenuRes altToolBarMenu: Int = uiState.altToolBarMenu,
+            altToolBarShows: Boolean = uiState.altToolBarShows,
+            altToolbarInvalidated: Boolean = uiState.altToolbarInvalidated,
+            altToolbarTitle: CharSequence = uiState.altToolbarTitle,
+            @ColorInt navBarColor: Int = uiState.navBarColor,
+            systemUiShows: Boolean = uiState.systemUiShows,
+            hasLightNavBar: Boolean = uiState.hasLightNavBar,
+            fabClickListener: View.OnClickListener? = uiState.fabClickListener
+    ) {
+        uiState = uiState.copy(
+                fabIcon = fabIcon,
+                fabText = fabText,
+                fabShows = fabShows,
+                fabExtended = fabExtended,
+                toolBarMenu = toolBarMenu,
+                toolbarShows = toolbarShows,
+                toolbarInvalidated = toolbarInvalidated,
+                toolbarTitle = toolbarTitle,
+                altToolBarMenu = altToolBarMenu,
+                altToolBarShows = altToolBarShows,
+                altToolbarInvalidated = altToolbarInvalidated,
+                altToolbarTitle = altToolbarTitle,
+                navBarColor = navBarColor,
+                systemUiShows = systemUiShows,
+                hasLightNavBar = hasLightNavBar,
+                fabClickListener = fabClickListener
         )
+    }
 
 }

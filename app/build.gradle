@@ -69,14 +69,14 @@ dependencies {
 
     compileOnly 'com.google.android.things:androidthings:1.0'
     implementation 'com.tunjid.androidx:communications:1.0.0-rc01'
-    implementation 'com.tunjid.androidx:recyclerview:1.0.0-rc01'
+    implementation 'com.tunjid.androidx:recyclerview:1.0.0-rc02'
     implementation 'com.tunjid.androidx:navigation:1.0.0-rc03'
     implementation 'com.tunjid.androidx:functions:1.0.0-rc01'
     implementation 'com.tunjid.androidx:material:1.0.0-rc01'
     implementation 'com.tunjid.androidx:core:1.0.0-rc01'
     implementation 'com.tunjid.androidx:view:1.0.0-rc01'
 
-    implementation 'com.google.android.material:material:1.1.0-beta01'
+    implementation 'com.google.android.material:material:1.2.0-alpha01'
     implementation 'com.google.android:flexbox:1.1.0'
     implementation 'com.google.code.gson:gson:2.8.5'
 

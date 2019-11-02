@@ -22,23 +22,37 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.adapters
+package com.tunjid.rcswitchcontrol.viewholders
 
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.view.View
 import android.widget.TextView
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.card.MaterialCardView
-import com.tunjid.androidx.recyclerview.InteractiveViewHolder
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.data.Device
-import com.tunjid.rcswitchcontrol.utils.unwrapped
+
+interface DeviceLongClickListener {
+    fun onClicked(device: Device)
+
+    fun onLongClicked(device: Device): Boolean
+
+    fun onSwitchToggled(device: Device, state: Boolean)
+
+    fun isSelected(device: Device): Boolean
+}
+
+interface DeviceAdapterListener :
+        DeviceLongClickListener,
+        RfDeviceViewHolder.Listener,
+        ZigBeeDeviceViewHolder.Listener
 
 // ViewHolder for actual content
 open class DeviceViewHolder<T : DeviceLongClickListener, S : Device> internal constructor(
         itemView: View,
-        listener: T
-) : InteractiveViewHolder<T>(itemView, listener) {
+        protected val listener: T
+) : RecyclerView.ViewHolder(itemView) {
 
     open lateinit var device: S
 
@@ -48,7 +62,7 @@ open class DeviceViewHolder<T : DeviceLongClickListener, S : Device> internal co
     private var cardView = (itemView as MaterialCardView)
 
     init {
-        cardView.setOnClickListener { delegate?.onClicked(device) }
+        cardView.setOnClickListener { listener.onClicked(device) }
         cardView.setOnLongClickListener {
             performLongClick()
             true
@@ -57,11 +71,11 @@ open class DeviceViewHolder<T : DeviceLongClickListener, S : Device> internal co
 
     open fun bind(device: S) {
         this.device = device
-        highlightViewHolder(delegate.unwrapped::isSelected)
+        highlightViewHolder(listener::isSelected)
     }
 
     fun performLongClick(): Boolean {
-        highlightViewHolder(delegate.unwrapped::onLongClicked)
+        highlightViewHolder(listener::onLongClicked)
         return true
     }
 

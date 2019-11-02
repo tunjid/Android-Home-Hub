@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.adapters
+package com.tunjid.rcswitchcontrol.viewholders
 
 import android.view.View
 import android.widget.SeekBar
@@ -45,12 +45,12 @@ class ZigBeeDeviceViewHolder internal constructor(
 
         deviceName.text = device.name
 
-        zigBeeIcon.setOnClickListener { delegate?.rediscover(device) }
-        colorPicker.setOnClickListener { delegate?.color(device) }
-        offSwitch.setOnClickListener { delegate?.onSwitchToggled(device, false) }
-        onSwitch.setOnClickListener { delegate?.onSwitchToggled(device, true) }
+        zigBeeIcon.setOnClickListener { listener.rediscover(device) }
+        colorPicker.setOnClickListener { listener.color(device) }
+        offSwitch.setOnClickListener { listener.onSwitchToggled(device, false) }
+        onSwitch.setOnClickListener { listener.onSwitchToggled(device, true) }
         leveler.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            val throttle = Throttle { delegate?.level(device, it / 100F) }
+            val throttle = Throttle { listener.level(device, it / 100F) }
 
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) = throttle.run(progress)
 

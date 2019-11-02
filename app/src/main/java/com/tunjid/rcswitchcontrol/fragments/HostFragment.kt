@@ -70,8 +70,10 @@ class HostFragment : BaseFragment(),
         requestPermissions(arrayOf(ACCESS_COARSE_LOCATION), 0)
     }
 
-    // Leave to parent fragment
-    override fun togglePersistentUi() = Unit
+    override fun onResume() {
+        super.onResume()
+        updateUi(altToolBarShows = false)
+    }
 
     override fun onServiceNamed(name: String) = viewModel.nameServer(name)
 

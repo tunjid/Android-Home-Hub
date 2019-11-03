@@ -37,7 +37,7 @@ import androidx.core.view.doOnNextLayout
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentStatePagerAdapter
-import androidx.fragment.app.viewModels
+import androidx.fragment.app.activityViewModels
 import androidx.viewpager.widget.ViewPager
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED
@@ -73,7 +73,7 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
     private lateinit var commandsPager: ViewPager
     private lateinit var connectionStatus: TextView
 
-    private val viewModel by viewModels<ControlViewModel>()
+    private val viewModel by activityViewModels<ControlViewModel>()
 
     private val currentPage: BaseFragment?
         get() = when {

@@ -25,9 +25,8 @@
 package com.tunjid.rcswitchcontrol.fragments
 
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
+import androidx.core.view.updatePadding
 import androidx.lifecycle.ViewModelProviders
 import com.google.android.flexbox.AlignItems
 import com.google.android.flexbox.FlexDirection
@@ -40,13 +39,13 @@ import com.tunjid.androidx.recyclerview.adapterOf
 import com.tunjid.androidx.view.util.inflate
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
-import com.tunjid.rcswitchcontrol.viewholders.RecordViewHolder
-import com.tunjid.rcswitchcontrol.viewholders.withPaddedAdapter
 import com.tunjid.rcswitchcontrol.data.Record
+import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.bottomInset
+import com.tunjid.rcswitchcontrol.viewholders.RecordViewHolder
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.State
 
-sealed class RecordFragment : BaseFragment() {
+sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
 
     class HistoryFragment : RecordFragment()
 
@@ -63,38 +62,32 @@ sealed class RecordFragment : BaseFragment() {
         key = arguments?.getString(KEY)
     }
 
-    override fun onCreateView(inflater: LayoutInflater,
-                              container: ViewGroup?,
-                              savedInstanceState: Bundle?): View? {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) = view.run {
+        super.onViewCreated(view, savedInstanceState)
+        updatePadding(bottom = bottomInset)
 
-
-        val root = inflater.inflate(R.layout.fragment_list, container, false)
         val builder = ListManagerBuilder<RecordViewHolder, ListPlaceholder<*>>()
-                .withRecyclerView(root.findViewById(R.id.list))
-                .withPaddedAdapter(
-                        adapterOf(
-                                itemsSource = { viewModel.getCommands(key) },
-                                viewHolderCreator = { parent, _ ->
-                                    RecordViewHolder(
-                                            parent.inflate(if (key == null) R.layout.viewholder_history else R.layout.viewholder_command),
-                                            if (key == null) null else this::onRecordClicked
-                                    )
-                                },
-                                viewHolderBinder = { holder, record, _ -> holder.bind(record) }
-                        )
-                )
-                .withInconsistencyHandler(this::onInconsistentList)
+                .withRecyclerView(findViewById(R.id.list))
+                .withAdapter(adapterOf(
+                        itemsSource = { viewModel.getCommands(key) },
+                        viewHolderCreator = { parent, _ ->
+                            RecordViewHolder(
+                                    parent.inflate(if (key == null) R.layout.viewholder_history else R.layout.viewholder_command),
+                                    if (key == null) null else this@RecordFragment::onRecordClicked
+                            )
+                        },
+                        viewHolderBinder = { holder, record, _ -> holder.bind(record) }
+                ))
+                .withInconsistencyHandler(this@RecordFragment::onInconsistentList)
 
         if (key == null) builder.withLinearLayoutManager()
-        else builder.withCustomLayoutManager(FlexboxLayoutManager(inflater.context).apply {
+        else builder.withCustomLayoutManager(FlexboxLayoutManager(context).apply {
             alignItems = AlignItems.CENTER
             flexDirection = FlexDirection.ROW
             justifyContent = JustifyContent.CENTER
         })
 
         listManager = builder.build()
-
-        return root
     }
 
     override fun onResume() {

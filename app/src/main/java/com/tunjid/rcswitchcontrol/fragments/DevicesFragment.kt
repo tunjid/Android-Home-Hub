@@ -25,15 +25,24 @@
 package com.tunjid.rcswitchcontrol.fragments
 
 import android.os.Bundle
-import android.view.*
+import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuItem
+import android.view.View
+import android.view.ViewGroup
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.addCallback
-import androidx.lifecycle.ViewModelProviders
+import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ItemTouchHelper.Callback.makeMovementFlags
 import androidx.recyclerview.widget.RecyclerView
 import com.flask.colorpicker.ColorPickerView
 import com.flask.colorpicker.builder.ColorPickerDialogBuilder
-import com.tunjid.androidx.recyclerview.*
+import com.tunjid.androidx.recyclerview.ListManager
+import com.tunjid.androidx.recyclerview.ListManagerBuilder
+import com.tunjid.androidx.recyclerview.ListPlaceholder
+import com.tunjid.androidx.recyclerview.SwipeDragOptions
+import com.tunjid.androidx.recyclerview.adapterOf
 import com.tunjid.androidx.view.util.inflate
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
@@ -48,7 +57,11 @@ import com.tunjid.rcswitchcontrol.dialogfragments.throttleColorChanges
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
-import com.tunjid.rcswitchcontrol.viewholders.*
+import com.tunjid.rcswitchcontrol.viewholders.DeviceAdapterListener
+import com.tunjid.rcswitchcontrol.viewholders.DeviceViewHolder
+import com.tunjid.rcswitchcontrol.viewholders.RfDeviceViewHolder
+import com.tunjid.rcswitchcontrol.viewholders.ZigBeeDeviceViewHolder
+import com.tunjid.rcswitchcontrol.viewholders.withPaddedAdapter
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.State
 
@@ -59,14 +72,16 @@ class DevicesFragment : BaseFragment(),
 
     private var isDeleting: Boolean = false
 
-    private lateinit var viewModel: ControlViewModel
+    private val viewModel by activityViewModels<ControlViewModel>()
+
     private lateinit var listManager: ListManager<RecyclerView.ViewHolder, ListPlaceholder<*>>
+
+    private var backPressedCallback: OnBackPressedCallback? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        viewModel = ViewModelProviders.of(parentFragment!!).get(ControlViewModel::class.java)
 
-        activity?.onBackPressedDispatcher?.addCallback(this) {
+        backPressedCallback = activity?.onBackPressedDispatcher?.addCallback(this) {
             isEnabled = viewModel.withSelectedDevices(Set<Device>::isEmpty)
 
             if (!isEnabled) activity?.onBackPressed()
@@ -108,6 +123,12 @@ class DevicesFragment : BaseFragment(),
     override fun onResume() {
         super.onResume()
         refreshUi()
+        backPressedCallback?.isEnabled = true
+    }
+
+    override fun onStop() {
+        super.onStop()
+        backPressedCallback?.isEnabled = false
     }
 
     private fun refreshUi() {
@@ -149,14 +170,7 @@ class DevicesFragment : BaseFragment(),
         if (viewModel.withSelectedDevices { it.isNotEmpty() }) longClickDevice(device)
     }
 
-    override fun onLongClicked(device: Device): Boolean {
-        val result = viewModel.select(device)
-
-        refreshUi()
-
-        requireActivity().invalidateOptionsMenu()
-        return result
-    }
+    override fun onLongClicked(device: Device): Boolean = viewModel.select(device).apply { refreshUi() }
 
     override fun onSwitchToggled(device: Device, state: Boolean) = viewModel.dispatchPayload(device.key) {
         when (device) {
@@ -228,7 +242,7 @@ class DevicesFragment : BaseFragment(),
         }
     }
 
-    fun refresh() = listManager.notifyDataSetChanged()
+    private fun refresh() = listManager.notifyDataSetChanged()
 
     private fun onPayloadReceived(state: State.Devices) = listManager.onDiff(state.result)
 

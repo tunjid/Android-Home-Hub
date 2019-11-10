@@ -1,31 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  ~ MIT License
-  ~
-  ~ Copyright (c) 2019 Adetunji Dahunsi
-  ~
-  ~ Permission is hereby granted, free of charge, to any person obtaining a copy
-  ~ of this software and associated documentation files (the "Software"), to deal
-  ~ in the Software without restriction, including without limitation the rights
-  ~ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  ~ copies of the Software, and to permit persons to whom the Software is
-  ~ furnished to do so, subject to the following conditions:
-  ~
-  ~ The above copyright notice and this permission notice shall be included in all
-  ~ copies or substantial portions of the Software.
-  ~
-  ~ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  ~ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  ~ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  ~ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  ~ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  ~ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  ~ SOFTWARE.
-  -->
-
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     package="com.tunjid.rcswitchcontrol">
+
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="false" />
+
+    <uses-feature
+        android:name="android.software.leanback"
+        android:required="false" />
 
     <uses-feature android:name="android.hardware.usb.host" />
 
@@ -47,13 +31,30 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
+        <activity
+            android:name=".activities.TvActivity"
+            android:banner="@drawable/app_icon_your_company"
+            android:icon="@drawable/app_icon_your_company"
+            android:label="@string/title_activity_tv"
+            android:logo="@drawable/app_icon_your_company"
+            android:screenOrientation="landscape">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity>
+
         <uses-library
             android:name="com.google.android.things"
             android:required="false" />
+
         <activity android:name=".activities.MainActivity">
+
             <!-- Launch activity as default from Android Studio -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
@@ -92,8 +93,9 @@
             </intent-filter>
         </receiver>
         <receiver
-            android:name=".USBDeviceReceiver"
+            android:name=".nsd.protocols.USBDeviceReceiver"
             android:enabled="true"
             android:exported="true" />
     </application>
+
 </manifest>

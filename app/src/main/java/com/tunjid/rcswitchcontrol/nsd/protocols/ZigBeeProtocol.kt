@@ -88,7 +88,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
     private val outStream = ConsoleStream { post(it) }
 
     private val dongle: ZigBeeDongleTiCc2531
-    private val dataStore = ZigBeeDataStore("Home")
+    private val dataStore = ZigBeeDataStore("0")
     private val networkManager: ZigBeeNetworkManager
     private val availableCommands: Map<String, ZigBeeConsoleCommand> = mutableMapOf(
             getString(R.string.zigbeeprotocol_nodes) to ZigBeeConsoleNodeListCommand(),

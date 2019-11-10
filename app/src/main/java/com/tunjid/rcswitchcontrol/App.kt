@@ -28,9 +28,11 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.ActivityManager
 import android.app.Service
+import android.app.UiModeManager
 import android.content.Context
 import android.content.IntentFilter
 import android.content.SharedPreferences
+import android.content.res.Configuration
 import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.util.Log
@@ -105,6 +107,11 @@ class App : android.app.Application() {
         // Thrown on non Android things devices
         val isAndroidThings: Boolean
             get() {
+                val uiModeManager = instance.getSystemService(UI_MODE_SERVICE) as UiModeManager
+                if (uiModeManager.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION) {
+                    return true
+                }
+
                 return try {
                     PeripheralManager.getInstance().let { true }
                 } catch (e: NoClassDefFoundError) {

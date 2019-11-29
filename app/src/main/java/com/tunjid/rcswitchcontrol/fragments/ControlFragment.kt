@@ -59,13 +59,13 @@ import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
 import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.bottomInset
 import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.topInset
+import com.tunjid.rcswitchcontrol.viewmodels.ProtocolKey
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.Page
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.Page.DEVICES
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.Page.HISTORY
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.Page.HOST
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.State
-import java.util.*
 
 class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsListener {
 
@@ -243,11 +243,11 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
             override fun getCount(): Int = pages.size
         }
 
-        fun commandAdapter(keys: List<String>, fragmentManager: FragmentManager) = object : FragmentStatePagerAdapter(fragmentManager, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
+        fun commandAdapter(keys: List<ProtocolKey>, fragmentManager: FragmentManager) = object : FragmentStatePagerAdapter(fragmentManager, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
 
             override fun getItem(position: Int): Fragment = RecordFragment.commandInstance(item(position))
 
-            override fun getPageTitle(position: Int): CharSequence? = item(position).split(".").last().toUpperCase(Locale.US).removeSuffix("PROTOCOL")
+            override fun getPageTitle(position: Int): CharSequence? = item(position).title
 
             override fun getCount(): Int = keys.size
 

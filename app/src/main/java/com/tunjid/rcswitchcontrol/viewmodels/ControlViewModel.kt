@@ -34,7 +34,12 @@ import com.tunjid.androidx.recyclerview.diff.Diff
 import com.tunjid.androidx.recyclerview.diff.Differentiable
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.data.*
+import com.tunjid.rcswitchcontrol.data.Device
+import com.tunjid.rcswitchcontrol.data.Payload
+import com.tunjid.rcswitchcontrol.data.Record
+import com.tunjid.rcswitchcontrol.data.RfSwitch
+import com.tunjid.rcswitchcontrol.data.ZigBeeCommandInfo
+import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserialize
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserializeList
 import com.tunjid.rcswitchcontrol.nsd.protocols.BLERFProtocol
@@ -65,7 +70,7 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
     private val commands: MutableMap<String, MutableList<Record>> = mutableMapOf()
     private val payloadQueue: Queue<Payload> = LinkedList()
     private val history: MutableList<Record> = mutableListOf()
-    private val actualKeys: MutableList<String> = mutableListOf()
+    private val actualKeys: MutableList<ProtocolKey> = mutableListOf()
 
     val devices: MutableList<Device> = mutableListOf()
     val pages: MutableList<Page> = mutableListOf(Page.HISTORY, Page.DEVICES).apply {
@@ -75,7 +80,7 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
     @Volatile
     var isProcessing = false
 
-    val keys: List<String>
+    val keys: List<ProtocolKey>
         get() = actualKeys
 
     val isBound: Boolean
@@ -274,7 +279,7 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
                             is State.History -> history.replace(it.diff.items)
                             is State.Commands -> {
                                 getCommands(it.key).replace(it.diff.items)
-                                if (it.isNew) actualKeys.replace(commands.keys.sorted())
+                                if (it.isNew) actualKeys.replace(commands.keys.sorted().map(::ProtocolKey))
                             }
                         }
                         stateProcessor.onNext(it)
@@ -315,3 +320,8 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
         ) : State(key, diff.result)
     }
 }
+
+inline class ProtocolKey(val name: String) {
+    val title get() = name.split(".").last().toUpperCase(Locale.US).removeSuffix("PROTOCOL")
+}
+

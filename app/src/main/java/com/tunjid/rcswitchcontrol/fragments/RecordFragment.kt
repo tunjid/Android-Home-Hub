@@ -42,6 +42,7 @@ import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.data.Record
 import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.bottomInset
 import com.tunjid.rcswitchcontrol.viewholders.RecordViewHolder
+import com.tunjid.rcswitchcontrol.viewmodels.ProtocolKey
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.State
 
@@ -126,6 +127,6 @@ sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
 
         fun historyInstance(): HistoryFragment = HistoryFragment().apply { arguments = Bundle() }
 
-        fun commandInstance(key: String): CommandsFragment = CommandsFragment().apply { arguments = Bundle().apply { putString(KEY, key) } }
+        fun commandInstance(key: ProtocolKey): CommandsFragment = CommandsFragment().apply { arguments = Bundle().apply { putString(KEY, key.name) } }
     }
 }

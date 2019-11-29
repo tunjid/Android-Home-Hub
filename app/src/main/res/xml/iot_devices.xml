@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--Texas Instruments CC2531-->
+    <usb-device
+        class="2"
+        product-id="0x16a8"
+        protocol="0"
+        subclass="0"
+        vendor-id="0x0451" />
+    <!--Arduino Microprocessors-->
+    <usb-device
+        class="2"
+        product-id="0x0010"
+        protocol="0"
+        subclass="0"
+        vendor-id="0x2341" />
+</resources>

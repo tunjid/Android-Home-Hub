@@ -33,8 +33,10 @@ import com.tunjid.androidx.communications.nsd.NsdHelper
 import com.tunjid.androidx.functions.collections.replace
 import com.tunjid.androidx.recyclerview.diff.Diff
 import com.tunjid.androidx.recyclerview.diff.Differentiable
+import com.tunjid.rcswitchcontrol.utils.toSafeLiveData
 import io.reactivex.Flowable
 import io.reactivex.android.schedulers.AndroidSchedulers.mainThread
+import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.processors.PublishProcessor
 import io.reactivex.schedulers.Schedulers
 import java.util.*
@@ -44,7 +46,10 @@ class NsdScanViewModel(application: Application) : AndroidViewModel(application)
 
     val services: MutableList<NsdServiceInfo>
 
+    private val disposables = CompositeDisposable()
+
     private val nsdHelper: NsdHelper
+    private val scanProcessor: PublishProcessor<ScanOutput> = PublishProcessor.create()
     private lateinit var processor: PublishProcessor<Diff<NsdServiceInfo>>
 
     init {
@@ -59,17 +64,20 @@ class NsdScanViewModel(application: Application) : AndroidViewModel(application)
     }
 
     override fun onCleared() {
-        super.onCleared()
         nsdHelper.stopServiceDiscovery()
         nsdHelper.tearDown()
+        disposables.clear()
+        super.onCleared()
     }
 
-    fun findDevices(): Flowable<DiffUtil.DiffResult> {
+    fun scanOutput() = scanProcessor.toSafeLiveData()
+
+    fun findDevices() {
         reset()
         nsdHelper.discoverServices()
 
         // Clear list first, then start scanning.
-        return Flowable.fromCallable {
+        disposables.add(Flowable.fromCallable {
             Diff.calculate(services,
                     emptyList(),
                     { _, _ -> emptyList() },
@@ -81,6 +89,9 @@ class NsdScanViewModel(application: Application) : AndroidViewModel(application)
                     services.replace(diff.items)
                     diff.result
                 }
+                .doOnSubscribe { scanProcessor.onNext(ScanOutput.ScanStarted) }
+                .doFinally { scanProcessor.onNext(ScanOutput.ScanEnded) }
+                .subscribe { scanProcessor.onNext(ScanOutput.ScanResult(it)) })
     }
 
     fun stopScanning() {
@@ -119,5 +130,11 @@ class NsdScanViewModel(application: Application) : AndroidViewModel(application)
     companion object {
 
         private const val SCAN_PERIOD: Long = 10
+    }
+
+    sealed class ScanOutput {
+        object ScanStarted : ScanOutput()
+        data class ScanResult(val diffResult: DiffUtil.DiffResult) : ScanOutput()
+        object ScanEnded : ScanOutput()
     }
 }

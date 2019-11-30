@@ -42,7 +42,6 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.navigation.AppNavigator
 import com.tunjid.rcswitchcontrol.utils.GlobalUiController
 import com.tunjid.rcswitchcontrol.utils.InsetProvider
-import com.tunjid.rcswitchcontrol.utils.LifecycleDisposable
 import com.tunjid.rcswitchcontrol.utils.activityGlobalUiController
 
 /**
@@ -57,8 +56,6 @@ abstract class BaseFragment(layoutRes: Int = 0) : Fragment(layoutRes),
     override val stableTag: String = javaClass.simpleName
 
     override val insetFlags: InsetFlags get() = InsetFlags.ALL
-
-    protected val lifecycleDisposable = LifecycleDisposable(lifecycle)
 
     override val navigator by activityNavigatorController<AppNavigator>()
 

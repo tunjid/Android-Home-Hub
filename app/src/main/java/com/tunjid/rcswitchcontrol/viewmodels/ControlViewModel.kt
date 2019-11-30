@@ -27,6 +27,7 @@ package com.tunjid.rcswitchcontrol.viewmodels
 import android.app.Application
 import android.content.Intent
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
 import androidx.recyclerview.widget.DiffUtil.DiffResult
 import com.tunjid.androidx.core.components.services.HardServiceConnection
 import com.tunjid.androidx.functions.collections.replace
@@ -49,7 +50,7 @@ import com.tunjid.rcswitchcontrol.nsd.protocols.ZigBeeProtocol
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
-import io.reactivex.Flowable
+import com.tunjid.rcswitchcontrol.utils.toSafeLiveData
 import io.reactivex.android.schedulers.AndroidSchedulers.mainThread
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.processors.PublishProcessor
@@ -102,10 +103,11 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
         super.onCleared()
     }
 
-    fun <T : State> listen(type: Class<T>, predicate: (state: T) -> Boolean = { true }): Flowable<T> = stateProcessor
+    fun <T : State> listen(type: Class<T>, predicate: (state: T) -> Boolean = { true }): LiveData<T> = stateProcessor
             .filter(type::isInstance)
             .cast(type)
             .filter(predicate)
+            .toSafeLiveData()
 
     fun dispatchPayload(key: String, payloadReceiver: Payload.() -> Unit) = dispatchPayload(key, { true }, payloadReceiver)
 
@@ -123,14 +125,14 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
         ClientNsdService.lastConnectedService = null
     }
 
-    fun connectionState(): Flowable<String> = connectionStateProcessor.startWith({
+    fun connectionState(): LiveData<String> = connectionStateProcessor.startWith({
         val boundService = nsdConnection.boundService
         boundService?.onAppForeGround()
 
         getConnectionText(boundService?.connectionState
                 ?: ClientNsdService.ACTION_SOCKET_DISCONNECTED)
 
-    }()).observeOn(mainThread())
+    }()).observeOn(mainThread()).toSafeLiveData()
 
     fun select(device: Device): Boolean {
         val contains = selectedDevices.contains(device)

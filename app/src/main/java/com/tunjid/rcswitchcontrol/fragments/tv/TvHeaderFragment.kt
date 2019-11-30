@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.View
 import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.observe
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.flexbox.AlignItems
 import com.google.android.flexbox.FlexDirection
@@ -23,8 +24,6 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.fragments.HostFragment
 import com.tunjid.rcswitchcontrol.fragments.RecordFragment
-import com.tunjid.rcswitchcontrol.utils.LifecycleDisposable
-import com.tunjid.rcswitchcontrol.utils.guard
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.ProtocolKey
 
@@ -36,6 +35,12 @@ class TvHeaderFragment : BaseFragment(R.layout.fragment_list), Navigator.TagProv
     private var listManager: ListManager<HeaderViewHolder, ListPlaceholder<*>>? = null
 
     override val stableTag: String = "ControlHeaders"
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        viewModel.listen(ControlViewModel.State::class.java).observe(this, this::onPayloadReceived)
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -64,13 +69,6 @@ class TvHeaderFragment : BaseFragment(R.layout.fragment_list), Navigator.TagProv
         in viewModel.keys -> RecordFragment.tvCommandInstance(ProtocolKey(key.name))
         else -> null
     }?.let { navigator.push(it); Unit } ?: Unit
-
-    override fun onResume() {
-        super.onResume()
-        viewModel.listen(ControlViewModel.State::class.java)
-                .subscribe(this::onPayloadReceived, Throwable::printStackTrace)
-                .guard(lifecycleDisposable)
-    }
 
     private fun onPayloadReceived(state: ControlViewModel.State) {
         if (state !is ControlViewModel.State.Commands || !state.isNew) return

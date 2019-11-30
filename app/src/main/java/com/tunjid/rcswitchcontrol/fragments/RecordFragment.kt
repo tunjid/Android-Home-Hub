@@ -29,6 +29,7 @@ import android.view.View
 import androidx.core.view.updatePadding
 import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.observe
 import com.google.android.flexbox.AlignItems
 import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.FlexboxLayoutManager
@@ -44,7 +45,6 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.data.Record
 import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.bottomInset
-import com.tunjid.rcswitchcontrol.utils.guard
 import com.tunjid.rcswitchcontrol.viewholders.RecordViewHolder
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.State
@@ -63,6 +63,13 @@ sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
     private lateinit var listManager: ListManager<RecordViewHolder, ListPlaceholder<*>>
 
     override val stableTag: String get() = "${javaClass.simpleName}-$key"
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        if (key == null) viewModel.listen(State.History::class.java).observe(this, this::onHistoryStateReceived)
+        else viewModel.listen(State.Commands::class.java) { key == it.key }.observe(this, this::onCommandStateReceived)
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) = view.run {
         super.onViewCreated(view, savedInstanceState)
@@ -95,16 +102,6 @@ sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
     override fun onResume() {
         super.onResume()
         updateUi(altToolBarShows = false)
-    }
-
-    override fun onStart() {
-        super.onStart()
-        when (key) {
-            null -> viewModel.listen(State.History::class.java)
-                    .subscribe(this::onHistoryStateReceived, Throwable::printStackTrace)
-            else -> viewModel.listen(State.Commands::class.java) { key == it.key }
-                    .subscribe(this::onCommandStateReceived, Throwable::printStackTrace)
-        }.guard(lifecycleDisposable)
     }
 
     override fun onDestroyView() {

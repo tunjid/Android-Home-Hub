@@ -33,6 +33,7 @@ import android.view.ViewGroup
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.addCallback
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.observe
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ItemTouchHelper.Callback.makeMovementFlags
 import androidx.recyclerview.widget.RecyclerView
@@ -57,7 +58,6 @@ import com.tunjid.rcswitchcontrol.dialogfragments.throttleColorChanges
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
-import com.tunjid.rcswitchcontrol.utils.guard
 import com.tunjid.rcswitchcontrol.viewholders.DeviceAdapterListener
 import com.tunjid.rcswitchcontrol.viewholders.DeviceViewHolder
 import com.tunjid.rcswitchcontrol.viewholders.RfDeviceViewHolder
@@ -92,6 +92,8 @@ class DevicesFragment : BaseFragment(),
                 refreshUi()
             }
         }
+
+        viewModel.listen(State.Devices::class.java).observe(this, this::onPayloadReceived)
     }
 
     override fun onCreateView(inflater: LayoutInflater,
@@ -138,13 +140,6 @@ class DevicesFragment : BaseFragment(),
                 altToolbarTitle = getString(R.string.devices_selected, viewModel.numSelections()),
                 altToolBarShows = viewModel.withSelectedDevices { it.isNotEmpty() }
         )
-    }
-
-    override fun onStart() {
-        super.onStart()
-        viewModel.listen(State.Devices::class.java)
-                .subscribe(this::onPayloadReceived, Throwable::printStackTrace)
-                .guard(lifecycleDisposable)
     }
 
     override fun onDestroyView() {

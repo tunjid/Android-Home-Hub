@@ -37,6 +37,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentStatePagerAdapter
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.observe
 import androidx.viewpager.widget.ViewPager
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED
@@ -58,7 +59,6 @@ import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
 import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.bottomInset
 import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.topInset
-import com.tunjid.rcswitchcontrol.utils.guard
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.Page
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.Page.DEVICES
@@ -83,6 +83,14 @@ class ControlFragment : BaseFragment(R.layout.fragment_control), ZigBeeArgumentD
         }
 
     override val insetFlags: InsetFlags = InsetFlags(hasLeftInset = true, hasTopInset = true, hasRightInset = true, hasBottomInset = false)
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        viewModel.listen(State::class.java).observe(this, this::onPayloadReceived)
+
+        viewModel.connectionState().observe(this, this::onConnectionStateChanged)
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -145,18 +153,6 @@ class ControlFragment : BaseFragment(R.layout.fragment_control), ZigBeeArgumentD
         })
 
         onPageSelected(mainPager.currentItem)
-    }
-
-    override fun onStart() {
-        super.onStart()
-
-        viewModel.listen(State::class.java)
-                .subscribe(this::onPayloadReceived, Throwable::printStackTrace)
-                .guard(lifecycleDisposable)
-
-        viewModel.connectionState()
-                .subscribe(this::onConnectionStateChanged, Throwable::printStackTrace)
-                .guard(lifecycleDisposable)
     }
 
     override fun onStop() {

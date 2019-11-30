@@ -22,6 +22,7 @@ import com.tunjid.androidx.recyclerview.adapterOf
 import com.tunjid.androidx.view.util.spring
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
+import com.tunjid.rcswitchcontrol.fragments.DevicesFragment
 import com.tunjid.rcswitchcontrol.fragments.HostFragment
 import com.tunjid.rcswitchcontrol.fragments.RecordFragment
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
@@ -29,6 +30,9 @@ import com.tunjid.rcswitchcontrol.viewmodels.ProtocolKey
 
 @Suppress("unused") // XML
 class TvHeaderFragment : BaseFragment(R.layout.fragment_list), Navigator.TagProvider {
+
+    private val host by lazy { requireActivity().getString(R.string.host) }
+    private val devices by lazy { requireActivity().getString(R.string.devices) }
 
     private val viewModel by activityViewModels<ControlViewModel>()
 
@@ -62,11 +66,12 @@ class TvHeaderFragment : BaseFragment(R.layout.fragment_list), Navigator.TagProv
                 .build()
     }
 
-    private fun items(): List<ProtocolKey> = listOf("0", "1").map(::ProtocolKey) + viewModel.keys
+    private fun items(): List<Any> = listOf(host, devices) + viewModel.keys
 
-    private fun onHeaderHighlighted(key: ProtocolKey) = when (key) {
-        ProtocolKey("0") -> HostFragment.newInstance()
-        in viewModel.keys -> RecordFragment.tvCommandInstance(ProtocolKey(key.name))
+    private fun onHeaderHighlighted(key: Any) = when (key) {
+        host -> HostFragment.newInstance()
+        devices -> DevicesFragment.newInstance()
+        is ProtocolKey -> RecordFragment.tvCommandInstance(ProtocolKey(key.name))
         else -> null
     }?.let { navigator.push(it); Unit } ?: Unit
 
@@ -76,10 +81,10 @@ class TvHeaderFragment : BaseFragment(R.layout.fragment_list), Navigator.TagProv
     }
 }
 
-class HeaderViewHolder(context: Context, onFocused: (ProtocolKey) -> Unit) : RecyclerView.ViewHolder(MaterialButton(context)) {
+class HeaderViewHolder(context: Context, onFocused: (Any) -> Unit) : RecyclerView.ViewHolder(MaterialButton(context)) {
 
     val text = itemView as MaterialButton
-    var key: ProtocolKey? = null
+    var key: Any? = null
 
     init {
         text.apply {
@@ -96,9 +101,13 @@ class HeaderViewHolder(context: Context, onFocused: (ProtocolKey) -> Unit) : Rec
         }
     }
 
-    fun bind(key: ProtocolKey) {
+    fun bind(key: Any) {
         this.key = key
-        text.text = key.title
+        text.text = when (key) {
+            is ProtocolKey -> key.name
+            is String -> key
+            else -> "unknown"
+        }
     }
 
 }

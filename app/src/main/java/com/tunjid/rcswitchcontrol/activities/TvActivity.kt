@@ -19,7 +19,7 @@ import androidx.fragment.app.FragmentActivity
 import com.tunjid.androidx.core.components.services.HardServiceConnection
 import com.tunjid.androidx.navigation.Navigator
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.fragments.tv.HeaderFragment
+import com.tunjid.rcswitchcontrol.fragments.tv.TvControlFragment
 import com.tunjid.rcswitchcontrol.navigation.TvNavigator
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
 import com.tunjid.rcswitchcontrol.utils.GlobalUiController
@@ -38,6 +38,6 @@ class TvActivity : FragmentActivity(R.layout.activity_tv),
 
         HardServiceConnection(applicationContext, ServerNsdService::class.java).start()
 
-        if (savedInstanceState == null) navigator.push(HeaderFragment())
+        if (savedInstanceState == null) navigator.push(TvControlFragment())
     }
 }

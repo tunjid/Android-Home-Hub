@@ -27,6 +27,7 @@ package com.tunjid.rcswitchcontrol.fragments
 import android.os.Bundle
 import android.view.View
 import androidx.core.view.updatePadding
+import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.fragment.app.activityViewModels
 import androidx.leanback.app.BrowseSupportFragment
 import com.google.android.flexbox.AlignItems
@@ -38,6 +39,7 @@ import com.tunjid.androidx.recyclerview.ListManagerBuilder
 import com.tunjid.androidx.recyclerview.ListPlaceholder
 import com.tunjid.androidx.recyclerview.adapterOf
 import com.tunjid.androidx.view.util.inflate
+import com.tunjid.androidx.view.util.spring
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.data.Record
@@ -61,6 +63,13 @@ sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
                 textView.isFocusableInTouchMode = true
                 textView.textSize = itemView.context.resources.getDimensionPixelSize(R.dimen.regular_text).toFloat()
                 textView.setOnFocusChangeListener { _, hasFocus ->
+                    textView.spring(SpringAnimation.SCALE_Y)
+                            .addEndListener { _, _, _, _ -> textView.invalidate() }
+                            .animateToFinalPosition(if (hasFocus) 1.1F else 1F)
+                    textView.spring(SpringAnimation.SCALE_X)
+                            .addEndListener { _, _, _, _ -> textView.invalidate() }
+                            .animateToFinalPosition(if (hasFocus) 1.1F else 1F)
+
                     textView.strokeWidth =
                             if (hasFocus) textView.context.resources.getDimensionPixelSize(R.dimen.quarter_margin)
                             else 0

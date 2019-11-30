@@ -1,7 +1,6 @@
 package com.tunjid.rcswitchcontrol.fragments.tv
 
 import android.os.Bundle
-import android.os.Handler
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.leanback.app.BrowseSupportFragment
@@ -18,7 +17,7 @@ import com.tunjid.rcswitchcontrol.utils.guard
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.ProtocolKey
 
-class HeaderFragment : BrowseSupportFragment(), Navigator.TagProvider {
+class TvControlFragment : BrowseSupportFragment(), Navigator.TagProvider {
 
     private val viewModel by activityViewModels<ControlViewModel>()
 
@@ -26,21 +25,11 @@ class HeaderFragment : BrowseSupportFragment(), Navigator.TagProvider {
 
     private lateinit var rowsAdapter: ArrayObjectAdapter
 
+    override val stableTag: String = "ControlHeaders"
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        setupUi()
-        mainFragmentRegistry.registerFragment(ControlRow::class.java, ControlRowFragmentFactory())
-    }
-
-    override fun onResume() {
-        super.onResume()
-        loadData()
-    }
-
-    override val stableTag: String = "ControlHeaders"
-
-    private fun setupUi() {
         headersState = HEADERS_ENABLED
         isHeadersTransitionOnBackEnabled = true
         brandColor = requireContext().colorAt(R.color.fastlane_background)
@@ -49,19 +38,19 @@ class HeaderFragment : BrowseSupportFragment(), Navigator.TagProvider {
         adapter = rowsAdapter
 
         setOnSearchClickedListener {}
-        prepareEntranceTransition()
+        mainFragmentRegistry.registerFragment(ControlRow::class.java, ControlRowFragmentFactory())
     }
 
-    private fun loadData() {
-        Handler().postDelayed({
-            startEntranceTransition()
+    override fun onResume() {
+        super.onResume()
+        prepareEntranceTransition()
+        startEntranceTransition()
 
-            rowsAdapter.setItems(viewModel.keys.map(::ControlRow), null)
+        rowsAdapter.setItems(viewModel.keys.map(::ControlRow), null)
 
-            viewModel.listen(ControlViewModel.State::class.java).subscribe(this::onPayloadReceived, Throwable::printStackTrace)
-                    .guard(lifecycleDisposable)
-
-        }, 2000)
+        viewModel.listen(ControlViewModel.State::class.java)
+                .subscribe(this::onPayloadReceived, Throwable::printStackTrace)
+                .guard(lifecycleDisposable)
     }
 
     private fun onPayloadReceived(state: ControlViewModel.State) {
@@ -81,4 +70,4 @@ private class ControlRowFragmentFactory internal constructor()
     }
 }
 
-private class ControlRow(val key: ProtocolKey): PageRow(HeaderItem(key.name.hashCode().toLong(), key.title))
+private class ControlRow(val key: ProtocolKey) : PageRow(HeaderItem(key.name.hashCode().toLong(), key.title))

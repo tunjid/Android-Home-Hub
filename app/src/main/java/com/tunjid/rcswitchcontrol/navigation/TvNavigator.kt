@@ -9,7 +9,7 @@ import com.tunjid.rcswitchcontrol.utils.TransientBarDriver
 
 class TvNavigator(host: FragmentActivity) : AppNavigator {
 
-    private val delegate by host.stackNavigationController(R.id.header_container)
+    private val delegate by host.stackNavigationController(R.id.main_fragment_container)
 
     override val activeNavigator get() = delegate
 

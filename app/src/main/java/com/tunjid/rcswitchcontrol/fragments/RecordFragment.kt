@@ -29,11 +29,11 @@ import android.view.View
 import androidx.core.view.updatePadding
 import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.fragment.app.activityViewModels
-import androidx.leanback.app.BrowseSupportFragment
 import com.google.android.flexbox.AlignItems
 import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.FlexboxLayoutManager
 import com.google.android.flexbox.JustifyContent
+import com.tunjid.androidx.core.components.args
 import com.tunjid.androidx.recyclerview.ListManager
 import com.tunjid.androidx.recyclerview.ListManagerBuilder
 import com.tunjid.androidx.recyclerview.ListPlaceholder
@@ -55,51 +55,13 @@ sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
 
     class CommandsFragment : RecordFragment()
 
-    class TVCommandsFragment : RecordFragment(), BrowseSupportFragment.MainFragmentAdapterProvider {
-        private val adapter = BrowseSupportFragment.MainFragmentAdapter(this)
-        override val viewHolderConfigurator: RecordViewHolder.() -> Unit
-            get() = {
-                textView.isFocusable = true
-                textView.isFocusableInTouchMode = true
-                textView.textSize = itemView.context.resources.getDimensionPixelSize(R.dimen.regular_text).toFloat()
-                textView.setOnFocusChangeListener { _, hasFocus ->
-                    textView.spring(SpringAnimation.SCALE_Y)
-                            .addEndListener { _, _, _, _ -> textView.invalidate() }
-                            .animateToFinalPosition(if (hasFocus) 1.1F else 1F)
-                    textView.spring(SpringAnimation.SCALE_X)
-                            .addEndListener { _, _, _, _ -> textView.invalidate() }
-                            .animateToFinalPosition(if (hasFocus) 1.1F else 1F)
-
-                    textView.strokeWidth =
-                            if (hasFocus) textView.context.resources.getDimensionPixelSize(R.dimen.quarter_margin)
-                            else 0
-                }
-            }
-
-        override fun getMainFragmentAdapter(): BrowseSupportFragment.MainFragmentAdapter<*> =
-                adapter
-
-        override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-            super.onViewCreated(view, savedInstanceState)
-            mainFragmentAdapter.fragmentHost.notifyViewCreated(mainFragmentAdapter)
-        }
-
-        override fun onResume() {
-            super.onResume()
-            mainFragmentAdapter.fragmentHost.notifyDataReady(mainFragmentAdapter)
-        }
-    }
+    internal var key: String? by args()
+    internal var inTv: Boolean? by args()
+    private val viewModel by activityViewModels<ControlViewModel>()
 
     private lateinit var listManager: ListManager<RecordViewHolder, ListPlaceholder<*>>
 
-    private val viewModel by activityViewModels<ControlViewModel>()
-    private var key: String? = null
-    open val viewHolderConfigurator: RecordViewHolder.() -> Unit = {}
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        key = arguments?.getString(KEY)
-    }
+    override val stableTag: String get() = "${javaClass.simpleName}-$key"
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) = view.run {
         super.onViewCreated(view, savedInstanceState)
@@ -113,7 +75,7 @@ sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
                             RecordViewHolder(
                                     parent.inflate(if (key == null) R.layout.viewholder_history else R.layout.viewholder_command),
                                     if (key == null) null else this@RecordFragment::onRecordClicked
-                            ).apply(viewHolderConfigurator)
+                            ).apply { configureViewHolder(this) }
                         },
                         viewHolderBinder = { holder, record, _ -> holder.bind(record) }
                 ))
@@ -157,16 +119,30 @@ sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
     private fun onRecordClicked(record: Record) =
             viewModel.dispatchPayload(record.key) { action = record.entry }
 
+    private fun configureViewHolder(viewHolder: RecordViewHolder) = viewHolder.textView.run {
+        if (inTv.let { it != null && it }) return@run
+
+        isFocusable = true
+        isFocusableInTouchMode = true
+        textSize = context.resources.getDimensionPixelSize(R.dimen.regular_text).toFloat()
+        setOnFocusChangeListener { _, hasFocus ->
+            spring(SpringAnimation.SCALE_Y).animateToFinalPosition(if (hasFocus) 1.1F else 1F)
+            spring(SpringAnimation.SCALE_X).animateToFinalPosition(if (hasFocus) 1.1F else 1F)
+
+            strokeWidth =
+                    if (hasFocus) context.resources.getDimensionPixelSize(R.dimen.quarter_margin)
+                    else 0
+        }
+    }
+
     private fun onCommandStateReceived(state: State.Commands) = listManager.onDiff(state.result)
 
     companion object {
 
-        const val KEY = "KEY"
+        fun historyInstance(): HistoryFragment = HistoryFragment().apply { this.inTv = false }
 
-        fun historyInstance(): HistoryFragment = HistoryFragment().apply { arguments = Bundle() }
+        fun commandInstance(key: ProtocolKey): CommandsFragment = CommandsFragment().apply { this.key = key.name; this.inTv = false }
 
-        fun commandInstance(key: ProtocolKey): CommandsFragment = CommandsFragment().apply { arguments = Bundle().apply { putString(KEY, key.name) } }
-
-        fun tvCommandInstance(key: ProtocolKey): TVCommandsFragment = TVCommandsFragment().apply { arguments = Bundle().apply { putString(KEY, key.name) } }
+        fun tvCommandInstance(key: ProtocolKey): CommandsFragment = CommandsFragment().apply { this.key = key.name; this.inTv = true }
     }
 }

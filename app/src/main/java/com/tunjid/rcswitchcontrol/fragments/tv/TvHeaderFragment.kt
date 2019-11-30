@@ -1,0 +1,108 @@
+package com.tunjid.rcswitchcontrol.fragments.tv
+
+import android.content.Context
+import android.content.res.ColorStateList
+import android.os.Bundle
+import android.view.View
+import androidx.dynamicanimation.animation.SpringAnimation
+import androidx.fragment.app.activityViewModels
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.flexbox.AlignItems
+import com.google.android.flexbox.FlexDirection
+import com.google.android.flexbox.FlexboxLayoutManager
+import com.google.android.flexbox.JustifyContent
+import com.google.android.material.button.MaterialButton
+import com.tunjid.androidx.core.content.colorAt
+import com.tunjid.androidx.navigation.Navigator
+import com.tunjid.androidx.recyclerview.ListManager
+import com.tunjid.androidx.recyclerview.ListManagerBuilder
+import com.tunjid.androidx.recyclerview.ListPlaceholder
+import com.tunjid.androidx.recyclerview.adapterOf
+import com.tunjid.androidx.view.util.spring
+import com.tunjid.rcswitchcontrol.R
+import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
+import com.tunjid.rcswitchcontrol.fragments.HostFragment
+import com.tunjid.rcswitchcontrol.fragments.RecordFragment
+import com.tunjid.rcswitchcontrol.utils.LifecycleDisposable
+import com.tunjid.rcswitchcontrol.utils.guard
+import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
+import com.tunjid.rcswitchcontrol.viewmodels.ProtocolKey
+
+@Suppress("unused") // XML
+class TvHeaderFragment : BaseFragment(R.layout.fragment_list), Navigator.TagProvider {
+
+    private val viewModel by activityViewModels<ControlViewModel>()
+
+    private val lifecycleDisposable = LifecycleDisposable(lifecycle)
+
+    private var listManager: ListManager<HeaderViewHolder, ListPlaceholder<*>>? = null
+
+    override val stableTag: String = "ControlHeaders"
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        listManager = ListManagerBuilder<HeaderViewHolder, ListPlaceholder<*>>()
+                .withRecyclerView(view.findViewById(R.id.list))
+                .withCustomLayoutManager(FlexboxLayoutManager(context).apply {
+                    alignItems = AlignItems.STRETCH
+                    flexDirection = FlexDirection.ROW
+                    justifyContent = JustifyContent.CENTER
+                })
+                .withAdapter(adapterOf(
+                        itemsSource = this::items,
+                        viewHolderCreator = { parent, _ ->
+                            HeaderViewHolder(parent.context, this::onHeaderHighlighted)
+                        },
+                        viewHolderBinder = { holder, key, _ -> holder.bind(key) }
+                ))
+                .build()
+    }
+
+    private fun items(): List<ProtocolKey> = listOf("0", "1").map(::ProtocolKey) + viewModel.keys
+
+    private fun onHeaderHighlighted(key: ProtocolKey) = when (key) {
+        ProtocolKey("0") -> HostFragment.newInstance()
+        in viewModel.keys -> RecordFragment.tvCommandInstance(ProtocolKey(key.name))
+        else -> null
+    }?.let { navigator.push(it); Unit } ?: Unit
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.listen(ControlViewModel.State::class.java)
+                .subscribe(this::onPayloadReceived, Throwable::printStackTrace)
+                .guard(lifecycleDisposable)
+    }
+
+    private fun onPayloadReceived(state: ControlViewModel.State) {
+        if (state !is ControlViewModel.State.Commands || !state.isNew) return
+        listManager?.notifyDataSetChanged()
+    }
+}
+
+class HeaderViewHolder(context: Context, onFocused: (ProtocolKey) -> Unit) : RecyclerView.ViewHolder(MaterialButton(context)) {
+
+    val text = itemView as MaterialButton
+    var key: ProtocolKey? = null
+
+    init {
+        text.apply {
+            isFocusable = true
+            isFocusableInTouchMode = true
+            cornerRadius = context.resources.getDimensionPixelSize(R.dimen.quadruple_margin)
+            backgroundTintList = ColorStateList.valueOf(context.colorAt(R.color.app_background))
+            setOnFocusChangeListener { _, hasFocus ->
+                spring(SpringAnimation.SCALE_Y).animateToFinalPosition(if (hasFocus) 1.1F else 1F)
+                spring(SpringAnimation.SCALE_X).animateToFinalPosition(if (hasFocus) 1.1F else 1F)
+                val frozen = key
+                if (hasFocus && frozen != null) onFocused(frozen)
+            }
+        }
+    }
+
+    fun bind(key: ProtocolKey) {
+        this.key = key
+        text.text = key.title
+    }
+
+}

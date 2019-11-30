@@ -39,6 +39,10 @@ class HostViewModel(app: Application) : AndroidViewModel(app) {
 
     private val serverConnection = HardServiceConnection(app, ServerNsdService::class.java)
 
+    init {
+        serverConnection.bind()
+    }
+
     override fun onCleared() {
         super.onCleared()
         disposable.clear()

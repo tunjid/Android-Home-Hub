@@ -100,8 +100,10 @@ sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
     override fun onStart() {
         super.onStart()
         when (key) {
-            null -> viewModel.listen(State.History::class.java).subscribe(this::onHistoryStateReceived, Throwable::printStackTrace)
-            else -> viewModel.listen(State.Commands::class.java) { key == it.key }.subscribe(this::onCommandStateReceived, Throwable::printStackTrace)
+            null -> viewModel.listen(State.History::class.java)
+                    .subscribe(this::onHistoryStateReceived, Throwable::printStackTrace)
+            else -> viewModel.listen(State.Commands::class.java) { key == it.key }
+                    .subscribe(this::onCommandStateReceived, Throwable::printStackTrace)
         }.guard(lifecycleDisposable)
     }
 

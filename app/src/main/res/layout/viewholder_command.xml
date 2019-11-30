@@ -22,14 +22,20 @@
   ~ SOFTWARE.
   -->
 
-<com.google.android.material.chip.Chip xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.button.MaterialButton xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/text"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:layout_margin="@dimen/quarter_margin"
     android:backgroundTint="@color/app_background"
+    android:insetLeft="0dp"
+    android:insetTop="0dp"
+    android:insetRight="0dp"
+    android:insetBottom="0dp"
     android:textAllCaps="false"
     android:textColor="@color/text_color"
     android:textSize="@dimen/small_text"
+    app:cornerRadius="@dimen/quadruple_margin"
     tools:text="I'm a chip that contains some text for demo purposes. I'm also a bit long for testing" />

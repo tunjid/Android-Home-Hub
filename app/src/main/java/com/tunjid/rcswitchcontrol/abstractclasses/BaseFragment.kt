@@ -39,7 +39,7 @@ import com.tunjid.androidx.navigation.Navigator
 import com.tunjid.androidx.navigation.activityNavigatorController
 import com.tunjid.androidx.view.util.InsetFlags
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.utils.AppNavigator
+import com.tunjid.rcswitchcontrol.navigation.AppNavigator
 import com.tunjid.rcswitchcontrol.utils.GlobalUiController
 import com.tunjid.rcswitchcontrol.utils.InsetProvider
 import com.tunjid.rcswitchcontrol.utils.activityGlobalUiController

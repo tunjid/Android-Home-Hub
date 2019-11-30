@@ -29,13 +29,12 @@
     android:layout_height="wrap_content"
     android:layout_margin="@dimen/quarter_margin">
 
-    <TextView
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_vertical"
         android:layout_margin="@dimen/quarter_margin"
-        android:background="@drawable/circle_background"
         android:backgroundTint="@color/card_background"
         android:gravity="start|center_vertical"
         android:lineSpacingMultiplier="1.2"
@@ -47,6 +46,7 @@
         android:textColor="@color/text_color"
         android:textIsSelectable="true"
         android:textSize="@dimen/small_text"
+        app:cornerRadius="@dimen/single_margin"
         app:layout_constrainedWidth="true"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toTopOf="parent"

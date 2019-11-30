@@ -33,8 +33,6 @@ class TvHeaderFragment : BaseFragment(R.layout.fragment_list), Navigator.TagProv
 
     private val viewModel by activityViewModels<ControlViewModel>()
 
-    private val lifecycleDisposable = LifecycleDisposable(lifecycle)
-
     private var listManager: ListManager<HeaderViewHolder, ListPlaceholder<*>>? = null
 
     override val stableTag: String = "ControlHeaders"

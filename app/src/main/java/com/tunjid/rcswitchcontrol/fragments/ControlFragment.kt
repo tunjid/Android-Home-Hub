@@ -59,6 +59,7 @@ import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
 import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.bottomInset
 import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.topInset
+import com.tunjid.rcswitchcontrol.utils.guard
 import com.tunjid.rcswitchcontrol.viewmodels.ProtocolKey
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.Page
@@ -153,8 +154,8 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
 
     override fun onStart() {
         super.onStart()
-        disposables.add(viewModel.listen(State::class.java).subscribe(this::onPayloadReceived, Throwable::printStackTrace))
-        disposables.add(viewModel.connectionState().subscribe(this::onConnectionStateChanged, Throwable::printStackTrace))
+        viewModel.listen(State::class.java).subscribe(this::onPayloadReceived, Throwable::printStackTrace).guard(lifecycleDisposable)
+        viewModel.connectionState().subscribe(this::onConnectionStateChanged, Throwable::printStackTrace).guard(lifecycleDisposable)
     }
 
     override fun onStop() {

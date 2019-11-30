@@ -44,6 +44,7 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.data.Record
 import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.bottomInset
+import com.tunjid.rcswitchcontrol.utils.guard
 import com.tunjid.rcswitchcontrol.viewholders.RecordViewHolder
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.State
@@ -98,10 +99,10 @@ sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
 
     override fun onStart() {
         super.onStart()
-        disposables.add(
-                if (key == null) viewModel.listen(State.History::class.java).subscribe(this::onHistoryStateReceived, Throwable::printStackTrace)
-                else viewModel.listen(State.Commands::class.java) { key == it.key }.subscribe(this::onCommandStateReceived, Throwable::printStackTrace)
-        )
+        when (key) {
+            null -> viewModel.listen(State.History::class.java).subscribe(this::onHistoryStateReceived, Throwable::printStackTrace)
+            else -> viewModel.listen(State.Commands::class.java) { key == it.key }.subscribe(this::onCommandStateReceived, Throwable::printStackTrace)
+        }.guard(lifecycleDisposable)
     }
 
     override fun onDestroyView() {

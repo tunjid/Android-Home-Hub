@@ -57,6 +57,7 @@ import com.tunjid.rcswitchcontrol.dialogfragments.throttleColorChanges
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
+import com.tunjid.rcswitchcontrol.utils.guard
 import com.tunjid.rcswitchcontrol.viewholders.DeviceAdapterListener
 import com.tunjid.rcswitchcontrol.viewholders.DeviceViewHolder
 import com.tunjid.rcswitchcontrol.viewholders.RfDeviceViewHolder
@@ -141,7 +142,9 @@ class DevicesFragment : BaseFragment(),
 
     override fun onStart() {
         super.onStart()
-        disposables.add(viewModel.listen(State.Devices::class.java).subscribe(this::onPayloadReceived, Throwable::printStackTrace))
+        viewModel.listen(State.Devices::class.java)
+                .subscribe(this::onPayloadReceived, Throwable::printStackTrace)
+                .guard(lifecycleDisposable)
     }
 
     override fun onDestroyView() {

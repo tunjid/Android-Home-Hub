@@ -41,6 +41,7 @@ import com.tunjid.rcswitchcontrol.viewholders.HostScanViewHolder
 import com.tunjid.rcswitchcontrol.viewholders.ServiceClickedListener
 import com.tunjid.rcswitchcontrol.viewholders.withPaddedAdapter
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
+import com.tunjid.rcswitchcontrol.utils.guard
 import com.tunjid.rcswitchcontrol.viewmodels.NsdScanViewModel
 
 /**
@@ -128,10 +129,11 @@ class HostScanFragment : BaseFragment(), ServiceClickedListener {
     private fun scanDevices(enable: Boolean) {
         isScanning = enable
 
-        if (isScanning) disposables.add(viewModel.findDevices()
+        if (isScanning) viewModel.findDevices()
                 .doOnSubscribe { updateUi(toolbarInvalidated = true) }
                 .doFinally(this::onScanningStopped)
-                .subscribe(scrollManager::onDiff, Throwable::printStackTrace))
+                .subscribe(scrollManager::onDiff, Throwable::printStackTrace)
+                .guard(lifecycleDisposable)
         else viewModel.stopScanning()
     }
 

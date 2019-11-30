@@ -42,8 +42,8 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.navigation.AppNavigator
 import com.tunjid.rcswitchcontrol.utils.GlobalUiController
 import com.tunjid.rcswitchcontrol.utils.InsetProvider
+import com.tunjid.rcswitchcontrol.utils.LifecycleDisposable
 import com.tunjid.rcswitchcontrol.utils.activityGlobalUiController
-import io.reactivex.disposables.CompositeDisposable
 
 /**
  * Base fragment
@@ -58,21 +58,11 @@ abstract class BaseFragment(layoutRes: Int = 0) : Fragment(layoutRes),
 
     override val insetFlags: InsetFlags get() = InsetFlags.ALL
 
-    protected val disposables = CompositeDisposable()
+    protected val lifecycleDisposable = LifecycleDisposable(lifecycle)
 
     override val navigator by activityNavigatorController<AppNavigator>()
 
     override var uiState by activityGlobalUiController()
-
-    override fun onStop() {
-        disposables.clear()
-        super.onStop()
-    }
-
-    override fun onDestroyView() {
-        disposables.clear()
-        super.onDestroyView()
-    }
 
     fun onInconsistentList(exception: Exception) {
         activity?.recreate()

@@ -1,16 +1,17 @@
-package com.tunjid.rcswitchcontrol.utils
+package com.tunjid.rcswitchcontrol.navigation
 
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
-import com.tunjid.androidx.navigation.Navigator
 import com.tunjid.androidx.navigation.stackNavigationController
 import com.tunjid.rcswitchcontrol.R
+import com.tunjid.rcswitchcontrol.utils.TransientBarDriver
 
-class AppNavigator(host: FragmentActivity) : Navigator, TransientBarController {
+
+class TvNavigator(host: FragmentActivity) : AppNavigator {
 
     private val delegate by host.stackNavigationController(R.id.main_fragment_container)
 
-    val activeNavigator get() = delegate
+    override val activeNavigator get() = delegate
 
     override val transientBarDriver by lazy { TransientBarDriver(host.findViewById(R.id.coordinator_layout)) }
 

@@ -19,26 +19,22 @@ import androidx.fragment.app.FragmentActivity
 import com.tunjid.androidx.core.components.services.HardServiceConnection
 import com.tunjid.androidx.navigation.Navigator
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.fragments.ControlFragment
+import com.tunjid.rcswitchcontrol.navigation.TvNavigator
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
-import com.tunjid.rcswitchcontrol.utils.AppNavigator
 import com.tunjid.rcswitchcontrol.utils.GlobalUiController
 import com.tunjid.rcswitchcontrol.utils.globalUiDriver
 
-class TvActivity : FragmentActivity(R.layout.activity_main),
+class TvActivity : FragmentActivity(R.layout.activity_tv),
         GlobalUiController,
-        Navigator.Controller{
+        Navigator.Controller {
 
-    override val navigator: AppNavigator by lazy { AppNavigator(this) }
+    override val navigator: TvNavigator by lazy { TvNavigator(this) }
 
     override var uiState by globalUiDriver(currentSource = navigator::current)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-//        setContentView(R.layout.activity_tv)
 
         HardServiceConnection(applicationContext, ServerNsdService::class.java).start()
-
-        if (savedInstanceState == null) navigator.push(ControlFragment.newInstance())
     }
 }

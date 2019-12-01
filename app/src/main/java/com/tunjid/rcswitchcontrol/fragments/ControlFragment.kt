@@ -27,7 +27,6 @@ package com.tunjid.rcswitchcontrol.fragments
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -38,6 +37,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentStatePagerAdapter
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.observe
 import androidx.viewpager.widget.ViewPager
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED
@@ -59,15 +59,15 @@ import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
 import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.bottomInset
 import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.topInset
-import com.tunjid.rcswitchcontrol.viewmodels.ProtocolKey
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.Page
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.Page.DEVICES
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.Page.HISTORY
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.Page.HOST
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.State
+import com.tunjid.rcswitchcontrol.viewmodels.ProtocolKey
 
-class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsListener {
+class ControlFragment : BaseFragment(R.layout.fragment_control), ZigBeeArgumentDialogFragment.ZigBeeArgsListener {
 
     private lateinit var mainPager: ViewPager
     private lateinit var commandsPager: ViewPager
@@ -84,20 +84,26 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
 
     override val insetFlags: InsetFlags = InsetFlags(hasLeftInset = true, hasTopInset = true, hasRightInset = true, hasBottomInset = false)
 
-    override fun onCreateView(inflater: LayoutInflater,
-                              container: ViewGroup?,
-                              savedInstanceState: Bundle?): View? {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        viewModel.listen(State::class.java).observe(this, this::onPayloadReceived)
+
+        viewModel.connectionState().observe(this, this::onConnectionStateChanged)
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
         defaultUi(
                 toolbarTitle = getString(R.string.switches),
                 toolBarMenu = R.menu.menu_fragment_nsd_client,
-                navBarColor = inflater.context.colorAt(R.color.black_50)
+                navBarColor = view.context.colorAt(R.color.black_50)
         )
 
-        val root = inflater.inflate(R.layout.fragment_control, container, false)
-        val tabs = root.findViewById<TabLayout>(R.id.tabs)
-        val commandTabs = root.findViewById<TabLayout>(R.id.command_tabs)
-        val bottomSheet = root.findViewById<ViewGroup>(R.id.bottom_sheet)
+        val tabs = view.findViewById<TabLayout>(R.id.tabs)
+        val commandTabs = view.findViewById<TabLayout>(R.id.command_tabs)
+        val bottomSheet = view.findViewById<ViewGroup>(R.id.bottom_sheet)
         val bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet)
         val offset = requireContext().resources.getDimensionPixelSize(R.dimen.triple_and_half_margin)
 
@@ -113,10 +119,10 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
             bottomSheetBehavior.state = if (viewModel.pages[it] == HISTORY) STATE_HALF_EXPANDED else STATE_HIDDEN
         }
 
-        connectionStatus = root.findViewById(R.id.connection_status)
+        connectionStatus = view.findViewById(R.id.connection_status)
 
-        mainPager = root.findViewById(R.id.pager)
-        commandsPager = root.findViewById(R.id.commands)
+        mainPager = view.findViewById(R.id.pager)
+        commandsPager = view.findViewById(R.id.commands)
 
         mainPager.adapter = adapter(viewModel.pages, childFragmentManager)
         commandsPager.adapter = commandAdapter(viewModel.keys, childFragmentManager)
@@ -131,7 +137,7 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
         commandsPager.setupForBottomSheet()
 
         bottomSheet.doOnNextLayout {
-            bottomSheet.layoutParams.height = root.height - topInset - resources.getDimensionPixelSize(R.dimen.double_and_half_margin)
+            bottomSheet.layoutParams.height = view.height - topInset - resources.getDimensionPixelSize(R.dimen.double_and_half_margin)
             bottomSheetBehavior.peekHeight = resources.getDimensionPixelSize(R.dimen.sextuple_margin) + bottomInset
         }
 
@@ -147,14 +153,6 @@ class ControlFragment : BaseFragment(), ZigBeeArgumentDialogFragment.ZigBeeArgsL
         })
 
         onPageSelected(mainPager.currentItem)
-
-        return root
-    }
-
-    override fun onStart() {
-        super.onStart()
-        disposables.add(viewModel.listen(State::class.java).subscribe(this::onPayloadReceived, Throwable::printStackTrace))
-        disposables.add(viewModel.connectionState().subscribe(this::onConnectionStateChanged, Throwable::printStackTrace))
     }
 
     override fun onStop() {

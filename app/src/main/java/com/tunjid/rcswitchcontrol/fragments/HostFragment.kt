@@ -27,9 +27,7 @@ package com.tunjid.rcswitchcontrol.fragments
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.content.Intent
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import androidx.fragment.app.activityViewModels
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
@@ -37,25 +35,23 @@ import com.tunjid.rcswitchcontrol.activities.MainActivity
 import com.tunjid.rcswitchcontrol.dialogfragments.NameServiceDialogFragment
 import com.tunjid.rcswitchcontrol.viewmodels.HostViewModel
 
-class HostFragment : BaseFragment(),
+class HostFragment : BaseFragment(R.layout.fragment_host),
         NameServiceDialogFragment.ServiceNameListener {
 
     private val viewModel by activityViewModels<HostViewModel>()
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        val root = inflater.inflate(R.layout.fragment_host, container, false)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
-        root.findViewById<View>(R.id.rename_server).setOnClickListener { NameServiceDialogFragment.newInstance().show(childFragmentManager, "") }
-        root.findViewById<View>(R.id.restart_server).setOnClickListener { viewModel.restartServer() }
-        root.findViewById<View>(R.id.stop_server).setOnClickListener {
+        view.findViewById<View>(R.id.rename_server).setOnClickListener { NameServiceDialogFragment.newInstance().show(childFragmentManager, "") }
+        view.findViewById<View>(R.id.restart_server).setOnClickListener { viewModel.restartServer() }
+        view.findViewById<View>(R.id.stop_server).setOnClickListener {
             viewModel.stop()
             startActivity(Intent(requireActivity(), MainActivity::class.java)
                     .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             requireActivity().finish()
         }
-
-        return root
     }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {

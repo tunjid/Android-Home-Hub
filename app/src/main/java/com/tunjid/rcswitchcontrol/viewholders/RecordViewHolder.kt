@@ -24,9 +24,11 @@
 
 package com.tunjid.rcswitchcontrol.viewholders
 
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.view.View
-import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.button.MaterialButton
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.data.Record
 
@@ -36,9 +38,10 @@ class RecordViewHolder internal constructor(
 ) : RecyclerView.ViewHolder(itemView) {
 
     private lateinit var record: Record
-    private val textView: TextView = itemView.findViewById(R.id.text)
+    val textView: MaterialButton = itemView.findViewById(R.id.text)
 
     init {
+        textView.strokeColor = ColorStateList.valueOf(Color.WHITE)
         textView.setOnClickListener { listener?.invoke(record) }
     }
 

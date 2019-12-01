@@ -27,24 +27,28 @@ package com.tunjid.rcswitchcontrol.fragments
 import android.os.Bundle
 import android.view.View
 import androidx.core.view.updatePadding
-import androidx.lifecycle.ViewModelProviders
+import androidx.dynamicanimation.animation.SpringAnimation
+import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.observe
 import com.google.android.flexbox.AlignItems
 import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.FlexboxLayoutManager
 import com.google.android.flexbox.JustifyContent
+import com.tunjid.androidx.core.components.args
 import com.tunjid.androidx.recyclerview.ListManager
 import com.tunjid.androidx.recyclerview.ListManagerBuilder
 import com.tunjid.androidx.recyclerview.ListPlaceholder
 import com.tunjid.androidx.recyclerview.adapterOf
 import com.tunjid.androidx.view.util.inflate
+import com.tunjid.androidx.view.util.spring
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.data.Record
 import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.bottomInset
 import com.tunjid.rcswitchcontrol.viewholders.RecordViewHolder
-import com.tunjid.rcswitchcontrol.viewmodels.ProtocolKey
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.State
+import com.tunjid.rcswitchcontrol.viewmodels.ProtocolKey
 
 sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
 
@@ -52,15 +56,19 @@ sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
 
     class CommandsFragment : RecordFragment()
 
+    internal var key: String? by args()
+    internal var inTv: Boolean? by args()
+    private val viewModel by activityViewModels<ControlViewModel>()
+
     private lateinit var listManager: ListManager<RecordViewHolder, ListPlaceholder<*>>
 
-    private lateinit var viewModel: ControlViewModel
-    private var key: String? = null
+    override val stableTag: String get() = "${javaClass.simpleName}-$key"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        viewModel = ViewModelProviders.of(parentFragment!!).get(ControlViewModel::class.java)
-        key = arguments?.getString(KEY)
+
+        if (key == null) viewModel.listen(State.History::class.java).observe(this, this::onHistoryStateReceived)
+        else viewModel.listen(State.Commands::class.java) { key == it.key }.observe(this, this::onCommandStateReceived)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) = view.run {
@@ -75,7 +83,7 @@ sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
                             RecordViewHolder(
                                     parent.inflate(if (key == null) R.layout.viewholder_history else R.layout.viewholder_command),
                                     if (key == null) null else this@RecordFragment::onRecordClicked
-                            )
+                            ).apply { configureViewHolder(this) }
                         },
                         viewHolderBinder = { holder, record, _ -> holder.bind(record) }
                 ))
@@ -96,14 +104,6 @@ sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
         updateUi(altToolBarShows = false)
     }
 
-    override fun onStart() {
-        super.onStart()
-        disposables.add(
-                if (key == null) viewModel.listen(State.History::class.java).subscribe(this::onHistoryStateReceived, Throwable::printStackTrace)
-                else viewModel.listen(State.Commands::class.java) { key == it.key }.subscribe(this::onCommandStateReceived, Throwable::printStackTrace)
-        )
-    }
-
     override fun onDestroyView() {
         super.onDestroyView()
         listManager.clear()
@@ -119,14 +119,29 @@ sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
     private fun onRecordClicked(record: Record) =
             viewModel.dispatchPayload(record.key) { action = record.entry }
 
+    private fun configureViewHolder(viewHolder: RecordViewHolder) = viewHolder.textView.run {
+        if (inTv.let { it != null && it }) return@run
+
+        isFocusable = true
+        isFocusableInTouchMode = true
+        setOnFocusChangeListener { _, hasFocus ->
+            spring(SpringAnimation.SCALE_Y).animateToFinalPosition(if (hasFocus) 1.1F else 1F)
+            spring(SpringAnimation.SCALE_X).animateToFinalPosition(if (hasFocus) 1.1F else 1F)
+
+            strokeWidth =
+                    if (hasFocus) context.resources.getDimensionPixelSize(R.dimen.quarter_margin)
+                    else 0
+        }
+    }
+
     private fun onCommandStateReceived(state: State.Commands) = listManager.onDiff(state.result)
 
     companion object {
 
-        const val KEY = "KEY"
+        fun historyInstance(): HistoryFragment = HistoryFragment().apply { this.inTv = false }
 
-        fun historyInstance(): HistoryFragment = HistoryFragment().apply { arguments = Bundle() }
+        fun commandInstance(key: ProtocolKey): CommandsFragment = CommandsFragment().apply { this.key = key.name; this.inTv = false }
 
-        fun commandInstance(key: ProtocolKey): CommandsFragment = CommandsFragment().apply { arguments = Bundle().apply { putString(KEY, key.name) } }
+        fun tvCommandInstance(key: ProtocolKey): CommandsFragment = CommandsFragment().apply { this.key = key.name; this.inTv = true }
     }
 }

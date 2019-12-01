@@ -29,7 +29,8 @@ import android.content.Intent
 import android.net.nsd.NsdServiceInfo
 import android.os.Bundle
 import android.view.*
-import androidx.lifecycle.ViewModelProviders
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.observe
 import com.tunjid.androidx.recyclerview.ListManager
 import com.tunjid.androidx.recyclerview.ListManagerBuilder
 import com.tunjid.androidx.recyclerview.ListPlaceholder
@@ -51,11 +52,11 @@ class HostScanFragment : BaseFragment(), ServiceClickedListener {
     private var isScanning: Boolean = false
 
     private lateinit var scrollManager: ListManager<HostScanViewHolder, ListPlaceholder<*>>
-    private lateinit var viewModel: NsdScanViewModel
+    private val viewModel by viewModels<NsdScanViewModel>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        viewModel = ViewModelProviders.of(this).get(NsdScanViewModel::class.java)
+        viewModel.scanOutput().observe(this, this::onScanResult)
     }
 
     override fun onCreateView(inflater: LayoutInflater,
@@ -128,16 +129,17 @@ class HostScanFragment : BaseFragment(), ServiceClickedListener {
     private fun scanDevices(enable: Boolean) {
         isScanning = enable
 
-        if (isScanning) disposables.add(viewModel.findDevices()
-                .doOnSubscribe { updateUi(toolbarInvalidated = true) }
-                .doFinally(this::onScanningStopped)
-                .subscribe(scrollManager::onDiff, Throwable::printStackTrace))
+        if (isScanning) viewModel.findDevices()
         else viewModel.stopScanning()
     }
 
-    private fun onScanningStopped() {
-        isScanning = false
-        updateUi(toolbarInvalidated = true)
+    private fun onScanResult(output:NsdScanViewModel.ScanOutput) = when(output) {
+        is NsdScanViewModel.ScanOutput.ScanStarted -> updateUi(toolbarInvalidated = true)
+        is NsdScanViewModel.ScanOutput.ScanResult -> scrollManager.onDiff(output.diffResult)
+        is NsdScanViewModel.ScanOutput.ScanEnded -> {
+            isScanning = false
+            updateUi(toolbarInvalidated = true)
+        }
     }
 
     companion object {

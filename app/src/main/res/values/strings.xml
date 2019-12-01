@@ -118,6 +118,7 @@
     <string name="ok">Okay</string>
     <string name="name_nsd_service">Name NSD Service</string>
     <string name="connected_to_server">Connected to switch server</string>
+    <string name="started_server_service">Switch service running</string>
 
     <!-- Menu items -->
     <string name="menu_connect">Connect</string>

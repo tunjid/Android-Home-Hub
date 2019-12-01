@@ -28,6 +28,7 @@ import android.app.Service
 import android.content.Intent
 import android.net.nsd.NsdServiceInfo
 import android.util.Log
+import androidx.core.app.NotificationCompat
 import com.tunjid.androidx.communications.nsd.NsdHelper
 import com.tunjid.androidx.communications.nsd.NsdHelper.createBufferedReader
 import com.tunjid.androidx.communications.nsd.NsdHelper.createPrintWriter
@@ -35,14 +36,15 @@ import com.tunjid.androidx.core.components.services.SelfBinder
 import com.tunjid.androidx.core.components.services.SelfBindingService
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.App.Companion.catcher
+import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
 import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
+import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService
 import com.tunjid.rcswitchcontrol.io.ConsoleWriter
 import com.tunjid.rcswitchcontrol.nsd.protocols.CommsProtocol
 import com.tunjid.rcswitchcontrol.nsd.protocols.ProxyProtocol
 import com.tunjid.rcswitchcontrol.services.ClientNsdService.Companion.ACTION_START_NSD_DISCOVERY
 import io.reactivex.disposables.CompositeDisposable
-import org.json.JSONObject
 import java.io.Closeable
 import java.io.IOException
 import java.io.PrintWriter
@@ -106,6 +108,11 @@ class ServerNsdService : Service(), SelfBindingService<ServerNsdService> {
                     .build().apply { registerService(serverSocket.localPort, initialServiceName) }
 
             serverThread = ServerThread(serverSocket).apply { start() }
+            startForeground(NOTIFICATION_ID, NotificationCompat.Builder(this, ClientStartedBoundService.NOTIFICATION_TYPE)
+                    .setSmallIcon(R.drawable.ic_notification)
+                    .setContentTitle(getText(R.string.started_server_service))
+                    .build())
+
         } catch (e: Exception) {
             e.printStackTrace()
             stopSelf()
@@ -175,13 +182,13 @@ class ServerNsdService : Service(), SelfBindingService<ServerNsdService> {
         }
 
         private fun onClientWrite(input: String?): String {
-            Log.d(TAG, "Read from client stream: $input")
+//            Log.d(TAG, "Read from client stream: $input")
             return protocol.processInput(input).serialize()
         }
 
         @Synchronized
         private fun broadcastToClients(output: String) {
-            Log.d(TAG, "Writing to all connections: ${JSONObject(output).toString(4)}")
+//            Log.d(TAG, "Writing to all connections: ${JSONObject(output).toString(4)}")
             pool.execute { portMap.values.forEach { it.outWriter.println(output) } }
         }
 
@@ -255,6 +262,8 @@ class ServerNsdService : Service(), SelfBindingService<ServerNsdService> {
         private const val SERVER_FLAG = "com.tunjid.rcswitchcontrol.ServerNsdService.services.server.flag"
         private const val SERVICE_NAME_KEY = "com.tunjid.rcswitchcontrol.ServerNsdService.services.server.serviceName"
         private const val WIRELESS_SWITCH_SERVICE = "Wireless Switch Service"
+        private const val NOTIFICATION_ID = 3
+
 
         var serviceName: String
             get() = App.preferences.getString(SERVICE_NAME_KEY, WIRELESS_SWITCH_SERVICE)

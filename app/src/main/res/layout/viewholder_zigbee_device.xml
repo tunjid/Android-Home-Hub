@@ -28,12 +28,14 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="@dimen/half_margin"
+    android:descendantFocusability="afterDescendants"
     app:cardBackgroundColor="?card_background_color">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/row_parent"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:descendantFocusability="afterDescendants"
         android:paddingVertical="@dimen/double_margin"
         tools:targetApi="o">
 

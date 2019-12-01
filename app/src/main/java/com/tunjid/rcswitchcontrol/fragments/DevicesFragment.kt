@@ -33,6 +33,7 @@ import android.view.ViewGroup
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.addCallback
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.observe
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ItemTouchHelper.Callback.makeMovementFlags
 import androidx.recyclerview.widget.RecyclerView
@@ -91,6 +92,8 @@ class DevicesFragment : BaseFragment(),
                 refreshUi()
             }
         }
+
+        viewModel.listen(State.Devices::class.java).observe(this, this::onPayloadReceived)
     }
 
     override fun onCreateView(inflater: LayoutInflater,
@@ -137,11 +140,6 @@ class DevicesFragment : BaseFragment(),
                 altToolbarTitle = getString(R.string.devices_selected, viewModel.numSelections()),
                 altToolBarShows = viewModel.withSelectedDevices { it.isNotEmpty() }
         )
-    }
-
-    override fun onStart() {
-        super.onStart()
-        disposables.add(viewModel.listen(State.Devices::class.java).subscribe(this::onPayloadReceived, Throwable::printStackTrace))
     }
 
     override fun onDestroyView() {

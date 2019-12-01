@@ -32,6 +32,7 @@
         android:descendantFocusability="blocksDescendants"
         android:focusable="false"
         android:focusableInTouchMode="false"
+        android:paddingHorizontal="@dimen/single_margin"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toRightOf="@+id/main_fragment_container"
         app:layout_constraintRight_toRightOf="parent"

@@ -104,7 +104,7 @@ class HeaderViewHolder(context: Context, onFocused: (Any) -> Unit) : RecyclerVie
     fun bind(key: Any) {
         this.key = key
         text.text = when (key) {
-            is ProtocolKey -> key.name
+            is ProtocolKey -> key.title
             is String -> key
             else -> "unknown"
         }

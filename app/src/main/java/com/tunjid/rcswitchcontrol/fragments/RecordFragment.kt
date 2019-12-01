@@ -124,7 +124,6 @@ sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
 
         isFocusable = true
         isFocusableInTouchMode = true
-        textSize = context.resources.getDimensionPixelSize(R.dimen.regular_text).toFloat()
         setOnFocusChangeListener { _, hasFocus ->
             spring(SpringAnimation.SCALE_Y).animateToFinalPosition(if (hasFocus) 1.1F else 1F)
             spring(SpringAnimation.SCALE_X).animateToFinalPosition(if (hasFocus) 1.1F else 1F)

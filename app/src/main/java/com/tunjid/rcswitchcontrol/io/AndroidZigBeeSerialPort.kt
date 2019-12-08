@@ -24,14 +24,14 @@
 
 package com.tunjid.rcswitchcontrol.io
 
-import android.content.Context
 import android.hardware.usb.UsbManager
 import android.os.Handler
 import android.os.HandlerThread
+import androidx.core.content.getSystemService
 import com.hoho.android.usbserial.driver.UsbSerialDriver
 import com.hoho.android.usbserial.driver.UsbSerialPort
 import com.hoho.android.usbserial.util.SerialInputOutputManager
-import com.tunjid.rcswitchcontrol.App
+import com.rcswitchcontrol.protocols.ContextProvider
 import com.zsmartsystems.zigbee.serial.ZigBeeSerialPort
 import com.zsmartsystems.zigbee.transport.ZigBeePort
 import jssc.SerialPortException
@@ -93,10 +93,10 @@ class AndroidZigBeeSerialPort(
 
         logger.debug("Opening port {} at {} baud with {}.", driver.ports[0].portNumber, baudRate, flowControl)
 
-        val manager = App.instance.getSystemService(Context.USB_SERVICE) as UsbManager
+        val manager = ContextProvider.appContext.getSystemService<UsbManager>()
 
 
-        val connection = manager.openDevice(driver.device)
+        val connection = manager?.openDevice(driver.device)
                 ?: // You probably need to call UsbManager.requestPermission(driver.getDevice(), ..)
                 return
 

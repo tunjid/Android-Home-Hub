@@ -1,6 +1,6 @@
 package com.tunjid.rcswitchcontrol.zigbee
 
-import com.tunjid.rcswitchcontrol.App
+import com.rcswitchcontrol.protocols.ContextProvider
 import com.tunjid.rcswitchcontrol.R
 import com.zsmartsystems.zigbee.CommandResult
 import com.zsmartsystems.zigbee.ZigBeeEndpoint
@@ -18,7 +18,7 @@ import java.util.concurrent.Future
 class MembershipViewCommand : AbsZigBeeCommand() {
     override val args: String = "[DEVICE] [GROUPID]"
 
-    override fun getCommand(): String = App.instance.getString(R.string.zigbeeprotocol_name_group)
+    override fun getCommand(): String = ContextProvider.appContext.getString(R.string.zigbeeprotocol_name_group)
 
     override fun getDescription(): String = "Views group name from device group membership."
 

@@ -1,6 +1,6 @@
 package com.tunjid.rcswitchcontrol.zigbee
 
-import com.tunjid.rcswitchcontrol.App
+import com.rcswitchcontrol.protocols.ContextProvider
 import com.tunjid.rcswitchcontrol.R
 import com.zsmartsystems.zigbee.CommandResult
 import com.zsmartsystems.zigbee.ZigBeeEndpoint
@@ -16,7 +16,7 @@ import java.util.concurrent.Future
 class MembershipAddCommand : AbsZigBeeCommand() {
     override val args: String = "[DEVICE] [GROUPID] [GROUPNAME]"
 
-    override fun getCommand(): String = App.instance.getString(R.string.zigbeeprotocol_join_group)
+    override fun getCommand(): String = ContextProvider.appContext.getString(R.string.zigbeeprotocol_join_group)
 
     override fun getDescription(): String = "Adds group membership to device."
 

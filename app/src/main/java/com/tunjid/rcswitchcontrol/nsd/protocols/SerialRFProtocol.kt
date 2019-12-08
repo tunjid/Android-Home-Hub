@@ -25,18 +25,18 @@
 package com.tunjid.rcswitchcontrol.nsd.protocols
 
 
-import android.content.Context
 import android.hardware.usb.UsbManager
 import android.util.Base64
 import android.util.Log
+import androidx.core.content.getSystemService
 import com.hoho.android.usbserial.driver.UsbSerialDriver
 import com.hoho.android.usbserial.driver.UsbSerialPort
 import com.hoho.android.usbserial.util.SerialInputOutputManager
-import com.tunjid.rcswitchcontrol.App
+import com.rcswitchcontrol.protocols.ContextProvider
+import com.rcswitchcontrol.protocols.persistence.Converter.Companion.deserialize
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.data.Payload
 import com.tunjid.rcswitchcontrol.data.RfSwitch
-import com.rcswitchcontrol.protocols.persistence.Converter.Companion.deserialize
 import com.tunjid.rcswitchcontrol.data.persistence.RfSwitchDataStore
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import java.io.PrintWriter
@@ -63,8 +63,8 @@ class SerialRFProtocol internal constructor(driver: UsbSerialDriver, printWriter
     private val serialInputOutputManager: SerialInputOutputManager
 
     init {
-        val manager = App.instance.getSystemService(Context.USB_SERVICE) as UsbManager
-        val connection = manager.openDevice(driver.device)
+        val manager = ContextProvider.appContext.getSystemService<UsbManager>()
+        val connection = manager?.openDevice(driver.device)
 
         port = driver.ports[0]
         port.open(connection)

@@ -1,6 +1,6 @@
 package com.tunjid.rcswitchcontrol.zigbee
 
-import com.tunjid.rcswitchcontrol.App
+import com.rcswitchcontrol.protocols.ContextProvider
 import com.tunjid.rcswitchcontrol.R
 import com.zsmartsystems.zigbee.ZigBeeGroupAddress
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager
@@ -12,7 +12,7 @@ import java.io.PrintStream
 class GroupAddCommand : AbsZigBeeCommand() {
     override val args: String = "GROUPID GROUPLABEL"
 
-    override fun getCommand(): String = App.instance.getString(R.string.zigbeeprotocol_add_group)
+    override fun getCommand(): String = ContextProvider.appContext.getString(R.string.zigbeeprotocol_add_group)
 
     override fun getDescription(): String = "Adds group to gateway network state."
 

@@ -24,13 +24,13 @@
 
 package com.tunjid.rcswitchcontrol.utils
 
-import com.tunjid.rcswitchcontrol.App
+import com.rcswitchcontrol.protocols.ContextProvider
 
 object SpanCountCalculator {
 
     val spanCount: Int
         get() {
-            val metrics = App.instance.resources.displayMetrics
+            val metrics = ContextProvider.appContext.resources.displayMetrics
             return if (metrics.widthPixels > metrics.heightPixels) 2 else 1
         }
 }

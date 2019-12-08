@@ -45,15 +45,15 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HALF_EX
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN
 import com.google.android.material.bottomsheet.setupForBottomSheet
 import com.google.android.material.tabs.TabLayout
+import com.rcswitchcontrol.protocols.ContextProvider
+import com.rcswitchcontrol.protocols.persistence.Converter.Companion.serialize
 import com.tunjid.androidx.core.content.colorAt
 import com.tunjid.androidx.view.util.InsetFlags
-import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.activities.MainActivity
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
 import com.tunjid.rcswitchcontrol.data.ZigBeeCommandArgs
-import com.rcswitchcontrol.protocols.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.dialogfragments.ZigBeeArgumentDialogFragment
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
@@ -233,9 +233,9 @@ class ControlFragment : BaseFragment(R.layout.fragment_control), ZigBeeArgumentD
             }
 
             override fun getPageTitle(position: Int): CharSequence? = when (pages[position]) {
-                HOST -> App.instance.getString(R.string.host)
-                HISTORY -> App.instance.getString(R.string.history)
-                DEVICES -> App.instance.getString(R.string.devices)
+                HOST -> ContextProvider.appContext.getString(R.string.host)
+                HISTORY -> ContextProvider.appContext.getString(R.string.history)
+                DEVICES -> ContextProvider.appContext.getString(R.string.devices)
             }
 
             override fun getCount(): Int = pages.size

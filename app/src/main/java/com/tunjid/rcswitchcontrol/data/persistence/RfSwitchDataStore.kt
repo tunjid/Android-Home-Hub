@@ -25,6 +25,7 @@
 package com.tunjid.rcswitchcontrol.data.persistence
 
 import android.content.Context
+import com.rcswitchcontrol.protocols.ContextProvider
 import com.rcswitchcontrol.protocols.persistence.Converter
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.data.RfSwitch
@@ -42,7 +43,7 @@ class RfSwitchDataStore {
     val serializedSavedSwitches: String
         get() = preferences.getString(SWITCHES_KEY, "")!!
 
-    private val preferences = App.instance.getSharedPreferences(SWITCH_PREFS, Context.MODE_PRIVATE)
+    private val preferences = ContextProvider.appContext.getSharedPreferences(SWITCH_PREFS, Context.MODE_PRIVATE)
 
     fun saveSwitches(switches: List<RfSwitch>) {
         preferences.edit().putString(SWITCHES_KEY, Converter.converter.toJson(switches)).apply()

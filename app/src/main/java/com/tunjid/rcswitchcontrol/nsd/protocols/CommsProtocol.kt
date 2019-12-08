@@ -26,6 +26,7 @@ package com.tunjid.rcswitchcontrol.nsd.protocols
 
 import android.content.Context
 import androidx.annotation.StringRes
+import com.rcswitchcontrol.protocols.ContextProvider
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.data.Payload
 import com.rcswitchcontrol.protocols.persistence.Converter.Companion.deserialize
@@ -44,7 +45,7 @@ import java.util.concurrent.Executors
 
 abstract class CommsProtocol internal constructor(private val printWriter: PrintWriter) : Closeable {
 
-    val appContext: Context = App.instance
+    val appContext: Context = ContextProvider.appContext
 
     abstract fun processInput(payload: Payload): Payload
 

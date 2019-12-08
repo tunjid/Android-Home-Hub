@@ -1,6 +1,6 @@
 package com.tunjid.rcswitchcontrol.zigbee
 
-import com.tunjid.rcswitchcontrol.App
+import com.rcswitchcontrol.protocols.ContextProvider
 import com.tunjid.rcswitchcontrol.R
 import com.zsmartsystems.zigbee.ZigBeeGroupAddress
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager
@@ -13,7 +13,7 @@ import java.io.PrintStream
 class GroupRemoveCommand : AbsZigBeeCommand() {
     override val args: String = "GROUP"
 
-    override fun getCommand(): String = App.instance.getString(R.string.zigbeeprotocol_remove_group)
+    override fun getCommand(): String = ContextProvider.appContext.getString(R.string.zigbeeprotocol_remove_group)
 
     override fun getDescription(): String = "Removes group from gateway network state."
 

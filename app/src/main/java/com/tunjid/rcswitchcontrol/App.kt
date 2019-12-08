@@ -37,6 +37,7 @@ import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.util.Log
 import com.google.android.things.pio.PeripheralManager
+import com.rcswitchcontrol.protocols.ContextProvider
 import com.rcswitchcontrol.protocols.persistence.Converter
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
 import com.tunjid.rcswitchcontrol.data.Payload
@@ -72,7 +73,6 @@ class App : android.app.Application() {
     @SuppressLint("CheckResult")
     override fun onCreate() {
         super.onCreate()
-        instance = this
 
         Converter.apply {
             register(Payload::class)
@@ -101,10 +101,8 @@ class App : android.app.Application() {
 
     companion object {
 
-        lateinit var instance: App
-
         fun isServiceRunning(service: Class<out Service>): Boolean {
-            val activityManager = instance.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            val activityManager = ContextProvider.appContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
             val services = activityManager.getRunningServices(Integer.MAX_VALUE)
 
             for (info in services) if (info.service.className == service.name) return true
@@ -112,12 +110,12 @@ class App : android.app.Application() {
         }
 
         val preferences: SharedPreferences
-            get() = instance.getSharedPreferences(RfSwitch.SWITCH_PREFS, Context.MODE_PRIVATE)
+            get() = ContextProvider.appContext.getSharedPreferences(RfSwitch.SWITCH_PREFS, Context.MODE_PRIVATE)
 
         // Thrown on non Android things devices
         val isAndroidThings: Boolean
             get() {
-                val uiModeManager = instance.getSystemService(UI_MODE_SERVICE) as UiModeManager
+                val uiModeManager = ContextProvider.appContext.getSystemService(UI_MODE_SERVICE) as UiModeManager
                 if (uiModeManager.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION) {
                     return true
                 }

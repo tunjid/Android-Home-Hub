@@ -27,7 +27,7 @@ package com.tunjid.rcswitchcontrol.zigbee
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager
 import com.zsmartsystems.zigbee.console.ZigBeeConsoleCommand
 import java.io.PrintStream
-import java.util.ArrayList
+import java.util.*
 
 /**
  * Prints help on console.

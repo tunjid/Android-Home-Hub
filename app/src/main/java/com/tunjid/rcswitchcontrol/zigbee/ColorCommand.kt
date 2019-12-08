@@ -24,7 +24,7 @@
 
 package com.tunjid.rcswitchcontrol.zigbee
 
-import com.tunjid.rcswitchcontrol.App
+import com.rcswitchcontrol.protocols.ContextProvider
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.utils.Cie
 import com.zsmartsystems.zigbee.CommandResult
@@ -41,7 +41,7 @@ import java.util.concurrent.Future
 class ColorCommand : AbsZigBeeCommand() {
     override val args: String = "DEVICEID RED GREEN BLUE"
 
-    override fun getCommand(): String = App.instance.getString(R.string.zigbeeprotocol_color)
+    override fun getCommand(): String = ContextProvider.appContext.getString(R.string.zigbeeprotocol_color)
 
     override fun getDescription(): String = "Changes light color."
 

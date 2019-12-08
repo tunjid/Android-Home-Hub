@@ -48,14 +48,14 @@ import com.tunjid.androidx.view.util.inflate
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.rcswitchcontrol.protocols.models.Device
-import com.tunjid.rcswitchcontrol.data.RfSwitch
+import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
 import com.rcswitchcontrol.zigbee.models.createGroupSequence
 import com.rcswitchcontrol.protocols.persistence.serialize
 import com.tunjid.rcswitchcontrol.dialogfragments.GroupDeviceDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.throttleColorChanges
-import com.tunjid.rcswitchcontrol.services.ClientBleService
+import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
 import com.tunjid.rcswitchcontrol.viewholders.DeviceAdapterListener

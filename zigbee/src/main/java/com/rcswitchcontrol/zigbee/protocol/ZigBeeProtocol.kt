@@ -27,7 +27,7 @@ package com.rcswitchcontrol.zigbee.protocol
 import android.util.Log
 import com.hoho.android.usbserial.driver.UsbSerialDriver
 import com.rcswitchcontrol.protocols.CommsProtocol
-import com.rcswitchcontrol.protocols.ContextProvider
+import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.rcswitchcontrol.protocols.io.ConsoleStream
 import com.rcswitchcontrol.protocols.models.Payload
 import com.rcswitchcontrol.protocols.persistence.deserialize

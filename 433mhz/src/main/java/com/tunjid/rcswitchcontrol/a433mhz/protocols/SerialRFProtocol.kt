@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.nsd.protocols
+package com.tunjid.rcswitchcontrol.a433mhz.protocols
 
 
 import android.hardware.usb.UsbManager
@@ -33,13 +33,13 @@ import com.hoho.android.usbserial.driver.UsbSerialDriver
 import com.hoho.android.usbserial.driver.UsbSerialPort
 import com.hoho.android.usbserial.util.SerialInputOutputManager
 import com.rcswitchcontrol.protocols.CommsProtocol
-import com.rcswitchcontrol.protocols.ContextProvider
-import com.rcswitchcontrol.protocols.persistence.deserialize
-import com.tunjid.rcswitchcontrol.R
 import com.rcswitchcontrol.protocols.models.Payload
-import com.tunjid.rcswitchcontrol.data.RfSwitch
-import com.tunjid.rcswitchcontrol.data.persistence.RfSwitchDataStore
-import com.tunjid.rcswitchcontrol.services.ClientBleService
+import com.rcswitchcontrol.protocols.persistence.deserialize
+import com.tunjid.rcswitchcontrol.a433mhz.R
+import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
+import com.tunjid.rcswitchcontrol.a433mhz.persistence.RfSwitchDataStore
+import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
+import com.tunjid.rcswitchcontrol.common.ContextProvider
 import java.io.PrintWriter
 
 /**
@@ -50,7 +50,10 @@ import java.io.PrintWriter
  */
 
 @Suppress("PrivatePropertyName")
-class SerialRFProtocol internal constructor(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsProtocol(printWriter) {
+class SerialRFProtocol constructor(
+        driver: UsbSerialDriver,
+        printWriter: PrintWriter
+) : CommsProtocol(printWriter) {
 
     private val SNIFF: String = appContext.getString(R.string.scanblercprotocol_sniff)
     private val RENAME: String = appContext.getString(R.string.blercprotocol_rename_command)

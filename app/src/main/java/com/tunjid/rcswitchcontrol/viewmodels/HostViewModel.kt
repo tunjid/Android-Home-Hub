@@ -28,7 +28,7 @@ import android.app.Application
 import android.content.Intent
 import androidx.lifecycle.AndroidViewModel
 import com.tunjid.androidx.core.components.services.HardServiceConnection
-import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
+import com.tunjid.rcswitchcontrol.common.Broadcaster
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
 import io.reactivex.disposables.CompositeDisposable

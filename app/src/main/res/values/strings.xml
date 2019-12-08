@@ -45,7 +45,6 @@
         or there is a problem with your bluetooth adapter. Please try again later.</string>
 
     <!-- Scan Fragment -->
-    <string name="button_scan">Scan</string>
     <string name="unknown_device">Unknown Device</string>
     <string name="device_name_address">%1$s\n%2$s</string>
 
@@ -62,11 +61,8 @@
     <string name="undo">undo</string>
     <string name="deleted_switch">Deleted switch</string>
     <string name="connection_state">Connection State: %1$s</string>
-    <string name="connected">Connected</string>
-    <string name="connecting">Connecting</string>
     <string name="connected_to">Connected to %1$s</string>
     <string name="connecting_to">Connecting to %1$s</string>
-    <string name="disconnected">Disconnected</string>
     <string name="host">Host</string>
     <string name="history">History</string>
     <string name="devices">Devices</string>
@@ -96,14 +92,6 @@
     <string name="switch_service">Switch service</string>
     <string name="switch_service_description">Service for maintaining switch connection</string>
 
-    <!-- Ble service -->
-    <string name="service_name">BLE Service</string>
-    <string name="ble_service_new_connection">Trying to create a new connection…</string>
-    <string name="ble_service_adapter_uninitialized">BluetoothAdapter not initialized</string>
-    <string name="ble_service_reconnecting">Reconnecting to device</string>
-    <string name="ble_service_failed_to_connect">Failed connection attempt.</string>
-    <string name="ble_connected_nsd_server">Connected and hosting NSD server</string>
-
     <!-- NSD services -->
     <string name="server_nsd_service">Server NSD Service</string>
     <string name="client_nsd_service">Client NSD Service</string>
@@ -121,11 +109,6 @@
     <string name="started_server_service">Switch service running</string>
 
     <!-- Menu items -->
-    <string name="menu_connect">Connect</string>
-    <string name="menu_disconnect">Disconnect</string>
-    <string name="menu_forget">Forget Device</string>
-    <string name="menu_ping_server">Ping Server</string>
-    <string name="menu_forget_server">Forget Server</string>
     <string name="menu_start_nsd">Start Wifi Service</string>
     <string name="menu_restart_nsd">Restart Wifi Service</string>
     <string name="menu_scan">Scan</string>
@@ -136,28 +119,6 @@
     <string name="commsprotocol_bye">Bye</string>
     <string name="proxyprotocol_ping_response">Please choose an option;\n1. Set up a remote device to connect to the ble sniffer\n2. Control a remote device to find and toggle switches\n3. Knock-Knock jokes</string>
     <string name="proxyprotocol_invalid_command">Invalid command. Please choose the server you want, Knock Knock jokes, or an RC Remote</string>
-
-    <string name="blercprotocol_ping_response">Welcome! Tap any of the switches to control them</string>
-    <string name="blercprotocol_no_such_switch_response">Switch does not exist</string>
-    <string name="blercprotocol_refresh_response">Updated available switches</string>
-    <string name="blercprotocol_transmission_response">Sending transmission</string>
-    <string name="blercprotocol_refresh_switches_command">Refresh Switches</string>
-    <string name="blercprotocol_renamed_response">Renamed %1$s to %2$s</string>
-    <string name="blercprotocol_sniff_off_response">Sniffed off code</string>
-    <string name="blercprotocol_sniff_on_response">Sniffed on code</string>
-    <string name="blercprotocol_stop_sniff_response">Sniff ended</string>
-    <string name="blercprotocol_start_sniff_response">Sniffing</string>
-    <string name="blercprotocol_deleted_response">Deleted %1$s</string>
-    <string name="blercprotocol_delete_command">Delete</string>
-    <string name="blercprotocol_rename_command">Rename</string>
-    <string name="wiredrcprotocol_invalid_command">Invalid Command</string>
-
-    <string name="scanblercprotocol_device_name">Device: %1$s</string>
-    <string name="scanblercprotocol_scan_response">Scan complete, found %1$d device(s)</string>
-    <string name="scanblercprotocol_ping_reponse">Welcome! Tap scan to search for bluetooth hosts. Note that scanning is done in bouts of 5 seconds.</string>
-    <string name="scanblercprotocol_sniff">Sniff</string>
-    <string name="scanblercprotocol_start_scan_reponse">Scanning</string>
-    <string name="scanblercprotocol_sniff_already_exists_response">This switch already exists</string>
 
     <string name="knockknockprotocol_no">no</string>
     <string name="knockknockprotocol_yes">yes</string>

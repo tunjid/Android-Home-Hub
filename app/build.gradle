@@ -84,8 +84,11 @@ dependencies {
 
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$parent.ext.kotlin_version"
 
-    implementation project(':protocols')
+    implementation project(':common')
     implementation project(':zigbee')
+    implementation project(':433mhz')
+    implementation project(':protocols')
+
 
     testImplementation 'junit:junit:4.12'
     testImplementation 'org.mockito:mockito-core:2.23.0'

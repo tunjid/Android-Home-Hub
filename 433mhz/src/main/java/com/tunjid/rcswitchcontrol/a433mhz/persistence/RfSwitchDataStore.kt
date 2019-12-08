@@ -22,14 +22,13 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.data.persistence
+package com.tunjid.rcswitchcontrol.a433mhz.persistence
 
 import android.content.Context
-import com.rcswitchcontrol.protocols.ContextProvider
+import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.rcswitchcontrol.protocols.persistence.Converter
-import com.tunjid.rcswitchcontrol.App
-import com.tunjid.rcswitchcontrol.data.RfSwitch
-import com.tunjid.rcswitchcontrol.data.RfSwitch.Companion.SWITCH_PREFS
+import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
+import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch.Companion.SWITCH_PREFS
 import com.rcswitchcontrol.protocols.persistence.deserializeList
 
 class RfSwitchDataStore {

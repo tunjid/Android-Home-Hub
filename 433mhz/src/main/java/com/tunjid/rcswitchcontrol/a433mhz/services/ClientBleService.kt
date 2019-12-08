@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.services
+package com.tunjid.rcswitchcontrol.a433mhz.services
 
 import android.annotation.TargetApi
 import android.app.Service
@@ -35,12 +35,11 @@ import android.os.HandlerThread
 import android.util.Base64
 import android.util.Log
 import android.widget.Toast
-import com.tunjid.androidx.core.components.services.HardServiceConnection
 import com.tunjid.androidx.core.components.services.SelfBinder
 import com.tunjid.androidx.core.components.services.SelfBindingService
-import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.data.RfSwitch.Companion.SWITCH_PREFS
+import com.tunjid.rcswitchcontrol.a433mhz.R
+import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch.Companion.SWITCH_PREFS
+import com.tunjid.rcswitchcontrol.common.Broadcaster
 import io.reactivex.disposables.CompositeDisposable
 import java.util.*
 

@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.broadcasts
+package com.tunjid.rcswitchcontrol.common
 
 import android.content.Intent
 import android.util.Log

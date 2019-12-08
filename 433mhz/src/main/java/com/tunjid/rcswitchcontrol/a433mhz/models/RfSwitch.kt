@@ -22,14 +22,14 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.data
+package com.tunjid.rcswitchcontrol.a433mhz.models
 
 import android.os.Parcel
 import android.os.Parcelable
 import android.util.Base64
 import androidx.annotation.StringDef
 import com.rcswitchcontrol.protocols.models.Device
-import com.tunjid.rcswitchcontrol.nsd.protocols.SerialRFProtocol
+import com.tunjid.rcswitchcontrol.a433mhz.protocols.SerialRFProtocol
 
 /**
  * A model representing an RF switch

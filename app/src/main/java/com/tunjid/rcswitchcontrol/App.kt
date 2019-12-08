@@ -37,11 +37,11 @@ import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.util.Log
 import com.google.android.things.pio.PeripheralManager
-import com.rcswitchcontrol.protocols.ContextProvider
+import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.rcswitchcontrol.protocols.persistence.Converter
-import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
+import com.tunjid.rcswitchcontrol.common.Broadcaster
 import com.rcswitchcontrol.protocols.models.Payload
-import com.tunjid.rcswitchcontrol.data.RfSwitch
+import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommandArgs
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommandInfo
 import com.rcswitchcontrol.zigbee.models.ZigBeeDevice

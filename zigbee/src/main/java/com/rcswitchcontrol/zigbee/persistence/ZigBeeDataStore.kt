@@ -25,7 +25,7 @@
 package com.rcswitchcontrol.zigbee.persistence
 
 import android.content.Context
-import com.rcswitchcontrol.protocols.ContextProvider
+import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.rcswitchcontrol.protocols.persistence.Converter.Companion.converter
 import com.zsmartsystems.zigbee.IeeeAddress
 import com.zsmartsystems.zigbee.database.ZigBeeNetworkDataStore

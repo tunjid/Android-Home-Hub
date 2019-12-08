@@ -31,7 +31,7 @@ import android.content.Context.NOTIFICATION_SERVICE
 import android.content.Intent
 import android.os.Build
 import androidx.annotation.StringRes
-import com.rcswitchcontrol.protocols.ContextProvider
+import com.tunjid.rcswitchcontrol.common.ContextProvider
 
 /**
  * An interface hosting callbacks for [services][android.app.Service] that are started,

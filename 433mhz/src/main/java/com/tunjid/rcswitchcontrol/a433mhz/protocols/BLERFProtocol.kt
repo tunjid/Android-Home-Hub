@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.nsd.protocols
+package com.tunjid.rcswitchcontrol.a433mhz.protocols
 
 
 import android.bluetooth.BluetoothDevice
@@ -35,18 +35,18 @@ import android.os.Looper
 import android.os.ParcelUuid
 import android.util.Log
 import com.rcswitchcontrol.protocols.CommsProtocol
+import com.rcswitchcontrol.protocols.models.Payload
+import com.rcswitchcontrol.protocols.persistence.deserialize
 import com.tunjid.androidx.communications.bluetooth.BLEScanner
 import com.tunjid.androidx.communications.bluetooth.ScanFilterCompat
 import com.tunjid.androidx.core.components.services.HardServiceConnection
-import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.rcswitchcontrol.protocols.models.Payload
-import com.tunjid.rcswitchcontrol.data.RfSwitch
-import com.rcswitchcontrol.protocols.persistence.deserialize
-import com.tunjid.rcswitchcontrol.data.persistence.RfSwitchDataStore
-import com.tunjid.rcswitchcontrol.services.ClientBleService
-import com.tunjid.rcswitchcontrol.services.ClientBleService.Companion.C_HANDLE_CONTROL
-import com.tunjid.rcswitchcontrol.services.ClientBleService.Companion.STATE_SNIFFING
+import com.tunjid.rcswitchcontrol.a433mhz.R
+import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
+import com.tunjid.rcswitchcontrol.a433mhz.persistence.RfSwitchDataStore
+import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
+import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService.Companion.C_HANDLE_CONTROL
+import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService.Companion.STATE_SNIFFING
+import com.tunjid.rcswitchcontrol.common.Broadcaster
 import io.reactivex.disposables.CompositeDisposable
 import java.io.PrintWriter
 import java.util.*
@@ -59,9 +59,9 @@ import java.util.*
  */
 
 @Suppress("PrivatePropertyName")
-class BLERFProtocol internal constructor(printWriter: PrintWriter) : CommsProtocol(printWriter) {
+class BLERFProtocol constructor(printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
-    private val SCAN: String = appContext.getString(R.string.button_scan)
+    private val SCAN: String = appContext.getString(R.string.scan)
     private val SNIFF: String = appContext.getString(R.string.scanblercprotocol_sniff)
     private val RENAME: String = appContext.getString(R.string.blercprotocol_rename_command)
     private val DELETE: String = appContext.getString(R.string.blercprotocol_delete_command)
@@ -239,6 +239,7 @@ class BLERFProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
 
             ClientBleService.ACTION_CONTROL -> {
                 val rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_CONTROL)
+                        ?: return@run
                 if (stoppedSniffing(rawData)) {
                     action = (intentAction)
                     response = (getString(R.string.blercprotocol_stop_sniff_response))
@@ -251,6 +252,7 @@ class BLERFProtocol internal constructor(printWriter: PrintWriter) : CommsProtoc
 
             ClientBleService.ACTION_SNIFFER -> {
                 val rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_SNIFFER)
+                        ?: return@run
                 data = switchCreator.state
 
                 when {

@@ -24,7 +24,7 @@
 
 package com.tunjid.rcswitchcontrol.utils
 
-import com.rcswitchcontrol.protocols.ContextProvider
+import com.tunjid.rcswitchcontrol.common.ContextProvider
 
 object SpanCountCalculator {
 

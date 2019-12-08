@@ -31,7 +31,7 @@ import androidx.core.content.getSystemService
 import com.hoho.android.usbserial.driver.UsbSerialDriver
 import com.hoho.android.usbserial.driver.UsbSerialPort
 import com.hoho.android.usbserial.util.SerialInputOutputManager
-import com.rcswitchcontrol.protocols.ContextProvider
+import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.zsmartsystems.zigbee.serial.ZigBeeSerialPort
 import com.zsmartsystems.zigbee.transport.ZigBeePort
 import jssc.SerialPortException

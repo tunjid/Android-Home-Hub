@@ -12,6 +12,9 @@
         android:required="false" />
 
     <uses-feature android:name="android.hardware.usb.host" />
+    <uses-feature
+        android:name="android.hardware.bluetooth"
+        android:required="false" />
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.BLUETOOTH" />
@@ -74,10 +77,6 @@
             </intent-filter>
         </activity>
 
-        <service
-            android:name=".services.ClientBleService"
-            android:enabled="true"
-            android:label="@string/service_name" />
         <service
             android:name=".services.ServerNsdService"
             android:enabled="true"

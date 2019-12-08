@@ -1,4 +1,4 @@
-package com.rcswitchcontrol.protocols
+package com.tunjid.rcswitchcontrol.common
 
 import android.content.ContentProvider
 import android.content.ContentValues

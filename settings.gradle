@@ -22,4 +22,4 @@
  * SOFTWARE.
  */
 
-include ':app', ':zigbee', ':protocols'
+include ':app', ':zigbee', ':protocols', ':433mhz', ':common'

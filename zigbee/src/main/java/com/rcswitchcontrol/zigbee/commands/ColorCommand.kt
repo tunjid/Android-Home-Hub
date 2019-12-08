@@ -24,7 +24,7 @@
 
 package com.rcswitchcontrol.zigbee.commands
 
-import com.rcswitchcontrol.protocols.ContextProvider
+import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.rcswitchcontrol.zigbee.R
 import com.rcswitchcontrol.zigbee.utilities.Cie
 import com.zsmartsystems.zigbee.CommandResult

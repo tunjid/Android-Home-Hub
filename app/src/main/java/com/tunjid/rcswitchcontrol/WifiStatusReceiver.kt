@@ -36,7 +36,7 @@ import android.net.wifi.WifiManager.WIFI_STATE_ENABLED
 import android.os.Handler
 import android.os.Looper
 import com.tunjid.androidx.communications.nsd.NsdHelper
-import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
+import com.tunjid.rcswitchcontrol.common.Broadcaster
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
 import java.util.concurrent.atomic.AtomicReference

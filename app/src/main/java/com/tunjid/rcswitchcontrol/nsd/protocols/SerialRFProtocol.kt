@@ -36,7 +36,7 @@ import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.data.Payload
 import com.tunjid.rcswitchcontrol.data.RfSwitch
-import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserialize
+import com.rcswitchcontrol.protocols.persistence.Converter.Companion.deserialize
 import com.tunjid.rcswitchcontrol.data.persistence.RfSwitchDataStore
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import java.io.PrintWriter

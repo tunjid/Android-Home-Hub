@@ -37,8 +37,13 @@ import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.util.Log
 import com.google.android.things.pio.PeripheralManager
+import com.rcswitchcontrol.protocols.persistence.Converter
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
+import com.tunjid.rcswitchcontrol.data.Payload
 import com.tunjid.rcswitchcontrol.data.RfSwitch
+import com.tunjid.rcswitchcontrol.data.ZigBeeCommandArgs
+import com.tunjid.rcswitchcontrol.data.ZigBeeCommandInfo
+import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 
 /**
@@ -56,6 +61,14 @@ class App : android.app.Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+
+        Converter.apply {
+            register(Payload::class)
+            register(RfSwitch::class)
+            register(ZigBeeDevice::class)
+            register(ZigBeeCommandArgs::class)
+            register(ZigBeeCommandInfo::class)
+        }
 
         Broadcaster.listen(ClientNsdService.ACTION_START_NSD_DISCOVERY)
                 .subscribe({ intent -> receiver?.onReceive(this, intent) }, Throwable::printStackTrace)

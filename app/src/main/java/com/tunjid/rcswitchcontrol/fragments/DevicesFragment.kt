@@ -51,7 +51,7 @@ import com.tunjid.rcswitchcontrol.data.Device
 import com.tunjid.rcswitchcontrol.data.RfSwitch
 import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
 import com.tunjid.rcswitchcontrol.data.createGroupSequence
-import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
+import com.rcswitchcontrol.protocols.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.dialogfragments.GroupDeviceDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.throttleColorChanges

@@ -26,7 +26,7 @@ package com.tunjid.rcswitchcontrol.data.persistence
 
 import android.content.Context
 import com.tunjid.rcswitchcontrol.App
-import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.converter
+import com.rcswitchcontrol.protocols.persistence.Converter.Companion.converter
 import com.zsmartsystems.zigbee.IeeeAddress
 import com.zsmartsystems.zigbee.database.ZigBeeNetworkDataStore
 import com.zsmartsystems.zigbee.database.ZigBeeNodeDao

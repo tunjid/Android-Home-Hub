@@ -41,8 +41,8 @@ import com.tunjid.rcswitchcontrol.data.Record
 import com.tunjid.rcswitchcontrol.data.RfSwitch
 import com.tunjid.rcswitchcontrol.data.ZigBeeCommandInfo
 import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
-import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserialize
-import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserializeList
+import com.rcswitchcontrol.protocols.persistence.Converter.Companion.deserialize
+import com.rcswitchcontrol.protocols.persistence.Converter.Companion.deserializeList
 import com.tunjid.rcswitchcontrol.nsd.protocols.BLERFProtocol
 import com.tunjid.rcswitchcontrol.nsd.protocols.CommsProtocol
 import com.tunjid.rcswitchcontrol.nsd.protocols.SerialRFProtocol

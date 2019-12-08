@@ -31,11 +31,11 @@ import com.tunjid.rcswitchcontrol.data.Payload
 import com.tunjid.rcswitchcontrol.data.ZigBeeCommandArgs
 import com.tunjid.rcswitchcontrol.data.ZigBeeCommandInfo
 import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
-import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserialize
-import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serializeList
+import com.rcswitchcontrol.protocols.persistence.Converter.Companion.deserialize
+import com.rcswitchcontrol.protocols.persistence.Converter.Companion.serializeList
 import com.tunjid.rcswitchcontrol.data.persistence.ZigBeeDataStore
 import com.tunjid.rcswitchcontrol.io.AndroidZigBeeSerialPort
-import com.tunjid.rcswitchcontrol.io.ConsoleStream
+import com.rcswitchcontrol.protocols.io.ConsoleStream
 import com.tunjid.rcswitchcontrol.zigbee.ColorCommand
 import com.tunjid.rcswitchcontrol.zigbee.GroupAddCommand
 import com.tunjid.rcswitchcontrol.zigbee.GroupListCommand

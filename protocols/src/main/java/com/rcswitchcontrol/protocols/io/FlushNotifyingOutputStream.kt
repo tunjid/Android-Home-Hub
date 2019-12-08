@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.io
+package com.rcswitchcontrol.protocols.io
 
 import java.io.ByteArrayOutputStream
 

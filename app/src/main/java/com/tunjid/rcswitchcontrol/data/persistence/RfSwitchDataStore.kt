@@ -25,10 +25,11 @@
 package com.tunjid.rcswitchcontrol.data.persistence
 
 import android.content.Context
+import com.rcswitchcontrol.protocols.persistence.Converter
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.data.RfSwitch
 import com.tunjid.rcswitchcontrol.data.RfSwitch.Companion.SWITCH_PREFS
-import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserializeList
+import com.rcswitchcontrol.protocols.persistence.Converter.Companion.deserializeList
 
 class RfSwitchDataStore {
 

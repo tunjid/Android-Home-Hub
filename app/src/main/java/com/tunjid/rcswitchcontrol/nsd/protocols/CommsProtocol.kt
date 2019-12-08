@@ -28,8 +28,8 @@ import android.content.Context
 import androidx.annotation.StringRes
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.data.Payload
-import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.deserialize
-import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
+import com.rcswitchcontrol.protocols.persistence.Converter.Companion.deserialize
+import com.rcswitchcontrol.protocols.persistence.Converter.Companion.serialize
 import java.io.Closeable
 import java.io.PrintWriter
 import java.util.concurrent.ExecutorService

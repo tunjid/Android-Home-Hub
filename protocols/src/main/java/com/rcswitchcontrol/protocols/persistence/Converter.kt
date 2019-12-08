@@ -22,17 +22,15 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.data.persistence
+package com.rcswitchcontrol.protocols.persistence
 
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.tunjid.rcswitchcontrol.data.*
 import kotlin.reflect.KClass
-
 
 class Converter<out T : Any> internal constructor(private val kClass: KClass<T>) {
 
-//     fun serialize(item: T): String = converter.toJson(item)
+    //     fun serialize(item: T): String = converter.toJson(item)
 //
 //     fun serializeList(items: List<out T>): String = converter.toJson(items)
 //
@@ -43,11 +41,11 @@ class Converter<out T : Any> internal constructor(private val kClass: KClass<T>)
     companion object {
 
         val converter = Gson()
-        private val payload = Converter(Payload::class)
-        private val rcSwitch = Converter(RfSwitch::class)
-        private val zigBeeDevice = Converter(ZigBeeDevice::class)
-        private val zigBeeCommandArgs = Converter(ZigBeeCommandArgs::class)
-        private val zigBeeCommandInfo = Converter(ZigBeeCommandInfo::class)
+        private val map = mutableMapOf<KClass<*>, Converter<*>>()
+
+        fun register(clazz: KClass<*>) {
+            map[clazz] = Converter(clazz)
+        }
 
         fun <T : Any> T.serialize(): String = converter.toJson(this)
 
@@ -57,13 +55,9 @@ class Converter<out T : Any> internal constructor(private val kClass: KClass<T>)
 
         fun <T : Any> String.deserializeList(kClass: KClass<T>): List<T> = converter(kClass).deserializeList(this)
 
-        private fun <T : Any> converter(kClass: KClass<T>): Converter<T> = when (kClass) {
-            Payload::class -> payload
-            RfSwitch::class -> rcSwitch
-            ZigBeeDevice::class -> zigBeeDevice
-            ZigBeeCommandArgs::class -> zigBeeCommandArgs
-            ZigBeeCommandInfo::class -> zigBeeCommandInfo
-            else -> throw IllegalArgumentException("Invalid class")
-        } as Converter<T>
+        @Suppress("UNCHECKED_CAST")
+        private fun <T : Any> converter(kClass: KClass<T>): Converter<T> =
+                map[kClass] as? Converter<T>
+                        ?: throw IllegalArgumentException("This class must be registered to be converted first")
     }
 }

@@ -26,7 +26,7 @@ package com.tunjid.rcswitchcontrol.data
 
 import android.os.Parcel
 import android.os.Parcelable
-import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.converter
+import com.rcswitchcontrol.protocols.persistence.Converter.Companion.converter
 
 class ZigBeeCommandInfo(
         val command: String,

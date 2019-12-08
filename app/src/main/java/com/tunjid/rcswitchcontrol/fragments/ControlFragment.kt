@@ -53,7 +53,7 @@ import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.activities.MainActivity
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
 import com.tunjid.rcswitchcontrol.data.ZigBeeCommandArgs
-import com.tunjid.rcswitchcontrol.data.persistence.Converter.Companion.serialize
+import com.rcswitchcontrol.protocols.persistence.Converter.Companion.serialize
 import com.tunjid.rcswitchcontrol.dialogfragments.ZigBeeArgumentDialogFragment
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService

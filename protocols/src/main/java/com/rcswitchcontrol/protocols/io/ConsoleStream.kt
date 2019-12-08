@@ -22,8 +22,8 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.io
+package com.rcswitchcontrol.protocols.io
 
-import java.io.PrintWriter
+import java.io.PrintStream
 
-class ConsoleWriter(consumer: (String) -> Unit) : PrintWriter(FlushNotifyingOutputStream(consumer), true)
+class ConsoleStream(consumer: (String) -> Unit) : PrintStream(FlushNotifyingOutputStream(consumer), true)

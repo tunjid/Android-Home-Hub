@@ -22,26 +22,14 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.data
+package com.rcswitchcontrol.zigbee.models
 
-import java.io.Serializable
-import java.util.*
+import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
 
-/**
- * Payload class
- *
- *
- * Created by tj.dahunsi on 2/11/17.
- */
+class ZigBeeCommandArgs(val command: String, val args: Array<String>) {
 
-data class Payload(val key: String) : Serializable {
+    val key: String = ZigBeeProtocol::class.java.name
 
-    var data: String? = null
-    var action: String? = null
-    var response: String? = null
-
-    val commands = LinkedHashSet<String>()
-
-    fun addCommand(command: String) = commands.add(command)
-
+    val isInvalid: Boolean
+        get() = args.isEmpty()
 }

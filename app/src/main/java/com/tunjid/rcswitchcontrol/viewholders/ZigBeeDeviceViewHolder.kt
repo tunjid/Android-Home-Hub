@@ -27,7 +27,7 @@ package com.tunjid.rcswitchcontrol.viewholders
 import android.view.View
 import android.widget.SeekBar
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
+import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
 import com.tunjid.rcswitchcontrol.dialogfragments.Throttle
 
 // ViewHolder for actual content

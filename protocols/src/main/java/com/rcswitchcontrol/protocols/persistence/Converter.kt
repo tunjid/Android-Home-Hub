@@ -34,9 +34,9 @@ class Converter<out T : Any> internal constructor(private val kClass: KClass<T>)
 //
 //     fun serializeList(items: List<out T>): String = converter.toJson(items)
 //
-    private fun deserialize(serialized: String): T = converter.fromJson(serialized, kClass.java)
+    internal fun deserialize(serialized: String): T = converter.fromJson(serialized, kClass.java)
 
-    private fun deserializeList(serialized: String): List<T> = converter.fromJson(serialized, TypeToken.getParameterized(List::class.java, kClass.java).type)
+    internal fun deserializeList(serialized: String): List<T> = converter.fromJson(serialized, TypeToken.getParameterized(List::class.java, kClass.java).type)
 
     companion object {
 
@@ -47,17 +47,17 @@ class Converter<out T : Any> internal constructor(private val kClass: KClass<T>)
             map[clazz] = Converter(clazz)
         }
 
-        fun <T : Any> T.serialize(): String = converter.toJson(this)
-
-        fun <T : Any> List<T>.serializeList(): String = converter.toJson(this)
-
-        fun <T : Any> String.deserialize(kClass: KClass<T>): T = converter(kClass).deserialize(this)
-
-        fun <T : Any> String.deserializeList(kClass: KClass<T>): List<T> = converter(kClass).deserializeList(this)
-
         @Suppress("UNCHECKED_CAST")
-        private fun <T : Any> converter(kClass: KClass<T>): Converter<T> =
+        internal fun <T : Any> converter(kClass: KClass<T>): Converter<T> =
                 map[kClass] as? Converter<T>
                         ?: throw IllegalArgumentException("This class must be registered to be converted first")
     }
 }
+
+fun <T : Any> T.serialize(): String = Converter.converter.toJson(this)
+
+fun <T : Any> List<T>.serializeList(): String = Converter.converter.toJson(this)
+
+fun <T : Any> String.deserialize(kClass: KClass<T>): T = Converter.converter(kClass).deserialize(this)
+
+fun <T : Any> String.deserializeList(kClass: KClass<T>): List<T> = Converter.converter(kClass).deserializeList(this)

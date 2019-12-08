@@ -32,10 +32,11 @@ import androidx.core.content.getSystemService
 import com.hoho.android.usbserial.driver.UsbSerialDriver
 import com.hoho.android.usbserial.driver.UsbSerialPort
 import com.hoho.android.usbserial.util.SerialInputOutputManager
+import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.ContextProvider
-import com.rcswitchcontrol.protocols.persistence.Converter.Companion.deserialize
+import com.rcswitchcontrol.protocols.persistence.deserialize
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.data.Payload
+import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.rcswitchcontrol.data.RfSwitch
 import com.tunjid.rcswitchcontrol.data.persistence.RfSwitchDataStore
 import com.tunjid.rcswitchcontrol.services.ClientBleService

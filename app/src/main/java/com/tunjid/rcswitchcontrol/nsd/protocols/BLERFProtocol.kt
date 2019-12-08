@@ -34,14 +34,15 @@ import android.os.Handler
 import android.os.Looper
 import android.os.ParcelUuid
 import android.util.Log
+import com.rcswitchcontrol.protocols.CommsProtocol
 import com.tunjid.androidx.communications.bluetooth.BLEScanner
 import com.tunjid.androidx.communications.bluetooth.ScanFilterCompat
 import com.tunjid.androidx.core.components.services.HardServiceConnection
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.data.Payload
+import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.rcswitchcontrol.data.RfSwitch
-import com.rcswitchcontrol.protocols.persistence.Converter.Companion.deserialize
+import com.rcswitchcontrol.protocols.persistence.deserialize
 import com.tunjid.rcswitchcontrol.data.persistence.RfSwitchDataStore
 import com.tunjid.rcswitchcontrol.services.ClientBleService
 import com.tunjid.rcswitchcontrol.services.ClientBleService.Companion.C_HANDLE_CONTROL

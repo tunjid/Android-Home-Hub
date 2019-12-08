@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.io
+package com.rcswitchcontrol.zigbee.io
 
 import android.hardware.usb.UsbManager
 import android.os.Handler
@@ -94,7 +94,6 @@ class AndroidZigBeeSerialPort(
         logger.debug("Opening port {} at {} baud with {}.", driver.ports[0].portNumber, baudRate, flowControl)
 
         val manager = ContextProvider.appContext.getSystemService<UsbManager>()
-
 
         val connection = manager?.openDevice(driver.device)
                 ?: // You probably need to call UsbManager.requestPermission(driver.getDevice(), ..)

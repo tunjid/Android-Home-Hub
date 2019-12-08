@@ -44,26 +44,20 @@ android {
             }
         }
     }
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-    kotlinOptions {
-        jvmTarget = '1.8'
-    }
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
     compileOnly 'com.google.android.things:androidthings:1.0'
-    implementation 'com.tunjid.androidx:communications:1.0.0-rc01'
-    implementation 'com.tunjid.androidx:recyclerview:1.0.0-rc02'
-    implementation 'com.tunjid.androidx:navigation:1.0.0-rc04'
-    implementation 'com.tunjid.androidx:functions:1.0.0-rc01'
-    implementation 'com.tunjid.androidx:material:1.0.0-rc03'
-    implementation 'com.tunjid.androidx:core:1.0.0-rc01'
-    implementation 'com.tunjid.androidx:view:1.0.0-rc02'
+
+    implementation parent.ext.tunjiAndroidxCommunications
+    implementation parent.ext.tunjiAndroidxRecyclerView
+    implementation parent.ext.tunjiAndroidxNavigation
+    implementation parent.ext.tunjiAndroidxFunctions
+    implementation parent.ext.tunjiAndroidxMaterial
+    implementation parent.ext.tunjiAndroidxCore
+    implementation parent.ext.tunjiAndroidxView
 
     implementation 'com.google.android.material:material:1.2.0-alpha02'
     implementation 'com.google.android:flexbox:1.1.0'
@@ -81,17 +75,12 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-extensions:2.1.0'
     implementation 'androidx.lifecycle:lifecycle-reactivestreams:2.1.0'
 
-    implementation 'io.reactivex.rxjava2:rxjava:2.2.10'
-    implementation 'io.reactivex.rxjava2:rxandroid:2.1.1'
+    implementation parent.ext.rxJava
+    implementation parent.ext.rxAndroid
 
+    implementation parent.ext.usbSerial
     implementation 'com.squareup.picasso:picasso:2.71828'
     implementation 'com.github.QuadFlask:colorpicker:0.0.13'
-    implementation 'com.github.mik3y:usb-serial-for-android:2.1.0'
-
-    implementation parent.ext.zigBeeCore
-    implementation parent.ext.zigBeeConsole
-    implementation parent.ext.zigBeeSerial
-    implementation parent.ext.zigBeeDongle
 
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$parent.ext.kotlin_version"
 

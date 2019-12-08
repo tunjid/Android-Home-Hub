@@ -1,7 +1,7 @@
-package com.tunjid.rcswitchcontrol.zigbee
+package com.rcswitchcontrol.zigbee.commands
 
 import com.rcswitchcontrol.protocols.ContextProvider
-import com.tunjid.rcswitchcontrol.R
+import com.rcswitchcontrol.zigbee.R
 import com.zsmartsystems.zigbee.CommandResult
 import com.zsmartsystems.zigbee.ZigBeeEndpoint
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager
@@ -9,7 +9,6 @@ import com.zsmartsystems.zigbee.zcl.ZclTransactionMatcher
 import com.zsmartsystems.zigbee.zcl.clusters.groups.GetGroupMembershipCommand
 import com.zsmartsystems.zigbee.zcl.clusters.groups.GetGroupMembershipResponse
 import java.io.PrintStream
-import java.util.*
 import java.util.concurrent.Future
 
 /**
@@ -55,7 +54,7 @@ class MembershipListCommand : AbsZigBeeCommand() {
         val command = GetGroupMembershipCommand()
 
         command.groupCount = 0
-        command.groupList = Collections.emptyList()
+        command.groupList = emptyList()
         command.destinationAddress = device.endpointAddress
 
         return sendTransaction(command, ZclTransactionMatcher())

@@ -22,14 +22,21 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.data
+package com.rcswitchcontrol.zigbee.models
 
 import android.graphics.Color
 import android.os.Parcel
 import android.os.Parcelable
+import com.rcswitchcontrol.protocols.models.Device
+import com.rcswitchcontrol.zigbee.commands.ColorCommand
+import com.rcswitchcontrol.zigbee.commands.GroupAddCommand
+import com.rcswitchcontrol.zigbee.commands.LevelCommand
+import com.rcswitchcontrol.zigbee.commands.MembershipAddCommand
+import com.rcswitchcontrol.zigbee.commands.OffCommand
+import com.rcswitchcontrol.zigbee.commands.OnCommand
+import com.rcswitchcontrol.zigbee.commands.RediscoverCommand
 import com.tunjid.androidx.recyclerview.diff.Differentiable
-import com.tunjid.rcswitchcontrol.nsd.protocols.ZigBeeProtocol
-import com.tunjid.rcswitchcontrol.zigbee.*
+import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
 
 class ZigBeeDevice(
         private val ieeeAddress: String,

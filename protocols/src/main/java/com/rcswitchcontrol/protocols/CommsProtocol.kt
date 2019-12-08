@@ -22,15 +22,13 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.nsd.protocols
+package com.rcswitchcontrol.protocols
 
 import android.content.Context
 import androidx.annotation.StringRes
-import com.rcswitchcontrol.protocols.ContextProvider
-import com.tunjid.rcswitchcontrol.App
-import com.tunjid.rcswitchcontrol.data.Payload
-import com.rcswitchcontrol.protocols.persistence.Converter.Companion.deserialize
-import com.rcswitchcontrol.protocols.persistence.Converter.Companion.serialize
+import com.rcswitchcontrol.protocols.models.Payload
+import com.rcswitchcontrol.protocols.persistence.deserialize
+import com.rcswitchcontrol.protocols.persistence.serialize
 import java.io.Closeable
 import java.io.PrintWriter
 import java.util.concurrent.ExecutorService
@@ -43,7 +41,7 @@ import java.util.concurrent.Executors
  * Created by tj.dahunsi on 2/6/17.
  */
 
-abstract class CommsProtocol internal constructor(private val printWriter: PrintWriter) : Closeable {
+abstract class CommsProtocol(private val printWriter: PrintWriter) : Closeable {
 
     val appContext: Context = ContextProvider.appContext
 
@@ -64,7 +62,7 @@ abstract class CommsProtocol internal constructor(private val printWriter: Print
     companion object {
 
         const val PING = "Ping"
-        internal const val RESET = "Reset"
+        const val RESET = "Reset"
 
         val sharedPool: ExecutorService = Executors.newFixedThreadPool(5)
     }

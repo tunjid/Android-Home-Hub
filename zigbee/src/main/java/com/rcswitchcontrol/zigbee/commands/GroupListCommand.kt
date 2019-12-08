@@ -1,7 +1,7 @@
-package com.tunjid.rcswitchcontrol.zigbee
+package com.rcswitchcontrol.zigbee.commands
 
 import com.rcswitchcontrol.protocols.ContextProvider
-import com.tunjid.rcswitchcontrol.R
+import com.rcswitchcontrol.zigbee.R
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager
 import java.io.PrintStream
 

@@ -28,6 +28,7 @@ import android.os.Parcel
 import android.os.Parcelable
 import android.util.Base64
 import androidx.annotation.StringDef
+import com.rcswitchcontrol.protocols.models.Device
 import com.tunjid.rcswitchcontrol.nsd.protocols.SerialRFProtocol
 
 /**

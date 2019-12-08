@@ -22,38 +22,31 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.zigbee
+package com.rcswitchcontrol.zigbee.commands
 
+import com.rcswitchcontrol.protocols.ContextProvider
+import com.rcswitchcontrol.zigbee.R
+import com.zsmartsystems.zigbee.IeeeAddress
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager
-import com.zsmartsystems.zigbee.console.ZigBeeConsoleCommand
 import java.io.PrintStream
-import java.util.*
 
 /**
- * Prints help on console.
+ * Rediscover a node from its IEEE address.
  */
-class HelpCommand(private val commands: Map<String, ZigBeeConsoleCommand>) : AbsZigBeeCommand() {
-    override val args: String = "[COMMAND]"
+class RediscoverCommand : AbsZigBeeCommand() {
+    override val args: String = "IEEEADDRESS"
 
-    override fun getDescription(): String = "View command help."
+    override fun getCommand(): String = ContextProvider.appContext.getString(R.string.zigbeeprotocol_rediscover)
 
-    override fun getCommand(): String = "help"
+    override fun getDescription(): String = "Rediscover a node from its IEEE address."
 
-    override fun process(networkManager: ZigBeeNetworkManager, args: Array<out String>, out: PrintStream) = when {
-        args.size == 2 -> if (commands.containsKey(args[1])) {
-            val command = commands[args[1]]
-            out.push(command!!.description)
-            out.push("")
-            out.push("Syntax: " + command.syntax)
-        } else throw IllegalArgumentException("Command ${args[1]} does not exist")
+    @Throws(Exception::class)
+    override fun process(networkManager: ZigBeeNetworkManager, args: Array<out String>, out: PrintStream) {
+        if (args.size != 2) throw IllegalArgumentException("Invalid command arguments")
 
-        args.size == 1 -> {
-            val commandList = ArrayList(commands.keys)
-            commandList.sort()
-            out.push("Commands:")
+        val address = IeeeAddress(args[1])
 
-            for (command in commands.keys) out.push("$command - ${commands.getValue(command).description}")
-        }
-        else -> throw IllegalArgumentException("Invalid command arguments")
+        out.push("Sending rediscovery request for address $address")
+        networkManager.rediscoverNode(address)
     }
 }

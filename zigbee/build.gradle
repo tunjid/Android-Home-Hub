@@ -13,5 +13,19 @@ dependencies {
     implementation parent.ext.appCompat
     implementation parent.ext.ktxCore
 
+    implementation parent.ext.tunjiAndroidxRecyclerView
+
+    implementation parent.ext.gson
+
+    implementation parent.ext.rxJava
+    implementation parent.ext.rxAndroid
+
+    implementation parent.ext.usbSerial
+
+    implementation parent.ext.zigBeeCore
+    implementation parent.ext.zigBeeConsole
+    implementation parent.ext.zigBeeSerial
+    implementation parent.ext.zigBeeDongle
+
     implementation project(':protocols')
 }

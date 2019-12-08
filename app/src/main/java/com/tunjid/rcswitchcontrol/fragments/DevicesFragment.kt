@@ -47,11 +47,11 @@ import com.tunjid.androidx.recyclerview.adapterOf
 import com.tunjid.androidx.view.util.inflate
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
-import com.tunjid.rcswitchcontrol.data.Device
+import com.rcswitchcontrol.protocols.models.Device
 import com.tunjid.rcswitchcontrol.data.RfSwitch
-import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
-import com.tunjid.rcswitchcontrol.data.createGroupSequence
-import com.rcswitchcontrol.protocols.persistence.Converter.Companion.serialize
+import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
+import com.rcswitchcontrol.zigbee.models.createGroupSequence
+import com.rcswitchcontrol.protocols.persistence.serialize
 import com.tunjid.rcswitchcontrol.dialogfragments.GroupDeviceDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.throttleColorChanges

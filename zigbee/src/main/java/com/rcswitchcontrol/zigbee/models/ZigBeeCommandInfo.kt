@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.data
+package com.rcswitchcontrol.zigbee.models
 
 import android.os.Parcel
 import android.os.Parcelable

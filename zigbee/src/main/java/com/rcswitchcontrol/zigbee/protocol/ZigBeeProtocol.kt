@@ -22,33 +22,23 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.nsd.protocols
+package com.rcswitchcontrol.zigbee.protocol
 
 import android.util.Log
 import com.hoho.android.usbserial.driver.UsbSerialDriver
-import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.data.Payload
-import com.tunjid.rcswitchcontrol.data.ZigBeeCommandArgs
-import com.tunjid.rcswitchcontrol.data.ZigBeeCommandInfo
-import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
-import com.rcswitchcontrol.protocols.persistence.Converter.Companion.deserialize
-import com.rcswitchcontrol.protocols.persistence.Converter.Companion.serializeList
-import com.tunjid.rcswitchcontrol.data.persistence.ZigBeeDataStore
-import com.tunjid.rcswitchcontrol.io.AndroidZigBeeSerialPort
+import com.rcswitchcontrol.protocols.CommsProtocol
+import com.rcswitchcontrol.protocols.ContextProvider
 import com.rcswitchcontrol.protocols.io.ConsoleStream
-import com.tunjid.rcswitchcontrol.zigbee.ColorCommand
-import com.tunjid.rcswitchcontrol.zigbee.GroupAddCommand
-import com.tunjid.rcswitchcontrol.zigbee.GroupListCommand
-import com.tunjid.rcswitchcontrol.zigbee.GroupRemoveCommand
-import com.tunjid.rcswitchcontrol.zigbee.HelpCommand
-import com.tunjid.rcswitchcontrol.zigbee.LevelCommand
-import com.tunjid.rcswitchcontrol.zigbee.MembershipAddCommand
-import com.tunjid.rcswitchcontrol.zigbee.MembershipListCommand
-import com.tunjid.rcswitchcontrol.zigbee.MembershipRemoveCommand
-import com.tunjid.rcswitchcontrol.zigbee.MembershipViewCommand
-import com.tunjid.rcswitchcontrol.zigbee.OffCommand
-import com.tunjid.rcswitchcontrol.zigbee.OnCommand
-import com.tunjid.rcswitchcontrol.zigbee.RediscoverCommand
+import com.rcswitchcontrol.protocols.models.Payload
+import com.rcswitchcontrol.protocols.persistence.deserialize
+import com.rcswitchcontrol.protocols.persistence.serializeList
+import com.rcswitchcontrol.zigbee.R
+import com.rcswitchcontrol.zigbee.commands.*
+import com.rcswitchcontrol.zigbee.io.AndroidZigBeeSerialPort
+import com.rcswitchcontrol.zigbee.models.ZigBeeCommandArgs
+import com.rcswitchcontrol.zigbee.models.ZigBeeCommandInfo
+import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
+import com.rcswitchcontrol.zigbee.persistence.ZigBeeDataStore
 import com.zsmartsystems.zigbee.ExtendedPanId
 import com.zsmartsystems.zigbee.ZigBeeChannel
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager
@@ -79,8 +69,8 @@ import java.util.concurrent.TimeUnit
 @Suppress("PrivatePropertyName")
 class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
-    private val SAVED_DEVICES = getString(R.string.zigbeeprotocol_saved_devices)
-    private val FORM_NETWORK = getString(R.string.zigbeeprotocol_formnet)
+    private val SAVED_DEVICES = ContextProvider.appContext.getString(R.string.zigbeeprotocol_saved_devices)
+    private val FORM_NETWORK = ContextProvider.appContext.getString(R.string.zigbeeprotocol_formnet)
 
     private val disposable = CompositeDisposable()
     private val outputProcessor: PublishProcessor<Payload> = PublishProcessor.create()
@@ -91,36 +81,36 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
     private val dataStore = ZigBeeDataStore("home")
     private val networkManager: ZigBeeNetworkManager
     private val availableCommands: Map<String, ZigBeeConsoleCommand> = mutableMapOf(
-            getString(R.string.zigbeeprotocol_nodes) to ZigBeeConsoleNodeListCommand(),
-            getString(R.string.zigbeeprotocol_endpoint) to ZigBeeConsoleDescribeEndpointCommand(),
-            getString(R.string.zigbeeprotocol_node) to ZigBeeConsoleDescribeNodeCommand(),
-            getString(R.string.zigbeeprotocol_bind) to ZigBeeConsoleBindCommand(),
-            getString(R.string.zigbeeprotocol_unbind) to ZigBeeConsoleUnbindCommand(),
-            getString(R.string.zigbeeprotocol_bind_table) to ZigBeeConsoleBindingTableCommand(),
+            ContextProvider.appContext.getString(R.string.zigbeeprotocol_nodes) to ZigBeeConsoleNodeListCommand(),
+            ContextProvider.appContext.getString(R.string.zigbeeprotocol_endpoint) to ZigBeeConsoleDescribeEndpointCommand(),
+            ContextProvider.appContext.getString(R.string.zigbeeprotocol_node) to ZigBeeConsoleDescribeNodeCommand(),
+            ContextProvider.appContext.getString(R.string.zigbeeprotocol_bind) to ZigBeeConsoleBindCommand(),
+            ContextProvider.appContext.getString(R.string.zigbeeprotocol_unbind) to ZigBeeConsoleUnbindCommand(),
+            ContextProvider.appContext.getString(R.string.zigbeeprotocol_bind_table) to ZigBeeConsoleBindingTableCommand(),
 
-            getString(R.string.zigbeeprotocol_read) to ZigBeeConsoleAttributeReadCommand(),
-            getString(R.string.zigbeeprotocol_write) to ZigBeeConsoleAttributeWriteCommand(),
+            ContextProvider.appContext.getString(R.string.zigbeeprotocol_read) to ZigBeeConsoleAttributeReadCommand(),
+            ContextProvider.appContext.getString(R.string.zigbeeprotocol_write) to ZigBeeConsoleAttributeWriteCommand(),
 
-            getString(R.string.zigbeeprotocol_attsupported) to ZigBeeConsoleAttributeSupportedCommand(),
-            getString(R.string.zigbeeprotocol_cmdsupported) to ZigBeeConsoleCommandsSupportedCommand(),
+            ContextProvider.appContext.getString(R.string.zigbeeprotocol_attsupported) to ZigBeeConsoleAttributeSupportedCommand(),
+            ContextProvider.appContext.getString(R.string.zigbeeprotocol_cmdsupported) to ZigBeeConsoleCommandsSupportedCommand(),
 
-            getString(R.string.zigbeeprotocol_info) to ZigBeeConsoleDeviceInformationCommand(),
-            getString(R.string.zigbeeprotocol_join) to ZigBeeConsoleNetworkJoinCommand(),
-            getString(R.string.zigbeeprotocol_leave) to ZigBeeConsoleNetworkLeaveCommand(),
+            ContextProvider.appContext.getString(R.string.zigbeeprotocol_info) to ZigBeeConsoleDeviceInformationCommand(),
+            ContextProvider.appContext.getString(R.string.zigbeeprotocol_join) to ZigBeeConsoleNetworkJoinCommand(),
+            ContextProvider.appContext.getString(R.string.zigbeeprotocol_leave) to ZigBeeConsoleNetworkLeaveCommand(),
 
-            getString(R.string.zigbeeprotocol_reporting) to ZigBeeConsoleReportingConfigCommand(),
-            getString(R.string.zigbeeprotocol_subscribe) to ZigBeeConsoleReportingSubscribeCommand(),
-            getString(R.string.zigbeeprotocol_unsubscribe) to ZigBeeConsoleReportingUnsubscribeCommand(),
+            ContextProvider.appContext.getString(R.string.zigbeeprotocol_reporting) to ZigBeeConsoleReportingConfigCommand(),
+            ContextProvider.appContext.getString(R.string.zigbeeprotocol_subscribe) to ZigBeeConsoleReportingSubscribeCommand(),
+            ContextProvider.appContext.getString(R.string.zigbeeprotocol_unsubscribe) to ZigBeeConsoleReportingUnsubscribeCommand(),
 
-            getString(R.string.zigbeeprotocol_installkey) to ZigBeeConsoleInstallKeyCommand(),
-            getString(R.string.zigbeeprotocol_linkkey) to ZigBeeConsoleLinkKeyCommand(),
+            ContextProvider.appContext.getString(R.string.zigbeeprotocol_installkey) to ZigBeeConsoleInstallKeyCommand(),
+            ContextProvider.appContext.getString(R.string.zigbeeprotocol_linkkey) to ZigBeeConsoleLinkKeyCommand(),
 
-            getString(R.string.zigbeeprotocol_netstart) to ZigBeeConsoleNetworkStartCommand(),
-            getString(R.string.zigbeeprotocol_netbackup) to ZigBeeConsoleNetworkBackupCommand(),
-            getString(R.string.zigbeeprotocol_discovery) to ZigBeeConsoleNetworkDiscoveryCommand(),
+            ContextProvider.appContext.getString(R.string.zigbeeprotocol_netstart) to ZigBeeConsoleNetworkStartCommand(),
+            ContextProvider.appContext.getString(R.string.zigbeeprotocol_netbackup) to ZigBeeConsoleNetworkBackupCommand(),
+            ContextProvider.appContext.getString(R.string.zigbeeprotocol_discovery) to ZigBeeConsoleNetworkDiscoveryCommand(),
 
-            getString(R.string.zigbeeprotocol_otaupgrade) to ZigBeeConsoleOtaUpgradeCommand(),
-            getString(R.string.zigbeeprotocol_channel) to ZigBeeConsoleChannelCommand(),
+            ContextProvider.appContext.getString(R.string.zigbeeprotocol_otaupgrade) to ZigBeeConsoleOtaUpgradeCommand(),
+            ContextProvider.appContext.getString(R.string.zigbeeprotocol_channel) to ZigBeeConsoleChannelCommand(),
 
             // These commands are created locally and have localized command names
 
@@ -179,14 +169,14 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
         when (val action = payload.action ?: "invalid command") {
             RESET -> reset()
             FORM_NETWORK -> {
-                response = getString(R.string.zigbeeprotocol_forming_network)
+                response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_forming_network)
                 formNetwork()
             }
             PING, SAVED_DEVICES -> {
-                response = (getString(R.string.zigbeeprotocol_ping))
+                response = (ContextProvider.appContext.getString(R.string.zigbeeprotocol_ping))
                 this.action = SAVED_DEVICES
                 data = savedDevices()
-                response = getString(R.string.zigbeeprotocol_saved_devices_request)
+                response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_saved_devices_request)
                 appendCommands()
             }
             in availableCommands.keys -> availableCommands[action]?.apply {
@@ -195,12 +185,12 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
 
                 when {
                     needsCommandArgs -> {
-                        response = getString(R.string.zigbeeprotocol_enter_args, action)
+                        response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_enter_args, action)
                         data = ZigBeeCommandInfo(action, description, syntax, help).serialize()
                     }
                     else -> {
                         val args = commandArgs?.args ?: arrayOf(action)
-                        response = getString(R.string.zigbeeprotocol_executing, args.commandString())
+                        response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_executing, args.commandString())
                         execute(args)
                     }
                 }
@@ -322,12 +312,12 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
         post(stringBuilder.toString())
     }
 
-    private fun formNetwork() = executeCommand(networkManager, arrayOf(getString(R.string.zigbeeprotocol_netstart), "form", "${networkManager.zigBeePanId}", "${networkManager.zigBeeExtendedPanId}"))
+    private fun formNetwork() = executeCommand(networkManager, arrayOf(ContextProvider.appContext.getString(R.string.zigbeeprotocol_netstart), "form", "${networkManager.zigBeePanId}", "${networkManager.zigBeeExtendedPanId}"))
 
     private fun savedDevices() = dataStore.readNetworkNodes()
-            .map(dataStore::readNode)
-            .mapNotNull(this::nodeToZigBeeDevice)
-            .let { it.serializeList() }
+    .map(dataStore::readNode)
+    .mapNotNull(this::nodeToZigBeeDevice)
+            .serializeList()
 
     private fun nodeToZigBeeDevice(node: ZigBeeNodeDao): ZigBeeDevice? =
             node.endpoints.find { it.inputClusters.map { cluster -> cluster.clusterId }.contains(ZclClusterType.ON_OFF.id) }?.let { endpoint ->

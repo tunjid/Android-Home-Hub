@@ -40,11 +40,11 @@ import com.google.android.things.pio.PeripheralManager
 import com.rcswitchcontrol.protocols.ContextProvider
 import com.rcswitchcontrol.protocols.persistence.Converter
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.data.Payload
+import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.rcswitchcontrol.data.RfSwitch
-import com.tunjid.rcswitchcontrol.data.ZigBeeCommandArgs
-import com.tunjid.rcswitchcontrol.data.ZigBeeCommandInfo
-import com.tunjid.rcswitchcontrol.data.ZigBeeDevice
+import com.rcswitchcontrol.zigbee.models.ZigBeeCommandArgs
+import com.rcswitchcontrol.zigbee.models.ZigBeeCommandInfo
+import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 
 /**

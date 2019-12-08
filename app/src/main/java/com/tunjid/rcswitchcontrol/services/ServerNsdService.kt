@@ -38,10 +38,10 @@ import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.App.Companion.catcher
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.rcswitchcontrol.protocols.persistence.Converter.Companion.serialize
+import com.rcswitchcontrol.protocols.persistence.serialize
 import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService
 import com.rcswitchcontrol.protocols.io.ConsoleWriter
-import com.tunjid.rcswitchcontrol.nsd.protocols.CommsProtocol
+import com.rcswitchcontrol.protocols.CommsProtocol
 import com.tunjid.rcswitchcontrol.nsd.protocols.ProxyProtocol
 import com.tunjid.rcswitchcontrol.services.ClientNsdService.Companion.ACTION_START_NSD_DISCOVERY
 import io.reactivex.disposables.CompositeDisposable

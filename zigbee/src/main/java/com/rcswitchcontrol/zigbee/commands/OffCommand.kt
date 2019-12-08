@@ -22,31 +22,51 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.zigbee
+package com.rcswitchcontrol.zigbee.commands
 
 import com.rcswitchcontrol.protocols.ContextProvider
-import com.tunjid.rcswitchcontrol.R
-import com.zsmartsystems.zigbee.IeeeAddress
+import com.rcswitchcontrol.zigbee.R
+import com.zsmartsystems.zigbee.CommandResult
+import com.zsmartsystems.zigbee.ZigBeeAddress
+import com.zsmartsystems.zigbee.ZigBeeEndpointAddress
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager
+import com.zsmartsystems.zigbee.zcl.clusters.ZclOnOffCluster
 import java.io.PrintStream
+import java.util.concurrent.Future
 
 /**
- * Rediscover a node from its IEEE address.
+ * Switches a device off.
  */
-class RediscoverCommand : AbsZigBeeCommand() {
-    override val args: String = "IEEEADDRESS"
+class OffCommand : AbsZigBeeCommand() {
+    override val args: String = "DEVICEID/DEVICELABEL/GROUPID"
 
-    override fun getCommand(): String = ContextProvider.appContext.getString(R.string.zigbeeprotocol_rediscover)
+    override fun getCommand(): String = ContextProvider.appContext.getString(R.string.zigbeeprotocol_off)
 
-    override fun getDescription(): String = "Rediscover a node from its IEEE address."
+    override fun getDescription(): String = "Switches device off."
 
     @Throws(Exception::class)
     override fun process(networkManager: ZigBeeNetworkManager, args: Array<out String>, out: PrintStream) {
-        if (args.size != 2) throw IllegalArgumentException("Invalid command arguments")
+        args.expect(2)
 
-        val address = IeeeAddress(args[1])
+        networkManager.findDestination(args[1]).then(
+                { networkManager.off(it)  },
+                { onCommandProcessed(it, out) }
+        )
+    }
 
-        out.push("Sending rediscovery request for address $address")
-        networkManager.rediscoverNode(address)
+    /**
+     * Switches destination off.
+     *
+     * @param destination the [ZigBeeAddress]
+     * @return the command result future.
+     */
+    private fun ZigBeeNetworkManager.off(destination: ZigBeeAddress): Future<CommandResult>? {
+        if (destination !is ZigBeeEndpointAddress) return null
+
+        val endpoint = getNode(destination.address).getEndpoint(destination.endpoint) ?: return null
+
+        val cluster = endpoint.getInputCluster(ZclOnOffCluster.CLUSTER_ID) as ZclOnOffCluster
+
+        return cluster.offCommand()
     }
 }

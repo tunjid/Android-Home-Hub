@@ -1,47 +1,51 @@
-package com.tunjid.rcswitchcontrol.zigbee
+package com.rcswitchcontrol.zigbee.commands
 
 import com.rcswitchcontrol.protocols.ContextProvider
-import com.tunjid.rcswitchcontrol.R
+import com.rcswitchcontrol.zigbee.R
 import com.zsmartsystems.zigbee.CommandResult
 import com.zsmartsystems.zigbee.ZigBeeEndpoint
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager
 import com.zsmartsystems.zigbee.zcl.ZclTransactionMatcher
-import com.zsmartsystems.zigbee.zcl.clusters.groups.RemoveGroupCommand
+import com.zsmartsystems.zigbee.zcl.clusters.groups.AddGroupCommand
 import java.io.PrintStream
 import java.util.concurrent.Future
 
 /**
- * Removes device group membership from device.
+ * Adds group membership to device.
  */
-class MembershipRemoveCommand : AbsZigBeeCommand() {
-    override val args: String = "[DEVICE] [GROUPID]"
+class MembershipAddCommand : AbsZigBeeCommand() {
+    override val args: String = "[DEVICE] [GROUPID] [GROUPNAME]"
 
-    override fun getCommand(): String = ContextProvider.appContext.getString(R.string.zigbeeprotocol_joined_groups)
+    override fun getCommand(): String = ContextProvider.appContext.getString(R.string.zigbeeprotocol_join_group)
 
-    override fun getDescription(): String = "Removes group membership from device."
+    override fun getDescription(): String = "Adds group membership to device."
 
     @Throws(Exception::class)
     override fun process(networkManager: ZigBeeNetworkManager, args: Array<String>, out: PrintStream) {
-        args.expect(3)
+        args.expect(4)
 
         val groupId: Int = args[2].toInt()
+        val groupName = args[3]
 
         networkManager.findDevice(args[1]).then(
-                { networkManager.removeMembership(it, groupId) },
+                { networkManager.addMembership(it, groupId, groupName) },
                 { onCommandProcessed(it, out) }
         )
     }
 
     /**
-     * Removes group membership from device.
+     * Adds group membership to device.
      *
      * @param device the device
      * @param groupId the group ID
+     * @param groupName the group name
      * @return the command result future
      */
-    private fun ZigBeeNetworkManager.removeMembership(device: ZigBeeEndpoint, groupId: Int): Future<CommandResult> {
-        val command = RemoveGroupCommand()
+    private fun ZigBeeNetworkManager.addMembership(device: ZigBeeEndpoint, groupId: Int, groupName: String): Future<CommandResult> {
+        val command = AddGroupCommand()
         command.groupId = groupId
+        command.groupName = groupName
+
         command.destinationAddress = device.endpointAddress
 
         return sendTransaction(command, ZclTransactionMatcher())

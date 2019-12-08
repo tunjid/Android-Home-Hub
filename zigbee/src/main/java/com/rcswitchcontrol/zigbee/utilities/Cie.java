@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.utils;
+package com.rcswitchcontrol.zigbee.utilities;
 
 
 /**

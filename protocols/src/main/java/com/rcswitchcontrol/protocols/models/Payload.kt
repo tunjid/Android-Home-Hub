@@ -22,11 +22,26 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.data
+package com.rcswitchcontrol.protocols.models
 
-import com.tunjid.androidx.recyclerview.diff.Differentiable
+import java.io.Serializable
+import java.util.*
 
-interface Device : Differentiable {
-    val key: String
-    val name: String
+/**
+ * Payload class
+ *
+ *
+ * Created by tj.dahunsi on 2/11/17.
+ */
+
+data class Payload(val key: String) : Serializable {
+
+    var data: String? = null
+    var action: String? = null
+    var response: String? = null
+
+    val commands = LinkedHashSet<String>()
+
+    fun addCommand(command: String) = commands.add(command)
+
 }

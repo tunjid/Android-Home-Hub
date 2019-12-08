@@ -55,7 +55,19 @@ import com.tunjid.rcswitchcontrol.services.ClientNsdService
 
 class App : android.app.Application() {
 
-    private var receiver: WifiStatusReceiver? = null
+    private val receiver: WifiStatusReceiver by lazy {
+        val receiver = WifiStatusReceiver()
+        registerReceiver(receiver, IntentFilter().apply {
+            addAction(WifiManager.WIFI_STATE_CHANGED_ACTION)
+            addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION)
+            addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION)
+        })
+
+        Broadcaster.listen(ClientNsdService.ACTION_START_NSD_DISCOVERY)
+                .subscribe({ intent -> receiver.onReceive(this, intent) }, Throwable::printStackTrace)
+
+        receiver
+    }
 
     @SuppressLint("CheckResult")
     override fun onCreate() {
@@ -70,35 +82,20 @@ class App : android.app.Application() {
             register(ZigBeeCommandInfo::class)
         }
 
-        Broadcaster.listen(ClientNsdService.ACTION_START_NSD_DISCOVERY)
-                .subscribe({ intent -> receiver?.onReceive(this, intent) }, Throwable::printStackTrace)
-
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
-            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
+            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
 
-            override fun onActivityStarted(activity: Activity) {
-                // Necessary because of background restrictions, services may only be started in
-                // the foreground
-                if (receiver != null) return
+            override fun onActivityStarted(activity: Activity) = receiver.let { Unit } // Initialize lazy receiver
 
-                val filter = IntentFilter()
-                filter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION)
-                filter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION)
-                filter.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION)
+            override fun onActivityResumed(activity: Activity) = Unit
 
-                receiver = WifiStatusReceiver()
-                registerReceiver(receiver, filter)
-            }
+            override fun onActivityPaused(activity: Activity) = Unit
 
-            override fun onActivityResumed(activity: Activity) {}
+            override fun onActivityStopped(activity: Activity) = Unit
 
-            override fun onActivityPaused(activity: Activity) {}
+            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
 
-            override fun onActivityStopped(activity: Activity) {}
-
-            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
-
-            override fun onActivityDestroyed(activity: Activity) {}
+            override fun onActivityDestroyed(activity: Activity) = Unit
         })
     }
 

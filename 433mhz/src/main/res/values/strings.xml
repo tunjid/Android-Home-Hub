@@ -1,0 +1,34 @@
+<resources>
+    <string name="app_name">433mhz</string>
+
+    <string name="service_name">BLE Service</string>
+
+    <!-- Ble service -->
+    <string name="ble_service_new_connection">Trying to create a new connection…</string>
+    <string name="ble_service_adapter_uninitialized">BluetoothAdapter not initialized</string>
+    <string name="ble_service_reconnecting">Reconnecting to device</string>
+    <string name="ble_service_failed_to_connect">Failed connection attempt.</string>
+    <string name="ble_connected_nsd_server">Connected and hosting NSD server</string>
+
+    <string name="blercprotocol_ping_response">Welcome! Tap any of the switches to control them</string>
+    <string name="blercprotocol_no_such_switch_response">Switch does not exist</string>
+    <string name="blercprotocol_refresh_response">Updated available switches</string>
+    <string name="blercprotocol_transmission_response">Sending transmission</string>
+    <string name="blercprotocol_refresh_switches_command">Refresh Switches</string>
+    <string name="blercprotocol_renamed_response">Renamed %1$s to %2$s</string>
+    <string name="blercprotocol_sniff_off_response">Sniffed off code</string>
+    <string name="blercprotocol_sniff_on_response">Sniffed on code</string>
+    <string name="blercprotocol_stop_sniff_response">Sniff ended</string>
+    <string name="blercprotocol_start_sniff_response">Sniffing</string>
+    <string name="blercprotocol_deleted_response">Deleted %1$s</string>
+    <string name="blercprotocol_delete_command">Delete</string>
+    <string name="blercprotocol_rename_command">Rename</string>
+    <string name="wiredrcprotocol_invalid_command">Invalid Command</string>
+
+    <string name="scanblercprotocol_device_name">Device: %1$s</string>
+    <string name="scanblercprotocol_scan_response">Scan complete, found %1$d device(s)</string>
+    <string name="scanblercprotocol_ping_reponse">Welcome! Tap scan to search for bluetooth hosts. Note that scanning is done in bouts of 5 seconds.</string>
+    <string name="scanblercprotocol_sniff">Sniff</string>
+    <string name="scanblercprotocol_start_scan_reponse">Scanning</string>
+    <string name="scanblercprotocol_sniff_already_exists_response">This switch already exists</string>
+</resources>

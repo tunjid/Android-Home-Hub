@@ -37,8 +37,14 @@ import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.util.Log
 import com.google.android.things.pio.PeripheralManager
-import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.data.RfSwitch
+import com.tunjid.rcswitchcontrol.common.ContextProvider
+import com.rcswitchcontrol.protocols.persistence.Converter
+import com.tunjid.rcswitchcontrol.common.Broadcaster
+import com.rcswitchcontrol.protocols.models.Payload
+import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
+import com.rcswitchcontrol.zigbee.models.ZigBeeCommandArgs
+import com.rcswitchcontrol.zigbee.models.ZigBeeCommandInfo
+import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 
 /**
@@ -50,51 +56,53 @@ import com.tunjid.rcswitchcontrol.services.ClientNsdService
 
 class App : android.app.Application() {
 
-    private var receiver: WifiStatusReceiver? = null
+    private val receiver: WifiStatusReceiver by lazy {
+        val receiver = WifiStatusReceiver()
+        registerReceiver(receiver, IntentFilter().apply {
+            addAction(WifiManager.WIFI_STATE_CHANGED_ACTION)
+            addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION)
+            addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION)
+        })
+
+        Broadcaster.listen(ClientNsdService.ACTION_START_NSD_DISCOVERY)
+                .subscribe({ intent -> receiver.onReceive(this, intent) }, Throwable::printStackTrace)
+
+        receiver
+    }
 
     @SuppressLint("CheckResult")
     override fun onCreate() {
         super.onCreate()
-        instance = this
 
-        Broadcaster.listen(ClientNsdService.ACTION_START_NSD_DISCOVERY)
-                .subscribe({ intent -> receiver?.onReceive(this, intent) }, Throwable::printStackTrace)
+        Converter.apply {
+            register(Payload::class)
+            register(RfSwitch::class)
+            register(ZigBeeDevice::class)
+            register(ZigBeeCommandArgs::class)
+            register(ZigBeeCommandInfo::class)
+        }
 
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
-            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
+            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
 
-            override fun onActivityStarted(activity: Activity) {
-                // Necessary because of background restrictions, services may only be started in
-                // the foreground
-                if (receiver != null) return
+            override fun onActivityStarted(activity: Activity) = receiver.let { Unit } // Initialize lazy receiver
 
-                val filter = IntentFilter()
-                filter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION)
-                filter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION)
-                filter.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION)
+            override fun onActivityResumed(activity: Activity) = Unit
 
-                receiver = WifiStatusReceiver()
-                registerReceiver(receiver, filter)
-            }
+            override fun onActivityPaused(activity: Activity) = Unit
 
-            override fun onActivityResumed(activity: Activity) {}
+            override fun onActivityStopped(activity: Activity) = Unit
 
-            override fun onActivityPaused(activity: Activity) {}
+            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
 
-            override fun onActivityStopped(activity: Activity) {}
-
-            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
-
-            override fun onActivityDestroyed(activity: Activity) {}
+            override fun onActivityDestroyed(activity: Activity) = Unit
         })
     }
 
     companion object {
 
-        lateinit var instance: App
-
         fun isServiceRunning(service: Class<out Service>): Boolean {
-            val activityManager = instance.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            val activityManager = ContextProvider.appContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
             val services = activityManager.getRunningServices(Integer.MAX_VALUE)
 
             for (info in services) if (info.service.className == service.name) return true
@@ -102,12 +110,12 @@ class App : android.app.Application() {
         }
 
         val preferences: SharedPreferences
-            get() = instance.getSharedPreferences(RfSwitch.SWITCH_PREFS, Context.MODE_PRIVATE)
+            get() = ContextProvider.appContext.getSharedPreferences(RfSwitch.SWITCH_PREFS, Context.MODE_PRIVATE)
 
         // Thrown on non Android things devices
         val isAndroidThings: Boolean
             get() {
-                val uiModeManager = instance.getSystemService(UI_MODE_SERVICE) as UiModeManager
+                val uiModeManager = ContextProvider.appContext.getSystemService(UI_MODE_SERVICE) as UiModeManager
                 if (uiModeManager.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION) {
                     return true
                 }

@@ -25,7 +25,7 @@
 package com.tunjid.rcswitchcontrol.viewholders
 
 import android.view.View
-import com.tunjid.rcswitchcontrol.data.RfSwitch
+import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 
 // ViewHolder for actual content
 class RfDeviceViewHolder internal constructor(

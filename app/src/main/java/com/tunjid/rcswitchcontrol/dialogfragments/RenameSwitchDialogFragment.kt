@@ -29,7 +29,7 @@ import android.app.Dialog
 import android.os.Bundle
 import androidx.fragment.app.DialogFragment
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.data.RfSwitch
+import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 
 
 @SuppressLint("InflateParams")

@@ -1,0 +1,10 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.tunjid.rcswitchcontrol.common" >
+    <application>
+        <provider
+            android:authorities="${applicationId}.contextProvider"
+            android:exported="false"
+            android:enabled="true"
+            android:name="com.tunjid.rcswitchcontrol.common.ContextProvider" />
+    </application>
+</manifest>

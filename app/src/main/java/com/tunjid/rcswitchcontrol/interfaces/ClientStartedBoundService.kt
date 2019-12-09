@@ -27,14 +27,11 @@ package com.tunjid.rcswitchcontrol.interfaces
 import android.annotation.TargetApi
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.Context.NOTIFICATION_SERVICE
 import android.content.Intent
 import android.os.Build
-
-import com.tunjid.rcswitchcontrol.App
-
 import androidx.annotation.StringRes
-
-import android.content.Context.NOTIFICATION_SERVICE
+import com.tunjid.rcswitchcontrol.common.ContextProvider
 
 /**
  * An interface hosting callbacks for [services][android.app.Service] that are started,
@@ -58,7 +55,7 @@ interface ClientStartedBoundService {
     fun addChannel(@StringRes name: Int, @StringRes description: Int) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
 
-        val app = App.instance
+        val app = ContextProvider.appContext
         val channel = NotificationChannel(NOTIFICATION_TYPE, app.getString(name), NotificationManager.IMPORTANCE_LOW)
         channel.description = app.getString(description)
 

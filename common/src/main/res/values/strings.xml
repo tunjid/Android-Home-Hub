@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">common</string>
+
+    <string name="scan">Scan</string>
+
+    <string name="connected">Connected</string>
+    <string name="connecting">Connecting</string>
+    <string name="disconnected">Disconnected</string>
+
+    <!-- Menu items -->
+    <string name="menu_connect">Connect</string>
+    <string name="menu_disconnect">Disconnect</string>
+    <string name="menu_forget">Forget Device</string>
+    <string name="menu_ping_server">Ping Server</string>
+    <string name="menu_forget_server">Forget Server</string>
+</resources>

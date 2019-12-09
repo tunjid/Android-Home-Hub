@@ -33,15 +33,20 @@ import android.content.IntentFilter
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.Handler
+import androidx.core.content.getSystemService
 import androidx.core.os.postDelayed
 import com.hoho.android.usbserial.driver.CdcAcmSerialDriver
 import com.hoho.android.usbserial.driver.ProbeTable
 import com.hoho.android.usbserial.driver.UsbSerialDriver
 import com.hoho.android.usbserial.driver.UsbSerialProber
-import com.tunjid.rcswitchcontrol.App
+import com.rcswitchcontrol.protocols.CommsProtocol
+import com.tunjid.rcswitchcontrol.common.ContextProvider
+import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.broadcasts.Broadcaster
-import com.tunjid.rcswitchcontrol.data.Payload
+import com.tunjid.rcswitchcontrol.common.Broadcaster
+import com.rcswitchcontrol.protocols.models.Payload
+import com.tunjid.rcswitchcontrol.a433mhz.protocols.BLERFProtocol
+import com.tunjid.rcswitchcontrol.a433mhz.protocols.SerialRFProtocol
 import io.reactivex.disposables.CompositeDisposable
 import java.io.IOException
 import java.io.PrintWriter
@@ -79,7 +84,7 @@ class ProxyProtocol(private val printWriter: PrintWriter) : CommsProtocol(printW
     )
 
     init {
-        App.instance.registerReceiver(USBDeviceReceiver(), IntentFilter(ACTION_USB_PERMISSION))
+        ContextProvider.appContext.registerReceiver(USBDeviceReceiver(), IntentFilter(ACTION_USB_PERMISSION))
         disposable.add(Broadcaster.listen(ACTION_USB_PERMISSION).subscribe(::onUsbPermissionGranted, Throwable::printStackTrace))
 
         Handler().postDelayed(PERMISSION_REQUEST_DELAY) { attach(rfPeripheral); attach(zigBeePeripheral) }
@@ -119,8 +124,8 @@ class ProxyProtocol(private val printWriter: PrintWriter) : CommsProtocol(printW
     }
 
     private fun findUsbDriver(usbPeripheral: UsbPeripheral): UsbSerialDriver? = usbPeripheral.run {
-        val app = App.instance
-        val manager: UsbManager = app.getSystemService(Context.USB_SERVICE) as UsbManager
+        val app = ContextProvider.appContext
+        val manager = app.getSystemService<UsbManager>() ?: return@run null
 
         val dongleLookup = ProbeTable().apply { addProduct(vendorId, productId, CdcAcmSerialDriver::class.java) }
 

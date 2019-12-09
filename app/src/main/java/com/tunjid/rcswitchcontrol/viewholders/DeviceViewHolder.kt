@@ -31,7 +31,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.card.MaterialCardView
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.data.Device
+import com.rcswitchcontrol.protocols.models.Device
 
 interface DeviceLongClickListener {
     fun onClicked(device: Device)

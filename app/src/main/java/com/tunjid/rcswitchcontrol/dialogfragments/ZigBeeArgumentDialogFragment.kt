@@ -39,8 +39,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.tunjid.androidx.recyclerview.adapterOf
 import com.tunjid.androidx.view.util.inflate
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.data.ZigBeeCommandArgs
-import com.tunjid.rcswitchcontrol.data.ZigBeeCommandInfo
+import com.rcswitchcontrol.zigbee.models.ZigBeeCommandArgs
+import com.rcswitchcontrol.zigbee.models.ZigBeeCommandInfo
 
 
 @SuppressLint("InflateParams")

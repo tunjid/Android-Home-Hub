@@ -38,10 +38,10 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.common.Broadcaster
 import com.tunjid.rcswitchcontrol.fragments.ControlFragment
 import com.tunjid.rcswitchcontrol.fragments.StartFragment
+import com.tunjid.rcswitchcontrol.fragments.LandscapeControlFragment
+import com.tunjid.rcswitchcontrol.navigation.AppNavigator
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
-import com.tunjid.rcswitchcontrol.navigation.AppNavigator
-import com.tunjid.rcswitchcontrol.navigation.PhoneNavigator
 import com.tunjid.rcswitchcontrol.utils.GlobalUiController
 import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver
 import com.tunjid.rcswitchcontrol.utils.globalUiDriver
@@ -50,7 +50,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main),
         GlobalUiController,
         Navigator.Controller {
 
-    override val navigator: AppNavigator by lazy { PhoneNavigator(this) }
+    override val navigator: AppNavigator by lazy { AppNavigator(this) }
 
     override var uiState by globalUiDriver(currentSource = navigator::current)
 
@@ -74,7 +74,9 @@ class MainActivity : AppCompatActivity(R.layout.activity_main),
         if (isNsdClient) Broadcaster.push(Intent(ClientNsdService.ACTION_START_NSD_DISCOVERY))
 
         if (!isSavedInstance) navigator.push(when {
-            App.isAndroidThings || isNsdClient || isNsdServer -> ControlFragment.newInstance()
+            App.isAndroidThings || isNsdClient || isNsdServer ->
+                if (App.isLandscape) LandscapeControlFragment.newInstance()
+                else ControlFragment.newInstance()
             else -> StartFragment.newInstance()
         })
     }

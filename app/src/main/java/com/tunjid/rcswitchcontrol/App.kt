@@ -32,6 +32,7 @@ import android.app.UiModeManager
 import android.content.Context
 import android.content.IntentFilter
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.net.wifi.WifiManager
 import android.os.Bundle
@@ -41,6 +42,7 @@ import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 import com.tunjid.rcswitchcontrol.common.Broadcaster
 import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
+
 
 /**
  * App Singleton.
@@ -99,6 +101,8 @@ class App : android.app.Application() {
         val preferences: SharedPreferences
             get() = ContextProvider.appContext.getSharedPreferences(RfSwitch.SWITCH_PREFS, Context.MODE_PRIVATE)
 
+        val isLandscape get() = isAndroidThings || isAndroidTV
+
         // Thrown on non Android things devices
         val isAndroidThings: Boolean
             get() {
@@ -113,6 +117,9 @@ class App : android.app.Application() {
                     false
                 }
             }
+
+        val isAndroidTV: Boolean
+            get() = ContextProvider.appContext.packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
 
         fun catcher(tag: String, log: String, runnable: () -> Unit) {
             try {

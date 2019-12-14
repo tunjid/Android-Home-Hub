@@ -42,7 +42,7 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.activities.MainActivity
 import com.tunjid.rcswitchcontrol.common.Broadcaster
 import com.rcswitchcontrol.protocols.models.Payload
-import com.rcswitchcontrol.protocols.persistence.serialize
+import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService
 import io.reactivex.disposables.CompositeDisposable
 import java.io.Closeable

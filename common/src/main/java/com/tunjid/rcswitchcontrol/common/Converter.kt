@@ -22,33 +22,19 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.a433mhz.persistence
+package com.tunjid.rcswitchcontrol.common
 
-import android.content.Context
-import com.tunjid.rcswitchcontrol.common.deserializeList
-import com.tunjid.rcswitchcontrol.common.serializeList
-import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
-import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch.Companion.SWITCH_PREFS
-import com.tunjid.rcswitchcontrol.common.ContextProvider
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import kotlin.reflect.KClass
 
-class RfSwitchDataStore {
 
-    val savedSwitches: MutableList<RfSwitch>
-        get() = serializedSavedSwitches.let {
-            if (it.isEmpty()) mutableListOf()
-            else it.deserializeList(RfSwitch::class).toMutableList()
-        }
+private val converter = Gson()
 
-    val serializedSavedSwitches: String
-        get() = preferences.getString(SWITCHES_KEY, "")!!
+fun <T : Any> T.serialize(): String = converter.toJson(this)
 
-    private val preferences = ContextProvider.appContext.getSharedPreferences(SWITCH_PREFS, Context.MODE_PRIVATE)
+fun <T : Any> List<T>.serializeList(): String = converter.toJson(this)
 
-    fun saveSwitches(switches: List<RfSwitch>) {
-        preferences.edit().putString(SWITCHES_KEY, switches.serializeList()).apply()
-    }
+fun <T : Any> String.deserialize(kClass: KClass<T>): T = converter.fromJson(this, kClass.java)
 
-    companion object {
-        private const val SWITCHES_KEY = "Switches"
-    }
-}
+fun <T : Any> String.deserializeList(kClass: KClass<T>): List<T> = converter.fromJson(this, TypeToken.getParameterized(List::class.java, kClass.java).type)

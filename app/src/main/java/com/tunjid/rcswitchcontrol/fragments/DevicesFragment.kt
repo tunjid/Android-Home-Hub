@@ -51,7 +51,7 @@ import com.rcswitchcontrol.protocols.models.Device
 import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
 import com.rcswitchcontrol.zigbee.models.createGroupSequence
-import com.rcswitchcontrol.protocols.persistence.serialize
+import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.dialogfragments.GroupDeviceDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.throttleColorChanges

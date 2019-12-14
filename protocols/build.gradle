@@ -12,7 +12,5 @@ dependencies {
 
     implementation parent.ext.tunjiAndroidxRecyclerView
 
-    implementation parent.ext.gson
-
     implementation project(':common')
 }

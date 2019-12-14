@@ -41,8 +41,8 @@ import com.tunjid.rcswitchcontrol.data.Record
 import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommandInfo
 import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
-import com.rcswitchcontrol.protocols.persistence.deserialize
-import com.rcswitchcontrol.protocols.persistence.deserializeList
+import com.tunjid.rcswitchcontrol.common.deserialize
+import com.tunjid.rcswitchcontrol.common.deserializeList
 import com.tunjid.rcswitchcontrol.a433mhz.protocols.BLERFProtocol
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.tunjid.rcswitchcontrol.a433mhz.protocols.SerialRFProtocol

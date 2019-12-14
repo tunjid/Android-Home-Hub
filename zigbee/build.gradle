@@ -12,8 +12,6 @@ dependencies {
 
     implementation parent.ext.tunjiAndroidxRecyclerView
 
-    implementation parent.ext.gson
-
     implementation parent.ext.rxJava
     implementation parent.ext.rxAndroid
 

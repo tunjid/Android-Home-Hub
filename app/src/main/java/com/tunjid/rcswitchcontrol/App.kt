@@ -37,14 +37,9 @@ import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.util.Log
 import com.google.android.things.pio.PeripheralManager
-import com.tunjid.rcswitchcontrol.common.ContextProvider
-import com.rcswitchcontrol.protocols.persistence.Converter
-import com.tunjid.rcswitchcontrol.common.Broadcaster
-import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
-import com.rcswitchcontrol.zigbee.models.ZigBeeCommandArgs
-import com.rcswitchcontrol.zigbee.models.ZigBeeCommandInfo
-import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
+import com.tunjid.rcswitchcontrol.common.Broadcaster
+import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 
 /**
@@ -73,14 +68,6 @@ class App : android.app.Application() {
     @SuppressLint("CheckResult")
     override fun onCreate() {
         super.onCreate()
-
-        Converter.apply {
-            register(Payload::class)
-            register(RfSwitch::class)
-            register(ZigBeeDevice::class)
-            register(ZigBeeCommandArgs::class)
-            register(ZigBeeCommandInfo::class)
-        }
 
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit

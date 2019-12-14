@@ -13,4 +13,5 @@ dependencies {
     implementation parent.ext.rxJava
     implementation parent.ext.rxAndroid
 
+    implementation parent.ext.gson
 }

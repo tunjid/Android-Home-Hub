@@ -25,8 +25,9 @@
 package com.rcswitchcontrol.zigbee.persistence
 
 import android.content.Context
+import com.tunjid.rcswitchcontrol.common.deserialize
+import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.common.ContextProvider
-import com.rcswitchcontrol.protocols.persistence.Converter.Companion.converter
 import com.zsmartsystems.zigbee.IeeeAddress
 import com.zsmartsystems.zigbee.database.ZigBeeNetworkDataStore
 import com.zsmartsystems.zigbee.database.ZigBeeNodeDao
@@ -43,10 +44,10 @@ class ZigBeeDataStore(private val networkId: String) : ZigBeeNetworkDataStore {
             preferences(networkId).all.keys.map { IeeeAddress(it.substring(0, 16)) }.toMutableSet()
 
     override fun readNode(address: IeeeAddress): ZigBeeNodeDao =
-            converter.fromJson(preferences(networkId).getString(address.toString(), ""), ZigBeeNodeDao::class.java)
+            preferences(networkId).getString(address.toString(), "")!!.deserialize(ZigBeeNodeDao::class)
 
     override fun writeNode(node: ZigBeeNodeDao) =
-            preferences(networkId).edit().putString(node.ieeeAddress.toString(), converter.toJson(node)).apply()
+            preferences(networkId).edit().putString(node.ieeeAddress.toString(), node.serialize()).apply()
 
     private fun preferences(key: String) = ContextProvider.appContext.getSharedPreferences(key, Context.MODE_PRIVATE)
 

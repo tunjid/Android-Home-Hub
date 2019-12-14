@@ -38,7 +38,7 @@ import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.App.Companion.catcher
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.common.Broadcaster
-import com.rcswitchcontrol.protocols.persistence.serialize
+import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService
 import com.rcswitchcontrol.protocols.io.ConsoleWriter
 import com.rcswitchcontrol.protocols.CommsProtocol

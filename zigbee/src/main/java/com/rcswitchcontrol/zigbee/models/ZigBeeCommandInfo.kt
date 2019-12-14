@@ -26,7 +26,6 @@ package com.rcswitchcontrol.zigbee.models
 
 import android.os.Parcel
 import android.os.Parcelable
-import com.rcswitchcontrol.protocols.persistence.Converter.Companion.converter
 
 class ZigBeeCommandInfo(
         val command: String,
@@ -51,8 +50,6 @@ class ZigBeeCommandInfo(
             parcel.readString()!!,
             parcel.readString()!!,
             parcel.readString()!!)
-
-    fun serialize(): String = converter.toJson(this)
 
     fun toArgs(): ZigBeeCommandArgs {
         val args = entries.map { it.value }.filter(String::isNotBlank).toMutableList()

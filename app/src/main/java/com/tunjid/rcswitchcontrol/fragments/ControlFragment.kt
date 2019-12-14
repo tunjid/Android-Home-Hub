@@ -46,7 +46,7 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN
 import com.google.android.material.bottomsheet.setupForBottomSheet
 import com.google.android.material.tabs.TabLayout
 import com.tunjid.rcswitchcontrol.common.ContextProvider
-import com.rcswitchcontrol.protocols.persistence.serialize
+import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.androidx.core.content.colorAt
 import com.tunjid.androidx.view.util.InsetFlags
 import com.tunjid.rcswitchcontrol.R

@@ -36,7 +36,7 @@ import android.os.ParcelUuid
 import android.util.Log
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
-import com.rcswitchcontrol.protocols.persistence.deserialize
+import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.androidx.communications.bluetooth.BLEScanner
 import com.tunjid.androidx.communications.bluetooth.ScanFilterCompat
 import com.tunjid.androidx.core.components.services.HardServiceConnection

@@ -27,11 +27,8 @@ package com.rcswitchcontrol.zigbee.protocol
 import android.util.Log
 import com.hoho.android.usbserial.driver.UsbSerialDriver
 import com.rcswitchcontrol.protocols.CommsProtocol
-import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.rcswitchcontrol.protocols.io.ConsoleStream
 import com.rcswitchcontrol.protocols.models.Payload
-import com.rcswitchcontrol.protocols.persistence.deserialize
-import com.rcswitchcontrol.protocols.persistence.serializeList
 import com.rcswitchcontrol.zigbee.R
 import com.rcswitchcontrol.zigbee.commands.*
 import com.rcswitchcontrol.zigbee.io.AndroidZigBeeSerialPort
@@ -39,6 +36,10 @@ import com.rcswitchcontrol.zigbee.models.ZigBeeCommandArgs
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommandInfo
 import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
 import com.rcswitchcontrol.zigbee.persistence.ZigBeeDataStore
+import com.tunjid.rcswitchcontrol.common.ContextProvider
+import com.tunjid.rcswitchcontrol.common.deserialize
+import com.tunjid.rcswitchcontrol.common.serialize
+import com.tunjid.rcswitchcontrol.common.serializeList
 import com.zsmartsystems.zigbee.ExtendedPanId
 import com.zsmartsystems.zigbee.ZigBeeChannel
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager

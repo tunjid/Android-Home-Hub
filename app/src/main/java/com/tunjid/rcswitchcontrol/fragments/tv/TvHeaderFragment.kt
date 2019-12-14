@@ -25,6 +25,7 @@ import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.fragments.DevicesFragment
 import com.tunjid.rcswitchcontrol.fragments.HostFragment
 import com.tunjid.rcswitchcontrol.fragments.RecordFragment
+import com.tunjid.rcswitchcontrol.services.ServerNsdService
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.ProtocolKey
 
@@ -66,7 +67,10 @@ class TvHeaderFragment : BaseFragment(R.layout.fragment_list), Navigator.TagProv
                 .build()
     }
 
-    private fun items(): List<Any> = listOf(host, devices) + viewModel.keys
+    private fun items(): List<Any> = when {
+        ServerNsdService.isServer -> listOf(host, devices)
+        else -> listOf(devices)
+    } + viewModel.keys
 
     private fun onHeaderHighlighted(key: Any) = when (key) {
         host -> HostFragment.newInstance()

@@ -1,9 +1,10 @@
-package com.tunjid.rcswitchcontrol.fragments.tv
+package com.tunjid.rcswitchcontrol.fragments
 
 import android.content.Context
 import android.content.res.ColorStateList
 import android.os.Bundle
 import android.view.View
+import androidx.core.os.bundleOf
 import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.observe
@@ -15,6 +16,7 @@ import com.google.android.flexbox.JustifyContent
 import com.google.android.material.button.MaterialButton
 import com.tunjid.androidx.core.content.colorAt
 import com.tunjid.androidx.navigation.Navigator
+import com.tunjid.androidx.navigation.childStackNavigationController
 import com.tunjid.androidx.recyclerview.ListManager
 import com.tunjid.androidx.recyclerview.ListManagerBuilder
 import com.tunjid.androidx.recyclerview.ListPlaceholder
@@ -22,22 +24,21 @@ import com.tunjid.androidx.recyclerview.adapterOf
 import com.tunjid.androidx.view.util.spring
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
-import com.tunjid.rcswitchcontrol.fragments.DevicesFragment
-import com.tunjid.rcswitchcontrol.fragments.HostFragment
-import com.tunjid.rcswitchcontrol.fragments.RecordFragment
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.ProtocolKey
 
-@Suppress("unused") // XML
-class TvHeaderFragment : BaseFragment(R.layout.fragment_list), Navigator.TagProvider {
+class LandscapeControlFragment : BaseFragment(R.layout.fragment_control_landscape), Navigator.TagProvider {
 
-    private val host by lazy { requireActivity().getString(R.string.host) }
-    private val devices by lazy { requireActivity().getString(R.string.devices) }
+    private val innerNavigator by childStackNavigationController(R.id.child_fragment_container)
 
     private val viewModel by activityViewModels<ControlViewModel>()
 
     private var listManager: ListManager<HeaderViewHolder, ListPlaceholder<*>>? = null
+
+    private val host by lazy { requireActivity().getString(R.string.host) }
+
+    private val devices by lazy { requireActivity().getString(R.string.devices) }
 
     override val stableTag: String = "ControlHeaders"
 
@@ -77,11 +78,16 @@ class TvHeaderFragment : BaseFragment(R.layout.fragment_list), Navigator.TagProv
         devices -> DevicesFragment.newInstance()
         is ProtocolKey -> RecordFragment.tvCommandInstance(ProtocolKey(key.name))
         else -> null
-    }?.let { navigator.push(it); Unit } ?: Unit
+    }?.let { innerNavigator.push(it); Unit } ?: Unit
 
     private fun onPayloadReceived(state: ControlViewModel.State) {
         if (state !is ControlViewModel.State.Commands || !state.isNew) return
         listManager?.notifyDataSetChanged()
+    }
+
+    companion object {
+        fun newInstance(): LandscapeControlFragment =
+                LandscapeControlFragment().apply { arguments = bundleOf() }
     }
 }
 

@@ -15,11 +15,11 @@
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <androidx.fragment.app.FragmentContainerView
-        android:id="@+id/header_container"
-        android:name="com.tunjid.rcswitchcontrol.fragments.tv.TvHeaderFragment"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/list"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:descendantFocusability="afterDescendants"
         app:layout_constraintEnd_toStartOf="@+id/history"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -34,19 +34,19 @@
         android:focusableInTouchMode="false"
         android:paddingHorizontal="@dimen/single_margin"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintLeft_toRightOf="@+id/main_fragment_container"
+        app:layout_constraintLeft_toRightOf="@+id/child_fragment_container"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintWidth_percent=".2" />
 
     <androidx.fragment.app.FragmentContainerView
-        android:id="@+id/main_fragment_container"
+        android:id="@+id/child_fragment_container"
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toLeftOf="@+id/history"
-        app:layout_constraintTop_toBottomOf="@+id/header_container" />
+        app:layout_constraintTop_toBottomOf="@+id/list" />
 
     <include
         android:id="@+id/alt_toolbar"

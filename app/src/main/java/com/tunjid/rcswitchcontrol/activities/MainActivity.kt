@@ -40,7 +40,6 @@ import com.tunjid.rcswitchcontrol.fragments.ControlFragment
 import com.tunjid.rcswitchcontrol.fragments.StartFragment
 import com.tunjid.rcswitchcontrol.fragments.LandscapeControlFragment
 import com.tunjid.rcswitchcontrol.navigation.AppNavigator
-import com.tunjid.rcswitchcontrol.navigation.PhoneNavigator
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
 import com.tunjid.rcswitchcontrol.utils.GlobalUiController
@@ -51,7 +50,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main),
         GlobalUiController,
         Navigator.Controller {
 
-    override val navigator: AppNavigator by lazy { PhoneNavigator(this) }
+    override val navigator: AppNavigator by lazy { AppNavigator(this) }
 
     override var uiState by globalUiDriver(currentSource = navigator::current)
 

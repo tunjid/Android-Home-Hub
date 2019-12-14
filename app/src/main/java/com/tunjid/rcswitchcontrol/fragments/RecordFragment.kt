@@ -41,6 +41,7 @@ import com.tunjid.androidx.recyclerview.ListPlaceholder
 import com.tunjid.androidx.recyclerview.adapterOf
 import com.tunjid.androidx.view.util.inflate
 import com.tunjid.androidx.view.util.spring
+import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.data.Record
@@ -57,7 +58,6 @@ sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
     class CommandsFragment : RecordFragment()
 
     internal var key: String? by args()
-    internal var inTv: Boolean? by args()
     private val viewModel by activityViewModels<ControlViewModel>()
 
     private lateinit var listManager: ListManager<RecordViewHolder, ListPlaceholder<*>>
@@ -120,7 +120,7 @@ sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
             viewModel.dispatchPayload(record.key) { action = record.entry }
 
     private fun configureViewHolder(viewHolder: RecordViewHolder) = viewHolder.textView.run {
-        if (inTv.let { it != null && it }) return@run
+        if (!App.isAndroidTV) return@run
 
         isFocusable = true
         isFocusableInTouchMode = true
@@ -138,10 +138,8 @@ sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
 
     companion object {
 
-        fun historyInstance(): HistoryFragment = HistoryFragment().apply { this.inTv = false }
+        fun historyInstance(): HistoryFragment = HistoryFragment()
 
-        fun commandInstance(key: ProtocolKey): CommandsFragment = CommandsFragment().apply { this.key = key.name; this.inTv = false }
-
-        fun tvCommandInstance(key: ProtocolKey): CommandsFragment = CommandsFragment().apply { this.key = key.name; this.inTv = true }
+        fun commandInstance(key: ProtocolKey): CommandsFragment = CommandsFragment().apply { this.key = key.name }
     }
 }

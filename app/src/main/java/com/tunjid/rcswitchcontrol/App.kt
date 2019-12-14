@@ -118,7 +118,7 @@ class App : android.app.Application() {
                 }
             }
 
-        private val isAndroidTV: Boolean
+        val isAndroidTV: Boolean
             get() = ContextProvider.appContext.packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
 
         fun catcher(tag: String, log: String, runnable: () -> Unit) {

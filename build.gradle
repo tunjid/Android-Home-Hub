@@ -64,10 +64,10 @@ buildscript {
         tunjiAndroidxCore = 'com.tunjid.androidx:core:1.0.0-rc01'
         tunjiAndroidxView = 'com.tunjid.androidx:view:1.0.0-rc02'
 
-        zigBeeCore = 'com.zsmartsystems.zigbee:com.zsmartsystems.zigbee:1.2.5'
-        zigBeeConsole = 'com.zsmartsystems.zigbee:com.zsmartsystems.zigbee.console:1.2.5'
-        zigBeeSerial = 'com.zsmartsystems.zigbee:com.zsmartsystems.zigbee.serial:1.2.5'
-        zigBeeDongle = 'com.zsmartsystems.zigbee:com.zsmartsystems.zigbee.dongle.cc2531:1.2.5'
+        zigBeeCore = 'com.zsmartsystems.zigbee:com.zsmartsystems.zigbee:1.2.9'
+        zigBeeConsole = 'com.zsmartsystems.zigbee:com.zsmartsystems.zigbee.console:1.2.9'
+        zigBeeSerial = 'com.zsmartsystems.zigbee:com.zsmartsystems.zigbee.serial:1.2.9'
+        zigBeeDongle = 'com.zsmartsystems.zigbee:com.zsmartsystems.zigbee.dongle.cc2531:1.2.9'
 
         junit = 'junit:junit:4.12'
         androidJunit = 'androidx.test.ext:junit:1.1.1'

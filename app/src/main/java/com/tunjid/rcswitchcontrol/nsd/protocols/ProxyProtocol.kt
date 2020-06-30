@@ -40,13 +40,13 @@ import com.hoho.android.usbserial.driver.ProbeTable
 import com.hoho.android.usbserial.driver.UsbSerialDriver
 import com.hoho.android.usbserial.driver.UsbSerialProber
 import com.rcswitchcontrol.protocols.CommsProtocol
-import com.tunjid.rcswitchcontrol.common.ContextProvider
+import com.rcswitchcontrol.protocols.models.Payload
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.common.Broadcaster
-import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.rcswitchcontrol.a433mhz.protocols.BLERFProtocol
 import com.tunjid.rcswitchcontrol.a433mhz.protocols.SerialRFProtocol
+import com.tunjid.rcswitchcontrol.common.Broadcaster
+import com.tunjid.rcswitchcontrol.common.ContextProvider
 import io.reactivex.disposables.CompositeDisposable
 import java.io.IOException
 import java.io.PrintWriter
@@ -87,7 +87,10 @@ class ProxyProtocol(private val printWriter: PrintWriter) : CommsProtocol(printW
         ContextProvider.appContext.registerReceiver(USBDeviceReceiver(), IntentFilter(ACTION_USB_PERMISSION))
         disposable.add(Broadcaster.listen(ACTION_USB_PERMISSION).subscribe(::onUsbPermissionGranted, Throwable::printStackTrace))
 
-        Handler().postDelayed(PERMISSION_REQUEST_DELAY) { attach(rfPeripheral); attach(zigBeePeripheral) }
+        Handler().apply {
+            postDelayed(PERMISSION_REQUEST_DELAY) { attach(rfPeripheral) }
+            postDelayed(PERMISSION_REQUEST_DELAY * 2) { attach(zigBeePeripheral) }
+        }
     }
 
     override fun processInput(payload: Payload): Payload {

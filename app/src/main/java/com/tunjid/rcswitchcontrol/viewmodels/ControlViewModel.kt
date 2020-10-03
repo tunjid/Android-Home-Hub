@@ -29,7 +29,6 @@ import android.content.Intent
 import android.content.res.Resources
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
 import com.jakewharton.rx.replayingShare
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Device
@@ -53,11 +52,12 @@ import com.tunjid.rcswitchcontrol.fragments.RecordFragment
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
 import com.tunjid.rcswitchcontrol.utils.Tab
+import com.tunjid.rcswitchcontrol.utils.filterIsInstance
 import com.tunjid.rcswitchcontrol.utils.toLiveData
-import com.tunjid.rcswitchcontrol.utils.toSafeLiveData
 import io.reactivex.android.schedulers.AndroidSchedulers.mainThread
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.processors.PublishProcessor
+import io.reactivex.rxkotlin.Flowables
 import io.reactivex.schedulers.Schedulers.single
 import java.util.*
 
@@ -65,21 +65,15 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
 
     private val disposable: CompositeDisposable = CompositeDisposable()
 
-    private val inPayloadProcessor: PublishProcessor<Payload> = PublishProcessor.create()
+    private val inputProcessor: PublishProcessor<Input> = PublishProcessor.create()
     private val outPayloadProcessor: PublishProcessor<Payload> = PublishProcessor.create()
-    private val connectionStateProcessor: PublishProcessor<String> = PublishProcessor.create()
     private val nsdConnection = HardServiceConnection(app, ClientNsdService::class.java, this::onServiceConnected)
 
     private val selectedDevices: MutableSet<Device> = mutableSetOf()
 
-//    private val payloadQueue: Queue<Payload> = LinkedList()
-
     val pages: List<Page> = mutableListOf(Page.HISTORY, Page.DEVICES).apply {
         if (ServerNsdService.isServer) add(0, Page.HOST)
     }
-
-//    @Volatile
-//    var isProcessing = false
 
     val isBound: Boolean
         get() = nsdConnection.boundService != null
@@ -87,14 +81,17 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
     val isConnected: Boolean
         get() = nsdConnection.boundService?.isConnected == true
 
-    private val stateObservable = inPayloadProcessor.scan(ControlState()) { state, payload ->
+    private val stateObservable = Flowables.combineLatest(
+            inputProcessor.filterIsInstance<Input.ServerResponse>().map(Input.ServerResponse::payload),
+            inputProcessor.filterIsInstance<Input.ConnectionState>().startWith(initialConnectionState()).map(Input.ConnectionState::text)
+    ).scan(ControlState()) { state, (payload, connectionState) ->
         val key = payload.key
         val isNew = !state.commands.keys.contains(key)
         val record = payload.extractRecord()
         val fetchedDevices = payload.extractDevices()
         val commandInfo = payload.extractCommandInfo()
 
-        state.copy(isNew = isNew, commandInfo = commandInfo)
+        state.copy(isNew = isNew, connectionState = connectionState, commandInfo = commandInfo)
                 .reduceCommands(payload)
                 .reduceHistory(record)
                 .reduceDevices(fetchedDevices)
@@ -129,15 +126,6 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
         ClientNsdService.lastConnectedService = null
     }
 
-    fun connectionState(): LiveData<String> = connectionStateProcessor.startWith({
-        val boundService = nsdConnection.boundService
-        boundService?.onAppForeGround()
-
-        getConnectionText(boundService?.connectionState
-                ?: ClientNsdService.ACTION_SOCKET_DISCONNECTED)
-
-    }()).observeOn(mainThread()).toSafeLiveData()
-
     fun select(device: Device): Boolean {
         val contains = selectedDevices.contains(device)
         if (contains) selectedDevices.remove(device) else selectedDevices.add(device)
@@ -156,7 +144,7 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
     ) { action = (CommsProtocol.PING) }
 
     private fun onServiceConnected(service: ClientNsdService) {
-        connectionStateProcessor.onNext(getConnectionText(service.connectionState))
+        inputProcessor.onNext(getConnectionText(service.connectionState))
         pingServer()
     }
 
@@ -164,16 +152,24 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
         when (val action = intent.action) {
             ClientNsdService.ACTION_SOCKET_CONNECTED,
             ClientNsdService.ACTION_SOCKET_CONNECTING,
-            ClientNsdService.ACTION_SOCKET_DISCONNECTED -> connectionStateProcessor.onNext(getConnectionText(action))
-            ClientNsdService.ACTION_START_NSD_DISCOVERY -> connectionStateProcessor.onNext(getConnectionText(ClientNsdService.ACTION_SOCKET_CONNECTING))
+            ClientNsdService.ACTION_SOCKET_DISCONNECTED -> inputProcessor.onNext(getConnectionText(action))
+            ClientNsdService.ACTION_START_NSD_DISCOVERY -> inputProcessor.onNext(getConnectionText(ClientNsdService.ACTION_SOCKET_CONNECTING))
             ClientNsdService.ACTION_SERVER_RESPONSE -> intent.getStringExtra(ClientNsdService.DATA_SERVER_RESPONSE)?.apply {
                 if (isEmpty()) return@apply
-                inPayloadProcessor.onNext(deserialize(Payload::class))
+                inputProcessor.onNext(Input.ServerResponse(deserialize(Payload::class)))
             }
         }
     }
 
-    private fun getConnectionText(newState: String): String {
+    private fun initialConnectionState(): Input.ConnectionState {
+        val service = nsdConnection.boundService
+        service?.onAppForeGround()
+
+        return getConnectionText(service?.connectionState
+                ?: ClientNsdService.ACTION_SOCKET_DISCONNECTED)
+    }
+
+    private fun getConnectionText(newState: String): Input.ConnectionState {
         var text = ""
         val context = getApplication<Application>()
         val boundService = nsdConnection.boundService
@@ -191,7 +187,7 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
 
             ClientNsdService.ACTION_SOCKET_DISCONNECTED -> text = context.getString(R.string.disconnected)
         }
-        return text
+        return Input.ConnectionState(text)
     }
 
     private fun dispatchPayload(key: String, predicate: (() -> Boolean), payloadReceiver: Payload.() -> Unit) = Payload(key).run {
@@ -280,6 +276,7 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
 
 data class ControlState(
         val isNew: Boolean = false,
+        val connectionState: String = "",
         val commandInfo: ZigBeeCommandInfo? = null,
         val history: List<Record> = listOf(),
         val commands: Map<String, List<Record>> = mapOf(),
@@ -287,6 +284,11 @@ data class ControlState(
 )
 
 val ControlState.keys get() = commands.keys.sorted().map(::ProtocolKey)
+
+private sealed class Input {
+    data class ServerResponse(val payload: Payload) : Input()
+    data class ConnectionState(val text: String) : Input()
+}
 
 inline class ProtocolKey(val name: String) : Tab {
     val title get() = name.split(".").last().toUpperCase(Locale.US).removeSuffix("PROTOCOL")

@@ -54,11 +54,11 @@ import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.bottomInset
 import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.topInset
 import com.tunjid.rcswitchcontrol.utils.attach
 import com.tunjid.rcswitchcontrol.utils.mapDistinct
+import com.tunjid.rcswitchcontrol.viewmodels.ControlState
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.Page
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.Page.HISTORY
 import com.tunjid.rcswitchcontrol.viewmodels.ProtocolKey
-import com.tunjid.rcswitchcontrol.viewmodels.ControlState
 import com.tunjid.rcswitchcontrol.viewmodels.keys
 
 class ControlFragment : BaseFragment(R.layout.fragment_control), ZigBeeArgumentDialogFragment.ZigBeeArgsListener {
@@ -73,11 +73,6 @@ class ControlFragment : BaseFragment(R.layout.fragment_control), ZigBeeArgumentD
         }
 
     override val insetFlags: InsetFlags = InsetFlags(hasLeftInset = true, hasTopInset = true, hasRightInset = true, hasBottomInset = false)
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        viewModel.connectionState().observe(this, this::onConnectionStateChanged)
-    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -149,6 +144,7 @@ class ControlFragment : BaseFragment(R.layout.fragment_control), ZigBeeArgumentD
                 if (it != null) ZigBeeArgumentDialogFragment.newInstance(it).show(childFragmentManager, "info")
             }
             mapDistinct(ControlState::keys).observe(viewLifecycleOwner, commandAdapter::submitList)
+            mapDistinct(ControlState::connectionState).observe(viewLifecycleOwner, ::onConnectionStateChanged)
         }
     }
 

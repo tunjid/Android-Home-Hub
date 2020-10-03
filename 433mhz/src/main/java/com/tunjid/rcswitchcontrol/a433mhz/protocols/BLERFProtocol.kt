@@ -42,6 +42,7 @@ import com.tunjid.androidx.communications.bluetooth.ScanFilterCompat
 import com.tunjid.androidx.core.components.services.HardServiceConnection
 import com.tunjid.rcswitchcontrol.a433mhz.R
 import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
+import com.tunjid.rcswitchcontrol.a433mhz.models.bytes
 import com.tunjid.rcswitchcontrol.a433mhz.persistence.RfSwitchDataStore
 import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
 import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService.Companion.C_HANDLE_CONTROL
@@ -255,20 +256,17 @@ class BLERFProtocol constructor(printWriter: PrintWriter) : CommsProtocol(printW
                         ?: return@run
                 data = switchCreator.state
 
-                when {
-                    RfSwitch.ON_CODE == switchCreator.state -> {
+                when (switchCreator.state) {
+                    RfSwitch.ON_CODE -> {
                         switchCreator.withOnCode(rawData)
                         action = intentAction
                         response = appContext.getString(R.string.blercprotocol_sniff_on_response)
                         addCommand(SNIFF)
                     }
-
-                    RfSwitch.OFF_CODE == switchCreator.state -> {
+                    RfSwitch.OFF_CODE -> {
                         val switches = switchStore.savedSwitches
                         val rcSwitch = switchCreator.withOffCode(rawData)
-                        val containsSwitch = switches.contains(rcSwitch)
-
-                        rcSwitch.name = "Switch " + (switches.size + 1)
+                        val containsSwitch = switches.map(RfSwitch::bytes).contains(rcSwitch.bytes)
 
                         action = (intentAction)
                         response = getString(
@@ -279,7 +277,7 @@ class BLERFProtocol constructor(printWriter: PrintWriter) : CommsProtocol(printW
                         addCommand(SNIFF)
 
                         if (!containsSwitch) {
-                            switches.add(rcSwitch)
+                            switches.add(rcSwitch.copy(name = "Switch " + (switches.size + 1)))
 
                             switchStore.saveSwitches(switches)
                             action = (ClientBleService.ACTION_TRANSMITTER)

@@ -65,7 +65,6 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
 
     private val disposable: CompositeDisposable = CompositeDisposable()
 
-    private val stateProcessor: PublishProcessor<ControlState> = PublishProcessor.create()
     private val inPayloadProcessor: PublishProcessor<Payload> = PublishProcessor.create()
     private val outPayloadProcessor: PublishProcessor<Payload> = PublishProcessor.create()
     private val connectionStateProcessor: PublishProcessor<String> = PublishProcessor.create()
@@ -73,14 +72,14 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
 
     private val selectedDevices: MutableSet<Device> = mutableSetOf()
 
-    private val payloadQueue: Queue<Payload> = LinkedList()
+//    private val payloadQueue: Queue<Payload> = LinkedList()
 
     val pages: List<Page> = mutableListOf(Page.HISTORY, Page.DEVICES).apply {
         if (ServerNsdService.isServer) add(0, Page.HOST)
     }
 
-    @Volatile
-    var isProcessing = false
+//    @Volatile
+//    var isProcessing = false
 
     val isBound: Boolean
         get() = nsdConnection.boundService != null
@@ -102,16 +101,11 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
     }
             .subscribeOn(single())
             .observeOn(mainThread())
-            .doOnNext {
-                if (payloadQueue.isEmpty()) isProcessing = false
-                else inPayloadProcessor.onNext(payloadQueue.poll())
-            }
             .replayingShare()
 
     val state = stateObservable.toLiveData()
 
     init {
-        isProcessing = false
         nsdConnection.bind()
         listenForOutputPayloads()
         listenForBroadcasts()
@@ -174,11 +168,7 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
             ClientNsdService.ACTION_START_NSD_DISCOVERY -> connectionStateProcessor.onNext(getConnectionText(ClientNsdService.ACTION_SOCKET_CONNECTING))
             ClientNsdService.ACTION_SERVER_RESPONSE -> intent.getStringExtra(ClientNsdService.DATA_SERVER_RESPONSE)?.apply {
                 if (isEmpty()) return@apply
-                payloadQueue.add(deserialize(Payload::class))
-
-                if (isProcessing) return@apply
-                isProcessing = true
-                inPayloadProcessor.onNext(payloadQueue.poll())
+                inPayloadProcessor.onNext(deserialize(Payload::class))
             }
         }
     }

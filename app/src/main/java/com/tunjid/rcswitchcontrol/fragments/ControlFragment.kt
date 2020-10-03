@@ -53,6 +53,7 @@ import com.tunjid.rcswitchcontrol.utils.FragmentTabAdapter
 import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.bottomInset
 import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.topInset
 import com.tunjid.rcswitchcontrol.utils.attach
+import com.tunjid.rcswitchcontrol.utils.itemId
 import com.tunjid.rcswitchcontrol.utils.mapDistinct
 import com.tunjid.rcswitchcontrol.viewmodels.ControlState
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
@@ -188,11 +189,11 @@ class ControlFragment : BaseFragment(R.layout.fragment_control), ZigBeeArgumentD
         viewBinding.connectionStatus.text = resources.getString(R.string.connection_state, text)
     }
 
-    private fun fromPager(index: Int): BaseFragment? = viewBinding.mainPager.adapter?.let {
-//        if (index < 0) return null
-//        it.instantiateItem(viewBinding.mainPager, index) as? BaseFragment
-        null
+    private fun fromPager(index: Int): BaseFragment? = when {
+        index < 0 -> null
+        else -> childFragmentManager.findFragmentByTag("f${viewModel.pages[index].itemId}") as? BaseFragment
     }
+
 
     override fun onArgsEntered(args: ZigBeeCommandArgs) = viewModel.dispatchPayload(args.key) {
         action = args.command

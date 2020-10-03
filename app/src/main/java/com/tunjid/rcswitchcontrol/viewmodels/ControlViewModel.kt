@@ -26,30 +26,34 @@ package com.tunjid.rcswitchcontrol.viewmodels
 
 import android.app.Application
 import android.content.Intent
+import android.content.res.Resources
+import androidx.fragment.app.Fragment
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
-import androidx.recyclerview.widget.DiffUtil.DiffResult
-import com.tunjid.androidx.core.components.services.HardServiceConnection
-import com.tunjid.androidx.functions.collections.replace
-import com.tunjid.androidx.recyclerview.diff.Diff
-import com.tunjid.androidx.recyclerview.diff.Differentiable
-import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.common.Broadcaster
+import com.jakewharton.rx.replayingShare
+import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Device
 import com.rcswitchcontrol.protocols.models.Payload
-import com.tunjid.rcswitchcontrol.data.Record
-import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommandInfo
 import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
+import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
+import com.tunjid.androidx.core.components.services.HardServiceConnection
+import com.tunjid.rcswitchcontrol.R
+import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
+import com.tunjid.rcswitchcontrol.a433mhz.protocols.BLERFProtocol
+import com.tunjid.rcswitchcontrol.a433mhz.protocols.SerialRFProtocol
+import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
+import com.tunjid.rcswitchcontrol.common.Broadcaster
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.deserializeList
-import com.tunjid.rcswitchcontrol.a433mhz.protocols.BLERFProtocol
-import com.rcswitchcontrol.protocols.CommsProtocol
-import com.tunjid.rcswitchcontrol.a433mhz.protocols.SerialRFProtocol
-import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
-import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
+import com.tunjid.rcswitchcontrol.data.Record
+import com.tunjid.rcswitchcontrol.fragments.DevicesFragment
+import com.tunjid.rcswitchcontrol.fragments.HostFragment
+import com.tunjid.rcswitchcontrol.fragments.RecordFragment
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
+import com.tunjid.rcswitchcontrol.utils.Tab
+import com.tunjid.rcswitchcontrol.utils.toLiveData
 import com.tunjid.rcswitchcontrol.utils.toSafeLiveData
 import io.reactivex.android.schedulers.AndroidSchedulers.mainThread
 import io.reactivex.disposables.CompositeDisposable
@@ -61,28 +65,22 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
 
     private val disposable: CompositeDisposable = CompositeDisposable()
 
-    private val stateProcessor: PublishProcessor<State> = PublishProcessor.create()
+    private val stateProcessor: PublishProcessor<ControlState> = PublishProcessor.create()
     private val inPayloadProcessor: PublishProcessor<Payload> = PublishProcessor.create()
     private val outPayloadProcessor: PublishProcessor<Payload> = PublishProcessor.create()
     private val connectionStateProcessor: PublishProcessor<String> = PublishProcessor.create()
     private val nsdConnection = HardServiceConnection(app, ClientNsdService::class.java, this::onServiceConnected)
 
     private val selectedDevices: MutableSet<Device> = mutableSetOf()
-    private val commands: MutableMap<String, MutableList<Record>> = mutableMapOf()
-    private val payloadQueue: Queue<Payload> = LinkedList()
-    private val history: MutableList<Record> = mutableListOf()
-    private val actualKeys: MutableList<ProtocolKey> = mutableListOf()
 
-    val devices: MutableList<Device> = mutableListOf()
-    val pages: MutableList<Page> = mutableListOf(Page.HISTORY, Page.DEVICES).apply {
+    private val payloadQueue: Queue<Payload> = LinkedList()
+
+    val pages: List<Page> = mutableListOf(Page.HISTORY, Page.DEVICES).apply {
         if (ServerNsdService.isServer) add(0, Page.HOST)
     }
 
     @Volatile
     var isProcessing = false
-
-    val keys: List<ProtocolKey>
-        get() = actualKeys
 
     val isBound: Boolean
         get() = nsdConnection.boundService != null
@@ -90,10 +88,32 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
     val isConnected: Boolean
         get() = nsdConnection.boundService?.isConnected == true
 
+    private val stateObservable = inPayloadProcessor.scan(ControlState()) { state, payload ->
+        val key = payload.key
+        val isNew = !state.commands.keys.contains(key)
+        val record = payload.extractRecord()
+        val fetchedDevices = payload.extractDevices()
+        val commandInfo = payload.extractCommandInfo()
+
+        state.copy(isNew = isNew, commandInfo = commandInfo)
+                .reduceCommands(payload)
+                .reduceHistory(record)
+                .reduceDevices(fetchedDevices)
+    }
+            .subscribeOn(single())
+            .observeOn(mainThread())
+            .doOnNext {
+                if (payloadQueue.isEmpty()) isProcessing = false
+                else inPayloadProcessor.onNext(payloadQueue.poll())
+            }
+            .replayingShare()
+
+    val state = stateObservable.toLiveData()
+
     init {
+        isProcessing = false
         nsdConnection.bind()
         listenForOutputPayloads()
-        listenForInputPayloads()
         listenForBroadcasts()
     }
 
@@ -103,19 +123,9 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
         super.onCleared()
     }
 
-    fun <T : State> listen(type: Class<T>, predicate: (state: T) -> Boolean = { true }): LiveData<T> = stateProcessor
-            .filter(type::isInstance)
-            .cast(type)
-            .filter(predicate)
-            .toSafeLiveData()
-
     fun dispatchPayload(key: String, payloadReceiver: Payload.() -> Unit) = dispatchPayload(key, { true }, payloadReceiver)
 
     fun onBackground() = nsdConnection.boundService?.onAppBackground()
-
-    fun getCommands(key: String?) = if (key == null) history else commands.getOrPut(key) { mutableListOf() }
-
-    fun lastIndex(key: String?): Int = getCommands(key).size - 1
 
     fun forgetService() {
         // Don't call unbind, when the hosting activity is finished,
@@ -146,7 +156,10 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
 
     fun <T> withSelectedDevices(function: (Set<Device>) -> T): T = function.invoke(selectedDevices)
 
-    fun pingServer() = dispatchPayload(CommsProtocol::class.java.name, commands::isEmpty) { action = (CommsProtocol.PING) }
+    fun pingServer() = dispatchPayload(
+            CommsProtocol::class.java.name,
+            { state.value?.commands.let { it == null || it.isEmpty() } }
+    ) { action = (CommsProtocol.PING) }
 
     private fun onServiceConnected(service: ClientNsdService) {
         connectionStateProcessor.onNext(getConnectionText(service.connectionState))
@@ -196,25 +209,19 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
         if (predicate.invoke()) outPayloadProcessor.onNext(this)
     }
 
-    private fun diffDevices(fetched: List<Device>): Diff<Device> =
-            Diff.calculate(devices, fetched) { current, server ->
-                mutableSetOf<Device>().apply {
-                    addAll(server)
-                    addAll(current)
-                }.toList()
+    private fun ControlState.reduceDevices(fetched: List<Device>?) = if (fetched != null) copy(
+            devices = (fetched + devices).distinctBy(Device::diffId)
+    ) else this
+
+    private fun ControlState.reduceHistory(record: Record?) = if (record != null) copy(
+            history = (history + record)
+    ) else this
+
+    private fun ControlState.reduceCommands(payload: Payload) = copy(
+            commands = HashMap(commands).apply {
+                this[payload.key] = payload.commands.map { Record(payload.key, it, true) }
             }
-
-    private fun diffHistory(record: Record): Diff<Record> = Diff.calculate(
-            history,
-            listOf(record),
-            { current, responses -> current + responses },
-            { response -> Differentiable.fromCharSequence { response.toString() } })
-
-    private fun diffCommands(payload: Payload): Diff<Record> = Diff.calculate(
-            getCommands(payload.key),
-            payload.commands.map { Record(payload.key, it, true) },
-            { _, responses -> responses },
-            { response -> Differentiable.fromCharSequence { response.toString() } })
+    )
 
     private fun Payload.extractRecord(): Record? = response.let {
         if (it == null || it.isBlank()) null
@@ -257,73 +264,45 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
                 .subscribe(this::onIntentReceived) { it.printStackTrace(); listenForBroadcasts() })
     }
 
-    private fun listenForInputPayloads() {
-        isProcessing = false
-        disposable.add(inPayloadProcessor.map { payload ->
-            mutableListOf<State>().apply {
-                val key = payload.key
-                val isNew = !commands.keys.contains(key)
-                val record = payload.extractRecord()
-                val fetchedDevices = payload.extractDevices()
-                val commandInfo = payload.extractCommandInfo()
-
-                add(diffCommands(payload).let { State.Commands(key, isNew, it) })
-                if (record != null) add(diffHistory(record).let { State.History(key, commandInfo, it) })
-                if (fetchedDevices != null) add(diffDevices(fetchedDevices).let { State.Devices(key, it) })
-            }
-        }
-                .subscribeOn(single())
-                .observeOn(mainThread())
-                .subscribe({ stateList ->
-                    stateList.forEach {
-                        when (it) {
-                            is State.Devices -> devices.replace(it.diff.items)
-                            is State.History -> history.replace(it.diff.items)
-                            is State.Commands -> {
-                                getCommands(it.key).replace(it.diff.items)
-                                if (it.isNew) actualKeys.replace(commands.keys.sorted().map(::ProtocolKey))
-                            }
-                        }
-                        stateProcessor.onNext(it)
-                    }
-                    if (payloadQueue.isEmpty()) isProcessing = false
-                    else inPayloadProcessor.onNext(payloadQueue.poll())
-                })
-                { it.printStackTrace(); listenForInputPayloads() })
-    }
-
     private fun listenForOutputPayloads() {
         disposable.add(outPayloadProcessor
                 .filter { isConnected }
                 .subscribe({ nsdConnection.boundService?.sendMessage(it) }) { it.printStackTrace(); listenForOutputPayloads() })
     }
 
-    enum class Page { HOST, HISTORY, DEVICES }
+    enum class Page : Tab {
 
-    sealed class State(
-            open val key: String,
-            val result: DiffResult
-    ) {
-        class History(
-                override val key: String,
-                val commandInfo: ZigBeeCommandInfo?,
-                internal val diff: Diff<Record>
-        ) : State(key, diff.result)
+        HOST, HISTORY, DEVICES;
 
-        class Commands(
-                override val key: String,
-                val isNew: Boolean,
-                internal val diff: Diff<Record>
-        ) : State(key, diff.result)
+        override fun createFragment(): Fragment = when (this) {
+            HOST -> HostFragment.newInstance()
+            HISTORY -> RecordFragment.historyInstance()
+            DEVICES -> DevicesFragment.newInstance()
+        }
 
-        class Devices(
-                override val key: String,
-                internal val diff: Diff<Device>
-        ) : State(key, diff.result)
+        override fun title(res: Resources): CharSequence = when (this) {
+            HOST -> res.getString(R.string.host)
+            HISTORY -> res.getString(R.string.history)
+            DEVICES -> res.getString(R.string.devices)
+        }
     }
 }
 
-inline class ProtocolKey(val name: String) {
+data class ControlState(
+        val isNew: Boolean = false,
+        val commandInfo: ZigBeeCommandInfo? = null,
+        val history: List<Record> = listOf(),
+        val commands: Map<String, List<Record>> = mapOf(),
+        val devices: List<Device> = listOf()
+)
+
+val ControlState.keys get() = commands.keys.sorted().map(::ProtocolKey)
+
+inline class ProtocolKey(val name: String) : Tab {
     val title get() = name.split(".").last().toUpperCase(Locale.US).removeSuffix("PROTOCOL")
+
+    override fun title(res: Resources) = title
+
+    override fun createFragment(): Fragment = RecordFragment.commandInstance(this)
 }
 

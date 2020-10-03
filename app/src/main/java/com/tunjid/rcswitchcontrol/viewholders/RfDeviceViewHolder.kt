@@ -24,23 +24,36 @@
 
 package com.tunjid.rcswitchcontrol.viewholders
 
-import android.view.View
+import android.view.ViewGroup
+import com.tunjid.androidx.recyclerview.viewbinding.BindingViewHolder
+import com.tunjid.androidx.recyclerview.viewbinding.viewHolderFrom
 import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
+import com.tunjid.rcswitchcontrol.databinding.ViewholderRemoteSwitchBinding
 
-// ViewHolder for actual content
-class RfDeviceViewHolder internal constructor(
-        itemView: View,
-        listener: Listener
-) : DeviceViewHolder<RfDeviceViewHolder.Listener, RfSwitch>(itemView, listener) {
+interface RfDeviceListener : DeviceLongClickListener
 
-    override fun bind(device: RfSwitch) {
-        super.bind(device)
+var BindingViewHolder<ViewholderRemoteSwitchBinding>.device by BindingViewHolder.Prop<RfSwitch>()
+var BindingViewHolder<ViewholderRemoteSwitchBinding>.listener by BindingViewHolder.Prop<RfDeviceListener>()
 
-        deviceName.text = device.name
+fun BindingViewHolder<ViewholderRemoteSwitchBinding>.bind(device: RfSwitch) {
+    this.device = device
+    binding.switchName.text = device.name
+    device.highlightViewHolder(this, listener::isSelected)
+}
+
+fun ViewGroup.rfDeviceDeviceViewHolder(
+        listener: RfDeviceListener
+) = viewHolderFrom(ViewholderRemoteSwitchBinding::inflate).apply binding@{
+    this.listener = listener
+
+    binding.apply {
+        itemView.setOnClickListener { listener.onClicked(device) }
+        itemView.setOnLongClickListener {
+            device.highlightViewHolder(this@binding, listener::onLongClicked)
+            true
+        }
 
         offSwitch.setOnClickListener { listener.onSwitchToggled(device, false) }
         onSwitch.setOnClickListener { listener.onSwitchToggled(device, true) }
     }
-
-    interface Listener : DeviceLongClickListener
 }

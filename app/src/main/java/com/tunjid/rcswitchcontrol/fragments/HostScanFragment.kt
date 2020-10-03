@@ -28,55 +28,59 @@ package com.tunjid.rcswitchcontrol.fragments
 import android.content.Intent
 import android.net.nsd.NsdServiceInfo
 import android.os.Bundle
-import android.view.*
+import android.text.SpannableStringBuilder
+import android.view.Menu
+import android.view.MenuItem
+import android.view.View
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.observe
-import com.tunjid.androidx.recyclerview.ListManager
-import com.tunjid.androidx.recyclerview.ListManagerBuilder
-import com.tunjid.androidx.recyclerview.ListPlaceholder
-import com.tunjid.androidx.recyclerview.adapterOf
-import com.tunjid.androidx.view.util.inflate
+import com.tunjid.androidx.core.text.scale
+import com.tunjid.androidx.recyclerview.listAdapterOf
+import com.tunjid.androidx.recyclerview.verticalLayoutManager
+import com.tunjid.androidx.recyclerview.viewbinding.BindingViewHolder
+import com.tunjid.androidx.recyclerview.viewbinding.viewHolderFrom
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
-import com.tunjid.rcswitchcontrol.viewholders.HostScanViewHolder
-import com.tunjid.rcswitchcontrol.viewholders.ServiceClickedListener
-import com.tunjid.rcswitchcontrol.viewholders.withPaddedAdapter
+import com.tunjid.rcswitchcontrol.databinding.FragmentNsdScanBinding
+import com.tunjid.rcswitchcontrol.databinding.ViewholderNsdListBinding
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
+import com.tunjid.rcswitchcontrol.utils.mapDistinct
+import com.tunjid.rcswitchcontrol.viewmodels.NSDState
+import com.tunjid.rcswitchcontrol.viewmodels.NsdItem
 import com.tunjid.rcswitchcontrol.viewmodels.NsdScanViewModel
 
 /**
  * A [androidx.fragment.app.Fragment] listing supported NSD servers
  */
-class HostScanFragment : BaseFragment(), ServiceClickedListener {
+class HostScanFragment : BaseFragment() {
 
-    private var isScanning: Boolean = false
-
-    private lateinit var scrollManager: ListManager<HostScanViewHolder, ListPlaceholder<*>>
     private val viewModel by viewModels<NsdScanViewModel>()
+    private val isScanning: Boolean get() = viewModel.state.value?.isScanning == true
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        viewModel.scanOutput().observe(this, this::onScanResult)
-    }
-
-    override fun onCreateView(inflater: LayoutInflater,
-                              container: ViewGroup?,
-                              savedInstanceState: Bundle?): View? {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
         updateUi(toolBarMenu = R.menu.menu_nsd_scan)
+        val binding = FragmentNsdScanBinding.bind(view)
 
-        val root = inflater.inflate(R.layout.fragment_nsd_scan, container, false)
-        scrollManager = ListManagerBuilder<HostScanViewHolder, ListPlaceholder<*>>()
-                .withRecyclerView(root.findViewById(R.id.list))
-                .withPaddedAdapter(adapterOf(
-                        itemsSource = viewModel::services,
-                        viewHolderCreator = { parent, _ -> HostScanViewHolder(parent.inflate(R.layout.viewholder_nsd_list), this) },
-                        viewHolderBinder = { holder, service, _ -> holder.bind(service) }
-                ))
-                .withLinearLayoutManager()
-                .build()
+        binding.list.apply {
+            val listAdapter = listAdapterOf(
+                    initialItems = viewModel.state.value?.items ?: listOf(),
+                    viewHolderCreator = { parent, _ ->
+                        parent.viewHolderFrom(ViewholderNsdListBinding::inflate).apply {
+                            this.binding.title.setOnClickListener { onServiceClicked(item.info) }
+                        }
+                    },
+                    viewHolderBinder = { holder, service, _ -> holder.bind(service) }
+            )
 
-        return root
+            layoutManager = verticalLayoutManager()
+            adapter = listAdapter
+
+            viewModel.state.apply {
+                mapDistinct(NSDState::items).observe(viewLifecycleOwner, listAdapter::submitList)
+                mapDistinct(NSDState::isScanning).observe(viewLifecycleOwner) { updateUi(toolbarInvalidated = true) }
+            }
+        }
     }
 
     override fun onResume() {
@@ -84,9 +88,9 @@ class HostScanFragment : BaseFragment(), ServiceClickedListener {
         scanDevices(true)
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        scrollManager.clear()
+    override fun onPause() {
+        super.onPause()
+        scanDevices(false)
     }
 
     override fun onPrepareOptionsMenu(menu: Menu) {
@@ -114,7 +118,7 @@ class HostScanFragment : BaseFragment(), ServiceClickedListener {
         return super.onOptionsItemSelected(item)
     }
 
-    override fun onServiceClicked(serviceInfo: NsdServiceInfo) {
+    private fun onServiceClicked(serviceInfo: NsdServiceInfo) {
         val intent = Intent(context, ClientNsdService::class.java)
         intent.putExtra(ClientNsdService.NSD_SERVICE_INFO_KEY, serviceInfo)
         requireContext().startService(intent)
@@ -122,24 +126,9 @@ class HostScanFragment : BaseFragment(), ServiceClickedListener {
         navigator.push(ControlFragment.newInstance())
     }
 
-    override fun isSelf(serviceInfo: NsdServiceInfo): Boolean {
-        return false
-    }
-
     private fun scanDevices(enable: Boolean) {
-        isScanning = enable
-
-        if (isScanning) viewModel.findDevices()
+        if (enable) viewModel.findDevices()
         else viewModel.stopScanning()
-    }
-
-    private fun onScanResult(output:NsdScanViewModel.ScanOutput) = when(output) {
-        is NsdScanViewModel.ScanOutput.ScanStarted -> updateUi(toolbarInvalidated = true)
-        is NsdScanViewModel.ScanOutput.ScanResult -> scrollManager.onDiff(output.diffResult)
-        is NsdScanViewModel.ScanOutput.ScanEnded -> {
-            isScanning = false
-            updateUi(toolbarInvalidated = true)
-        }
     }
 
     companion object {
@@ -152,4 +141,14 @@ class HostScanFragment : BaseFragment(), ServiceClickedListener {
             return fragment
         }
     }
+}
+
+private var BindingViewHolder<ViewholderNsdListBinding>.item by BindingViewHolder.Prop<NsdItem>()
+
+private fun BindingViewHolder<ViewholderNsdListBinding>.bind(item: NsdItem) {
+    this.item = item
+    binding.title.text = SpannableStringBuilder()
+            .append(item.info.serviceName)
+            .append("\n")
+            .append(item.info.host.hostAddress.scale(0.8F))
 }

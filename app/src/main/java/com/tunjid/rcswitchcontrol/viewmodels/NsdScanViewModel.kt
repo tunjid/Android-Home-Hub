@@ -28,29 +28,43 @@ import android.app.Application
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
 import androidx.lifecycle.AndroidViewModel
-import androidx.recyclerview.widget.DiffUtil
 import com.tunjid.androidx.communications.nsd.NsdHelper
-import com.tunjid.androidx.functions.collections.replace
-import com.tunjid.androidx.recyclerview.diff.Diff
 import com.tunjid.androidx.recyclerview.diff.Differentiable
-import com.tunjid.rcswitchcontrol.utils.toSafeLiveData
-import io.reactivex.Flowable
-import io.reactivex.android.schedulers.AndroidSchedulers.mainThread
+import com.tunjid.rcswitchcontrol.utils.filterIsInstance
+import com.tunjid.rcswitchcontrol.utils.toLiveData
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.processors.PublishProcessor
+import io.reactivex.rxkotlin.Flowables
 import io.reactivex.schedulers.Schedulers
-import java.util.*
 import java.util.concurrent.TimeUnit
 
-class NsdScanViewModel(application: Application) : AndroidViewModel(application) {
+data class NSDState(
+        val isScanning: Boolean = false,
+        val items: List<NsdItem> = listOf()
+)
 
-    val services: MutableList<NsdServiceInfo>
+data class NsdItem(
+        val info: NsdServiceInfo
+) : Differentiable {
+    override val diffId: String
+        get() = info.host.hostAddress
+}
+
+private val NsdItem.sortKey get() = info.serviceName
+
+class NsdScanViewModel(application: Application) : AndroidViewModel(application) {
 
     private val disposables = CompositeDisposable()
 
     private val nsdHelper: NsdHelper
-    private val scanProcessor: PublishProcessor<ScanOutput> = PublishProcessor.create()
-    private lateinit var processor: PublishProcessor<Diff<NsdServiceInfo>>
+    private val scanProcessor: PublishProcessor<Output> = PublishProcessor.create()
+    private lateinit var processor: PublishProcessor<NsdServiceInfo>
+
+    val state = Flowables.combineLatest(
+            scanProcessor.filterIsInstance<Output.Scanning>().map(Output.Scanning::isScanning),
+            scanProcessor.filterIsInstance<Output.ScanResult>().startWith(Output.ScanResult(listOf())).map(Output.ScanResult::items),
+            ::NSDState
+    ).toLiveData()
 
     init {
         nsdHelper = NsdHelper.getBuilder(getApplication())
@@ -59,7 +73,6 @@ class NsdScanViewModel(application: Application) : AndroidViewModel(application)
                 .setResolveErrorConsumer(this::onServiceResolutionFailed)
                 .build()
 
-        services = ArrayList()
         reset()
     }
 
@@ -70,28 +83,20 @@ class NsdScanViewModel(application: Application) : AndroidViewModel(application)
         super.onCleared()
     }
 
-    fun scanOutput() = scanProcessor.toSafeLiveData()
-
     fun findDevices() {
         reset()
         nsdHelper.discoverServices()
-
-        // Clear list first, then start scanning.
-        disposables.add(Flowable.fromCallable {
-            Diff.calculate(services,
-                    emptyList(),
-                    { _, _ -> emptyList() },
-                    { info -> Differentiable.fromCharSequence { info.serviceName } })
-        }
-                .concatWith(processor.take(SCAN_PERIOD, TimeUnit.SECONDS, Schedulers.io()))
-                .subscribeOn(Schedulers.io())
-                .observeOn(mainThread()).map { diff ->
-                    services.replace(diff.items)
-                    diff.result
-                }
-                .doOnSubscribe { scanProcessor.onNext(ScanOutput.ScanStarted) }
-                .doFinally { scanProcessor.onNext(ScanOutput.ScanEnded) }
-                .subscribe { scanProcessor.onNext(ScanOutput.ScanResult(it)) })
+        disposables.add(
+                processor.take(SCAN_PERIOD, TimeUnit.SECONDS, Schedulers.io())
+                        .map(::NsdItem)
+                        .scan(state.value?.items ?:listOf()) { list, item ->
+                            (list + item)
+                                    .distinctBy(NsdItem::diffId)
+                                    .sortedBy(NsdItem::sortKey)
+                        }
+                        .doOnSubscribe { scanProcessor.onNext(Output.Scanning(true)) }
+                        .doFinally { scanProcessor.onNext(Output.Scanning(false)) }
+                        .subscribe { scanProcessor.onNext(Output.ScanResult(it)) })
     }
 
     fun stopScanning() {
@@ -115,26 +120,16 @@ class NsdScanViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun onServiceResolved(service: NsdServiceInfo) {
-        if (!processor.hasComplete()) processor.onNext(Diff.calculate(
-                services,
-                listOf(service),
-                { currentServices, foundServices -> this.addServices(currentServices, foundServices) },
-                { info -> Differentiable.fromCharSequence { info.serviceName } }))
+        if (!processor.hasComplete()) processor.onNext(service)
     }
-
-    private fun addServices(currentServices: List<NsdServiceInfo>, foundServices: List<NsdServiceInfo>): List<NsdServiceInfo> =
-            (currentServices + foundServices)
-                    .distinctBy(NsdServiceInfo::getServiceName)
-                    .sortedBy(NsdServiceInfo::getServiceName)
 
     companion object {
 
         private const val SCAN_PERIOD: Long = 10
     }
 
-    sealed class ScanOutput {
-        object ScanStarted : ScanOutput()
-        data class ScanResult(val diffResult: DiffUtil.DiffResult) : ScanOutput()
-        object ScanEnded : ScanOutput()
+    private sealed class Output {
+        data class Scanning(val isScanning: Boolean) : Output()
+        data class ScanResult(val items: List<NsdItem>) : Output()
     }
 }

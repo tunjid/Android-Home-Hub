@@ -24,8 +24,13 @@
 
 package com.tunjid.rcswitchcontrol.data
 
+import com.tunjid.androidx.recyclerview.diff.Differentiable
+
 data class Record(
         val key: String,
         val entry: String,
         val fromServer: Boolean
-)
+): Differentiable {
+    override val diffId: String
+        get() = key
+}

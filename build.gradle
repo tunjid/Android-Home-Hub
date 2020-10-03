@@ -25,14 +25,14 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
-    ext.kotlin_version = '1.3.72'
+    ext.kotlin_version = '1.4.10'
 
     repositories {
         google()
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:4.0.0'
+        classpath 'com.android.tools.build:gradle:4.0.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
 
         // NOTE: Do not place your application dependencies here; they belong
@@ -44,25 +44,28 @@ buildscript {
         targetSdkVersion = 26
         minSdkVersion = 21
 
-        appCompat = 'androidx.appcompat:appcompat:1.1.0'
-        ktxCore = 'androidx.core:core-ktx:1.2.0-rc01'
-        material = 'com.google.android.material:material:1.0.0'
-        constraintLayout = 'androidx.constraintlayout:constraintlayout:1.1.3'
+        appCompat = 'androidx.appcompat:appcompat:1.2.0'
+        ktxCore = 'androidx.core:core-ktx:1.3.2'
+        fragmentKtx = 'androidx.fragment:fragment-ktx:1.3.0-beta01'
+        material = 'com.google.android.material:material:1.2.1'
+        constraintLayout = 'androidx.constraintlayout:constraintlayout:2.0.1'
+        dynamicAnimationsKtx = 'androidx.dynamicanimation:dynamicanimation-ktx:1.0.0-alpha03'
 
         gson = 'com.google.code.gson:gson:2.8.5'
 
         rxJava = 'io.reactivex.rxjava2:rxjava:2.2.10'
+        rxKotlin = 'io.reactivex.rxjava2:rxkotlin:2.4.0'
         rxAndroid = 'io.reactivex.rxjava2:rxandroid:2.1.1'
+        rxReplayingShare = 'com.jakewharton.rx2:replaying-share-kotlin:2.0.0'
 
         usbSerial = 'com.github.mik3y:usb-serial-for-android:2.1.0'
 
-        tunjiAndroidxCommunications = 'com.tunjid.androidx:communications:1.0.0-rc01'
-        tunjiAndroidxRecyclerView = 'com.tunjid.androidx:recyclerview:1.0.0-rc02'
-        tunjiAndroidxNavigation = 'com.tunjid.androidx:navigation:1.0.0-rc04'
-        tunjiAndroidxFunctions = 'com.tunjid.androidx:functions:1.0.0-rc01'
-        tunjiAndroidxMaterial = 'com.tunjid.androidx:material:1.0.0-rc03'
-        tunjiAndroidxCore = 'com.tunjid.androidx:core:1.0.0-rc01'
-        tunjiAndroidxView = 'com.tunjid.androidx:view:1.0.0-rc02'
+        tunjiAndroidxCommunications = 'com.tunjid.androidx:communications:1.0.0'
+        tunjiAndroidxRecyclerView = 'com.tunjid.androidx:recyclerview:1.1.0'
+        tunjiAndroidxNavigation = 'com.tunjid.androidx:navigation:1.1.1'
+        tunjiAndroidxMaterial = 'com.tunjid.androidx:material:1.0.0'
+        tunjiAndroidxCore = 'com.tunjid.androidx:core:1.2.1'
+        tunjiAndroidxView = 'com.tunjid.androidx:view:1.1.0'
 
         zigBeeCore = 'com.zsmartsystems.zigbee:com.zsmartsystems.zigbee:1.2.9'
         zigBeeConsole = 'com.zsmartsystems.zigbee:com.zsmartsystems.zigbee.console:1.2.9'

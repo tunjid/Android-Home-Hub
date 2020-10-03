@@ -2,6 +2,7 @@ package com.tunjid.rcswitchcontrol.utils
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.LiveDataReactiveStreams
+import androidx.lifecycle.Transformations
 import io.reactivex.Flowable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
@@ -14,7 +15,15 @@ fun <T> Flowable<Data<T>>.unWrapped(): Flowable<T> = filter { it.item != null &&
 
 fun <T> Flowable<T>.toSafeLiveData(): LiveData<T> = wrapped().unWrapped().toLiveData()
 
+inline fun <reified T> Flowable<*>.filterIsInstance(): Flowable<T> = filter { it is T }.cast(T::class.java)
+
+
 data class Data<T>(val item: T?, val throwable: Throwable?)
+
+fun <T, R> LiveData<T>.mapDistinct(mapper: (T) -> R): LiveData<R> =
+        Transformations.distinctUntilChanged(
+                Transformations.map(this, mapper)
+        )
 
 /**
  * [LiveDataReactiveStreams.fromPublisher] uses [LiveData.postValue] internally which swallows

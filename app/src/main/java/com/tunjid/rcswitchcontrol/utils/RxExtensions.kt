@@ -9,16 +9,8 @@ import io.reactivex.disposables.CompositeDisposable
 
 fun <T> Flowable<T>.toLiveData(): LiveData<T> = MainThreadLiveData(this)
 
-fun <T> Flowable<T>.wrapped(): Flowable<Data<T>> = map { Data(it, null) }.onErrorReturn { Data(null, it) }
-
-fun <T> Flowable<Data<T>>.unWrapped(): Flowable<T> = filter { it.item != null && it.throwable == null }.map(Data<T>::item)
-
-fun <T> Flowable<T>.toSafeLiveData(): LiveData<T> = wrapped().unWrapped().toLiveData()
-
 inline fun <reified T> Flowable<*>.filterIsInstance(): Flowable<T> = filter { it is T }.cast(T::class.java)
 
-
-data class Data<T>(val item: T?, val throwable: Throwable?)
 
 fun <T, R> LiveData<T>.mapDistinct(mapper: (T) -> R): LiveData<R> =
         Transformations.distinctUntilChanged(

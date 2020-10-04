@@ -89,7 +89,7 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
                 .filter(String::isNotBlank)
                 .map { it.deserialize(Payload::class) }
 
-        state = Flowables.combineLatest(
+        val stateObservable = Flowables.combineLatest(
                 serverResponses,
                 connectionStatuses
         ).scan(ControlState()) { state, (payload, connectionState) ->
@@ -107,10 +107,14 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
                 .subscribeOn(single())
                 .doOnSubscribe { nsdConnection.boundService?.onAppForeGround() }
                 .replayingShare()
-                .toLiveData()
+
+        state = stateObservable.toLiveData()
 
         nsdConnection.bind()
         listenForOutputPayloads()
+
+        // Keep the connection alive
+        disposable.add(stateObservable.subscribe())
     }
 
     override fun onCleared() {

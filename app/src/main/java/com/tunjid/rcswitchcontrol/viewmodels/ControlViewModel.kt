@@ -54,7 +54,6 @@ import com.tunjid.rcswitchcontrol.services.ServerNsdService
 import com.tunjid.rcswitchcontrol.utils.Tab
 import com.tunjid.rcswitchcontrol.utils.toLiveData
 import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.processors.PublishProcessor
 import io.reactivex.rxkotlin.Flowables
 import io.reactivex.schedulers.Schedulers.single
 import java.util.*
@@ -62,7 +61,6 @@ import java.util.*
 class ControlViewModel(app: Application) : AndroidViewModel(app) {
 
     private val disposable: CompositeDisposable = CompositeDisposable()
-    private val outPayloadProcessor: PublishProcessor<Payload> = PublishProcessor.create()
     private val nsdConnection = HardServiceConnection(app, ClientNsdService::class.java) { pingServer() }
 
     private val selectedDevices = mutableMapOf<String, Device>()
@@ -111,7 +109,6 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
         state = stateObservable.toLiveData()
 
         nsdConnection.bind()
-        listenForOutputPayloads()
 
         // Keep the connection alive
         disposable.add(stateObservable.subscribe())
@@ -171,26 +168,12 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    private fun dispatchPayload(key: String, predicate: (() -> Boolean), payloadReceiver: Payload.() -> Unit) = Payload(key).run {
-        payloadReceiver.invoke(this)
-        if (predicate.invoke()) outPayloadProcessor.onNext(this)
+    private fun dispatchPayload(key: String, predicate: (() -> Boolean), payloadReceiver: Payload.() -> Unit) {
+        val payload = Payload(key)
+        payloadReceiver.invoke(payload)
+        if (predicate.invoke() && isConnected) nsdConnection.boundService?.sendMessage(payload)
+                ?: Unit
     }
-
-    private fun ControlState.reduceDevices(fetched: List<Device>?) = if (fetched != null) copy(
-            devices = (fetched + devices)
-                    .distinctBy(Device::diffId)
-                    .sortedBy(Device::name)
-    ) else this
-
-    private fun ControlState.reduceHistory(record: Record?) = if (record != null) copy(
-            history = (history + record)
-    ) else this
-
-    private fun ControlState.reduceCommands(payload: Payload) = copy(
-            commands = HashMap(commands).apply {
-                this[payload.key] = payload.commands.map { Record(payload.key, it, true) }
-            }
-    )
 
     private fun Payload.extractRecord(): Record? = response.let {
         if (it == null || it.isBlank()) null
@@ -222,12 +205,6 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    private fun listenForOutputPayloads() {
-        disposable.add(outPayloadProcessor
-                .filter { isConnected }
-                .subscribe({ nsdConnection.boundService?.sendMessage(it) }) { it.printStackTrace(); listenForOutputPayloads() })
-    }
-
     enum class Page : Tab {
 
         HOST, HISTORY, DEVICES;
@@ -256,6 +233,22 @@ data class ControlState(
 )
 
 val ControlState.keys get() = commands.keys.sorted().map(::ProtocolKey)
+
+private fun ControlState.reduceDevices(fetched: List<Device>?) = if (fetched != null) copy(
+        devices = (fetched + devices)
+                .distinctBy(Device::diffId)
+                .sortedBy(Device::name)
+) else this
+
+private fun ControlState.reduceHistory(record: Record?) = if (record != null) copy(
+        history = (history + record)
+) else this
+
+private fun ControlState.reduceCommands(payload: Payload) = copy(
+        commands = HashMap(commands).apply {
+            this[payload.key] = payload.commands.map { Record(payload.key, it, true) }
+        }
+)
 
 data class ProtocolKey(val name: String) : Tab {
     val title get() = name.split(".").last().toUpperCase(Locale.US).removeSuffix("PROTOCOL")

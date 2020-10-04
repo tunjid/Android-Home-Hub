@@ -87,7 +87,7 @@ data class RfSwitch(
 
         val rcSwitch = other as RfSwitch? ?: return false
 
-        return bytes.contentEquals(rcSwitch.bytes)
+        return bytes.contentEquals(rcSwitch.bytes) && name == rcSwitch.name
     }
 
     override fun hashCode(): Int = bytes.contentHashCode()

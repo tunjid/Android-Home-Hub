@@ -36,7 +36,6 @@ import android.os.ParcelUuid
 import android.util.Log
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
-import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.androidx.communications.bluetooth.BLEScanner
 import com.tunjid.androidx.communications.bluetooth.ScanFilterCompat
 import com.tunjid.androidx.core.components.services.HardServiceConnection
@@ -48,6 +47,7 @@ import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
 import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService.Companion.C_HANDLE_CONTROL
 import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService.Companion.STATE_SNIFFING
 import com.tunjid.rcswitchcontrol.common.Broadcaster
+import com.tunjid.rcswitchcontrol.common.deserialize
 import io.reactivex.disposables.CompositeDisposable
 import java.io.PrintWriter
 import java.util.*
@@ -166,7 +166,7 @@ class BLERFProtocol constructor(printWriter: PrintWriter) : CommsProtocol(printW
                 val switches = switchStore.savedSwitches
                 val rcSwitch = payload.data?.deserialize(RfSwitch::class)
 
-                val position = switches.indexOf(rcSwitch)
+                val position = switches.map(RfSwitch::bytes).indexOf(rcSwitch?.bytes)
                 val hasSwitch = position > -1
 
                 response = if (hasSwitch && rcSwitch != null)
@@ -190,13 +190,15 @@ class BLERFProtocol constructor(printWriter: PrintWriter) : CommsProtocol(printW
             DELETE -> output.apply {
                 val switches = switchStore.savedSwitches
                 val rcSwitch = payload.data?.deserialize(RfSwitch::class)
-                val response = if (rcSwitch == null || !switches.remove(rcSwitch))
+                val removed = switches.filterNot { it.bytes.contentEquals(rcSwitch?.bytes) }
+
+                val response = if (rcSwitch == null || switches.size == removed.size)
                     getString(R.string.blercprotocol_no_such_switch_response)
                 else
                     getString(R.string.blercprotocol_deleted_response, rcSwitch.name)
 
                 // Save switches before sending them
-                switchStore.saveSwitches(switches)
+                switchStore.saveSwitches(removed)
 
                 output.response = response
                 action = receivedAction

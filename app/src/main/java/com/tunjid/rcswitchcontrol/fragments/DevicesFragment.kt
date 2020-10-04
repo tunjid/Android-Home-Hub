@@ -148,7 +148,7 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
         else -> super.onOptionsItemSelected(item)
     }
 
-    override fun isSelected(device: Device): Boolean = viewModel.withSelectedDevices { it.contains(device) }
+    override fun isSelected(device: Device): Boolean = viewModel.withSelectedDevices { it.map(Device::diffId).contains(device.diffId) }
 
     override fun onClicked(device: Device) {
         if (viewModel.withSelectedDevices { it.isNotEmpty() }) longClickDevice(device)
@@ -218,12 +218,9 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
         refresh()
     }
 
-    override fun onSwitchRenamed(rfSwitch: RfSwitch) {
-//        listManager.notifyItemChanged(viewModel.devices.indexOf(rfSwitch))
-        viewModel.dispatchPayload(rfSwitch.key) {
-            action = getString(R.string.blercprotocol_rename_command)
-            data = rfSwitch.serialize()
-        }
+    override fun onSwitchRenamed(rfSwitch: RfSwitch) = viewModel.dispatchPayload(rfSwitch.key) {
+        action = getString(R.string.blercprotocol_rename_command)
+        data = rfSwitch.serialize()
     }
 
     private fun refresh() = Unit // listManager.notifyDataSetChanged()

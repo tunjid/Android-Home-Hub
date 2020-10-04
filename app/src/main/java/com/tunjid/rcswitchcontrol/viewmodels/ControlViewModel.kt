@@ -65,7 +65,7 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
     private val outPayloadProcessor: PublishProcessor<Payload> = PublishProcessor.create()
     private val nsdConnection = HardServiceConnection(app, ClientNsdService::class.java) { pingServer() }
 
-    private val selectedDevices: MutableSet<Device> = mutableSetOf()
+    private val selectedDevices = mutableMapOf<String, Device>()
 
     val pages: List<Page> = mutableListOf(Page.HISTORY, Page.DEVICES).apply {
         if (ServerNsdService.isServer) add(0, Page.HOST)
@@ -132,8 +132,8 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun select(device: Device): Boolean {
-        val contains = selectedDevices.contains(device)
-        if (contains) selectedDevices.remove(device) else selectedDevices.add(device)
+        val contains = selectedDevices.keys.contains(device.diffId)
+        if (contains) selectedDevices.remove(device.diffId) else selectedDevices[device.diffId] = device
         return !contains
     }
 
@@ -141,7 +141,7 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
 
     fun clearSelections() = selectedDevices.clear()
 
-    fun <T> withSelectedDevices(function: (Set<Device>) -> T): T = function.invoke(selectedDevices)
+    fun <T> withSelectedDevices(function: (Set<Device>) -> T): T = function.invoke(selectedDevices.values.toSet())
 
     fun pingServer() = dispatchPayload(
             CommsProtocol::class.java.name,
@@ -173,7 +173,9 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun ControlState.reduceDevices(fetched: List<Device>?) = if (fetched != null) copy(
-            devices = (fetched + devices).distinctBy(Device::diffId)
+            devices = (fetched + devices)
+                    .distinctBy(Device::diffId)
+                    .sortedBy(Device::name)
     ) else this
 
     private fun ControlState.reduceHistory(record: Record?) = if (record != null) copy(

@@ -194,7 +194,6 @@ class ControlFragment : BaseFragment(R.layout.fragment_control), ZigBeeArgumentD
         else -> childFragmentManager.findFragmentByTag("f${viewModel.pages[index].itemId}") as? BaseFragment
     }
 
-
     override fun onArgsEntered(args: ZigBeeCommandArgs) = viewModel.dispatchPayload(args.key) {
         action = args.command
         data = args.serialize()

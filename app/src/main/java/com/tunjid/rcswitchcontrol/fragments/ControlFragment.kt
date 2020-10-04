@@ -26,16 +26,20 @@ package com.tunjid.rcswitchcontrol.fragments
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import androidx.core.view.doOnLayout
 import androidx.core.view.doOnNextLayout
+import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.activityViewModels
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HALF_EXPANDED
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN
+import com.google.android.material.bottomsheet.setupForBottomSheet
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommandArgs
 import com.tunjid.androidx.core.content.colorAt
 import com.tunjid.androidx.view.util.InsetFlags
@@ -114,28 +118,24 @@ class ControlFragment : BaseFragment(R.layout.fragment_control), ZigBeeArgumentD
         viewBinding.commandsPager.apply {
             adapter = commandAdapter
             attach(viewBinding.commandTabs, viewBinding.commandsPager, commandAdapter)
+            setupForBottomSheet()
         }
 
-
-//        viewBinding.commandsPager.setupForBottomSheet()
-
-        viewBinding.bottomSheet.doOnNextLayout {
-            viewBinding.bottomSheet.layoutParams.height = view.height - topInset - resources.getDimensionPixelSize(R.dimen.double_and_half_margin)
+        view.doOnLayout {
+            viewBinding.bottomSheet.updateLayoutParams { height = it.height - topInset - resources.getDimensionPixelSize(R.dimen.double_and_half_margin)  }
             bottomSheetBehavior.peekHeight = resources.getDimensionPixelSize(R.dimen.sextuple_margin) + bottomInset
+            bottomSheetBehavior.expandedOffset = offset
+            bottomSheetBehavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
+                override fun onSlide(bottomSheet: View, slideOffset: Float) {
+                    viewBinding.mainPager.translationY = calculateTranslation(slideOffset)
+                }
+
+                override fun onStateChanged(bottomSheet: View, newState: Int) {
+                    if (newState == STATE_HIDDEN && viewModel.pages[viewBinding.mainPager.currentItem] == HISTORY) bottomSheetBehavior.state = STATE_COLLAPSED
+                }
+            })
+            onPageSelected(viewBinding.mainPager.currentItem)
         }
-
-        bottomSheetBehavior.expandedOffset = offset
-        bottomSheetBehavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
-            override fun onSlide(bottomSheet: View, slideOffset: Float) {
-                viewBinding.mainPager.translationY = calculateTranslation(slideOffset)
-            }
-
-            override fun onStateChanged(bottomSheet: View, newState: Int) {
-                if (newState == STATE_HIDDEN && viewModel.pages[viewBinding.mainPager.currentItem] == HISTORY) bottomSheetBehavior.state = STATE_COLLAPSED
-            }
-        })
-
-        onPageSelected(viewBinding.mainPager.currentItem)
 
         viewModel.state.apply {
             mapDistinct(ControlState::isNew).observe(viewLifecycleOwner) { isNew ->

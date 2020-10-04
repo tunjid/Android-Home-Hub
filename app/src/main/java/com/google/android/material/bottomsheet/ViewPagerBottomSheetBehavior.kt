@@ -6,10 +6,10 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.ViewCompat
-import androidx.viewpager.widget.ViewPager
-import androidx.viewpager.widget.currentView
+import androidx.core.view.get
+import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager2.widget.ViewPager2
 import java.lang.ref.WeakReference
-
 
 class ViewPagerBottomSheetBehavior<V : View> : BottomSheetBehavior<V> {
 
@@ -22,8 +22,10 @@ class ViewPagerBottomSheetBehavior<V : View> : BottomSheetBehavior<V> {
     override fun findScrollingChild(view: View): View? {
         if (ViewCompat.isNestedScrollingEnabled(view)) return view
 
-        if (view is ViewPager) {
-            val currentViewPagerChild = view.currentView ?: return null
+        if (view is ViewPager2) {
+            val recyclerView = view[0] as? RecyclerView ?: return null
+            val currentViewPagerChild = recyclerView.findViewHolderForLayoutPosition(view.currentItem)?.itemView
+                    ?: return null
 
             val scrollingChild = findScrollingChild(currentViewPagerChild)
             if (scrollingChild != null) return scrollingChild
@@ -46,14 +48,14 @@ class ViewPagerBottomSheetBehavior<V : View> : BottomSheetBehavior<V> {
     }
 }
 
-fun ViewPager.setupForBottomSheet() {
+fun ViewPager2.setupForBottomSheet() {
     val bottomSheetParent = findBottomSheetParent()
     if (bottomSheetParent != null) {
-        addOnPageChangeListener(BottomSheetViewPagerListener(this, bottomSheetParent))
+        registerOnPageChangeCallback(BottomSheetViewPagerListener(this, bottomSheetParent))
     }
 }
 
-private class BottomSheetViewPagerListener(private val viewPager: ViewPager, bottomSheetParent: View) : ViewPager.SimpleOnPageChangeListener() {
+private class BottomSheetViewPagerListener(private val viewPager: ViewPager2, bottomSheetParent: View) : ViewPager2.OnPageChangeCallback() {
 
     private val behavior = (bottomSheetParent.layoutParams as CoordinatorLayout.LayoutParams).behavior as ViewPagerBottomSheetBehavior
 
@@ -73,8 +75,8 @@ private fun View.findBottomSheetParent(): View? {
         }
 
         val parent = current.parent
-        if (parent is View) current = parent
-        else current = null
+        current = if (parent is View) parent
+        else null
     }
 
     return null

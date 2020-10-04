@@ -257,7 +257,7 @@ data class ControlState(
 
 val ControlState.keys get() = commands.keys.sorted().map(::ProtocolKey)
 
-inline class ProtocolKey(val name: String) : Tab {
+data class ProtocolKey(val name: String) : Tab {
     val title get() = name.split(".").last().toUpperCase(Locale.US).removeSuffix("PROTOCOL")
 
     override fun title(res: Resources) = title

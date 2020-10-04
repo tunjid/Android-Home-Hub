@@ -29,6 +29,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.updatePadding
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ItemTouchHelper.Callback.makeMovementFlags
@@ -61,6 +62,7 @@ import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.throttleColorChanges
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
+import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver
 import com.tunjid.rcswitchcontrol.utils.mapDistinct
 import com.tunjid.rcswitchcontrol.viewholders.DeviceAdapterListener
 import com.tunjid.rcswitchcontrol.viewholders.bind
@@ -96,6 +98,7 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         viewBinding.list.apply {
+            updatePadding(bottom = WindowInsetsDriver.bottomInset)
             val listAdapter = listAdapterOf(
                     initialItems = viewModel.state.value?.devices ?: listOf(),
                     viewHolderCreator = ::createViewHolder,

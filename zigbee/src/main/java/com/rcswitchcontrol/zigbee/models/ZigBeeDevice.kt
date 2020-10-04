@@ -35,10 +35,9 @@ import com.rcswitchcontrol.zigbee.commands.MembershipAddCommand
 import com.rcswitchcontrol.zigbee.commands.OffCommand
 import com.rcswitchcontrol.zigbee.commands.OnCommand
 import com.rcswitchcontrol.zigbee.commands.RediscoverCommand
-import com.tunjid.androidx.recyclerview.diff.Differentiable
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
 
-class ZigBeeDevice(
+data class ZigBeeDevice(
         private val ieeeAddress: String,
         private val networkAdress: String,
         private val endpoint: String,
@@ -82,25 +81,11 @@ class ZigBeeDevice(
         ))
     }
 
-    override fun areContentsTheSame(other: Differentiable): Boolean =
-            if (other is ZigBeeDevice) other.networkAdress == networkAdress else false
-
     override fun writeToParcel(parcel: Parcel, flags: Int) {
         parcel.writeString(ieeeAddress)
         parcel.writeString(networkAdress)
         parcel.writeString(endpoint)
         parcel.writeString(name)
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as ZigBeeDevice
-
-        if (ieeeAddress != other.ieeeAddress) return false
-
-        return true
     }
 
     override fun hashCode(): Int = ieeeAddress.hashCode()

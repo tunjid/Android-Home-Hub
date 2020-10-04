@@ -22,10 +22,15 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.data
+package com.tunjid.rcswitchcontrol.models
+
+import com.tunjid.androidx.recyclerview.diff.Differentiable
 
 data class Record(
         val key: String,
         val entry: String,
         val fromServer: Boolean
-)
+): Differentiable {
+    override val diffId: String
+        get() = key
+}

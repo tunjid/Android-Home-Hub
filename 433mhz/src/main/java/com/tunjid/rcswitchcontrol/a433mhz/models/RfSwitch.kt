@@ -38,34 +38,33 @@ import com.tunjid.rcswitchcontrol.a433mhz.protocols.SerialRFProtocol
  * Created by tj.dahunsi on 3/11/17.
  */
 
-class RfSwitch() : Parcelable, Device {
+data class RfSwitch(
+        override val name: String = "Switch",
+        val bitLength: Byte = 0,
+        val protocol: Byte = 0,
+        val pulseLength: ByteArray = ByteArray(4),
+        val onCode: ByteArray = ByteArray(4),
+        val offCode: ByteArray = ByteArray(4)
+) : Parcelable, Device {
 
-    override var name: String = "Switch"
     override val key: String
         get() = SerialRFProtocol::class.java.name
 
-    private var bitLength: Byte = 0
-    private var protocol: Byte = 0
-
-    private var pulseLength = ByteArray(4)
-    private var onCode = ByteArray(4)
-    private var offCode = ByteArray(4)
-
     override val diffId
-        get() = "$onCode-$offCode"
+        get() = bytes.contentToString()
 
     @Retention(AnnotationRetention.SOURCE)
     @StringDef(ON_CODE, OFF_CODE)
     internal annotation class SwitchCode {}
 
-    private constructor(`in`: Parcel) : this() {
-        name = `in`.readString()!!
-        protocol = `in`.readByte()
-        bitLength = `in`.readByte()
-        onCode = `in`.createByteArray()!!
-        offCode = `in`.createByteArray()!!
-        pulseLength = `in`.createByteArray()!!
-    }
+    private constructor(`in`: Parcel) : this(
+            name = `in`.readString()!!,
+            bitLength = `in`.readByte(),
+            protocol = `in`.readByte(),
+            pulseLength = `in`.createByteArray()!!,
+            onCode = `in`.createByteArray()!!,
+            offCode = `in`.createByteArray()!!
+    )
 
     private fun getTransmission(state: Boolean): ByteArray {
         val transmission = ByteArray(10)
@@ -88,24 +87,20 @@ class RfSwitch() : Parcelable, Device {
 
         val rcSwitch = other as RfSwitch? ?: return false
 
-        return onCode.contentEquals(rcSwitch.onCode) && offCode.contentEquals(rcSwitch.offCode)
+        return bytes.contentEquals(rcSwitch.bytes) && name == rcSwitch.name
     }
 
-    override fun hashCode(): Int {
-        var result = onCode.contentHashCode()
-        result = 31 * result + offCode.contentHashCode()
-        return result
-    }
+    override fun hashCode(): Int = bytes.contentHashCode()
 
     override fun describeContents(): Int = 0
 
     override fun writeToParcel(dest: Parcel, flags: Int) {
         dest.writeString(name)
-        dest.writeByte(protocol)
         dest.writeByte(bitLength)
+        dest.writeByte(protocol)
+        dest.writeByteArray(pulseLength)
         dest.writeByteArray(onCode)
         dest.writeByteArray(offCode)
-        dest.writeByteArray(pulseLength)
     }
 
     class SwitchCreator {
@@ -119,10 +114,7 @@ class RfSwitch() : Parcelable, Device {
         fun withOnCode(code: ByteArray) {
             state = OFF_CODE
 
-            rfSwitch = RfSwitch()
-
-            rfSwitch.bitLength = code[8]
-            rfSwitch.protocol = code[9]
+            rfSwitch = RfSwitch(bitLength = code[8], protocol = code[9])
 
             System.arraycopy(code, 0, rfSwitch.onCode, 0, 4)
             System.arraycopy(code, 4, rfSwitch.pulseLength, 0, 4)
@@ -151,3 +143,5 @@ class RfSwitch() : Parcelable, Device {
         }
     }
 }
+
+val RfSwitch.bytes get() = offCode + onCode + pulseLength + protocol + bitLength

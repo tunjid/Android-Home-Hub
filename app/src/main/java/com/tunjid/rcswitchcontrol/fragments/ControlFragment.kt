@@ -49,6 +49,11 @@ import com.tunjid.rcswitchcontrol.common.Broadcaster
 import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.databinding.FragmentControlBinding
 import com.tunjid.rcswitchcontrol.dialogfragments.ZigBeeArgumentDialogFragment
+import com.tunjid.rcswitchcontrol.models.ControlState
+import com.tunjid.rcswitchcontrol.models.Page
+import com.tunjid.rcswitchcontrol.models.Page.HISTORY
+import com.tunjid.rcswitchcontrol.models.ProtocolKey
+import com.tunjid.rcswitchcontrol.models.keys
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
 import com.tunjid.rcswitchcontrol.utils.FragmentTabAdapter
@@ -57,12 +62,7 @@ import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.topInset
 import com.tunjid.rcswitchcontrol.utils.attach
 import com.tunjid.rcswitchcontrol.utils.itemId
 import com.tunjid.rcswitchcontrol.utils.mapDistinct
-import com.tunjid.rcswitchcontrol.viewmodels.ControlState
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
-import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.Page
-import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.Page.HISTORY
-import com.tunjid.rcswitchcontrol.viewmodels.ProtocolKey
-import com.tunjid.rcswitchcontrol.viewmodels.keys
 
 class ControlFragment : BaseFragment(R.layout.fragment_control), ZigBeeArgumentDialogFragment.ZigBeeArgsListener {
 
@@ -120,7 +120,7 @@ class ControlFragment : BaseFragment(R.layout.fragment_control), ZigBeeArgumentD
         }
 
         view.doOnLayout {
-            viewBinding.bottomSheet.updateLayoutParams { height = it.height - topInset - resources.getDimensionPixelSize(R.dimen.double_and_half_margin)  }
+            viewBinding.bottomSheet.updateLayoutParams { height = it.height - topInset - resources.getDimensionPixelSize(R.dimen.double_and_half_margin) }
             bottomSheetBehavior.peekHeight = resources.getDimensionPixelSize(R.dimen.sextuple_margin) + bottomInset
             bottomSheetBehavior.expandedOffset = offset
             bottomSheetBehavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
@@ -136,14 +136,17 @@ class ControlFragment : BaseFragment(R.layout.fragment_control), ZigBeeArgumentD
         }
 
         viewModel.state.apply {
+            mapDistinct(ControlState::keys).observe(viewLifecycleOwner, commandAdapter::submitList)
             mapDistinct(ControlState::isNew).observe(viewLifecycleOwner) { isNew ->
                 if (isNew) viewBinding.commandsPager.adapter?.notifyDataSetChanged()
             }
             mapDistinct(ControlState::commandInfo).observe(viewLifecycleOwner) {
                 if (it != null) ZigBeeArgumentDialogFragment.newInstance(it).show(childFragmentManager, "info")
             }
-            mapDistinct(ControlState::keys).observe(viewLifecycleOwner, commandAdapter::submitList)
-            mapDistinct(ControlState::connectionState).observe(viewLifecycleOwner, ::onConnectionStateChanged)
+            mapDistinct(ControlState::connectionState).observe(viewLifecycleOwner) { text ->
+                updateUi(toolbarInvalidated = true)
+                viewBinding.connectionStatus.text = resources.getString(R.string.connection_state, text)
+            }
         }
     }
 
@@ -182,11 +185,6 @@ class ControlFragment : BaseFragment(R.layout.fragment_control), ZigBeeArgumentD
         }
     }
 
-    private fun onConnectionStateChanged(text: String) {
-        updateUi(toolbarInvalidated = true)
-        viewBinding.connectionStatus.text = resources.getString(R.string.connection_state, text)
-    }
-
     private fun fromPager(index: Int): BaseFragment? = when {
         index < 0 -> null
         else -> childFragmentManager.findFragmentByTag("f${viewModel.pages[index].itemId}") as? BaseFragment
@@ -198,14 +196,6 @@ class ControlFragment : BaseFragment(R.layout.fragment_control), ZigBeeArgumentD
     }
 
     companion object {
-
-        fun newInstance(): ControlFragment {
-            val fragment = ControlFragment()
-            val bundle = Bundle()
-
-            fragment.arguments = bundle
-            return fragment
-        }
-
+        fun newInstance() = ControlFragment().apply { arguments = Bundle() }
     }
 }

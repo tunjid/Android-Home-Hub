@@ -41,14 +41,14 @@ import com.tunjid.androidx.view.util.spring
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
-import com.tunjid.rcswitchcontrol.data.Record
+import com.tunjid.rcswitchcontrol.models.Record
 import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
 import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.bottomInset
 import com.tunjid.rcswitchcontrol.utils.mapDistinct
 import com.tunjid.rcswitchcontrol.viewholders.RecordViewHolder
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
-import com.tunjid.rcswitchcontrol.viewmodels.ControlState
-import com.tunjid.rcswitchcontrol.viewmodels.ProtocolKey
+import com.tunjid.rcswitchcontrol.models.ControlState
+import com.tunjid.rcswitchcontrol.models.ProtocolKey
 
 sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
 

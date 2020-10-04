@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.data
+package com.tunjid.rcswitchcontrol.models
 
 import com.tunjid.androidx.recyclerview.diff.Differentiable
 

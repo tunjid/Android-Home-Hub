@@ -70,7 +70,7 @@ import com.tunjid.rcswitchcontrol.viewholders.performLongClick
 import com.tunjid.rcswitchcontrol.viewholders.rfDeviceDeviceViewHolder
 import com.tunjid.rcswitchcontrol.viewholders.zigbeeDeviceViewHolder
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
-import com.tunjid.rcswitchcontrol.viewmodels.ControlState
+import com.tunjid.rcswitchcontrol.models.ControlState
 
 class DevicesFragment : BaseFragment(R.layout.fragment_list),
         DeviceAdapterListener,

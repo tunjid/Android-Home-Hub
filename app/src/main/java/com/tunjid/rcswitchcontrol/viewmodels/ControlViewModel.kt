@@ -25,8 +25,6 @@
 package com.tunjid.rcswitchcontrol.viewmodels
 
 import android.app.Application
-import android.content.res.Resources
-import androidx.fragment.app.Fragment
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import com.jakewharton.rx.replayingShare
@@ -45,18 +43,18 @@ import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
 import com.tunjid.rcswitchcontrol.common.Broadcaster
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.deserializeList
-import com.tunjid.rcswitchcontrol.data.Record
-import com.tunjid.rcswitchcontrol.fragments.DevicesFragment
-import com.tunjid.rcswitchcontrol.fragments.HostFragment
-import com.tunjid.rcswitchcontrol.fragments.RecordFragment
+import com.tunjid.rcswitchcontrol.models.Record
+import com.tunjid.rcswitchcontrol.models.ControlState
+import com.tunjid.rcswitchcontrol.models.Page
+import com.tunjid.rcswitchcontrol.models.reduceCommands
+import com.tunjid.rcswitchcontrol.models.reduceDevices
+import com.tunjid.rcswitchcontrol.models.reduceHistory
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
-import com.tunjid.rcswitchcontrol.utils.Tab
 import com.tunjid.rcswitchcontrol.utils.toLiveData
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.rxkotlin.Flowables
 import io.reactivex.schedulers.Schedulers.single
-import java.util.*
 
 class ControlViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -205,57 +203,6 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    enum class Page : Tab {
-
-        HOST, HISTORY, DEVICES;
-
-        override fun createFragment(): Fragment = when (this) {
-            HOST -> HostFragment.newInstance()
-            HISTORY -> RecordFragment.historyInstance()
-            DEVICES -> DevicesFragment.newInstance()
-        }
-
-        override fun title(res: Resources): CharSequence = when (this) {
-            HOST -> res.getString(R.string.host)
-            HISTORY -> res.getString(R.string.history)
-            DEVICES -> res.getString(R.string.devices)
-        }
-    }
-}
-
-data class ControlState(
-        val isNew: Boolean = false,
-        val connectionState: String = "",
-        val commandInfo: ZigBeeCommandInfo? = null,
-        val history: List<Record> = listOf(),
-        val commands: Map<String, List<Record>> = mapOf(),
-        val devices: List<Device> = listOf()
-)
-
-val ControlState.keys get() = commands.keys.sorted().map(::ProtocolKey)
-
-private fun ControlState.reduceDevices(fetched: List<Device>?) = if (fetched != null) copy(
-        devices = (fetched + devices)
-                .distinctBy(Device::diffId)
-                .sortedBy(Device::name)
-) else this
-
-private fun ControlState.reduceHistory(record: Record?) = if (record != null) copy(
-        history = (history + record)
-) else this
-
-private fun ControlState.reduceCommands(payload: Payload) = copy(
-        commands = HashMap(commands).apply {
-            this[payload.key] = payload.commands.map { Record(payload.key, it, true) }
-        }
-)
-
-data class ProtocolKey(val name: String) : Tab {
-    val title get() = name.split(".").last().toUpperCase(Locale.US).removeSuffix("PROTOCOL")
-
-    override fun title(res: Resources) = title
-
-    override fun createFragment(): Fragment = RecordFragment.commandInstance(this)
 }
 
 private val connectionActions = arrayOf(

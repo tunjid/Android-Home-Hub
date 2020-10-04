@@ -25,8 +25,8 @@ import com.tunjid.rcswitchcontrol.databinding.FragmentControlLandscapeBinding
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
 import com.tunjid.rcswitchcontrol.utils.mapDistinct
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
-import com.tunjid.rcswitchcontrol.viewmodels.ProtocolKey
-import com.tunjid.rcswitchcontrol.viewmodels.keys
+import com.tunjid.rcswitchcontrol.models.ProtocolKey
+import com.tunjid.rcswitchcontrol.models.keys
 
 class LandscapeControlFragment : BaseFragment(R.layout.fragment_control_landscape), Navigator.TagProvider {
 

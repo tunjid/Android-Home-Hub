@@ -34,7 +34,7 @@ interface DeviceLongClickListener {
 
     fun onLongClicked(device: Device): Boolean
 
-    fun onSwitchToggled(device: Device, state: Boolean)
+    fun onSwitchToggled(device: Device, isOn: Boolean)
 
     fun isSelected(device: Device): Boolean
 }

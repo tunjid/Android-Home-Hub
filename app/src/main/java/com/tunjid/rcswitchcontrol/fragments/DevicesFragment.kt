@@ -38,6 +38,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.flask.colorpicker.ColorPickerView
 import com.flask.colorpicker.builder.ColorPickerDialogBuilder
 import com.rcswitchcontrol.protocols.models.Device
+import com.rcswitchcontrol.zigbee.models.ZigBeeCommandArgs
 import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
 import com.rcswitchcontrol.zigbee.models.createGroupSequence
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeInput
@@ -62,6 +63,7 @@ import com.tunjid.rcswitchcontrol.databinding.ViewholderZigbeeDeviceBinding
 import com.tunjid.rcswitchcontrol.dialogfragments.GroupDeviceDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.throttleColorChanges
+import com.tunjid.rcswitchcontrol.models.ControlState
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
 import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver
@@ -72,7 +74,6 @@ import com.tunjid.rcswitchcontrol.viewholders.performLongClick
 import com.tunjid.rcswitchcontrol.viewholders.rfDeviceDeviceViewHolder
 import com.tunjid.rcswitchcontrol.viewholders.zigbeeDeviceViewHolder
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
-import com.tunjid.rcswitchcontrol.models.ControlState
 
 class DevicesFragment : BaseFragment(R.layout.fragment_list),
         DeviceAdapterListener,
@@ -105,10 +106,12 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
                     initialItems = viewModel.state.value?.devices ?: listOf(),
                     viewHolderCreator = ::createViewHolder,
                     viewTypeFunction = ::getDeviceViewType,
-                    viewHolderBinder = { holder, device, _ -> when(device) {
-                        is RfSwitch -> holder.typed<ViewholderRemoteSwitchBinding>().bind(device)
-                        is ZigBeeDevice -> holder.typed<ViewholderZigbeeDeviceBinding>().bind(device)
-                    } },
+                    viewHolderBinder = { holder, device, _ ->
+                        when (device) {
+                            is RfSwitch -> holder.typed<ViewholderRemoteSwitchBinding>().bind(device)
+                            is ZigBeeDevice -> holder.typed<ViewholderZigbeeDeviceBinding>().bind(device)
+                        }
+                    },
                     itemIdFunction = { it.hashCode().toLong() }
             )
 
@@ -165,26 +168,17 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
 
     override fun onLongClicked(device: Device): Boolean = viewModel.select(device).apply { refreshUi() }
 
-    override fun onSwitchToggled(device: Device, isOn: Boolean) = viewModel.dispatchPayload(device.key) {
-        when (device) {
-            is RfSwitch -> {
-                action = ClientBleService.ACTION_TRANSMITTER
-                data = device.getEncodedTransmission(isOn)
-            }
-            is ZigBeeDevice -> {
-                val zigBeeCommandArgs = device.commandArgs(ZigBeeInput.Toggle(isOn))
-                action = zigBeeCommandArgs.command
-                data = zigBeeCommandArgs.serialize()
-            }
+    override fun onSwitchToggled(device: Device, isOn: Boolean) = when (device) {
+        is RfSwitch -> viewModel.dispatchPayload(device.key) {
+            action = ClientBleService.ACTION_TRANSMITTER
+            data = device.getEncodedTransmission(isOn)
         }
+        is ZigBeeDevice -> device.send(device.commandArgs(ZigBeeInput.Toggle(isOn)))
+        else -> Unit
     }
 
-    override fun rediscover(device: ZigBeeDevice) = device.commandArgs(ZigBeeInput.Rediscover).let { args ->
-        viewModel.dispatchPayload(device.key) {
-            action = args.command
-            data = args.serialize()
-        }
-    }
+    override fun rediscover(device: ZigBeeDevice) =
+            device.send(device.commandArgs(ZigBeeInput.Rediscover))
 
     override fun color(device: ZigBeeDevice) = ColorPickerDialogBuilder
             .with(context)
@@ -193,23 +187,14 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
             .showLightnessSlider(true)
             .showAlphaSlider(false)
             .density(12)
-            .throttleColorChanges {
-                device.commandArgs(ZigBeeInput.Color(it)).let { args ->
-                    viewModel.dispatchPayload(device.key) {
-                        action = args.command
-                        data = args.serialize()
-                    }
-                }
+            .throttleColorChanges { rgb ->
+                device.send(device.commandArgs(ZigBeeInput.Color(rgb)))
             }
             .build()
             .show()
 
-    override fun level(device: ZigBeeDevice, level: Float) = device.commandArgs(ZigBeeInput.Level(level)).let { args ->
-        viewModel.dispatchPayload(device.key) {
-            action = args.command
-            data = args.serialize()
-        }
-    }
+    override fun level(device: ZigBeeDevice, level: Float) =
+            device.send(device.commandArgs(ZigBeeInput.Level(level)))
 
     override fun onGroupNamed(groupName: CharSequence) = viewModel.run {
         withSelectedDevices { devices ->
@@ -234,6 +219,11 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
 
     private fun refresh() = Unit // listManager.notifyDataSetChanged()
 
+    private fun ZigBeeDevice.send(args: ZigBeeCommandArgs) = viewModel.dispatchPayload(key) {
+        action = args.command
+        data = args.serialize()
+    }
+
     private fun getDeviceViewType(device: Device) = when (device) {
         is RfSwitch -> RF_DEVICE
         is ZigBeeDevice -> ZIG_BEE_DEVICE
@@ -252,7 +242,7 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
 
     private fun longClickDevice(device: Device) {
         viewBinding.list.viewHolderForItemId<BindingViewHolder<*>>(device.hashCode().toLong())
-                ?.let{device.performLongClick(holder = it, this)}
+                ?.let { device.performLongClick(holder = it, this) }
     }
 
     private fun onDelete(viewHolder: RecyclerView.ViewHolder) {

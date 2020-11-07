@@ -10,6 +10,7 @@ import com.rcswitchcontrol.zigbee.commands.RediscoverCommand
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommandArgs
 import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
 import com.zsmartsystems.zigbee.console.ZigBeeConsoleCommand
+import com.zsmartsystems.zigbee.console.ZigBeeConsoleDescribeNodeCommand
 
 sealed class ZigBeeInput<InputT>(val input: InputT, val command: ZigBeeConsoleCommand) {
     private val commandName get() = command.command
@@ -17,6 +18,11 @@ sealed class ZigBeeInput<InputT>(val input: InputT, val command: ZigBeeConsoleCo
     object Rediscover : ZigBeeInput<Unit>(
             input = Unit,
             command = RediscoverCommand()
+    )
+
+    object Node : ZigBeeInput<Unit>(
+            input = Unit,
+            command = ZigBeeConsoleDescribeNodeCommand()
     )
 
     data class Toggle(val isOn: Boolean) : ZigBeeInput<Boolean>(
@@ -36,6 +42,7 @@ sealed class ZigBeeInput<InputT>(val input: InputT, val command: ZigBeeConsoleCo
 
     internal fun from(zigBeeDevice: ZigBeeDevice): ZigBeeCommandArgs = when (this) {
         is Rediscover -> arrayOf(zigBeeDevice.ieeeAddress)
+        is Node -> arrayOf(zigBeeDevice.networkAdress)
         is Toggle -> arrayOf(zigBeeDevice.zigBeeId)
         is Level -> arrayOf(zigBeeDevice.zigBeeId, level.toString())
         is Color -> arrayOf(zigBeeDevice.zigBeeId, rgb.red.toString(), rgb.blue.toString(), rgb.blue.toString())

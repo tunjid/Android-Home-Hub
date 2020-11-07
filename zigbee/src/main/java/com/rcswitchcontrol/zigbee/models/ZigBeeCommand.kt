@@ -31,9 +31,8 @@ import com.rcswitchcontrol.zigbee.commands.LevelCommand
 import com.rcswitchcontrol.zigbee.commands.OffCommand
 import com.rcswitchcontrol.zigbee.commands.OnCommand
 import com.rcswitchcontrol.zigbee.commands.RediscoverCommand
-import com.rcswitchcontrol.zigbee.protocol.CommandParser
+import com.rcswitchcontrol.zigbee.protocol.CommandMapper
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
-import com.zsmartsystems.zigbee.console.ZigBeeConsoleDescribeNodeCommand
 
 data class ZigBeeCommand(
         val command: String,
@@ -48,44 +47,44 @@ data class ZigBeeCommand(
 
 sealed class ZigBeeInput<InputT>(
         val input: InputT,
-        private val commandParser: CommandParser
+        private val commandMapper: CommandMapper
 ) {
 
     private val key
-        get() = when (commandParser) {
-            is CommandParser.Derived -> commandParser.key
-            is CommandParser.Custom -> commandParser.consoleCommand.command
+        get() = when (commandMapper) {
+            is CommandMapper.Derived -> commandMapper.key
+            is CommandMapper.Custom -> commandMapper.consoleCommand.command
         }
 
     private val commandName
-        get() = when (commandParser) {
-            is CommandParser.Derived -> commandParser.consoleCommand.command
-            is CommandParser.Custom -> commandParser.consoleCommand.command
+        get() = when (commandMapper) {
+            is CommandMapper.Derived -> commandMapper.consoleCommand.command
+            is CommandMapper.Custom -> commandMapper.consoleCommand.command
         }
 
     object Rediscover : ZigBeeInput<Unit>(
             input = Unit,
-            commandParser = CommandParser.Custom(RediscoverCommand())
+            commandMapper = CommandMapper.Custom(RediscoverCommand())
     )
 
     object Node : ZigBeeInput<Unit>(
             input = Unit,
-            commandParser = CommandParser.Derived.ZigBeeConsoleDescribeNodeCommand
+            commandMapper = CommandMapper.Derived.ZigBeeConsoleDescribeNodeCommand
     )
 
     data class Toggle(val isOn: Boolean) : ZigBeeInput<Boolean>(
             input = isOn,
-            commandParser = CommandParser.Custom(if (isOn) OnCommand() else OffCommand())
+            commandMapper = CommandMapper.Custom(if (isOn) OnCommand() else OffCommand())
     )
 
     data class Level(val level: Float) : ZigBeeInput<Float>(
             input = level,
-            commandParser = CommandParser.Custom(LevelCommand())
+            commandMapper = CommandMapper.Custom(LevelCommand())
     )
 
     data class Color(val rgb: Int) : ZigBeeInput<Int>(
             input = rgb,
-            commandParser = CommandParser.Custom(ColorCommand())
+            commandMapper = CommandMapper.Custom(ColorCommand())
     )
 
     internal fun from(zigBeeDevice: ZigBeeDevice): ZigBeeCommand = when (this) {
@@ -97,5 +96,5 @@ sealed class ZigBeeInput<InputT>(
     }.let(this::args)
 
     private fun args(params: List<String>): ZigBeeCommand =
-            ZigBeeCommand(key, listOf(commandName) + params)
+            ZigBeeCommand(command = key, args = listOf(commandName) + params)
 }

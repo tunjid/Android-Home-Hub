@@ -178,7 +178,7 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
     }
 
     override fun rediscover(device: ZigBeeDevice) =
-            device.send(device.commandArgs(ZigBeeInput.Rediscover))
+            device.send(device.commandArgs(ZigBeeInput.Node))
 
     override fun color(device: ZigBeeDevice) = ColorPickerDialogBuilder
             .with(context)

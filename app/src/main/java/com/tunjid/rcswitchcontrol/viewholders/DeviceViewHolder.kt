@@ -26,12 +26,8 @@ package com.tunjid.rcswitchcontrol.viewholders
 
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
-import android.view.View
-import android.widget.TextView
-import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.card.MaterialCardView
-import com.tunjid.rcswitchcontrol.R
 import com.rcswitchcontrol.protocols.models.Device
+import com.tunjid.androidx.recyclerview.viewbinding.BindingViewHolder
 
 interface DeviceLongClickListener {
     fun onClicked(device: Device)
@@ -45,65 +41,36 @@ interface DeviceLongClickListener {
 
 interface DeviceAdapterListener :
         DeviceLongClickListener,
-        RfDeviceViewHolder.Listener,
-        ZigBeeDeviceViewHolder.Listener
+        RfDeviceListener,
+        ZigBeeDeviceListener
 
-// ViewHolder for actual content
-open class DeviceViewHolder<T : DeviceLongClickListener, S : Device> internal constructor(
-        itemView: View,
-        protected val listener: T
-) : RecyclerView.ViewHolder(itemView) {
-
-    open lateinit var device: S
-
-    open var deviceName: TextView = itemView.findViewById(R.id.switch_name)
-    open var offSwitch: View = itemView.findViewById(R.id.off_switch)
-    open var onSwitch: View = itemView.findViewById(R.id.on_switch)
-    private var cardView = (itemView as MaterialCardView)
-
-    init {
-        cardView.setOnClickListener { listener.onClicked(device) }
-        cardView.setOnLongClickListener {
-            performLongClick()
-            true
-        }
-    }
-
-    open fun bind(device: S) {
-        this.device = device
-        highlightViewHolder(listener::isSelected)
-    }
-
-    fun performLongClick(): Boolean {
-        highlightViewHolder(listener::onLongClicked)
-        return true
-    }
-
-    private fun highlightViewHolder(selectionFunction: (Device) -> Boolean) {
-        val isSelected = selectionFunction.invoke(device)
-        scale(isSelected)
-    }
-
-    private fun scale(isSelected: Boolean) {
-        val end = if (isSelected) FOUR_FIFTH_SCALE else FULL_SCALE
-
-        val set = AnimatorSet()
-        val scaleDownX = animateProperty(SCALE_X_PROPERTY, itemView.scaleX, end)
-        val scaleDownY = animateProperty(SCALE_Y_PROPERTY, itemView.scaleY, end)
-
-        set.playTogether(scaleDownX, scaleDownY)
-        set.start()
-    }
-
-    private fun animateProperty(property: String, start: Float, end: Float): ObjectAnimator {
-        return ObjectAnimator.ofFloat(itemView, property, start, end).setDuration(DURATION.toLong())
-    }
-
-    companion object {
-        private const val FULL_SCALE = 1f
-        private const val FOUR_FIFTH_SCALE = 0.8f
-        private const val DURATION = 200
-        private const val SCALE_X_PROPERTY = "scaleX"
-        private const val SCALE_Y_PROPERTY = "scaleY"
-    }
+fun Device.highlightViewHolder(holder: BindingViewHolder<*>, selectionFunction: (Device) -> Boolean) {
+    val isSelected = selectionFunction.invoke(this)
+    holder.scale(isSelected)
 }
+
+fun Device.performLongClick(holder: BindingViewHolder<*>, listener: DeviceLongClickListener): Boolean {
+    highlightViewHolder(holder, listener::onLongClicked)
+    return true
+}
+
+private fun BindingViewHolder<*>.scale(isSelected: Boolean) {
+    val end = if (isSelected) FOUR_FIFTH_SCALE else FULL_SCALE
+
+    val set = AnimatorSet()
+    val scaleDownX = animateProperty(SCALE_X_PROPERTY, itemView.scaleX, end)
+    val scaleDownY = animateProperty(SCALE_Y_PROPERTY, itemView.scaleY, end)
+
+    set.playTogether(scaleDownX, scaleDownY)
+    set.start()
+}
+
+private fun BindingViewHolder<*>.animateProperty(property: String, start: Float, end: Float): ObjectAnimator {
+    return ObjectAnimator.ofFloat(itemView, property, start, end).setDuration(DURATION.toLong())
+}
+
+private const val FULL_SCALE = 1f
+private const val FOUR_FIFTH_SCALE = 0.8f
+private const val DURATION = 200
+private const val SCALE_X_PROPERTY = "scaleX"
+private const val SCALE_Y_PROPERTY = "scaleY"

@@ -25,64 +25,65 @@
 package com.tunjid.rcswitchcontrol.fragments
 
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
-import androidx.activity.OnBackPressedCallback
-import androidx.activity.addCallback
+import androidx.core.view.updatePadding
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.observe
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ItemTouchHelper.Callback.makeMovementFlags
 import androidx.recyclerview.widget.RecyclerView
 import com.flask.colorpicker.ColorPickerView
 import com.flask.colorpicker.builder.ColorPickerDialogBuilder
-import com.tunjid.androidx.recyclerview.ListManager
-import com.tunjid.androidx.recyclerview.ListManagerBuilder
-import com.tunjid.androidx.recyclerview.ListPlaceholder
-import com.tunjid.androidx.recyclerview.SwipeDragOptions
-import com.tunjid.androidx.recyclerview.adapterOf
-import com.tunjid.androidx.view.util.inflate
-import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.rcswitchcontrol.protocols.models.Device
-import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
 import com.rcswitchcontrol.zigbee.models.createGroupSequence
+import com.tunjid.androidx.navigation.addOnBackPressedCallback
+import com.tunjid.androidx.recyclerview.gridLayoutManager
+import com.tunjid.androidx.recyclerview.listAdapterOf
+import com.tunjid.androidx.recyclerview.setSwipeDragOptions
+import com.tunjid.androidx.recyclerview.viewHolderForItemId
+import com.tunjid.androidx.recyclerview.viewbinding.BindingViewHolder
+import com.tunjid.androidx.recyclerview.viewbinding.typed
+import com.tunjid.androidx.recyclerview.viewbinding.viewHolderFrom
+import com.tunjid.rcswitchcontrol.R
+import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
+import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
+import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
+import com.tunjid.rcswitchcontrol.abstractclasses.FragmentViewBindingDelegate
 import com.tunjid.rcswitchcontrol.common.serialize
+import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
+import com.tunjid.rcswitchcontrol.databinding.ViewholderPaddingBinding
+import com.tunjid.rcswitchcontrol.databinding.ViewholderRemoteSwitchBinding
+import com.tunjid.rcswitchcontrol.databinding.ViewholderZigbeeDeviceBinding
 import com.tunjid.rcswitchcontrol.dialogfragments.GroupDeviceDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.throttleColorChanges
-import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
+import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver
+import com.tunjid.rcswitchcontrol.utils.mapDistinct
 import com.tunjid.rcswitchcontrol.viewholders.DeviceAdapterListener
-import com.tunjid.rcswitchcontrol.viewholders.DeviceViewHolder
-import com.tunjid.rcswitchcontrol.viewholders.RfDeviceViewHolder
-import com.tunjid.rcswitchcontrol.viewholders.ZigBeeDeviceViewHolder
-import com.tunjid.rcswitchcontrol.viewholders.withPaddedAdapter
+import com.tunjid.rcswitchcontrol.viewholders.bind
+import com.tunjid.rcswitchcontrol.viewholders.performLongClick
+import com.tunjid.rcswitchcontrol.viewholders.rfDeviceDeviceViewHolder
+import com.tunjid.rcswitchcontrol.viewholders.zigbeeDeviceViewHolder
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
-import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel.State
+import com.tunjid.rcswitchcontrol.models.ControlState
 
-class DevicesFragment : BaseFragment(),
+class DevicesFragment : BaseFragment(R.layout.fragment_list),
         DeviceAdapterListener,
         GroupDeviceDialogFragment.GroupNameListener,
         RenameSwitchDialogFragment.SwitchNameListener {
 
     private var isDeleting: Boolean = false
-
+    private val viewBinding by FragmentViewBindingDelegate(FragmentListBinding::bind)
     private val viewModel by activityViewModels<ControlViewModel>()
-
-    private lateinit var listManager: ListManager<RecyclerView.ViewHolder, ListPlaceholder<*>>
-
-    private var backPressedCallback: OnBackPressedCallback? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        backPressedCallback = activity?.onBackPressedDispatcher?.addCallback(this) {
+        addOnBackPressedCallback {
             isEnabled = viewModel.withSelectedDevices(Set<Device>::isEmpty)
 
             if (!isEnabled) activity?.onBackPressed()
@@ -92,46 +93,39 @@ class DevicesFragment : BaseFragment(),
                 refreshUi()
             }
         }
-
-        viewModel.listen(State.Devices::class.java).observe(this, this::onPayloadReceived)
     }
 
-    override fun onCreateView(inflater: LayoutInflater,
-                              container: ViewGroup?,
-                              savedInstanceState: Bundle?): View? {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        viewBinding.list.apply {
+            updatePadding(bottom = WindowInsetsDriver.bottomInset)
+            val listAdapter = listAdapterOf(
+                    initialItems = viewModel.state.value?.devices ?: listOf(),
+                    viewHolderCreator = ::createViewHolder,
+                    viewTypeFunction = ::getDeviceViewType,
+                    viewHolderBinder = { holder, device, _ -> when(device) {
+                        is RfSwitch -> holder.typed<ViewholderRemoteSwitchBinding>().bind(device)
+                        is ZigBeeDevice -> holder.typed<ViewholderZigbeeDeviceBinding>().bind(device)
+                    } },
+                    itemIdFunction = { it.hashCode().toLong() }
+            )
 
-        val spanCount = SpanCountCalculator.spanCount
-        val root = inflater.inflate(R.layout.fragment_list, container, false)
-        listManager = ListManagerBuilder<RecyclerView.ViewHolder, ListPlaceholder<*>>()
-                .withRecyclerView(root.findViewById(R.id.list))
-                .withGridLayoutManager(spanCount)
-                .withPaddedAdapter(adapterOf(
-                        itemsSource = viewModel::devices,
-                        viewHolderCreator = this::createViewHolder,
-                        viewTypeFunction = this::getDeviceViewType,
-                        viewHolderBinder = { holder, device, _ -> bindDevice(holder, device) },
-                        itemIdFunction = { it.hashCode().toLong() }
-                ), spanCount)
-                .withSwipeDragOptions(SwipeDragOptions(
-                        swipeConsumer = { viewHolder: RecyclerView.ViewHolder, _ -> onDelete(viewHolder) },
-                        movementFlagFunction = this::swipeDirection,
-                        itemViewSwipeSupplier = { true }
-                ))
-                .withInconsistencyHandler(this::onInconsistentList)
-                .build()
+            layoutManager = gridLayoutManager(spanCount = SpanCountCalculator.spanCount)
+            adapter = listAdapter
 
-        return root
+            setSwipeDragOptions(
+                    swipeConsumer = { viewHolder: RecyclerView.ViewHolder, _ -> onDelete(viewHolder) },
+                    movementFlagFunction = ::swipeDirection,
+                    itemViewSwipeSupplier = { true }
+            )
+
+            viewModel.state.mapDistinct(ControlState::devices).observe(viewLifecycleOwner, listAdapter::submitList)
+        }
     }
 
     override fun onResume() {
         super.onResume()
         refreshUi()
-        backPressedCallback?.isEnabled = true
-    }
-
-    override fun onStop() {
-        super.onStop()
-        backPressedCallback?.isEnabled = false
     }
 
     private fun refreshUi() {
@@ -140,11 +134,6 @@ class DevicesFragment : BaseFragment(),
                 altToolbarTitle = getString(R.string.devices_selected, viewModel.numSelections()),
                 altToolBarShows = viewModel.withSelectedDevices { it.isNotEmpty() }
         )
-    }
-
-    override fun onDestroyView() {
-        listManager.clear()
-        super.onDestroyView()
     }
 
     override fun onPrepareOptionsMenu(menu: Menu) {
@@ -162,7 +151,7 @@ class DevicesFragment : BaseFragment(),
         else -> super.onOptionsItemSelected(item)
     }
 
-    override fun isSelected(device: Device): Boolean = viewModel.withSelectedDevices { it.contains(device) }
+    override fun isSelected(device: Device): Boolean = viewModel.withSelectedDevices { it.map(Device::diffId).contains(device.diffId) }
 
     override fun onClicked(device: Device) {
         if (viewModel.withSelectedDevices { it.isNotEmpty() }) longClickDevice(device)
@@ -232,17 +221,12 @@ class DevicesFragment : BaseFragment(),
         refresh()
     }
 
-    override fun onSwitchRenamed(rfSwitch: RfSwitch) {
-        listManager.notifyItemChanged(viewModel.devices.indexOf(rfSwitch))
-        viewModel.dispatchPayload(rfSwitch.key) {
-            action = getString(R.string.blercprotocol_rename_command)
-            data = rfSwitch.serialize()
-        }
+    override fun onSwitchRenamed(rfSwitch: RfSwitch) = viewModel.dispatchPayload(rfSwitch.key) {
+        action = getString(R.string.blercprotocol_rename_command)
+        data = rfSwitch.serialize()
     }
 
-    private fun refresh() = listManager.notifyDataSetChanged()
-
-    private fun onPayloadReceived(state: State.Devices) = listManager.onDiff(state.result)
+    private fun refresh() = Unit // listManager.notifyDataSetChanged()
 
     private fun getDeviceViewType(device: Device) = when (device) {
         is RfSwitch -> RF_DEVICE
@@ -251,26 +235,18 @@ class DevicesFragment : BaseFragment(),
     }
 
     private fun createViewHolder(parent: ViewGroup, viewType: Int) = when (viewType) {
-        RF_DEVICE -> RfDeviceViewHolder(parent.inflate(R.layout.viewholder_remote_switch), this)
-        ZIG_BEE_DEVICE -> ZigBeeDeviceViewHolder(parent.inflate(R.layout.viewholder_zigbee_device), this)
-        else -> object : RecyclerView.ViewHolder(parent.inflate(R.layout.viewholder_padding)) {}
+        RF_DEVICE -> parent.rfDeviceDeviceViewHolder(this)
+        ZIG_BEE_DEVICE -> parent.zigbeeDeviceViewHolder(this)
+        else -> parent.viewHolderFrom(ViewholderPaddingBinding::inflate)
     }
 
-    private fun bindDevice(holder: RecyclerView.ViewHolder, device: Device) = when {
-        holder is RfDeviceViewHolder && device is RfSwitch -> holder.bind(device)
-        holder is ZigBeeDeviceViewHolder && device is ZigBeeDevice -> holder.bind(device)
-        else -> Unit
-    }
-
-    private fun swipeDirection(holder: RecyclerView.ViewHolder): Int =
-            if (isDeleting || holder is ZigBeeDeviceViewHolder) 0
+    private fun swipeDirection(holder: BindingViewHolder<*>): Int =
+            if (isDeleting || holder.binding is ViewholderZigbeeDeviceBinding) 0
             else makeMovementFlags(0, ItemTouchHelper.LEFT)
 
     private fun longClickDevice(device: Device) {
-        val holder = listManager.findViewHolderForItemId(device.hashCode().toLong()) as? DeviceViewHolder<*, *>
-                ?: return
-
-        holder.performLongClick()
+        viewBinding.list.viewHolderForItemId<BindingViewHolder<*>>(device.hashCode().toLong())
+                ?.let{device.performLongClick(holder = it, this)}
     }
 
     private fun onDelete(viewHolder: RecyclerView.ViewHolder) {
@@ -281,7 +257,7 @@ class DevicesFragment : BaseFragment(),
 
         val position = viewHolder.adapterPosition
 
-        val devices = viewModel.devices
+        val devices = viewModel.state.value?.devices ?: listOf()
         val deletionHandler = DeletionHandler<Device>(position) { self ->
             if (self.hasItems() && self.peek() is RfSwitch) self.pop().also { device ->
                 viewModel.dispatchPayload(device.key) {
@@ -293,8 +269,8 @@ class DevicesFragment : BaseFragment(),
         }
 
         deletionHandler.push(devices[position])
-        devices.removeAt(position)
-        listManager.notifyItemRemoved(position)
+//        devices.removeAt(position)
+//        listManager.notifyItemRemoved(position)
 
         navigator.transientBarDriver.showSnackBar { snackBar ->
             snackBar.setText(R.string.deleted_switch)
@@ -302,8 +278,8 @@ class DevicesFragment : BaseFragment(),
                     .setAction(R.string.undo) {
                         if (deletionHandler.hasItems()) {
                             val deletedAt = deletionHandler.deletedPosition
-                            devices.add(deletedAt, deletionHandler.pop())
-                            listManager.notifyItemInserted(deletedAt)
+//                            devices.add(deletedAt, deletionHandler.pop())
+//                            listManager.notifyItemInserted(deletedAt)
                         }
                         isDeleting = false
                     }

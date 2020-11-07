@@ -30,7 +30,7 @@ import android.view.View
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.data.Record
+import com.tunjid.rcswitchcontrol.models.Record
 
 class RecordViewHolder internal constructor(
         itemView: View,

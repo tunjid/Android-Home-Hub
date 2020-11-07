@@ -34,6 +34,8 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.MenuRes
 import androidx.annotation.StringRes
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentManager
+import androidx.viewbinding.ViewBinding
 import com.tunjid.androidx.core.content.colorAt
 import com.tunjid.androidx.navigation.Navigator
 import com.tunjid.androidx.navigation.activityNavigatorController
@@ -43,6 +45,8 @@ import com.tunjid.rcswitchcontrol.navigation.AppNavigator
 import com.tunjid.rcswitchcontrol.utils.GlobalUiController
 import com.tunjid.rcswitchcontrol.utils.InsetProvider
 import com.tunjid.rcswitchcontrol.utils.activityGlobalUiController
+import kotlin.properties.ReadOnlyProperty
+import kotlin.reflect.KProperty
 
 /**
  * Base fragment
@@ -141,4 +145,22 @@ abstract class BaseFragment(layoutRes: Int = 0) : Fragment(layoutRes),
         )
     }
 
+}
+
+class FragmentViewBindingDelegate<T : ViewBinding>(private val factory: (View) -> T) : ReadOnlyProperty<Fragment, T> {
+    private var backingValue: T? = null
+
+    override operator fun getValue(thisRef: Fragment, property: KProperty<*>): T = when (val binding = backingValue) {
+        null -> {
+            thisRef.parentFragmentManager.registerFragmentLifecycleCallbacks(object : FragmentManager.FragmentLifecycleCallbacks() {
+                override fun onFragmentViewDestroyed(fm: FragmentManager, fragment: Fragment) {
+                    if (fragment != thisRef) return
+                    backingValue = null
+                    fm.unregisterFragmentLifecycleCallbacks(this)
+                }
+            }, false)
+            factory(thisRef.requireView()).apply { backingValue = binding }
+        }
+        else -> binding
+    }
 }

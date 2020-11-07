@@ -23,6 +23,8 @@ class AppNavigator(host: FragmentActivity) : Navigator, TransientBarController {
     override val previous: Fragment? get() = delegate.previous
 
     override fun clear(upToTag: String?, includeMatch: Boolean) = delegate.clear(upToTag, includeMatch)
+    
+    override fun find(tag: String): Fragment? = delegate.find(tag)
 
     override fun pop(): Boolean = delegate.pop()
 

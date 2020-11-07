@@ -44,6 +44,9 @@ android {
             }
         }
     }
+    buildFeatures {
+        viewBinding true
+    }
 }
 
 dependencies {
@@ -54,28 +57,33 @@ dependencies {
     implementation parent.ext.tunjiAndroidxCommunications
     implementation parent.ext.tunjiAndroidxRecyclerView
     implementation parent.ext.tunjiAndroidxNavigation
-    implementation parent.ext.tunjiAndroidxFunctions
     implementation parent.ext.tunjiAndroidxMaterial
     implementation parent.ext.tunjiAndroidxCore
     implementation parent.ext.tunjiAndroidxView
 
-    implementation 'com.google.android.material:material:1.2.0-alpha02'
+    implementation 'com.google.android.material:material:1.2.1'
     implementation 'com.google.android:flexbox:1.1.0'
 
-    implementation parent.ext.appCompat
     implementation parent.ext.ktxCore
+    implementation parent.ext.appCompat
+    implementation parent.ext.fragmentKtx
+    implementation parent.ext.dynamicAnimationsKtx
+
     implementation 'androidx.leanback:leanback:1.0.0'
     implementation 'androidx.cardview:cardview:1.0.0'
-    implementation 'androidx.transition:transition:1.2.0'
+    implementation 'androidx.transition:transition:1.3.1'
     implementation 'androidx.recyclerview:recyclerview:1.1.0'
-    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
+    implementation 'androidx.constraintlayout:constraintlayout:2.0.1'
 
-    implementation 'androidx.lifecycle:lifecycle-runtime:2.1.0'
-    implementation 'androidx.lifecycle:lifecycle-extensions:2.1.0'
-    implementation 'androidx.lifecycle:lifecycle-reactivestreams:2.1.0'
+    implementation 'androidx.lifecycle:lifecycle-runtime:2.2.0'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel:2.2.0'
+    implementation 'androidx.lifecycle:lifecycle-extensions:2.2.0'
+    implementation 'androidx.lifecycle:lifecycle-reactivestreams:2.2.0'
 
     implementation parent.ext.rxJava
+    implementation parent.ext.rxKotlin
     implementation parent.ext.rxAndroid
+    implementation parent.ext.rxReplayingShare
 
     implementation parent.ext.usbSerial
     implementation 'com.squareup.picasso:picasso:2.71828'

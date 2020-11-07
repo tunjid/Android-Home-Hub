@@ -37,6 +37,7 @@ import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.a433mhz.R
 import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
+import com.tunjid.rcswitchcontrol.a433mhz.models.bytes
 import com.tunjid.rcswitchcontrol.a433mhz.persistence.RfSwitchDataStore
 import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
 import com.tunjid.rcswitchcontrol.common.ContextProvider
@@ -107,7 +108,7 @@ class SerialRFProtocol constructor(
                 val switches = switchStore.savedSwitches
                 val rcSwitch = payload.data?.deserialize(RfSwitch::class)
 
-                val position = switches.indexOf(rcSwitch)
+                val position = switches.map(RfSwitch::bytes).indexOf(rcSwitch?.bytes)
                 val hasSwitch = position > -1
 
                 response = if (hasSwitch && rcSwitch != null)
@@ -131,13 +132,15 @@ class SerialRFProtocol constructor(
             DELETE -> output.apply {
                 val switches = switchStore.savedSwitches
                 val rcSwitch = payload.data?.deserialize(RfSwitch::class)
-                val response = if (rcSwitch == null || !switches.remove(rcSwitch))
+                val removed = switches.filterNot { it.bytes.contentEquals(rcSwitch?.bytes) }
+
+                val response = if (rcSwitch == null || switches.size == removed.size)
                     getString(R.string.blercprotocol_no_such_switch_response)
                 else
                     getString(R.string.blercprotocol_deleted_response, rcSwitch.name)
 
                 // Save switches before sending them
-                switchStore.saveSwitches(switches)
+                switchStore.saveSwitches(removed)
 
                 output.response = response
                 action = receivedAction
@@ -186,18 +189,15 @@ class SerialRFProtocol constructor(
 
                 it.addRefreshAndSniff()
 
-                when {
-                    RfSwitch.ON_CODE == switchCreator.state -> {
+                when (switchCreator.state) {
+                    RfSwitch.ON_CODE -> {
                         switchCreator.withOnCode(rawData)
                         it.response = appContext.getString(R.string.blercprotocol_sniff_on_response)
                     }
-
-                    RfSwitch.OFF_CODE == switchCreator.state -> {
+                    RfSwitch.OFF_CODE -> {
                         val switches = switchStore.savedSwitches
                         val rcSwitch = switchCreator.withOffCode(rawData)
-                        val containsSwitch = switches.contains(rcSwitch)
-
-                        rcSwitch.name = "Switch " + (switches.size + 1)
+                        val containsSwitch = switches.map(RfSwitch::bytes).contains(rcSwitch.bytes)
 
                         it.response = getString(
                                 if (containsSwitch) R.string.scanblercprotocol_sniff_already_exists_response
@@ -205,7 +205,7 @@ class SerialRFProtocol constructor(
                         )
 
                         if (!containsSwitch) {
-                            switches.add(rcSwitch)
+                            switches.add(rcSwitch.copy(name = "Switch " + (switches.size + 1)))
                             switchStore.saveSwitches(switches)
 
                             it.action = (ClientBleService.ACTION_TRANSMITTER)

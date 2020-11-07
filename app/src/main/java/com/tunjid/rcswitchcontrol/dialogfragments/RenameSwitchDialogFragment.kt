@@ -28,6 +28,7 @@ import android.annotation.SuppressLint
 import android.app.Dialog
 import android.os.Bundle
 import androidx.fragment.app.DialogFragment
+import com.tunjid.androidx.core.components.args
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 
@@ -35,12 +36,7 @@ import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 @SuppressLint("InflateParams")
 class RenameSwitchDialogFragment : DialogFragment() {
 
-    private lateinit var rfSwitch: RfSwitch
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        rfSwitch = arguments!!.getParcelable(SWITCH)!!
-    }
+    private var rfSwitch by args<RfSwitch>()
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog = editTextDialog { editText, builder ->
         val listener = parentFragment as? SwitchNameListener
@@ -49,8 +45,7 @@ class RenameSwitchDialogFragment : DialogFragment() {
         builder
                 .setTitle(R.string.rename_switch)
                 .setPositiveButton(R.string.rename) { _, _ ->
-                    rfSwitch.name = editText.text.toString()
-                    listener?.onSwitchRenamed(rfSwitch)
+                    listener?.onSwitchRenamed(rfSwitch.copy(name = editText.text.toString()))
                     dismiss()
                 }
     }
@@ -60,16 +55,8 @@ class RenameSwitchDialogFragment : DialogFragment() {
     }
 
     companion object {
-
-        private const val SWITCH = "SWITCH"
-
-        fun newInstance(rfSwitch: RfSwitch): RenameSwitchDialogFragment {
-
-            val fragment = RenameSwitchDialogFragment()
-            val args = Bundle()
-            args.putParcelable(SWITCH, rfSwitch)
-            fragment.arguments = args
-            return fragment
+        fun newInstance(rfSwitch: RfSwitch): RenameSwitchDialogFragment = RenameSwitchDialogFragment().apply {
+            this.rfSwitch = rfSwitch
         }
     }
 }

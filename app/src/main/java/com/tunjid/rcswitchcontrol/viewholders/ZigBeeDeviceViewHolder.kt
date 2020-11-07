@@ -24,28 +24,44 @@
 
 package com.tunjid.rcswitchcontrol.viewholders
 
-import android.view.View
+import android.view.ViewGroup
 import android.widget.SeekBar
-import com.tunjid.rcswitchcontrol.R
 import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
+import com.tunjid.androidx.recyclerview.viewbinding.BindingViewHolder
+import com.tunjid.androidx.recyclerview.viewbinding.viewHolderFrom
+import com.tunjid.rcswitchcontrol.databinding.ViewholderZigbeeDeviceBinding
 import com.tunjid.rcswitchcontrol.dialogfragments.Throttle
 
-// ViewHolder for actual content
-class ZigBeeDeviceViewHolder internal constructor(
-        itemView: View,
-        listener: Listener
-) : DeviceViewHolder<ZigBeeDeviceViewHolder.Listener, ZigBeeDevice>(itemView, listener) {
+interface ZigBeeDeviceListener : DeviceLongClickListener {
+    fun rediscover(device: ZigBeeDevice)
 
-    private val colorPicker = itemView.findViewById<View>(R.id.color_picker)
-    private val zigBeeIcon = itemView.findViewById<View>(R.id.zigbee_icon)
-    private val leveler = itemView.findViewById<SeekBar>(R.id.leveler)
+    fun color(device: ZigBeeDevice)
 
-    override fun bind(device: ZigBeeDevice) {
-        super.bind(device)
+    fun level(device: ZigBeeDevice, level: Float)
+}
 
-        deviceName.text = device.name
+var BindingViewHolder<ViewholderZigbeeDeviceBinding>.device by BindingViewHolder.Prop<ZigBeeDevice>()
+var BindingViewHolder<ViewholderZigbeeDeviceBinding>.listener by BindingViewHolder.Prop<ZigBeeDeviceListener>()
 
-        zigBeeIcon.setOnClickListener { listener.rediscover(device) }
+fun BindingViewHolder<ViewholderZigbeeDeviceBinding>.bind(device: ZigBeeDevice) {
+    this.device = device
+    binding.switchName.text = device.name
+    device.highlightViewHolder(this, listener::isSelected)
+}
+
+fun ViewGroup.zigbeeDeviceViewHolder(
+        listener: ZigBeeDeviceListener
+) = viewHolderFrom(ViewholderZigbeeDeviceBinding::inflate).apply binding@{
+    this.listener = listener
+
+    binding.apply {
+        itemView.setOnClickListener { listener.onClicked(device) }
+        itemView.setOnLongClickListener {
+            device.highlightViewHolder(this@binding, listener::onLongClicked)
+            true
+        }
+
+        zigbeeIcon.setOnClickListener { listener.rediscover(device) }
         colorPicker.setOnClickListener { listener.color(device) }
         offSwitch.setOnClickListener { listener.onSwitchToggled(device, false) }
         onSwitch.setOnClickListener { listener.onSwitchToggled(device, true) }
@@ -58,13 +74,5 @@ class ZigBeeDeviceViewHolder internal constructor(
 
             override fun onStopTrackingTouch(seekBar: SeekBar?) = Unit
         })
-    }
-
-    interface Listener : DeviceLongClickListener {
-        fun rediscover(device: ZigBeeDevice)
-
-        fun color(device: ZigBeeDevice)
-
-        fun level(device: ZigBeeDevice, level: Float)
     }
 }

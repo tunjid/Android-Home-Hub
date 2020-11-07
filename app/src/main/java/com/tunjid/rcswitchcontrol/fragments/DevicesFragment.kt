@@ -25,6 +25,7 @@
 package com.tunjid.rcswitchcontrol.fragments
 
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -120,6 +121,10 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
             )
 
             viewModel.state.mapDistinct(ControlState::devices).observe(viewLifecycleOwner, listAdapter::submitList)
+            viewModel.state.mapDistinct(ControlState::devices).observe(viewLifecycleOwner) {
+                Log.i("TEST", "Devices: ${it.joinToString(separator = "\n")}")
+            }
+
         }
     }
 

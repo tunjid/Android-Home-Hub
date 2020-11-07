@@ -24,23 +24,18 @@
 
 package com.rcswitchcontrol.zigbee.models
 
-import android.graphics.Color
 import android.os.Parcel
 import android.os.Parcelable
 import com.rcswitchcontrol.protocols.models.Device
-import com.rcswitchcontrol.zigbee.commands.ColorCommand
 import com.rcswitchcontrol.zigbee.commands.GroupAddCommand
-import com.rcswitchcontrol.zigbee.commands.LevelCommand
 import com.rcswitchcontrol.zigbee.commands.MembershipAddCommand
-import com.rcswitchcontrol.zigbee.commands.OffCommand
-import com.rcswitchcontrol.zigbee.commands.OnCommand
-import com.rcswitchcontrol.zigbee.commands.RediscoverCommand
+import com.rcswitchcontrol.zigbee.protocol.ZigBeeInput
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
 
 data class ZigBeeDevice(
-        private val ieeeAddress: String,
-        private val networkAdress: String,
-        private val endpoint: String,
+        internal val ieeeAddress: String,
+        internal val networkAdress: String,
+        internal val endpoint: String,
         override val name: String
 ) : Parcelable, Device {
 
@@ -57,29 +52,7 @@ data class ZigBeeDevice(
             parcel.readString()!!,
             parcel.readString()!!)
 
-    fun rediscoverCommand() = RediscoverCommand().command.let { ZigBeeCommandArgs(it, arrayOf(it, ieeeAddress)) }
-
-    fun toggleCommand(state: Boolean) = (if (state) OnCommand() else OffCommand())
-            .command
-            .let { ZigBeeCommandArgs(it, arrayOf(it, zigBeeId)) }
-
-    fun levelCommand(level: Float) = LevelCommand().command.let {
-        ZigBeeCommandArgs(it, arrayOf(
-                it,
-                zigBeeId,
-                level.toString()
-        ))
-    }
-
-    fun colorCommand(color: Int) = ColorCommand().command.let {
-        ZigBeeCommandArgs(it, arrayOf(
-                it,
-                zigBeeId,
-                Color.red(color).toString(),
-                Color.green(color).toString(),
-                Color.blue(color).toString()
-        ))
-    }
+    fun commandArgs(input: ZigBeeInput<*>): ZigBeeCommandArgs = input.from(this)
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {
         parcel.writeString(ieeeAddress)

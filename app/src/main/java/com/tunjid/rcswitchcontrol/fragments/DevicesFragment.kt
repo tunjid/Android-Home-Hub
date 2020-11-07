@@ -40,6 +40,7 @@ import com.flask.colorpicker.builder.ColorPickerDialogBuilder
 import com.rcswitchcontrol.protocols.models.Device
 import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
 import com.rcswitchcontrol.zigbee.models.createGroupSequence
+import com.rcswitchcontrol.zigbee.protocol.ZigBeeInput
 import com.tunjid.androidx.navigation.addOnBackPressedCallback
 import com.tunjid.androidx.recyclerview.gridLayoutManager
 import com.tunjid.androidx.recyclerview.listAdapterOf
@@ -164,21 +165,21 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
 
     override fun onLongClicked(device: Device): Boolean = viewModel.select(device).apply { refreshUi() }
 
-    override fun onSwitchToggled(device: Device, state: Boolean) = viewModel.dispatchPayload(device.key) {
+    override fun onSwitchToggled(device: Device, isOn: Boolean) = viewModel.dispatchPayload(device.key) {
         when (device) {
             is RfSwitch -> {
                 action = ClientBleService.ACTION_TRANSMITTER
-                data = device.getEncodedTransmission(state)
+                data = device.getEncodedTransmission(isOn)
             }
             is ZigBeeDevice -> {
-                val zigBeeCommandArgs = device.toggleCommand(state)
+                val zigBeeCommandArgs = device.commandArgs(ZigBeeInput.Toggle(isOn))
                 action = zigBeeCommandArgs.command
                 data = zigBeeCommandArgs.serialize()
             }
         }
     }
 
-    override fun rediscover(device: ZigBeeDevice) = device.rediscoverCommand().let { args ->
+    override fun rediscover(device: ZigBeeDevice) = device.commandArgs(ZigBeeInput.Rediscover).let { args ->
         viewModel.dispatchPayload(device.key) {
             action = args.command
             data = args.serialize()
@@ -193,7 +194,7 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
             .showAlphaSlider(false)
             .density(12)
             .throttleColorChanges {
-                device.colorCommand(it).let { args ->
+                device.commandArgs(ZigBeeInput.Color(it)).let { args ->
                     viewModel.dispatchPayload(device.key) {
                         action = args.command
                         data = args.serialize()
@@ -203,7 +204,7 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
             .build()
             .show()
 
-    override fun level(device: ZigBeeDevice, level: Float) = device.levelCommand(level).let { args ->
+    override fun level(device: ZigBeeDevice, level: Float) = device.commandArgs(ZigBeeInput.Level(level)).let { args ->
         viewModel.dispatchPayload(device.key) {
             action = args.command
             data = args.serialize()

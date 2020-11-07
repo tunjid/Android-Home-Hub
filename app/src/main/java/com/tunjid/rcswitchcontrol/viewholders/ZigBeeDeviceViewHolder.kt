@@ -25,7 +25,6 @@
 package com.tunjid.rcswitchcontrol.viewholders
 
 import android.view.ViewGroup
-import android.widget.SeekBar
 import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
 import com.tunjid.androidx.recyclerview.viewbinding.BindingViewHolder
 import com.tunjid.androidx.recyclerview.viewbinding.viewHolderFrom
@@ -53,6 +52,7 @@ fun ViewGroup.zigbeeDeviceViewHolder(
         listener: ZigBeeDeviceListener
 ) = viewHolderFrom(ViewholderZigbeeDeviceBinding::inflate).apply binding@{
     this.listener = listener
+    val throttle = Throttle { listener.level(device, it / 100F) }
 
     binding.apply {
         itemView.setOnClickListener { listener.onClicked(device) }
@@ -65,14 +65,6 @@ fun ViewGroup.zigbeeDeviceViewHolder(
         colorPicker.setOnClickListener { listener.color(device) }
         offSwitch.setOnClickListener { listener.onSwitchToggled(device, false) }
         onSwitch.setOnClickListener { listener.onSwitchToggled(device, true) }
-        leveler.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            val throttle = Throttle { listener.level(device, it / 100F) }
-
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) = throttle.run(progress)
-
-            override fun onStartTrackingTouch(seekBar: SeekBar?) = Unit
-
-            override fun onStopTrackingTouch(seekBar: SeekBar?) = Unit
-        })
+        leveler.addOnChangeListener { _, value, fromUser -> if (fromUser) throttle.run(value.toInt()) }
     }
 }

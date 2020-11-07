@@ -115,7 +115,7 @@
         app:layout_constraintTop_toTopOf="@+id/on_switch" />
 
 
-    <SeekBar
+    <com.google.android.material.slider.Slider
         android:id="@+id/leveler"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -124,8 +124,12 @@
         android:layout_marginEnd="@dimen/half_margin"
         android:layout_marginBottom="@dimen/single_margin"
         android:elevation="@dimen/single_margin"
-        android:max="100"
         android:paddingBottom="@dimen/single_margin"
-        app:layout_constraintTop_toBottomOf="@+id/on_switch" />
+        android:valueFrom="0.0"
+        android:valueTo="100.0"
+        app:layout_constraintTop_toBottomOf="@+id/on_switch"
+        app:thumbColor="@color/colorAccent"
+        app:trackColorActive="@color/colorAccent"
+        app:trackColorInactive="@color/dark_grey" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

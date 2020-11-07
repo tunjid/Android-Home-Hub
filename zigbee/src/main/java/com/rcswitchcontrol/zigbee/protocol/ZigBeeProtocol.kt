@@ -130,8 +130,8 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
                 appendCommands()
             }
             in availableCommands.keys -> availableCommands[action]?.apply {
-                val commandArgs = payload.data?.deserialize(ZigBeeCommand::class)
-                val needsCommandArgs: Boolean = (commandArgs == null || commandArgs.isInvalid) && syntax.isNotEmpty()
+                val command = payload.data?.deserialize(ZigBeeCommand::class)
+                val needsCommandArgs: Boolean = (command == null || command.isInvalid) && syntax.isNotEmpty()
 
                 when {
                     needsCommandArgs -> {
@@ -139,7 +139,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
                         data = ZigBeeCommandInfo(action, description, syntax, help).serialize()
                     }
                     else -> {
-                        val args = commandArgs?.args?.toTypedArray() ?: arrayOf(action)
+                        val args = command?.args?.toTypedArray() ?: arrayOf(action)
                         response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_executing, args.commandString())
                         execute(args)
                     }

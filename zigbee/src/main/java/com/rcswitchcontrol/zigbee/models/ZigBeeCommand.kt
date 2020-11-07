@@ -31,47 +31,61 @@ import com.rcswitchcontrol.zigbee.commands.LevelCommand
 import com.rcswitchcontrol.zigbee.commands.OffCommand
 import com.rcswitchcontrol.zigbee.commands.OnCommand
 import com.rcswitchcontrol.zigbee.commands.RediscoverCommand
+import com.rcswitchcontrol.zigbee.protocol.CommandParser
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
-import com.zsmartsystems.zigbee.console.ZigBeeConsoleCommand
 import com.zsmartsystems.zigbee.console.ZigBeeConsoleDescribeNodeCommand
 
 data class ZigBeeCommand(
         val command: String,
         val args: List<String>
 ) {
-
+    // Cannot be derived, it need to be serialized
     val key: String = ZigBeeProtocol::class.java.name
 
     val isInvalid: Boolean
         get() = args.isEmpty()
 }
 
-sealed class ZigBeeInput<InputT>(val input: InputT, val command: ZigBeeConsoleCommand) {
-    private val commandName get() = command.command
+sealed class ZigBeeInput<InputT>(
+        val input: InputT,
+        private val commandParser: CommandParser
+) {
+
+    private val key
+        get() = when (commandParser) {
+            is CommandParser.Derived -> commandParser.key
+            is CommandParser.Custom -> commandParser.consoleCommand.command
+        }
+
+    private val commandName
+        get() = when (commandParser) {
+            is CommandParser.Derived -> commandParser.consoleCommand.command
+            is CommandParser.Custom -> commandParser.consoleCommand.command
+        }
 
     object Rediscover : ZigBeeInput<Unit>(
             input = Unit,
-            command = RediscoverCommand()
+            commandParser = CommandParser.Custom(RediscoverCommand())
     )
 
     object Node : ZigBeeInput<Unit>(
             input = Unit,
-            command = ZigBeeConsoleDescribeNodeCommand()
+            commandParser = CommandParser.Derived.ZigBeeConsoleDescribeNodeCommand
     )
 
     data class Toggle(val isOn: Boolean) : ZigBeeInput<Boolean>(
             input = isOn,
-            command = if (isOn) OnCommand() else OffCommand()
+            commandParser = CommandParser.Custom(if (isOn) OnCommand() else OffCommand())
     )
 
     data class Level(val level: Float) : ZigBeeInput<Float>(
             input = level,
-            command = LevelCommand()
+            commandParser = CommandParser.Custom(LevelCommand())
     )
 
     data class Color(val rgb: Int) : ZigBeeInput<Int>(
             input = rgb,
-            command = ColorCommand()
+            commandParser = CommandParser.Custom(ColorCommand())
     )
 
     internal fun from(zigBeeDevice: ZigBeeDevice): ZigBeeCommand = when (this) {
@@ -83,5 +97,5 @@ sealed class ZigBeeInput<InputT>(val input: InputT, val command: ZigBeeConsoleCo
     }.let(this::args)
 
     private fun args(params: List<String>): ZigBeeCommand =
-            ZigBeeCommand(commandName, listOf(commandName) + params)
+            ZigBeeCommand(key, listOf(commandName) + params)
 }

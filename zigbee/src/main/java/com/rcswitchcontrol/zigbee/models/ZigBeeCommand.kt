@@ -25,6 +25,7 @@
 package com.rcswitchcontrol.zigbee.models
 
 import androidx.core.graphics.blue
+import androidx.core.graphics.green
 import androidx.core.graphics.red
 import com.rcswitchcontrol.zigbee.commands.ColorCommand
 import com.rcswitchcontrol.zigbee.commands.LevelCommand
@@ -92,7 +93,7 @@ sealed class ZigBeeInput<InputT>(
         is Node -> listOf(zigBeeDevice.networkAdress)
         is Toggle -> listOf(zigBeeDevice.zigBeeId)
         is Level -> listOf(zigBeeDevice.zigBeeId, level.toString())
-        is Color -> listOf(zigBeeDevice.zigBeeId, rgb.red.toString(), rgb.blue.toString(), rgb.blue.toString())
+        is Color -> listOf(zigBeeDevice.zigBeeId, rgb.red.toString(), rgb.green.toString(), rgb.blue.toString())
     }.let(this::args)
 
     private fun args(params: List<String>): ZigBeeCommand =

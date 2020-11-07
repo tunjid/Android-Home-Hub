@@ -26,29 +26,57 @@ package com.tunjid.rcswitchcontrol.viewholders
 
 import android.content.res.ColorStateList
 import android.graphics.Color
-import android.view.View
-import androidx.recyclerview.widget.RecyclerView
+import android.view.ViewGroup
+import androidx.dynamicanimation.animation.SpringAnimation
 import com.google.android.material.button.MaterialButton
+import com.tunjid.androidx.recyclerview.viewbinding.BindingViewHolder
+import com.tunjid.androidx.recyclerview.viewbinding.viewHolderFrom
+import com.tunjid.androidx.view.util.spring
+import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
+import com.tunjid.rcswitchcontrol.databinding.ViewholderCommandBinding
+import com.tunjid.rcswitchcontrol.databinding.ViewholderHistoryBinding
 import com.tunjid.rcswitchcontrol.models.Record
 
-class RecordViewHolder internal constructor(
-        itemView: View,
-        private val listener: ((Record) -> Unit)?
-) : RecyclerView.ViewHolder(itemView) {
 
-    private lateinit var record: Record
-    val textView: MaterialButton = itemView.findViewById(R.id.text)
-
-    init {
-        textView.strokeColor = ColorStateList.valueOf(Color.WHITE)
-        textView.setOnClickListener { listener?.invoke(record) }
+fun ViewGroup.historyViewHolder() = viewHolderFrom(ViewholderHistoryBinding::inflate).apply {
+    binding.text.apply {
+        configure()
+        isClickable = false
+        strokeColor = ColorStateList.valueOf(Color.WHITE)
     }
+}
 
-    internal fun bind(record: Record) {
-        this.record = record
+fun ViewGroup.commandViewHolder(listener: ((Record) -> Unit)) = viewHolderFrom(ViewholderCommandBinding::inflate).apply {
+    binding.text.apply {
+        configure()
+        setOnClickListener { listener(record) }
+        strokeColor = ColorStateList.valueOf(Color.WHITE)
+    }
+}
 
-        textView.text = record.entry
-        textView.isClickable = listener != null
+fun BindingViewHolder<ViewholderHistoryBinding>.bind(record: Record) {
+    binding.text.text = record.entry
+}
+
+private var BindingViewHolder<ViewholderCommandBinding>.record by BindingViewHolder.Prop<Record>()
+
+fun BindingViewHolder<ViewholderCommandBinding>.bindCommand(record: Record) = binding.run {
+    this@bindCommand.record = record
+    text.text = record.entry
+}
+
+private fun MaterialButton.configure() {
+    if (!App.isAndroidTV) return
+
+    isFocusable = true
+    isFocusableInTouchMode = true
+    setOnFocusChangeListener { _, hasFocus ->
+        spring(SpringAnimation.SCALE_Y).animateToFinalPosition(if (hasFocus) 1.1F else 1F)
+        spring(SpringAnimation.SCALE_X).animateToFinalPosition(if (hasFocus) 1.1F else 1F)
+
+        strokeWidth =
+                if (hasFocus) context.resources.getDimensionPixelSize(R.dimen.quarter_margin)
+                else 0
     }
 }

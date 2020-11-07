@@ -27,7 +27,6 @@ package com.tunjid.rcswitchcontrol.fragments
 import android.os.Bundle
 import android.view.View
 import androidx.core.view.updatePadding
-import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.fragment.app.activityViewModels
 import com.google.android.flexbox.AlignItems
 import com.google.android.flexbox.FlexDirection
@@ -36,19 +35,22 @@ import com.google.android.flexbox.JustifyContent
 import com.tunjid.androidx.core.components.args
 import com.tunjid.androidx.recyclerview.listAdapterOf
 import com.tunjid.androidx.recyclerview.verticalLayoutManager
-import com.tunjid.androidx.view.util.inflate
-import com.tunjid.androidx.view.util.spring
-import com.tunjid.rcswitchcontrol.App
+import com.tunjid.androidx.recyclerview.viewbinding.typed
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
-import com.tunjid.rcswitchcontrol.models.Record
 import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
-import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.bottomInset
-import com.tunjid.rcswitchcontrol.utils.mapDistinct
-import com.tunjid.rcswitchcontrol.viewholders.RecordViewHolder
-import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
+import com.tunjid.rcswitchcontrol.databinding.ViewholderCommandBinding
+import com.tunjid.rcswitchcontrol.databinding.ViewholderHistoryBinding
 import com.tunjid.rcswitchcontrol.models.ControlState
 import com.tunjid.rcswitchcontrol.models.ProtocolKey
+import com.tunjid.rcswitchcontrol.models.Record
+import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.bottomInset
+import com.tunjid.rcswitchcontrol.utils.mapDistinct
+import com.tunjid.rcswitchcontrol.viewholders.bind
+import com.tunjid.rcswitchcontrol.viewholders.bindCommand
+import com.tunjid.rcswitchcontrol.viewholders.commandViewHolder
+import com.tunjid.rcswitchcontrol.viewholders.historyViewHolder
+import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 
 sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
 
@@ -67,16 +69,21 @@ sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
         val binding = FragmentListBinding.bind(view)
         binding.list.apply {
             val listAdapter = listAdapterOf(
-                    initialItems = viewModel.state.value?.let {
-                        if (key == null) it.history else it.commands[key]
-                    } ?: listOf(),
-                    viewHolderCreator = { parent, _ ->
-                        RecordViewHolder(
-                                parent.inflate(if (key == null) R.layout.viewholder_history else R.layout.viewholder_command),
-                                if (key == null) null else this@RecordFragment::onRecordClicked
-                        ).apply { configureViewHolder(this) }
+                    initialItems = initialItems(),
+                    viewHolderCreator = { parent, viewType ->
+                        when (viewType) {
+                            0 -> parent.historyViewHolder()
+                            1 -> parent.commandViewHolder(::onRecordClicked)
+                            else -> throw IllegalArgumentException("Invalid view type")
+                        }
                     },
-                    viewHolderBinder = { holder, record, _ -> holder.bind(record) }
+                    viewHolderBinder = { holder, record, _ ->
+                        when (holder.binding) {
+                            is ViewholderHistoryBinding -> holder.typed<ViewholderHistoryBinding>().bind(record)
+                            is ViewholderCommandBinding -> holder.typed<ViewholderCommandBinding>().bindCommand(record)
+                        }
+                    },
+                    viewTypeFunction = { if (key == null) 0 else 1 }
             )
 
             layoutManager = when (key) {
@@ -101,6 +108,10 @@ sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
         }
     }
 
+    private fun initialItems(): List<Record> = viewModel.state.value?.let {
+        if (key == null) it.history else it.commands[key]
+    } ?: listOf()
+
     override fun onResume() {
         super.onResume()
         updateUi(altToolBarShows = false)
@@ -108,21 +119,6 @@ sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
 
     private fun onRecordClicked(record: Record) =
             viewModel.dispatchPayload(record.key) { action = record.entry }
-
-    private fun configureViewHolder(viewHolder: RecordViewHolder) = viewHolder.textView.run {
-        if (!App.isAndroidTV) return@run
-
-        isFocusable = true
-        isFocusableInTouchMode = true
-        setOnFocusChangeListener { _, hasFocus ->
-            spring(SpringAnimation.SCALE_Y).animateToFinalPosition(if (hasFocus) 1.1F else 1F)
-            spring(SpringAnimation.SCALE_X).animateToFinalPosition(if (hasFocus) 1.1F else 1F)
-
-            strokeWidth =
-                    if (hasFocus) context.resources.getDimensionPixelSize(R.dimen.quarter_margin)
-                    else 0
-        }
-    }
 
     companion object {
 

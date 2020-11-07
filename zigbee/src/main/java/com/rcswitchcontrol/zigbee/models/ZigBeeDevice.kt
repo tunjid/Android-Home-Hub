@@ -51,7 +51,7 @@ data class ZigBeeDevice(
             parcel.readString()!!,
             parcel.readString()!!)
 
-    fun commandArgs(input: ZigBeeInput<*>): ZigBeeCommandArgs = input.from(this)
+    fun commandArgs(input: ZigBeeInput<*>): ZigBeeCommand = input.from(this)
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {
         parcel.writeString(ieeeAddress)
@@ -72,14 +72,14 @@ data class ZigBeeDevice(
     }
 }
 
-fun List<ZigBeeDevice>.createGroupSequence(groupName: String): List<ZigBeeCommandArgs> {
-    val result = mutableListOf<ZigBeeCommandArgs>()
+fun List<ZigBeeDevice>.createGroupSequence(groupName: String): List<ZigBeeCommand> {
+    val result = mutableListOf<ZigBeeCommand>()
 
     val groupId = groupName.hashCode().toString()
 
-    result.add(GroupAddCommand().command.let { ZigBeeCommandArgs(it, arrayOf(it, groupId, groupName)) })
+    result.add(GroupAddCommand().command.let { ZigBeeCommand(it, listOf(it, groupId, groupName)) })
     result.addAll(map { device ->
-        MembershipAddCommand().command.let { ZigBeeCommandArgs(it, arrayOf(it, device.zigBeeId, groupId, groupName)) }
+        MembershipAddCommand().command.let { ZigBeeCommand(it, listOf(it, device.zigBeeId, groupId, groupName)) }
     })
 
     return result

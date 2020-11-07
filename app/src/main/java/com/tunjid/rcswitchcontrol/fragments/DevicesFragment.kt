@@ -38,7 +38,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.flask.colorpicker.ColorPickerView
 import com.flask.colorpicker.builder.ColorPickerDialogBuilder
 import com.rcswitchcontrol.protocols.models.Device
-import com.rcswitchcontrol.zigbee.models.ZigBeeCommandArgs
+import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
 import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
 import com.rcswitchcontrol.zigbee.models.createGroupSequence
 import com.rcswitchcontrol.zigbee.models.ZigBeeInput
@@ -219,7 +219,7 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
 
     private fun refresh() = Unit // listManager.notifyDataSetChanged()
 
-    private fun ZigBeeDevice.send(args: ZigBeeCommandArgs) = viewModel.dispatchPayload(key) {
+    private fun ZigBeeDevice.send(args: ZigBeeCommand) = viewModel.dispatchPayload(key) {
         action = args.command
         data = args.serialize()
     }

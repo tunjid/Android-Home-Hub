@@ -34,14 +34,13 @@ import java.util.*
  * Created by tj.dahunsi on 2/11/17.
  */
 
-data class Payload(val key: String) : Serializable {
-
-    var data: String? = null
-    var action: String? = null
-    var response: String? = null
-
+data class Payload(
+        val key: String,
+        var data: String? = null,
+        var action: String? = null,
+        var response: String? = null
+) : Serializable {
     val commands = LinkedHashSet<String>()
 
     fun addCommand(command: String) = commands.add(command)
-
 }

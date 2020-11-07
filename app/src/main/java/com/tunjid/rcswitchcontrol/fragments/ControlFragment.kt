@@ -38,7 +38,7 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPS
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HALF_EXPANDED
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN
 import com.google.android.material.bottomsheet.setupForBottomSheet
-import com.rcswitchcontrol.zigbee.models.ZigBeeCommandArgs
+import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
 import com.tunjid.androidx.core.content.colorAt
 import com.tunjid.androidx.view.util.InsetFlags
 import com.tunjid.rcswitchcontrol.R
@@ -190,7 +190,7 @@ class ControlFragment : BaseFragment(R.layout.fragment_control), ZigBeeArgumentD
         else -> childFragmentManager.findFragmentByTag("f${viewModel.pages[index].itemId}") as? BaseFragment
     }
 
-    override fun onArgsEntered(args: ZigBeeCommandArgs) = viewModel.dispatchPayload(args.key) {
+    override fun onArgsEntered(args: ZigBeeCommand) = viewModel.dispatchPayload(args.key) {
         action = args.command
         data = args.serialize()
     }

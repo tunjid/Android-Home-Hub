@@ -51,11 +51,11 @@ class ZigBeeCommandInfo(
             parcel.readString()!!,
             parcel.readString()!!)
 
-    fun toArgs(): ZigBeeCommandArgs {
+    fun toArgs(): ZigBeeCommand {
         val args = entries.map { it.value }.filter(String::isNotBlank).toMutableList()
         args.add(0, command)
 
-        return ZigBeeCommandArgs(command, args.toTypedArray())
+        return ZigBeeCommand(command, args)
     }
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {

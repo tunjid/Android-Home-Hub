@@ -5,6 +5,7 @@ import com.rcswitchcontrol.zigbee.commands.*
 import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.zsmartsystems.zigbee.console.*
 
+private sealed class
 
 internal fun generateAvailableCommands(): Map<String, ZigBeeConsoleCommand> = mutableMapOf(
         ContextProvider.appContext.getString(R.string.zigbeeprotocol_nodes) to ZigBeeConsoleNodeListCommand(),
@@ -40,23 +41,23 @@ internal fun generateAvailableCommands(): Map<String, ZigBeeConsoleCommand> = mu
 
         // These commands are created locally and have localized command names
 
-        OnCommand().m,
-        OffCommand().m,
-        ColorCommand().m,
-        LevelCommand().m,
+        OnCommand().keyedPair,
+        OffCommand().keyedPair,
+        ColorCommand().keyedPair,
+        LevelCommand().keyedPair,
 
-        GroupAddCommand().m,
-        GroupRemoveCommand().m,
-        GroupListCommand().m,
+        GroupAddCommand().keyedPair,
+        GroupRemoveCommand().keyedPair,
+        GroupListCommand().keyedPair,
 
-        MembershipAddCommand().m,
-        MembershipRemoveCommand().m,
-        MembershipViewCommand().m,
-        MembershipListCommand().m,
+        MembershipAddCommand().keyedPair,
+        MembershipRemoveCommand().keyedPair,
+        MembershipViewCommand().keyedPair,
+        MembershipListCommand().keyedPair,
 
-        RediscoverCommand().m
+        RediscoverCommand().keyedPair
 
 ).let { it["help"] = HelpCommand(it); it.toMap() }
 
 
-private val AbsZigBeeCommand.m get() = Pair(command, this)
+private val AbsZigBeeCommand.keyedPair get() = Pair(command, this)

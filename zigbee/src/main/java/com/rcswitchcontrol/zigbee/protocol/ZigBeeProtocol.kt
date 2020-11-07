@@ -30,9 +30,8 @@ import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.io.ConsoleStream
 import com.rcswitchcontrol.protocols.models.Payload
 import com.rcswitchcontrol.zigbee.R
-import com.rcswitchcontrol.zigbee.commands.*
 import com.rcswitchcontrol.zigbee.io.AndroidZigBeeSerialPort
-import com.rcswitchcontrol.zigbee.models.ZigBeeCommandArgs
+import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommandInfo
 import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
 import com.rcswitchcontrol.zigbee.persistence.ZigBeeDataStore
@@ -131,7 +130,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
                 appendCommands()
             }
             in availableCommands.keys -> availableCommands[action]?.apply {
-                val commandArgs = payload.data?.deserialize(ZigBeeCommandArgs::class)
+                val commandArgs = payload.data?.deserialize(ZigBeeCommand::class)
                 val needsCommandArgs: Boolean = (commandArgs == null || commandArgs.isInvalid) && syntax.isNotEmpty()
 
                 when {
@@ -140,7 +139,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
                         data = ZigBeeCommandInfo(action, description, syntax, help).serialize()
                     }
                     else -> {
-                        val args = commandArgs?.args ?: arrayOf(action)
+                        val args = commandArgs?.args?.toTypedArray() ?: arrayOf(action)
                         response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_executing, args.commandString())
                         execute(args)
                     }

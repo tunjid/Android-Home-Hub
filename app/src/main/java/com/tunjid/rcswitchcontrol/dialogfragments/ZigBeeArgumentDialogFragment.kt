@@ -39,7 +39,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.tunjid.androidx.recyclerview.adapterOf
 import com.tunjid.androidx.view.util.inflate
 import com.tunjid.rcswitchcontrol.R
-import com.rcswitchcontrol.zigbee.models.ZigBeeCommandArgs
+import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommandInfo
 
 
@@ -102,7 +102,7 @@ class ZigBeeArgumentDialogFragment : DialogFragment() {
     }
 
     interface ZigBeeArgsListener {
-        fun onArgsEntered(args: ZigBeeCommandArgs)
+        fun onArgsEntered(args: ZigBeeCommand)
     }
 
     companion object {

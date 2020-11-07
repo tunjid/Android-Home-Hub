@@ -41,7 +41,7 @@ import com.rcswitchcontrol.protocols.models.Device
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommandArgs
 import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
 import com.rcswitchcontrol.zigbee.models.createGroupSequence
-import com.rcswitchcontrol.zigbee.protocol.ZigBeeInput
+import com.rcswitchcontrol.zigbee.models.ZigBeeInput
 import com.tunjid.androidx.navigation.addOnBackPressedCallback
 import com.tunjid.androidx.recyclerview.gridLayoutManager
 import com.tunjid.androidx.recyclerview.listAdapterOf

@@ -29,7 +29,6 @@ import android.os.Parcelable
 import com.rcswitchcontrol.protocols.models.Device
 import com.rcswitchcontrol.zigbee.commands.GroupAddCommand
 import com.rcswitchcontrol.zigbee.commands.MembershipAddCommand
-import com.rcswitchcontrol.zigbee.protocol.ZigBeeInput
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
 
 data class ZigBeeDevice(

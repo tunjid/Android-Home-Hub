@@ -49,8 +49,8 @@ abstract class CommsProtocol(private val printWriter: PrintWriter) : Closeable {
     abstract fun processInput(payload: Payload): Payload
 
     fun processInput(input: String?): Payload = processInput(when (input) {
-        null, PING -> Payload(CommsProtocol::class.java.name).apply { action = PING }
-        RESET -> Payload(CommsProtocol::class.java.name).apply { action = RESET }
+        null, PING -> Payload(key = CommsProtocol::class.java.name, action = PING)
+        RESET -> Payload(key = CommsProtocol::class.java.name, action = RESET)
         else -> input.deserialize(Payload::class)
     })
 

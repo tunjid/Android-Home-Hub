@@ -202,7 +202,7 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
                     .createGroupSequence(groupName.toString())
                     .forEach {
                         dispatchPayload(it.key) {
-                            action = it.command
+                            action = it.name
                             data = it.serialize()
                         }
                     }
@@ -220,7 +220,7 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
     private fun refresh() = Unit // listManager.notifyDataSetChanged()
 
     private fun ZigBeeDevice.send(args: ZigBeeCommand) = viewModel.dispatchPayload(key) {
-        action = args.command
+        action = args.name
         data = args.serialize()
     }
 

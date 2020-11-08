@@ -191,7 +191,7 @@ class ControlFragment : BaseFragment(R.layout.fragment_control), ZigBeeArgumentD
     }
 
     override fun onArgsEntered(args: ZigBeeCommand) = viewModel.dispatchPayload(args.key) {
-        action = args.command
+        action = args.name
         data = args.serialize()
     }
 

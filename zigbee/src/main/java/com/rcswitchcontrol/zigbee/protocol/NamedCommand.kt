@@ -6,10 +6,18 @@ import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.zsmartsystems.zigbee.console.*
 
 internal sealed class NamedCommand(open val consoleCommand: ZigBeeConsoleCommand) {
-    data class Custom(override val consoleCommand: AbsZigBeeCommand) : NamedCommand(consoleCommand)
-    sealed class Derived(private val stringRes: Int, override val consoleCommand: ZigBeeConsoleCommand) : NamedCommand(consoleCommand) {
-        val key: String get() = ContextProvider.appContext.getString(stringRes)
 
+    internal val name
+        get() = when (this) {
+            is Custom -> consoleCommand.command
+            is Derived -> ContextProvider.appContext.getString(stringRes)
+        }
+
+    internal val command
+        get() = consoleCommand.command
+
+    data class Custom(override val consoleCommand: AbsZigBeeCommand) : NamedCommand(consoleCommand)
+    sealed class Derived(internal val stringRes: Int, override val consoleCommand: ZigBeeConsoleCommand) : NamedCommand(consoleCommand) {
         object ZigBeeConsoleNodeListCommand : NamedCommand.Derived(R.string.zigbeeprotocol_nodes, ZigBeeConsoleNodeListCommand())
         object ZigBeeConsoleDescribeEndpointCommand : NamedCommand.Derived(R.string.zigbeeprotocol_endpoint, ZigBeeConsoleDescribeEndpointCommand())
         object ZigBeeConsoleDescribeNodeCommand : NamedCommand.Derived(R.string.zigbeeprotocol_node, ZigBeeConsoleDescribeNodeCommand())
@@ -95,7 +103,4 @@ internal fun generateAvailableCommands(): Map<String, NamedCommand> = mutableMap
 
 
 private val NamedCommand.keyedPair
-    get() = when (this) {
-        is NamedCommand.Derived -> key to this
-        is NamedCommand.Custom -> consoleCommand.command to this
-    }
+    get() = name to this

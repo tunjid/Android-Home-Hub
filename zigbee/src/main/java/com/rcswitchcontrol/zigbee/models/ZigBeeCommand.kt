@@ -36,7 +36,7 @@ import com.rcswitchcontrol.zigbee.protocol.NamedCommand
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
 
 data class ZigBeeCommand(
-        val command: String,
+        val name: String,
         val args: List<String>
 ) {
     // Cannot be derived, it need to be serialized
@@ -50,18 +50,6 @@ sealed class ZigBeeInput<InputT>(
         val input: InputT,
         private val namedCommand: NamedCommand
 ) {
-
-    private val key
-        get() = when (namedCommand) {
-            is NamedCommand.Derived -> namedCommand.key
-            is NamedCommand.Custom -> namedCommand.consoleCommand.command
-        }
-
-    private val commandName
-        get() = when (namedCommand) {
-            is NamedCommand.Derived -> namedCommand.consoleCommand.command
-            is NamedCommand.Custom -> namedCommand.consoleCommand.command
-        }
 
     object Rediscover : ZigBeeInput<Unit>(
             input = Unit,
@@ -97,5 +85,5 @@ sealed class ZigBeeInput<InputT>(
     }.let(this::args)
 
     private fun args(params: List<String>): ZigBeeCommand =
-            ZigBeeCommand(command = key, args = listOf(commandName) + params)
+            ZigBeeCommand(name = namedCommand.name, args = listOf(namedCommand.command) + params)
 }

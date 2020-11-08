@@ -51,7 +51,7 @@ import com.tunjid.rcswitchcontrol.viewmodels.NsdScanViewModel
 /**
  * A [androidx.fragment.app.Fragment] listing supported NSD servers
  */
-class HostScanFragment : BaseFragment() {
+class HostScanFragment : BaseFragment(R.layout.fragment_nsd_scan) {
 
     private val viewModel by viewModels<NsdScanViewModel>()
     private val isScanning: Boolean get() = viewModel.state.value?.isScanning == true

@@ -24,8 +24,6 @@
 
 package com.tunjid.rcswitchcontrol.a433mhz.models
 
-import android.os.Parcel
-import android.os.Parcelable
 import android.util.Base64
 import androidx.annotation.StringDef
 import com.rcswitchcontrol.protocols.models.Device
@@ -45,7 +43,7 @@ data class RfSwitch(
         val pulseLength: ByteArray = ByteArray(4),
         val onCode: ByteArray = ByteArray(4),
         val offCode: ByteArray = ByteArray(4)
-) : Parcelable, Device {
+) : Device {
 
     override val key: String
         get() = SerialRFProtocol::class.java.name
@@ -56,15 +54,6 @@ data class RfSwitch(
     @Retention(AnnotationRetention.SOURCE)
     @StringDef(ON_CODE, OFF_CODE)
     internal annotation class SwitchCode {}
-
-    private constructor(`in`: Parcel) : this(
-            name = `in`.readString()!!,
-            bitLength = `in`.readByte(),
-            protocol = `in`.readByte(),
-            pulseLength = `in`.createByteArray()!!,
-            onCode = `in`.createByteArray()!!,
-            offCode = `in`.createByteArray()!!
-    )
 
     private fun getTransmission(state: Boolean): ByteArray {
         val transmission = ByteArray(10)
@@ -91,17 +80,6 @@ data class RfSwitch(
     }
 
     override fun hashCode(): Int = bytes.contentHashCode()
-
-    override fun describeContents(): Int = 0
-
-    override fun writeToParcel(dest: Parcel, flags: Int) {
-        dest.writeString(name)
-        dest.writeByte(bitLength)
-        dest.writeByte(protocol)
-        dest.writeByteArray(pulseLength)
-        dest.writeByteArray(onCode)
-        dest.writeByteArray(offCode)
-    }
 
     class SwitchCreator {
         @SwitchCode
@@ -133,14 +111,6 @@ data class RfSwitch(
 
         const val ON_CODE = "on"
         const val OFF_CODE = "off"
-
-        @JvmField
-        @Suppress("unused")
-        val CREATOR: Parcelable.Creator<RfSwitch> = object : Parcelable.Creator<RfSwitch> {
-            override fun createFromParcel(`in`: Parcel): RfSwitch = RfSwitch(`in`)
-
-            override fun newArray(size: Int): Array<RfSwitch?> = arrayOfNulls(size)
-        }
     }
 }
 

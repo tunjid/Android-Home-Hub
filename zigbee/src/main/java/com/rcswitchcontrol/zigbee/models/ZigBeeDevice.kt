@@ -24,7 +24,6 @@
 
 package com.rcswitchcontrol.zigbee.models
 
-import android.os.Parcelable
 import android.util.Log
 import com.rcswitchcontrol.protocols.models.Device
 import com.rcswitchcontrol.zigbee.commands.GroupAddCommand
@@ -34,20 +33,24 @@ import com.tunjid.rcswitchcontrol.common.serialize
 import com.zsmartsystems.zigbee.database.ZigBeeEndpointDao
 import com.zsmartsystems.zigbee.database.ZigBeeNodeDao
 import com.zsmartsystems.zigbee.zcl.protocol.ZclClusterType
-import kotlinx.android.parcel.Parcelize
 
-@Parcelize
-data class ZigBeeDevice(
+data class ZigBeeDevice internal constructor(
         override val name: String,
-        internal val ieeeAddress: String,
-        internal val networkAdress: String,
-        internal val endpoints: List<Endpoint> = listOf(),
-        override val key: String = ZigBeeProtocol::class.java.name
-) : Parcelable, Device {
+        override val key: String = ZigBeeProtocol::class.java.name,
 
-    internal val onOffAddress: String get() = "$networkAdress/${endpointFor(ZclClusterType.ON_OFF)?.id}"
-    internal val levelAddress: String get() = "$networkAdress/${endpointFor(ZclClusterType.LEVEL_CONTROL)?.id}"
-    internal val colorAddress: String get() = "$networkAdress/${endpointFor(ZclClusterType.COLOR_CONTROL)?.id}"
+        @Transient // This is not serialized, it's chunky
+        internal val node: ZigBeeNodeDao,
+
+        // The following need to be serialized over the wire to send commands back
+
+        internal val ieeeAddress: String = node.ieeeAddress.toString(),
+        internal val networkAdress: String = node.networkAddress.toString(),
+
+        internal val onOffAddress: String = "$networkAdress/${node.endpointFor(ZclClusterType.ON_OFF)?.endpointId}",
+        internal val levelAddress: String = "$networkAdress/${node.endpointFor(ZclClusterType.LEVEL_CONTROL)?.endpointId}",
+        internal val colorAddress: String = "$networkAdress/${node.endpointFor(ZclClusterType.COLOR_CONTROL)?.endpointId}",
+) : Device {
+
 
     override val diffId
         get() = ieeeAddress
@@ -55,10 +58,6 @@ data class ZigBeeDevice(
     override fun hashCode(): Int = ieeeAddress.hashCode()
 
     fun command(input: ZigBeeInput<*>): ZigBeeCommand = input.from(this)
-
-    private fun endpointFor(clusterType: ZclClusterType) = endpoints.firstOrNull { it.supports(clusterType) }
-
-    private fun Endpoint.supports(clusterType: ZclClusterType) = inputClusters.map(Cluster::id).contains(clusterType.id)
 }
 
 fun List<ZigBeeDevice>.createGroupSequence(groupName: String): List<ZigBeeCommand> {
@@ -74,36 +73,14 @@ fun List<ZigBeeDevice>.createGroupSequence(groupName: String): List<ZigBeeComman
     return result
 }
 
-@Parcelize
-data class Endpoint(
-        val id: Int,
-        val inputClusters: List<Cluster>
-) : Parcelable
+internal fun ZigBeeNodeDao.device(): ZigBeeDevice? = ZigBeeDevice(
+        name = ieeeAddress.toString(),
+        node = this
+)
 
-@Parcelize
-data class Cluster(
-        val id: Int
-) : Parcelable
+private fun ZigBeeNodeDao.endpointFor(clusterType: ZclClusterType) = endpoints.firstOrNull { it.supports(clusterType) }
 
-private val ZigBeeEndpointDao.endpoint: Endpoint
-    get() {
-        Log.i("TEST", "Endpoint is ${this.serialize()}")
-        return Endpoint(
-                id = endpointId,
-                inputClusters = inputClusters.map { Cluster(it.clusterId) } // may  match ZclClusterType.ON_OFF
-        )
-    }
-
-internal fun ZigBeeNodeDao.device(): ZigBeeDevice? {
-    Log.i("TEST", "Node is ${this.serialize()}")
-
-    return ZigBeeDevice(
-            name = ieeeAddress.toString(),
-            ieeeAddress = ieeeAddress.toString(),
-            networkAdress = networkAddress.toString(),
-            endpoints = endpoints.map(ZigBeeEndpointDao::endpoint)
-    )
-}
+private fun ZigBeeEndpointDao.supports(clusterType: ZclClusterType) = inputClusters.map { it.clusterId }.contains(clusterType.id)
 
 private fun nodeToZigBeeDevice(node: ZigBeeNodeDao) =
         node.endpoints.find {

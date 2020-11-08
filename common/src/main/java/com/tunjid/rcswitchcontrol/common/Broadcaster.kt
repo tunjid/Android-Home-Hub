@@ -40,7 +40,7 @@ class Broadcaster private constructor() {
         val instance: Broadcaster by lazy { Broadcaster() }
 
 
-        fun listen(vararg filters: String): Flowable<Intent> = listen(Arrays.asList(*filters))
+        fun listen(vararg filters: String): Flowable<Intent> = listen(listOf(*filters))
 
         fun listen(filters: List<String>): Flowable<Intent> {
             return instance.processor

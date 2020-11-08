@@ -32,6 +32,7 @@ import com.zsmartsystems.zigbee.ZigBeeAddress
 import com.zsmartsystems.zigbee.ZigBeeEndpointAddress
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager
 import com.zsmartsystems.zigbee.zcl.clusters.ZclColorControlCluster
+import com.zsmartsystems.zigbee.zcl.clusters.colorcontrol.MoveToColorCommand
 import java.io.PrintStream
 import java.util.concurrent.Future
 
@@ -86,6 +87,6 @@ class ColorCommand : AbsZigBeeCommand() {
         val endpoint = getNode(destination.address).getEndpoint(destination.endpoint) ?: return null
         val cluster = endpoint.getInputCluster(ZclColorControlCluster.CLUSTER_ID) as ZclColorControlCluster
 
-        return cluster.moveToColorCommand(x, y, (time * 10).toInt())
+        return cluster.sendCommand(MoveToColorCommand(x, y, (time * 10).toInt()))
     }
 }

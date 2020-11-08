@@ -196,7 +196,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
                 else "ZigBee console starting up ... [OK]"
         )
 
-        networkManager.addSupportedCluster(ZclIasZoneCluster.CLUSTER_ID)
+        networkManager.addSupportedClientCluster(ZclIasZoneCluster.CLUSTER_ID)
 
         dongle.setLedMode(1, false)
         dongle.setLedMode(2, false)

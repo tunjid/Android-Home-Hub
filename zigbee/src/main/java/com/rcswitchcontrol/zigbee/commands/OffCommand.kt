@@ -31,6 +31,7 @@ import com.zsmartsystems.zigbee.ZigBeeAddress
 import com.zsmartsystems.zigbee.ZigBeeEndpointAddress
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager
 import com.zsmartsystems.zigbee.zcl.clusters.ZclOnOffCluster
+import com.zsmartsystems.zigbee.zcl.clusters.onoff.OffCommand
 import java.io.PrintStream
 import java.util.concurrent.Future
 
@@ -67,6 +68,6 @@ class OffCommand : AbsZigBeeCommand() {
 
         val cluster = endpoint.getInputCluster(ZclOnOffCluster.CLUSTER_ID) as ZclOnOffCluster
 
-        return cluster.offCommand()
+        return cluster.sendCommand(OffCommand())
     }
 }

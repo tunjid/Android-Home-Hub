@@ -31,6 +31,7 @@ import com.zsmartsystems.zigbee.ZigBeeAddress
 import com.zsmartsystems.zigbee.ZigBeeEndpointAddress
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager
 import com.zsmartsystems.zigbee.zcl.clusters.ZclLevelControlCluster
+import com.zsmartsystems.zigbee.zcl.clusters.levelcontrol.MoveToLevelWithOnOffCommand
 import java.io.PrintStream
 import java.util.concurrent.Future
 
@@ -77,6 +78,6 @@ class LevelCommand : AbsZigBeeCommand() {
 
         val cluster = endpoint.getInputCluster(ZclLevelControlCluster.CLUSTER_ID) as ZclLevelControlCluster
 
-        return cluster.moveToLevelWithOnOffCommand(l, (time * 10).toInt())
+        return cluster.sendCommand(MoveToLevelWithOnOffCommand(l, (time * 10).toInt()))
     }
 }

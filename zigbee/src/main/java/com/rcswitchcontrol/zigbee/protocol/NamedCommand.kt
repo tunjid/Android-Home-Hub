@@ -18,70 +18,70 @@ internal sealed class NamedCommand(open val consoleCommand: ZigBeeConsoleCommand
 
     data class Custom(override val consoleCommand: AbsZigBeeCommand) : NamedCommand(consoleCommand)
     sealed class Derived(internal val stringRes: Int, override val consoleCommand: ZigBeeConsoleCommand) : NamedCommand(consoleCommand) {
-        object ZigBeeConsoleNodeListCommand : NamedCommand.Derived(R.string.zigbeeprotocol_nodes, ZigBeeConsoleNodeListCommand())
-        object ZigBeeConsoleDescribeEndpointCommand : NamedCommand.Derived(R.string.zigbeeprotocol_endpoint, ZigBeeConsoleDescribeEndpointCommand())
-        object ZigBeeConsoleDescribeNodeCommand : NamedCommand.Derived(R.string.zigbeeprotocol_node, ZigBeeConsoleDescribeNodeCommand())
-        object ZigBeeConsoleBindCommand : NamedCommand.Derived(R.string.zigbeeprotocol_bind, ZigBeeConsoleBindCommand())
-        object ZigBeeConsoleUnbindCommand : NamedCommand.Derived(R.string.zigbeeprotocol_unbind, ZigBeeConsoleUnbindCommand())
-        object ZigBeeConsoleBindingTableCommand : NamedCommand.Derived(R.string.zigbeeprotocol_bind_table, ZigBeeConsoleBindingTableCommand())
+        object NodeList : NamedCommand.Derived(R.string.zigbeeprotocol_nodes, ZigBeeConsoleNodeListCommand())
+        object DescribeEndpoint : NamedCommand.Derived(R.string.zigbeeprotocol_endpoint, ZigBeeConsoleDescribeEndpointCommand())
+        object DescribeNode : NamedCommand.Derived(R.string.zigbeeprotocol_node, ZigBeeConsoleDescribeNodeCommand())
+        object Bind : NamedCommand.Derived(R.string.zigbeeprotocol_bind, ZigBeeConsoleBindCommand())
+        object Unbind : NamedCommand.Derived(R.string.zigbeeprotocol_unbind, ZigBeeConsoleUnbindCommand())
+        object BindingTable : NamedCommand.Derived(R.string.zigbeeprotocol_bind_table, ZigBeeConsoleBindingTableCommand())
 
-        object ZigBeeConsoleAttributeReadCommand : NamedCommand.Derived(R.string.zigbeeprotocol_read, ZigBeeConsoleAttributeReadCommand())
-        object ZigBeeConsoleAttributeWriteCommand : NamedCommand.Derived(R.string.zigbeeprotocol_write, ZigBeeConsoleAttributeWriteCommand())
+        object AttributeRead : NamedCommand.Derived(R.string.zigbeeprotocol_read, ZigBeeConsoleAttributeReadCommand())
+        object AttributeWrite : NamedCommand.Derived(R.string.zigbeeprotocol_write, ZigBeeConsoleAttributeWriteCommand())
 
-        object ZigBeeConsoleAttributeSupportedCommand : NamedCommand.Derived(R.string.zigbeeprotocol_attsupported, ZigBeeConsoleAttributeSupportedCommand())
-        object ZigBeeConsoleCommandsSupportedCommand : NamedCommand.Derived(R.string.zigbeeprotocol_cmdsupported, ZigBeeConsoleCommandsSupportedCommand())
+        object AttributeSupported : NamedCommand.Derived(R.string.zigbeeprotocol_attsupported, ZigBeeConsoleAttributeSupportedCommand())
+        object SupportedCommands : NamedCommand.Derived(R.string.zigbeeprotocol_cmdsupported, ZigBeeConsoleCommandsSupportedCommand())
 
-        object ZigBeeConsoleDeviceInformationCommand : NamedCommand.Derived(R.string.zigbeeprotocol_info, ZigBeeConsoleDeviceInformationCommand())
-        object ZigBeeConsoleNetworkJoinCommand : NamedCommand.Derived(R.string.zigbeeprotocol_join, ZigBeeConsoleNetworkJoinCommand())
-        object ZigBeeConsoleNetworkLeaveCommand : NamedCommand.Derived(R.string.zigbeeprotocol_leave, ZigBeeConsoleNetworkLeaveCommand())
+        object DeviceInformation : NamedCommand.Derived(R.string.zigbeeprotocol_info, ZigBeeConsoleDeviceInformationCommand())
+        object NetworkJoin : NamedCommand.Derived(R.string.zigbeeprotocol_join, ZigBeeConsoleNetworkJoinCommand())
+        object NetworkLeave : NamedCommand.Derived(R.string.zigbeeprotocol_leave, ZigBeeConsoleNetworkLeaveCommand())
 
-        object ZigBeeConsoleReportingConfigCommand : NamedCommand.Derived(R.string.zigbeeprotocol_reporting, ZigBeeConsoleReportingConfigCommand())
-        object ZigBeeConsoleReportingSubscribeCommand : NamedCommand.Derived(R.string.zigbeeprotocol_subscribe, ZigBeeConsoleReportingSubscribeCommand())
-        object ZigBeeConsoleReportingUnsubscribeCommand : NamedCommand.Derived(R.string.zigbeeprotocol_unsubscribe, ZigBeeConsoleReportingUnsubscribeCommand())
+        object ReportingConfig : NamedCommand.Derived(R.string.zigbeeprotocol_reporting, ZigBeeConsoleReportingConfigCommand())
+        object ReportingSubscribe : NamedCommand.Derived(R.string.zigbeeprotocol_subscribe, ZigBeeConsoleReportingSubscribeCommand())
+        object ReportingUnsubscribe : NamedCommand.Derived(R.string.zigbeeprotocol_unsubscribe, ZigBeeConsoleReportingUnsubscribeCommand())
 
-        object ZigBeeConsoleInstallKeyCommand : NamedCommand.Derived(R.string.zigbeeprotocol_installkey, ZigBeeConsoleInstallKeyCommand())
-        object ZigBeeConsoleLinkKeyCommand : NamedCommand.Derived(R.string.zigbeeprotocol_linkkey, ZigBeeConsoleLinkKeyCommand())
+        object InstallKey : NamedCommand.Derived(R.string.zigbeeprotocol_installkey, ZigBeeConsoleInstallKeyCommand())
+        object LinkKey : NamedCommand.Derived(R.string.zigbeeprotocol_linkkey, ZigBeeConsoleLinkKeyCommand())
 
-        object ZigBeeConsoleNetworkStartCommand : NamedCommand.Derived(R.string.zigbeeprotocol_netstart, ZigBeeConsoleNetworkStartCommand())
-        object ZigBeeConsoleNetworkBackupCommand : NamedCommand.Derived(R.string.zigbeeprotocol_netbackup, ZigBeeConsoleNetworkBackupCommand())
-        object ZigBeeConsoleNetworkDiscoveryCommand : NamedCommand.Derived(R.string.zigbeeprotocol_discovery, ZigBeeConsoleNetworkDiscoveryCommand())
+        object NetworkStart : NamedCommand.Derived(R.string.zigbeeprotocol_netstart, ZigBeeConsoleNetworkStartCommand())
+        object NetworkBackup : NamedCommand.Derived(R.string.zigbeeprotocol_netbackup, ZigBeeConsoleNetworkBackupCommand())
+        object NetworkDiscovery : NamedCommand.Derived(R.string.zigbeeprotocol_discovery, ZigBeeConsoleNetworkDiscoveryCommand())
 
-        object ZigBeeConsoleOtaUpgradeCommand : NamedCommand.Derived(R.string.zigbeeprotocol_otaupgrade, ZigBeeConsoleOtaUpgradeCommand())
-        object ZigBeeConsoleChannelCommand : NamedCommand.Derived(R.string.zigbeeprotocol_channel, ZigBeeConsoleChannelCommand())
+        object OtaUpgrade : NamedCommand.Derived(R.string.zigbeeprotocol_otaupgrade, ZigBeeConsoleOtaUpgradeCommand())
+        object Channel : NamedCommand.Derived(R.string.zigbeeprotocol_channel, ZigBeeConsoleChannelCommand())
     }
 }
 
 internal fun generateAvailableCommands(): Map<String, NamedCommand> = mutableMapOf(
-        NamedCommand.Derived.ZigBeeConsoleNodeListCommand.keyedPair,
-        NamedCommand.Derived.ZigBeeConsoleDescribeEndpointCommand.keyedPair,
-        NamedCommand.Derived.ZigBeeConsoleDescribeNodeCommand.keyedPair,
-        NamedCommand.Derived.ZigBeeConsoleBindCommand.keyedPair,
-        NamedCommand.Derived.ZigBeeConsoleUnbindCommand.keyedPair,
-        NamedCommand.Derived.ZigBeeConsoleBindingTableCommand.keyedPair,
+        NamedCommand.Derived.NodeList.keyedPair,
+        NamedCommand.Derived.DescribeEndpoint.keyedPair,
+        NamedCommand.Derived.DescribeNode.keyedPair,
+        NamedCommand.Derived.Bind.keyedPair,
+        NamedCommand.Derived.Unbind.keyedPair,
+        NamedCommand.Derived.BindingTable.keyedPair,
 
-        NamedCommand.Derived.ZigBeeConsoleAttributeReadCommand.keyedPair,
-        NamedCommand.Derived.ZigBeeConsoleAttributeWriteCommand.keyedPair,
+        NamedCommand.Derived.AttributeRead.keyedPair,
+        NamedCommand.Derived.AttributeWrite.keyedPair,
 
-        NamedCommand.Derived.ZigBeeConsoleAttributeSupportedCommand.keyedPair,
-        NamedCommand.Derived.ZigBeeConsoleCommandsSupportedCommand.keyedPair,
+        NamedCommand.Derived.AttributeSupported.keyedPair,
+        NamedCommand.Derived.SupportedCommands.keyedPair,
 
-        NamedCommand.Derived.ZigBeeConsoleDeviceInformationCommand.keyedPair,
-        NamedCommand.Derived.ZigBeeConsoleNetworkJoinCommand.keyedPair,
-        NamedCommand.Derived.ZigBeeConsoleNetworkLeaveCommand.keyedPair,
+        NamedCommand.Derived.DeviceInformation.keyedPair,
+        NamedCommand.Derived.NetworkJoin.keyedPair,
+        NamedCommand.Derived.NetworkLeave.keyedPair,
 
-        NamedCommand.Derived.ZigBeeConsoleReportingConfigCommand.keyedPair,
-        NamedCommand.Derived.ZigBeeConsoleReportingSubscribeCommand.keyedPair,
-        NamedCommand.Derived.ZigBeeConsoleReportingUnsubscribeCommand.keyedPair,
+        NamedCommand.Derived.ReportingConfig.keyedPair,
+        NamedCommand.Derived.ReportingSubscribe.keyedPair,
+        NamedCommand.Derived.ReportingUnsubscribe.keyedPair,
 
-        NamedCommand.Derived.ZigBeeConsoleInstallKeyCommand.keyedPair,
-        NamedCommand.Derived.ZigBeeConsoleLinkKeyCommand.keyedPair,
+        NamedCommand.Derived.InstallKey.keyedPair,
+        NamedCommand.Derived.LinkKey.keyedPair,
 
-        NamedCommand.Derived.ZigBeeConsoleNetworkStartCommand.keyedPair,
-        NamedCommand.Derived.ZigBeeConsoleNetworkBackupCommand.keyedPair,
-        NamedCommand.Derived.ZigBeeConsoleNetworkDiscoveryCommand.keyedPair,
+        NamedCommand.Derived.NetworkStart.keyedPair,
+        NamedCommand.Derived.NetworkBackup.keyedPair,
+        NamedCommand.Derived.NetworkDiscovery.keyedPair,
 
-        NamedCommand.Derived.ZigBeeConsoleOtaUpgradeCommand.keyedPair,
-        NamedCommand.Derived.ZigBeeConsoleChannelCommand.keyedPair,
+        NamedCommand.Derived.OtaUpgrade.keyedPair,
+        NamedCommand.Derived.Channel.keyedPair,
 
         NamedCommand.Custom(OnCommand()).keyedPair,
         NamedCommand.Custom(OffCommand()).keyedPair,

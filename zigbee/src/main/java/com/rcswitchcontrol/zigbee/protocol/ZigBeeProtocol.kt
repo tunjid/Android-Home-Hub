@@ -256,7 +256,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
         post(stringBuilder.toString())
     }
 
-    private fun formNetwork() = NamedCommand.Derived.ZigBeeConsoleNetworkStartCommand.executeCommand(
+    private fun formNetwork() = NamedCommand.Derived.NetworkStart.executeCommand(
             arrayOf(ContextProvider.appContext.getString(R.string.zigbeeprotocol_netstart), "form", "${networkManager.zigBeePanId}", "${networkManager.zigBeeExtendedPanId}")
     )
 

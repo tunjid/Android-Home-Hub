@@ -58,7 +58,7 @@ sealed class ZigBeeInput<InputT>(
 
     object Node : ZigBeeInput<Unit>(
             input = Unit,
-            namedCommand = NamedCommand.Derived.ZigBeeConsoleDescribeNodeCommand
+            namedCommand = NamedCommand.Derived.DescribeNode
     )
 
     data class Toggle(val isOn: Boolean) : ZigBeeInput<Boolean>(

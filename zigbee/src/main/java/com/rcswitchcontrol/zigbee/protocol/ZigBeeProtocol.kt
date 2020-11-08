@@ -34,6 +34,7 @@ import com.rcswitchcontrol.zigbee.io.AndroidZigBeeSerialPort
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommandInfo
 import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
+import com.rcswitchcontrol.zigbee.models.device
 import com.rcswitchcontrol.zigbee.persistence.ZigBeeDataStore
 import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.common.deserialize
@@ -262,13 +263,8 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
 
     private fun savedDevices() = dataStore.readNetworkNodes()
             .map(dataStore::readNode)
-            .mapNotNull(this::nodeToZigBeeDevice)
+            .mapNotNull(ZigBeeNodeDao::device)
             .serializeList()
-
-    private fun nodeToZigBeeDevice(node: ZigBeeNodeDao): ZigBeeDevice? =
-            node.endpoints.find { it.inputClusters.map { cluster -> cluster.clusterId }.contains(ZclClusterType.ON_OFF.id) }?.let { endpoint ->
-                ZigBeeDevice(node.ieeeAddress.toString(), node.networkAddress.toString(), endpoint.endpointId.toString(), node.ieeeAddress.toString())
-            }
 
     private fun Payload.appendCommands() {
         addCommand(RESET)

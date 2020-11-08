@@ -24,52 +24,33 @@
 
 package com.rcswitchcontrol.zigbee.models
 
-import android.os.Parcel
 import android.os.Parcelable
 import com.rcswitchcontrol.protocols.models.Device
 import com.rcswitchcontrol.zigbee.commands.GroupAddCommand
 import com.rcswitchcontrol.zigbee.commands.MembershipAddCommand
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
+import com.zsmartsystems.zigbee.database.ZclClusterDao
+import com.zsmartsystems.zigbee.database.ZigBeeEndpointDao
+import com.zsmartsystems.zigbee.database.ZigBeeNodeDao
+import kotlinx.android.parcel.Parcelize
 
+@Parcelize
 data class ZigBeeDevice(
+        override val name: String,
         internal val ieeeAddress: String,
         internal val networkAdress: String,
-        internal val endpoint: String,
-        override val name: String
+        internal val endpoints: List<Endpoint> = listOf(),
+        override val key: String = ZigBeeProtocol::class.java.name
 ) : Parcelable, Device {
 
-    internal val zigBeeId: String get() = "$networkAdress/$endpoint"
-
-    override val key: String = ZigBeeProtocol::class.java.name
+    internal val zigBeeId: String get() = "$networkAdress/$ieeeAddress"
 
     override val diffId
         get() = ieeeAddress
 
-    constructor(parcel: Parcel) : this(
-            parcel.readString()!!,
-            parcel.readString()!!,
-            parcel.readString()!!,
-            parcel.readString()!!)
-
     fun command(input: ZigBeeInput<*>): ZigBeeCommand = input.from(this)
 
-    override fun writeToParcel(parcel: Parcel, flags: Int) {
-        parcel.writeString(ieeeAddress)
-        parcel.writeString(networkAdress)
-        parcel.writeString(endpoint)
-        parcel.writeString(name)
-    }
-
     override fun hashCode(): Int = ieeeAddress.hashCode()
-
-    override fun describeContents(): Int = 0
-
-    companion object CREATOR : Parcelable.Creator<ZigBeeDevice> {
-
-        override fun createFromParcel(parcel: Parcel): ZigBeeDevice = ZigBeeDevice(parcel)
-
-        override fun newArray(size: Int): Array<ZigBeeDevice?> = arrayOfNulls(size)
-    }
 }
 
 fun List<ZigBeeDevice>.createGroupSequence(groupName: String): List<ZigBeeCommand> {
@@ -84,3 +65,23 @@ fun List<ZigBeeDevice>.createGroupSequence(groupName: String): List<ZigBeeComman
 
     return result
 }
+
+@Parcelize
+data class Endpoint(
+        val id: Int,
+        val inputClusterIds: List<Int>
+) : Parcelable
+
+private val ZigBeeEndpointDao.endpoint
+    get() = Endpoint(
+            id = endpointId,
+            inputClusterIds = inputClusters.map(ZclClusterDao::getClusterId) // may  match ZclClusterType.ON_OFF
+    )
+
+internal fun ZigBeeNodeDao.device(): ZigBeeDevice? =
+        ZigBeeDevice(
+                name = ieeeAddress.toString(),
+                ieeeAddress = ieeeAddress.toString(),
+                networkAdress = networkAddress.toString(),
+                endpoints = endpoints.map(ZigBeeEndpointDao::endpoint)
+        )

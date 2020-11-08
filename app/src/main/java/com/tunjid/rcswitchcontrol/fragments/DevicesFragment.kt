@@ -35,13 +35,10 @@ import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ItemTouchHelper.Callback.makeMovementFlags
 import androidx.recyclerview.widget.RecyclerView
-import com.flask.colorpicker.ColorPickerView
-import com.flask.colorpicker.builder.ColorPickerDialogBuilder
 import com.rcswitchcontrol.protocols.models.Device
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
 import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
 import com.rcswitchcontrol.zigbee.models.createGroupSequence
-import com.rcswitchcontrol.zigbee.models.ZigBeeInput
 import com.tunjid.androidx.navigation.addOnBackPressedCallback
 import com.tunjid.androidx.recyclerview.gridLayoutManager
 import com.tunjid.androidx.recyclerview.listAdapterOf
@@ -62,7 +59,6 @@ import com.tunjid.rcswitchcontrol.databinding.ViewholderRemoteSwitchBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderZigbeeDeviceBinding
 import com.tunjid.rcswitchcontrol.dialogfragments.GroupDeviceDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
-import com.tunjid.rcswitchcontrol.dialogfragments.throttleColorChanges
 import com.tunjid.rcswitchcontrol.models.ControlState
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
@@ -173,28 +169,13 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
             action = ClientBleService.ACTION_TRANSMITTER
             data = device.getEncodedTransmission(isOn)
         }
-        is ZigBeeDevice -> device.send(device.commandArgs(ZigBeeInput.Toggle(isOn)))
         else -> Unit
     }
 
-    override fun rediscover(device: ZigBeeDevice) =
-            device.send(device.commandArgs(ZigBeeInput.Node))
-
-    override fun color(device: ZigBeeDevice) = ColorPickerDialogBuilder
-            .with(context)
-            .setTitle(R.string.color_picker_choose)
-            .wheelType(ColorPickerView.WHEEL_TYPE.CIRCLE)
-            .showLightnessSlider(true)
-            .showAlphaSlider(false)
-            .density(12)
-            .throttleColorChanges { rgb ->
-                device.send(device.commandArgs(ZigBeeInput.Color(rgb)))
-            }
-            .build()
-            .show()
-
-    override fun level(device: ZigBeeDevice, level: Float) =
-            device.send(device.commandArgs(ZigBeeInput.Level(level)))
+    override fun send(command: ZigBeeCommand) = viewModel.dispatchPayload(command.key) {
+        action = command.name
+        data = command.serialize()
+    }
 
     override fun onGroupNamed(groupName: CharSequence) = viewModel.run {
         withSelectedDevices { devices ->
@@ -218,11 +199,6 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
     }
 
     private fun refresh() = Unit // listManager.notifyDataSetChanged()
-
-    private fun ZigBeeDevice.send(args: ZigBeeCommand) = viewModel.dispatchPayload(key) {
-        action = args.name
-        data = args.serialize()
-    }
 
     private fun getDeviceViewType(device: Device) = when (device) {
         is RfSwitch -> RF_DEVICE

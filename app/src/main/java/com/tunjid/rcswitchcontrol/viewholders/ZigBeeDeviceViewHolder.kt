@@ -25,18 +25,20 @@
 package com.tunjid.rcswitchcontrol.viewholders
 
 import android.view.ViewGroup
+import com.flask.colorpicker.ColorPickerView
+import com.flask.colorpicker.builder.ColorPickerDialogBuilder
+import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
 import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
+import com.rcswitchcontrol.zigbee.models.ZigBeeInput
 import com.tunjid.androidx.recyclerview.viewbinding.BindingViewHolder
 import com.tunjid.androidx.recyclerview.viewbinding.viewHolderFrom
+import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.databinding.ViewholderZigbeeDeviceBinding
 import com.tunjid.rcswitchcontrol.dialogfragments.Throttle
+import com.tunjid.rcswitchcontrol.dialogfragments.throttleColorChanges
 
 interface ZigBeeDeviceListener : DeviceLongClickListener {
-    fun rediscover(device: ZigBeeDevice)
-
-    fun color(device: ZigBeeDevice)
-
-    fun level(device: ZigBeeDevice, level: Float)
+    fun send(command: ZigBeeCommand)
 }
 
 var BindingViewHolder<ViewholderZigbeeDeviceBinding>.device by BindingViewHolder.Prop<ZigBeeDevice>()
@@ -52,7 +54,7 @@ fun ViewGroup.zigbeeDeviceViewHolder(
         listener: ZigBeeDeviceListener
 ) = viewHolderFrom(ViewholderZigbeeDeviceBinding::inflate).apply binding@{
     this.listener = listener
-    val throttle = Throttle { listener.level(device, it / 100F) }
+    val throttle = Throttle { listener.send(device.command(ZigBeeInput.Level(level = it / 100F))) }
 
     binding.apply {
         itemView.setOnClickListener { listener.onClicked(device) }
@@ -61,10 +63,23 @@ fun ViewGroup.zigbeeDeviceViewHolder(
             true
         }
 
-        zigbeeIcon.setOnClickListener { listener.rediscover(device) }
-        colorPicker.setOnClickListener { listener.color(device) }
-        offSwitch.setOnClickListener { listener.onSwitchToggled(device, false) }
-        onSwitch.setOnClickListener { listener.onSwitchToggled(device, true) }
+        zigbeeIcon.setOnClickListener { listener.send(device.command(ZigBeeInput.Node)) }
+        offSwitch.setOnClickListener { listener.send(device.command(ZigBeeInput.Toggle(isOn = false))) }
+        onSwitch.setOnClickListener { listener.send(device.command(ZigBeeInput.Toggle(isOn = true))) }
         leveler.addOnChangeListener { _, value, fromUser -> if (fromUser) throttle.run(value.toInt()) }
+        colorPicker.setOnClickListener {
+            ColorPickerDialogBuilder
+                    .with(context)
+                    .setTitle(R.string.color_picker_choose)
+                    .wheelType(ColorPickerView.WHEEL_TYPE.CIRCLE)
+                    .showLightnessSlider(true)
+                    .showAlphaSlider(false)
+                    .density(12)
+                    .throttleColorChanges { rgb ->
+                        listener.send(device.command(ZigBeeInput.Color(rgb)))
+                    }
+                    .build()
+                    .show()
+        }
     }
 }

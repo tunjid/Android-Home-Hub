@@ -51,7 +51,7 @@ data class ZigBeeDevice(
             parcel.readString()!!,
             parcel.readString()!!)
 
-    fun commandArgs(input: ZigBeeInput<*>): ZigBeeCommand = input.from(this)
+    fun command(input: ZigBeeInput<*>): ZigBeeCommand = input.from(this)
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {
         parcel.writeString(ieeeAddress)

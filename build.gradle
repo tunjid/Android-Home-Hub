@@ -58,7 +58,7 @@ buildscript {
         rxAndroid = 'io.reactivex.rxjava2:rxandroid:2.1.1'
         rxReplayingShare = 'com.jakewharton.rx2:replaying-share-kotlin:2.0.0'
 
-        usbSerial = 'com.github.mik3y:usb-serial-for-android:2.1.0'
+        usbSerial = 'com.github.mik3y:usb-serial-for-android:3.3.0'
 
         tunjiAndroidxCommunications = 'com.tunjid.androidx:communications:1.0.0'
         tunjiAndroidxRecyclerView = 'com.tunjid.androidx:recyclerview:1.1.0'

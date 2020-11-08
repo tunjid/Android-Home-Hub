@@ -33,20 +33,13 @@ import com.rcswitchcontrol.zigbee.R
 import com.rcswitchcontrol.zigbee.io.AndroidZigBeeSerialPort
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommandInfo
-import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
 import com.rcswitchcontrol.zigbee.models.device
 import com.rcswitchcontrol.zigbee.persistence.ZigBeeDataStore
 import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.common.serializeList
-import com.zsmartsystems.zigbee.ExtendedPanId
-import com.zsmartsystems.zigbee.ZigBeeChannel
-import com.zsmartsystems.zigbee.ZigBeeNetworkManager
-import com.zsmartsystems.zigbee.ZigBeeNetworkNodeListener
-import com.zsmartsystems.zigbee.ZigBeeNetworkState
-import com.zsmartsystems.zigbee.ZigBeeNode
-import com.zsmartsystems.zigbee.ZigBeeStatus
+import com.zsmartsystems.zigbee.*
 import com.zsmartsystems.zigbee.app.basic.ZigBeeBasicServerExtension
 import com.zsmartsystems.zigbee.app.discovery.ZigBeeDiscoveryExtension
 import com.zsmartsystems.zigbee.app.iasclient.ZigBeeIasCieExtension
@@ -56,10 +49,11 @@ import com.zsmartsystems.zigbee.dongle.cc2531.ZigBeeDongleTiCc2531
 import com.zsmartsystems.zigbee.security.ZigBeeKey
 import com.zsmartsystems.zigbee.serialization.DefaultDeserializer
 import com.zsmartsystems.zigbee.serialization.DefaultSerializer
+import com.zsmartsystems.zigbee.transport.DeviceType
 import com.zsmartsystems.zigbee.transport.TransportConfig
 import com.zsmartsystems.zigbee.transport.TransportConfigOption
-import com.zsmartsystems.zigbee.zcl.clusters.ZclIasZoneCluster
-import com.zsmartsystems.zigbee.zcl.protocol.ZclClusterType
+import com.zsmartsystems.zigbee.transport.TrustCentreJoinMode
+import com.zsmartsystems.zigbee.zcl.clusters.*
 import io.reactivex.Flowable
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.processors.PublishProcessor
@@ -78,7 +72,9 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
     private val outStream = ConsoleStream { post(it) }
 
     private val dongle: ZigBeeDongleTiCc2531
-    private val dataStore = ZigBeeDataStore("home")
+    private val dataStore = ZigBeeDataStore("29")
+//    private val dataStore = ZigBeeDataStore("12")
+    //private val dataStore = ZigBeeDataStore("home")
     private val networkManager: ZigBeeNetworkManager
     private val availableCommands: Map<String, NamedCommand> = generateAvailableCommands()
 
@@ -89,19 +85,25 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
             addExtension(ZigBeeIasCieExtension())
             addExtension(ZigBeeOtaUpgradeExtension())
             addExtension(ZigBeeBasicServerExtension())
-            addExtension(ZigBeeDiscoveryExtension().apply { updatePeriod = MESH_UPDATE_PERIOD })
+            addExtension(LazyDiscoveryExtension())
 
             setSerializer(DefaultSerializer::class.java, DefaultDeserializer::class.java)
 
             addNetworkStateListener { state ->
                 post("ZigBee network state updated to $state")
-                if (dataStore.hasNoDevices && ZigBeeNetworkState.ONLINE == state) formNetwork()
+//                if (dataStore.hasNoDevices && ZigBeeNetworkState.ONLINE == state) formNetwork()
             }
 
             addNetworkNodeListener(object : ZigBeeNetworkNodeListener {
-                override fun nodeAdded(node: ZigBeeNode) = post("Node Added $node")
+                override fun nodeAdded(node: ZigBeeNode) {
+                    Log.i("TEST", "Added node $node")
+                    post("Node Added $node")
+                }
 
-                override fun nodeUpdated(node: ZigBeeNode) = post("Node Updated $node")
+                override fun nodeUpdated(node: ZigBeeNode) {
+                    Log.i("TEST", "Added node $node")
+                    post("Node Updated $node")
+                }
 
                 override fun nodeRemoved(node: ZigBeeNode) = post("Node Removed $node")
             })
@@ -110,7 +112,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
         }
 
         processOutput()
-        sharedPool.submit(this::start)
+        sharedPool.submit(::start)
     }
 
     override fun processInput(payload: Payload): Payload = Payload(javaClass.name).apply {
@@ -184,20 +186,51 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
 
         if (resetNetwork) reset()
 
-        // Add the default ZigBeeAlliance09 HA link key
+        networkManager.setDefaultProfileId(ZigBeeProfileType.ZIGBEE_HOME_AUTOMATION.key)
 
-        transportOptions.addOption(TransportConfigOption.TRUST_CENTRE_LINK_KEY, ZigBeeKey(intArrayOf(0x5A, 0x69, 0x67, 0x42, 0x65, 0x65, 0x41, 0x6C, 0x6C, 0x69, 0x61, 0x6E, 0x63, 0x65, 0x30, 0x39)))
-        // transportOptions.addOption(TransportConfigOption.TRUST_CENTRE_LINK_KEY, ZigBeeKey(new int[] { 0x41, 0x61,
-        // 0x8F, 0xC0, 0xC8, 0x3B, 0x0E, 0x14, 0xA5, 0x89, 0x95, 0x4B, 0x16, 0xE3, 0x14, 0x66 }));
+        transportOptions.apply {
+            addOption(TransportConfigOption.RADIO_TX_POWER, 3)
+            addOption(TransportConfigOption.DEVICE_TYPE, DeviceType.COORDINATOR)
+            addOption(TransportConfigOption.TRUST_CENTRE_JOIN_MODE, TrustCentreJoinMode.TC_JOIN_SECURE)
+            addOption(TransportConfigOption.TRUST_CENTRE_LINK_KEY, ZigBeeKey(intArrayOf(0x5A, 0x69, 0x67, 0x42, 0x65, 0x65, 0x41, 0x6C, 0x6C, 0x69, 0x61, 0x6E, 0x63, 0x65, 0x30, 0x39)))
+        }
 
         dongle.updateTransportConfig(transportOptions)
+
+        listOf(
+                ZclIasZoneCluster.CLUSTER_ID,
+                ZclBasicCluster.CLUSTER_ID,
+                ZclIdentifyCluster.CLUSTER_ID,
+                ZclGroupsCluster.CLUSTER_ID,
+                ZclScenesCluster.CLUSTER_ID,
+                ZclPollControlCluster.CLUSTER_ID,
+                ZclOnOffCluster.CLUSTER_ID,
+                ZclLevelControlCluster.CLUSTER_ID,
+                ZclColorControlCluster.CLUSTER_ID,
+                ZclPressureMeasurementCluster.CLUSTER_ID,
+                ZclThermostatCluster.CLUSTER_ID,
+                ZclWindowCoveringCluster.CLUSTER_ID,
+                1000
+        ).sorted().forEach(networkManager::addSupportedClientCluster)
+
+        listOf(
+                ZclBasicCluster.CLUSTER_ID,
+                ZclIdentifyCluster.CLUSTER_ID,
+                ZclGroupsCluster.CLUSTER_ID,
+                ZclScenesCluster.CLUSTER_ID,
+                ZclPollControlCluster.CLUSTER_ID,
+                ZclOnOffCluster.CLUSTER_ID,
+                ZclLevelControlCluster.CLUSTER_ID,
+                ZclColorControlCluster.CLUSTER_ID,
+                ZclPressureMeasurementCluster.CLUSTER_ID,
+                ZclWindowCoveringCluster.CLUSTER_ID,
+                1000
+        ).sorted().forEach(networkManager::addSupportedServerCluster)
 
         post(
                 if (networkManager.startup(resetNetwork) !== ZigBeeStatus.SUCCESS) "ZigBee console starting up ... [FAIL]"
                 else "ZigBee console starting up ... [OK]"
         )
-
-        networkManager.addSupportedClientCluster(ZclIasZoneCluster.CLUSTER_ID)
 
         dongle.setLedMode(1, false)
         dongle.setLedMode(2, false)
@@ -257,8 +290,8 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
         post(stringBuilder.toString())
     }
 
-    private fun formNetwork() = NamedCommand.Derived.NetworkStart.executeCommand(
-            arrayOf(ContextProvider.appContext.getString(R.string.zigbeeprotocol_netstart), "form", "${networkManager.zigBeePanId}", "${networkManager.zigBeeExtendedPanId}")
+    private fun formNetwork() = NamedCommand.Custom.NetworkStart.executeCommand(
+            arrayOf(ContextProvider.appContext.getString(R.string.zigbeeprotocol_netstart), "${networkManager.zigBeePanId}", "${networkManager.zigBeeExtendedPanId}")
     )
 
     private fun savedDevices() = dataStore.readNetworkNodes()

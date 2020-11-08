@@ -25,6 +25,7 @@
 package com.rcswitchcontrol.zigbee.persistence
 
 import android.content.Context
+import android.util.Log
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.common.ContextProvider
@@ -46,8 +47,12 @@ class ZigBeeDataStore(private val networkId: String) : ZigBeeNetworkDataStore {
     override fun readNode(address: IeeeAddress): ZigBeeNodeDao =
             preferences(networkId).getString(address.toString(), "")!!.deserialize(ZigBeeNodeDao::class)
 
-    override fun writeNode(node: ZigBeeNodeDao) =
-            preferences(networkId).edit().putString(node.ieeeAddress.toString(), node.serialize()).apply()
+    override fun writeNode(node: ZigBeeNodeDao) {
+        Log.i("TEST", "WRITING NODE $node")
+        Log.i("TEST", "WRITING NODE  SERIALIZED${node.serialize()}")
+
+        preferences(networkId).edit().putString(node.ieeeAddress.toString(), node.serialize()).apply()
+    }
 
     private fun preferences(key: String) = ContextProvider.appContext.getSharedPreferences(key, Context.MODE_PRIVATE)
 

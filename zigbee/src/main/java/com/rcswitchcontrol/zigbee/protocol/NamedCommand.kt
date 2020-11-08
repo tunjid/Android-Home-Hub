@@ -29,6 +29,8 @@ internal sealed class NamedCommand(open val consoleCommand: ZigBeeConsoleCommand
         object MembershipView : Custom(MembershipViewCommand())
         object MembershipList : Custom(MembershipListCommand())
         object Rediscover : Custom(RediscoverCommand())
+        object NetworkStart : Custom(StartupCommand())
+
         data class Help(val commandMap: Map<String, ZigBeeConsoleCommand>) : Custom(HelpCommand(commandMap))
     }
 
@@ -57,7 +59,6 @@ internal sealed class NamedCommand(open val consoleCommand: ZigBeeConsoleCommand
         object InstallKey : NamedCommand.Derived(R.string.zigbeeprotocol_installkey, ZigBeeConsoleInstallKeyCommand())
         object LinkKey : NamedCommand.Derived(R.string.zigbeeprotocol_linkkey, ZigBeeConsoleLinkKeyCommand())
 
-        object NetworkStart : NamedCommand.Derived(R.string.zigbeeprotocol_netstart, ZigBeeConsoleNetworkStartCommand())
         object NetworkBackup : NamedCommand.Derived(R.string.zigbeeprotocol_netbackup, ZigBeeConsoleNetworkBackupCommand())
         object NetworkDiscovery : NamedCommand.Derived(R.string.zigbeeprotocol_discovery, ZigBeeConsoleNetworkDiscoveryCommand())
 
@@ -91,7 +92,6 @@ internal fun generateAvailableCommands(): Map<String, NamedCommand> = mutableMap
         NamedCommand.Derived.InstallKey.keyedPair,
         NamedCommand.Derived.LinkKey.keyedPair,
 
-        NamedCommand.Derived.NetworkStart.keyedPair,
         NamedCommand.Derived.NetworkBackup.keyedPair,
         NamedCommand.Derived.NetworkDiscovery.keyedPair,
 

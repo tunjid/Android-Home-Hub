@@ -74,9 +74,9 @@ sealed class ZigBeeInput<InputT>(
     internal fun from(zigBeeDevice: ZigBeeDevice): ZigBeeCommand = when (this) {
         is Rediscover -> listOf(zigBeeDevice.ieeeAddress)
         is Node -> listOf(zigBeeDevice.networkAdress)
-        is Toggle -> listOf(zigBeeDevice.zigBeeId)
-        is Level -> listOf(zigBeeDevice.zigBeeId, level.toString())
-        is Color -> listOf(zigBeeDevice.zigBeeId, rgb.red.toString(), rgb.green.toString(), rgb.blue.toString())
+        is Toggle -> listOf(zigBeeDevice.onOffAddress)
+        is Level -> listOf(zigBeeDevice.levelAddress, level.toString())
+        is Color -> listOf(zigBeeDevice.colorAddress, rgb.red.toString(), rgb.green.toString(), rgb.blue.toString())
     }.let(this::args)
 
     private fun args(params: List<String>): ZigBeeCommand =

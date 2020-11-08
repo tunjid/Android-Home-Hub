@@ -25,13 +25,15 @@
 package com.rcswitchcontrol.zigbee.models
 
 import android.os.Parcelable
+import android.util.Log
 import com.rcswitchcontrol.protocols.models.Device
 import com.rcswitchcontrol.zigbee.commands.GroupAddCommand
 import com.rcswitchcontrol.zigbee.commands.MembershipAddCommand
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
-import com.zsmartsystems.zigbee.database.ZclClusterDao
+import com.tunjid.rcswitchcontrol.common.serialize
 import com.zsmartsystems.zigbee.database.ZigBeeEndpointDao
 import com.zsmartsystems.zigbee.database.ZigBeeNodeDao
+import com.zsmartsystems.zigbee.zcl.protocol.ZclClusterType
 import kotlinx.android.parcel.Parcelize
 
 @Parcelize
@@ -43,14 +45,20 @@ data class ZigBeeDevice(
         override val key: String = ZigBeeProtocol::class.java.name
 ) : Parcelable, Device {
 
-    internal val zigBeeId: String get() = "$networkAdress/$ieeeAddress"
+    internal val onOffAddress: String get() = "$networkAdress/${endpointFor(ZclClusterType.ON_OFF)?.id}"
+    internal val levelAddress: String get() = "$networkAdress/${endpointFor(ZclClusterType.LEVEL_CONTROL)?.id}"
+    internal val colorAddress: String get() = "$networkAdress/${endpointFor(ZclClusterType.COLOR_CONTROL)?.id}"
 
     override val diffId
         get() = ieeeAddress
 
+    override fun hashCode(): Int = ieeeAddress.hashCode()
+
     fun command(input: ZigBeeInput<*>): ZigBeeCommand = input.from(this)
 
-    override fun hashCode(): Int = ieeeAddress.hashCode()
+    private fun endpointFor(clusterType: ZclClusterType) = endpoints.firstOrNull { it.supports(clusterType) }
+
+    private fun Endpoint.supports(clusterType: ZclClusterType) = inputClusters.map(Cluster::id).contains(clusterType.id)
 }
 
 fun List<ZigBeeDevice>.createGroupSequence(groupName: String): List<ZigBeeCommand> {
@@ -60,7 +68,7 @@ fun List<ZigBeeDevice>.createGroupSequence(groupName: String): List<ZigBeeComman
 
     result.add(GroupAddCommand().command.let { ZigBeeCommand(it, listOf(it, groupId, groupName)) })
     result.addAll(map { device ->
-        MembershipAddCommand().command.let { ZigBeeCommand(it, listOf(it, device.zigBeeId, groupId, groupName)) }
+        MembershipAddCommand().command.let { ZigBeeCommand(it, listOf(it, device.onOffAddress, groupId, groupName)) }
     })
 
     return result
@@ -69,19 +77,46 @@ fun List<ZigBeeDevice>.createGroupSequence(groupName: String): List<ZigBeeComman
 @Parcelize
 data class Endpoint(
         val id: Int,
-        val inputClusterIds: List<Int>
+        val inputClusters: List<Cluster>
 ) : Parcelable
 
-private val ZigBeeEndpointDao.endpoint
-    get() = Endpoint(
-            id = endpointId,
-            inputClusterIds = inputClusters.map(ZclClusterDao::getClusterId) // may  match ZclClusterType.ON_OFF
-    )
+@Parcelize
+data class Cluster(
+        val id: Int
+) : Parcelable
 
-internal fun ZigBeeNodeDao.device(): ZigBeeDevice? =
-        ZigBeeDevice(
-                name = ieeeAddress.toString(),
-                ieeeAddress = ieeeAddress.toString(),
-                networkAdress = networkAddress.toString(),
-                endpoints = endpoints.map(ZigBeeEndpointDao::endpoint)
+private val ZigBeeEndpointDao.endpoint: Endpoint
+    get() {
+        Log.i("TEST", "Endpoint is ${this.serialize()}")
+        return Endpoint(
+                id = endpointId,
+                inputClusters = inputClusters.map { Cluster(it.clusterId) } // may  match ZclClusterType.ON_OFF
         )
+    }
+
+internal fun ZigBeeNodeDao.device(): ZigBeeDevice? {
+    Log.i("TEST", "Node is ${this.serialize()}")
+
+    return ZigBeeDevice(
+            name = ieeeAddress.toString(),
+            ieeeAddress = ieeeAddress.toString(),
+            networkAdress = networkAddress.toString(),
+            endpoints = endpoints.map(ZigBeeEndpointDao::endpoint)
+    )
+}
+
+private fun nodeToZigBeeDevice(node: ZigBeeNodeDao) =
+        node.endpoints.find {
+            it
+                    .inputClusters
+                    .map { cluster -> cluster.clusterId }
+                    .contains(ZclClusterType.ON_OFF.id)
+        }
+                ?.let { endpoint ->
+//                    ZigBeeDevice(
+//                            node.ieeeAddress.toString(),
+//                            node.networkAddress.toString(),
+//                            endpoint.endpointId.toString(),
+//                            node.ieeeAddress.toString()
+//                    )
+                }

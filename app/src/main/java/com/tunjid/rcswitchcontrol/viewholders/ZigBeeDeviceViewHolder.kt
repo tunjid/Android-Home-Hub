@@ -25,8 +25,10 @@
 package com.tunjid.rcswitchcontrol.viewholders
 
 import android.view.ViewGroup
+import androidx.core.view.isVisible
 import com.flask.colorpicker.ColorPickerView
 import com.flask.colorpicker.builder.ColorPickerDialogBuilder
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
 import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
 import com.rcswitchcontrol.zigbee.models.ZigBeeInput
@@ -41,13 +43,26 @@ interface ZigBeeDeviceListener : DeviceLongClickListener {
     fun send(command: ZigBeeCommand)
 }
 
-var BindingViewHolder<ViewholderZigbeeDeviceBinding>.device by BindingViewHolder.Prop<ZigBeeDevice>()
-var BindingViewHolder<ViewholderZigbeeDeviceBinding>.listener by BindingViewHolder.Prop<ZigBeeDeviceListener>()
+private var BindingViewHolder<ViewholderZigbeeDeviceBinding>.device by BindingViewHolder.Prop<ZigBeeDevice>()
+private var BindingViewHolder<ViewholderZigbeeDeviceBinding>.listener by BindingViewHolder.Prop<ZigBeeDeviceListener>()
+private val BindingViewHolder<ViewholderZigbeeDeviceBinding>.diagnosticOptions
+    get() = listOf(
+            R.string.zigbee_diagnostic_node to device.command(ZigBeeInput.Node),
+            R.string.zigbee_diagnostic_rediscover to device.command(ZigBeeInput.Rediscover)
+    ).map { itemView.context.getString(it.first) to it.second }
+
 
 fun BindingViewHolder<ViewholderZigbeeDeviceBinding>.bind(device: ZigBeeDevice) {
     this.device = device
-    binding.switchName.text = device.name
     device.highlightViewHolder(this, listener::isSelected)
+
+    binding.apply {
+        switchName.text = device.name
+        onSwitch.isVisible = device.supportsOnOff
+        offSwitch.isVisible = device.supportsOnOff
+        leveler.isVisible = device.supportsLevel
+        colorPicker.isVisible = device.supportsColor
+    }
 }
 
 fun ViewGroup.zigbeeDeviceViewHolder(
@@ -63,10 +78,17 @@ fun ViewGroup.zigbeeDeviceViewHolder(
             true
         }
 
-        zigbeeIcon.setOnClickListener { listener.send(device.command(ZigBeeInput.Node)) }
         offSwitch.setOnClickListener { listener.send(device.command(ZigBeeInput.Toggle(isOn = false))) }
         onSwitch.setOnClickListener { listener.send(device.command(ZigBeeInput.Toggle(isOn = true))) }
         leveler.addOnChangeListener { _, value, fromUser -> if (fromUser) throttle.run(value.toInt()) }
+        zigbeeIcon.setOnClickListener {
+            MaterialAlertDialogBuilder(context)
+                    .setTitle(R.string.zigbee_diagnostic_title)
+                    .setItems(diagnosticOptions.map { it.first }.toTypedArray()) { _, index ->
+                        listener.send(diagnosticOptions[index].second)
+                    }
+                    .show()
+        }
         colorPicker.setOnClickListener {
             ColorPickerDialogBuilder
                     .with(context)

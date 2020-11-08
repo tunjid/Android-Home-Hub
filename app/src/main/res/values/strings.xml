@@ -80,6 +80,11 @@
     <!-- Color Picker Dialog -->
     <string name="color_picker_choose">Choose Color</string>
 
+    <!-- ZigBee Diagnostic Options -->
+    <string name="zigbee_diagnostic_title">Choose ZigBee Command</string>
+    <string name="zigbee_diagnostic_node">Node</string>
+    <string name="zigbee_diagnostic_rediscover">Rediscover</string>
+
     <!-- ZigBee Command Arguments -->
     <string name="zigbee_command_arguments_title">Command: %1$s</string>
     <string name="zigbee_command_arguments_description">Description: %1$s</string>

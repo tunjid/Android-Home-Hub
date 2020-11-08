@@ -55,6 +55,10 @@ data class ZigBeeDevice internal constructor(
     override val diffId
         get() = ieeeAddress
 
+    val supportsOnOff get() = onOffAddress.split("/").getOrNull(1) != "null"
+    val supportsLevel get() = levelAddress.split("/").getOrNull(1) != "null"
+    val supportsColor get() = colorAddress.split("/").getOrNull(1) != "null"
+
     override fun hashCode(): Int = ieeeAddress.hashCode()
 
     fun command(input: ZigBeeInput<*>): ZigBeeCommand = input.from(this)

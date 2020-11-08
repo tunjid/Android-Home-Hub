@@ -27,11 +27,6 @@ package com.rcswitchcontrol.zigbee.models
 import androidx.core.graphics.blue
 import androidx.core.graphics.green
 import androidx.core.graphics.red
-import com.rcswitchcontrol.zigbee.commands.ColorCommand
-import com.rcswitchcontrol.zigbee.commands.LevelCommand
-import com.rcswitchcontrol.zigbee.commands.OffCommand
-import com.rcswitchcontrol.zigbee.commands.OnCommand
-import com.rcswitchcontrol.zigbee.commands.RediscoverCommand
 import com.rcswitchcontrol.zigbee.protocol.NamedCommand
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
 
@@ -53,7 +48,7 @@ sealed class ZigBeeInput<InputT>(
 
     object Rediscover : ZigBeeInput<Unit>(
             input = Unit,
-            namedCommand = NamedCommand.Custom(RediscoverCommand())
+            namedCommand = NamedCommand.Custom.Rediscover
     )
 
     object Node : ZigBeeInput<Unit>(
@@ -63,17 +58,17 @@ sealed class ZigBeeInput<InputT>(
 
     data class Toggle(val isOn: Boolean) : ZigBeeInput<Boolean>(
             input = isOn,
-            namedCommand = NamedCommand.Custom(if (isOn) OnCommand() else OffCommand())
+            namedCommand = if (isOn) NamedCommand.Custom.On else NamedCommand.Custom.Off
     )
 
     data class Level(val level: Float) : ZigBeeInput<Float>(
             input = level,
-            namedCommand = NamedCommand.Custom(LevelCommand())
+            namedCommand = NamedCommand.Custom.Level
     )
 
     data class Color(val rgb: Int) : ZigBeeInput<Int>(
             input = rgb,
-            namedCommand = NamedCommand.Custom(ColorCommand())
+            namedCommand = NamedCommand.Custom.Color
     )
 
     internal fun from(zigBeeDevice: ZigBeeDevice): ZigBeeCommand = when (this) {

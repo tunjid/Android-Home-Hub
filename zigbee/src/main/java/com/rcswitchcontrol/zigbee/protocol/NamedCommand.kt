@@ -16,7 +16,22 @@ internal sealed class NamedCommand(open val consoleCommand: ZigBeeConsoleCommand
     internal val command
         get() = consoleCommand.command
 
-    data class Custom(override val consoleCommand: AbsZigBeeCommand) : NamedCommand(consoleCommand)
+    sealed class Custom(override val consoleCommand: AbsZigBeeCommand) : NamedCommand(consoleCommand) {
+        object On : Custom(OnCommand())
+        object Off : Custom(OffCommand())
+        object Color : Custom(ColorCommand())
+        object Level : Custom(LevelCommand())
+        object GroupAdd : Custom(GroupAddCommand())
+        object GroupRemove : Custom(GroupRemoveCommand())
+        object GroupList : Custom(GroupListCommand())
+        object MembershipAdd : Custom(MembershipAddCommand())
+        object MembershipRemove : Custom(MembershipRemoveCommand())
+        object MembershipView : Custom(MembershipViewCommand())
+        object MembershipList : Custom(MembershipListCommand())
+        object Rediscover : Custom(RediscoverCommand())
+        data class Help(val commandMap: Map<String, ZigBeeConsoleCommand>) : Custom(HelpCommand(commandMap))
+    }
+
     sealed class Derived(internal val stringRes: Int, override val consoleCommand: ZigBeeConsoleCommand) : NamedCommand(consoleCommand) {
         object NodeList : NamedCommand.Derived(R.string.zigbeeprotocol_nodes, ZigBeeConsoleNodeListCommand())
         object DescribeEndpoint : NamedCommand.Derived(R.string.zigbeeprotocol_endpoint, ZigBeeConsoleDescribeEndpointCommand())
@@ -83,23 +98,23 @@ internal fun generateAvailableCommands(): Map<String, NamedCommand> = mutableMap
         NamedCommand.Derived.OtaUpgrade.keyedPair,
         NamedCommand.Derived.Channel.keyedPair,
 
-        NamedCommand.Custom(OnCommand()).keyedPair,
-        NamedCommand.Custom(OffCommand()).keyedPair,
-        NamedCommand.Custom(ColorCommand()).keyedPair,
-        NamedCommand.Custom(LevelCommand()).keyedPair,
+        NamedCommand.Custom.On.keyedPair,
+        NamedCommand.Custom.Off.keyedPair,
+        NamedCommand.Custom.Color.keyedPair,
+        NamedCommand.Custom.Level.keyedPair,
 
-        NamedCommand.Custom(GroupAddCommand()).keyedPair,
-        NamedCommand.Custom(GroupRemoveCommand()).keyedPair,
-        NamedCommand.Custom(GroupListCommand()).keyedPair,
+        NamedCommand.Custom.GroupAdd.keyedPair,
+        NamedCommand.Custom.GroupRemove.keyedPair,
+        NamedCommand.Custom.GroupList.keyedPair,
 
-        NamedCommand.Custom(MembershipAddCommand()).keyedPair,
-        NamedCommand.Custom(MembershipRemoveCommand()).keyedPair,
-        NamedCommand.Custom(MembershipViewCommand()).keyedPair,
-        NamedCommand.Custom(MembershipListCommand()).keyedPair,
+        NamedCommand.Custom.MembershipAdd.keyedPair,
+        NamedCommand.Custom.MembershipRemove.keyedPair,
+        NamedCommand.Custom.MembershipView.keyedPair,
+        NamedCommand.Custom.MembershipList.keyedPair,
 
-        NamedCommand.Custom(RediscoverCommand()).keyedPair
+        NamedCommand.Custom.Rediscover.keyedPair
 
-).let { commands -> commands + NamedCommand.Custom(HelpCommand(commands.mapValues { it.value.consoleCommand })).keyedPair }
+).let { commands -> commands + NamedCommand.Custom.Help(commands.mapValues { it.value.consoleCommand }).keyedPair }
 
 
 private val NamedCommand.keyedPair

@@ -50,7 +50,6 @@ import com.zsmartsystems.zigbee.app.basic.ZigBeeBasicServerExtension
 import com.zsmartsystems.zigbee.app.discovery.ZigBeeDiscoveryExtension
 import com.zsmartsystems.zigbee.app.iasclient.ZigBeeIasCieExtension
 import com.zsmartsystems.zigbee.app.otaserver.ZigBeeOtaUpgradeExtension
-import com.zsmartsystems.zigbee.console.*
 import com.zsmartsystems.zigbee.database.ZigBeeNodeDao
 import com.zsmartsystems.zigbee.dongle.cc2531.ZigBeeDongleTiCc2531
 import com.zsmartsystems.zigbee.security.ZigBeeKey
@@ -80,7 +79,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
     private val dongle: ZigBeeDongleTiCc2531
     private val dataStore = ZigBeeDataStore("home")
     private val networkManager: ZigBeeNetworkManager
-    private val availableCommands: Map<String, ZigBeeConsoleCommand> = generateAvailableCommands()
+    private val availableCommands: Map<String, NamedCommand> = generateAvailableCommands()
 
     init {
         dongle = ZigBeeDongleTiCc2531(AndroidZigBeeSerialPort(driver, BAUD_RATE))
@@ -129,19 +128,27 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
                 response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_saved_devices_request)
                 appendCommands()
             }
-            in availableCommands.keys -> availableCommands[action]?.apply {
+            in availableCommands.keys -> {
+                val mapper = availableCommands.getValue(action)
+                val consoleCommand = mapper.consoleCommand
                 val command = payload.data?.deserialize(ZigBeeCommand::class)
-                val needsCommandArgs: Boolean = (command == null || command.isInvalid) && syntax.isNotEmpty()
+                val needsCommandArgs: Boolean = (command == null || command.isInvalid) && consoleCommand.syntax.isNotEmpty()
 
                 when {
                     needsCommandArgs -> {
                         response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_enter_args, action)
-                        data = ZigBeeCommandInfo(action, description, syntax, help).serialize()
+                        data = ZigBeeCommandInfo(action, consoleCommand.description, consoleCommand.syntax, consoleCommand.help).serialize()
                     }
                     else -> {
                         val args = command?.args?.toTypedArray() ?: arrayOf(action)
                         response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_executing, args.commandString())
-                        execute(args)
+
+                        try {
+                            mapper.executeCommand(args)
+                        } catch (e: Exception) {
+                            post("Exception in executing command: ${args.commandString()}")
+                            e.printStackTrace()
+                        }
                     }
                 }
             }
@@ -195,37 +202,24 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
         dongle.setLedMode(2, false)
     }
 
-    private fun execute(args: Array<String>) {
-        try {
-            executeCommand(networkManager, args)
-        } catch (e: Exception) {
-            post("Exception in executing command: ${args.commandString()}")
-            e.printStackTrace()
-        }
-    }
-
     /**
      * Executes command.
      *
-     * @param networkManager the [ZigBeeNetworkManager]
      * @param args the arguments including the command
      */
-    private fun executeCommand(networkManager: ZigBeeNetworkManager, args: Array<String>) {
-        val command = availableCommands[args.first()]
-                ?: return post("Unknown command. Use 'help' command to list available commands.")
-
+    private fun NamedCommand.executeCommand(args: Array<String>) {
         sharedPool.submit {
             try {
-                command.process(networkManager, args, outStream)
+                consoleCommand.process(networkManager, args, outStream)
             } catch (e: IllegalArgumentException) {
                 post(
                         "Error executing command: ${e.message}",
-                        "${command.command} ${command.syntax}"
+                        "${consoleCommand.command} ${consoleCommand.syntax}"
                 )
             } catch (e: IllegalStateException) {
                 post(
                         "Error executing command: " + e.message,
-                        command.command + " " + command.syntax
+                        consoleCommand.command + " " + consoleCommand.syntax
                 )
             } catch (e: Exception) {
                 post("Error executing command: $e")
@@ -262,11 +256,13 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
         post(stringBuilder.toString())
     }
 
-    private fun formNetwork() = executeCommand(networkManager, arrayOf(ContextProvider.appContext.getString(R.string.zigbeeprotocol_netstart), "form", "${networkManager.zigBeePanId}", "${networkManager.zigBeeExtendedPanId}"))
+    private fun formNetwork() = NamedCommand.Derived.ZigBeeConsoleNetworkStartCommand.executeCommand(
+            arrayOf(ContextProvider.appContext.getString(R.string.zigbeeprotocol_netstart), "form", "${networkManager.zigBeePanId}", "${networkManager.zigBeeExtendedPanId}")
+    )
 
     private fun savedDevices() = dataStore.readNetworkNodes()
-    .map(dataStore::readNode)
-    .mapNotNull(this::nodeToZigBeeDevice)
+            .map(dataStore::readNode)
+            .mapNotNull(this::nodeToZigBeeDevice)
             .serializeList()
 
     private fun nodeToZigBeeDevice(node: ZigBeeNodeDao): ZigBeeDevice? =

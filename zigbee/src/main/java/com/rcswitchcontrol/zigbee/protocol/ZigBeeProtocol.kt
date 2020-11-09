@@ -39,7 +39,13 @@ import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.common.serializeList
-import com.zsmartsystems.zigbee.*
+import com.zsmartsystems.zigbee.ExtendedPanId
+import com.zsmartsystems.zigbee.ZigBeeChannel
+import com.zsmartsystems.zigbee.ZigBeeNetworkManager
+import com.zsmartsystems.zigbee.ZigBeeNetworkNodeListener
+import com.zsmartsystems.zigbee.ZigBeeNode
+import com.zsmartsystems.zigbee.ZigBeeProfileType
+import com.zsmartsystems.zigbee.ZigBeeStatus
 import com.zsmartsystems.zigbee.app.basic.ZigBeeBasicServerExtension
 import com.zsmartsystems.zigbee.app.discovery.ZigBeeDiscoveryExtension
 import com.zsmartsystems.zigbee.app.iasclient.ZigBeeIasCieExtension
@@ -71,46 +77,13 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
 
     private val outStream = ConsoleStream { post(it) }
 
-    private val dongle: ZigBeeDongleTiCc2531
-    private val dataStore = ZigBeeDataStore("29")
-//    private val dataStore = ZigBeeDataStore("12")
-    //private val dataStore = ZigBeeDataStore("home")
-    private val networkManager: ZigBeeNetworkManager
+    private val dongle: ZigBeeDongleTiCc2531 = ZigBeeDongleTiCc2531(AndroidZigBeeSerialPort(driver, BAUD_RATE))
+    private val dataStore = ZigBeeDataStore("45")
+    private val networkManager: ZigBeeNetworkManager = ZigBeeNetworkManager(dongle)
+
     private val availableCommands: Map<String, NamedCommand> = generateAvailableCommands()
 
     init {
-        dongle = ZigBeeDongleTiCc2531(AndroidZigBeeSerialPort(driver, BAUD_RATE))
-        networkManager = ZigBeeNetworkManager(dongle).apply {
-            setNetworkDataStore(dataStore)
-            addExtension(ZigBeeIasCieExtension())
-            addExtension(ZigBeeOtaUpgradeExtension())
-            addExtension(ZigBeeBasicServerExtension())
-            addExtension(LazyDiscoveryExtension())
-
-            setSerializer(DefaultSerializer::class.java, DefaultDeserializer::class.java)
-
-            addNetworkStateListener { state ->
-                post("ZigBee network state updated to $state")
-//                if (dataStore.hasNoDevices && ZigBeeNetworkState.ONLINE == state) formNetwork()
-            }
-
-            addNetworkNodeListener(object : ZigBeeNetworkNodeListener {
-                override fun nodeAdded(node: ZigBeeNode) {
-                    Log.i("TEST", "Added node $node")
-                    post("Node Added $node")
-                }
-
-                override fun nodeUpdated(node: ZigBeeNode) {
-                    Log.i("TEST", "Added node $node")
-                    post("Node Updated $node")
-                }
-
-                override fun nodeRemoved(node: ZigBeeNode) = post("Node Removed $node")
-            })
-
-            addCommandListener {}
-        }
-
         processOutput()
         sharedPool.submit(::start)
     }
@@ -175,6 +148,31 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
         val resetNetwork = dataStore.hasNoDevices
         val transportOptions = TransportConfig()
 
+        networkManager.apply {
+            setNetworkDataStore(dataStore)
+            setSerializer(DefaultSerializer::class.java, DefaultDeserializer::class.java)
+
+            addNetworkStateListener { state ->
+                post("ZigBee network state updated to $state")
+//                if (dataStore.hasNoDevices && ZigBeeNetworkState.ONLINE == state) formNetwork()
+            }
+
+            addNetworkNodeListener(object : ZigBeeNetworkNodeListener {
+                override fun nodeAdded(node: ZigBeeNode) {
+                    Log.i("TEST", "Added node $node")
+                    post("Node Added $node")
+                }
+
+                override fun nodeUpdated(node: ZigBeeNode) {
+                    Log.i("TEST", "Added node $node")
+                    post("Node Updated $node")
+                }
+
+                override fun nodeRemoved(node: ZigBeeNode) = post("Node Removed $node")
+            })
+
+            addCommandListener {}
+        }
         // Initialise the network
         val initResponse = networkManager.initialize()
 
@@ -183,6 +181,14 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
         post("PAN ID          = " + networkManager.zigBeePanId)
         post("Extended PAN ID = " + networkManager.zigBeeExtendedPanId)
         post("Channel         = " + networkManager.zigBeeChannel)
+
+        networkManager.apply {
+            addExtension(ZigBeeIasCieExtension())
+            addExtension(ZigBeeOtaUpgradeExtension())
+            addExtension(ZigBeeBasicServerExtension())
+            addExtension(ZigBeeDiscoveryExtension())
+            addExtension(LazyDiscoveryExtension())
+        }
 
         if (resetNetwork) reset()
 

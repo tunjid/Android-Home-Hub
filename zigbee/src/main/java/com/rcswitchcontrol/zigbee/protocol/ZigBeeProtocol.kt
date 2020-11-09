@@ -39,13 +39,7 @@ import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.common.serializeList
-import com.zsmartsystems.zigbee.ExtendedPanId
-import com.zsmartsystems.zigbee.ZigBeeChannel
-import com.zsmartsystems.zigbee.ZigBeeNetworkManager
-import com.zsmartsystems.zigbee.ZigBeeNetworkNodeListener
-import com.zsmartsystems.zigbee.ZigBeeNode
-import com.zsmartsystems.zigbee.ZigBeeProfileType
-import com.zsmartsystems.zigbee.ZigBeeStatus
+import com.zsmartsystems.zigbee.*
 import com.zsmartsystems.zigbee.app.basic.ZigBeeBasicServerExtension
 import com.zsmartsystems.zigbee.app.discovery.ZigBeeDiscoveryExtension
 import com.zsmartsystems.zigbee.app.iasclient.ZigBeeIasCieExtension
@@ -78,7 +72,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
     private val outStream = ConsoleStream { post(it) }
 
     private val dongle: ZigBeeDongleTiCc2531 = ZigBeeDongleTiCc2531(AndroidZigBeeSerialPort(driver, BAUD_RATE))
-    private val dataStore = ZigBeeDataStore("45")
+    private val dataStore = ZigBeeDataStore("46")
     private val networkManager: ZigBeeNetworkManager = ZigBeeNetworkManager(dongle)
 
     private val availableCommands: Map<String, NamedCommand> = generateAvailableCommands()
@@ -192,7 +186,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
 
         if (resetNetwork) reset()
 
-        networkManager.setDefaultProfileId(ZigBeeProfileType.ZIGBEE_HOME_AUTOMATION.key)
+//        networkManager.setDefaultProfileId(ZigBeeProfileType.ZIGBEE_HOME_AUTOMATION.key)
 
         transportOptions.apply {
             addOption(TransportConfigOption.RADIO_TX_POWER, 3)
@@ -203,35 +197,37 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
 
         dongle.updateTransportConfig(transportOptions)
 
-        listOf(
-                ZclIasZoneCluster.CLUSTER_ID,
-                ZclBasicCluster.CLUSTER_ID,
-                ZclIdentifyCluster.CLUSTER_ID,
-                ZclGroupsCluster.CLUSTER_ID,
-                ZclScenesCluster.CLUSTER_ID,
-                ZclPollControlCluster.CLUSTER_ID,
-                ZclOnOffCluster.CLUSTER_ID,
-                ZclLevelControlCluster.CLUSTER_ID,
-                ZclColorControlCluster.CLUSTER_ID,
-                ZclPressureMeasurementCluster.CLUSTER_ID,
-                ZclThermostatCluster.CLUSTER_ID,
-                ZclWindowCoveringCluster.CLUSTER_ID,
-                1000
-        ).sorted().forEach(networkManager::addSupportedClientCluster)
+        networkManager.addSupportedCluster(ZclIasZoneCluster.CLUSTER_ID)
 
-        listOf(
-                ZclBasicCluster.CLUSTER_ID,
-                ZclIdentifyCluster.CLUSTER_ID,
-                ZclGroupsCluster.CLUSTER_ID,
-                ZclScenesCluster.CLUSTER_ID,
-                ZclPollControlCluster.CLUSTER_ID,
-                ZclOnOffCluster.CLUSTER_ID,
-                ZclLevelControlCluster.CLUSTER_ID,
-                ZclColorControlCluster.CLUSTER_ID,
-                ZclPressureMeasurementCluster.CLUSTER_ID,
-                ZclWindowCoveringCluster.CLUSTER_ID,
-                1000
-        ).sorted().forEach(networkManager::addSupportedServerCluster)
+//        listOf(
+//                ZclIasZoneCluster.CLUSTER_ID,
+//                ZclBasicCluster.CLUSTER_ID,
+//                ZclIdentifyCluster.CLUSTER_ID,
+//                ZclGroupsCluster.CLUSTER_ID,
+//                ZclScenesCluster.CLUSTER_ID,
+//                ZclPollControlCluster.CLUSTER_ID,
+//                ZclOnOffCluster.CLUSTER_ID,
+//                ZclLevelControlCluster.CLUSTER_ID,
+//                ZclColorControlCluster.CLUSTER_ID,
+//                ZclPressureMeasurementCluster.CLUSTER_ID,
+//                ZclThermostatCluster.CLUSTER_ID,
+//                ZclWindowCoveringCluster.CLUSTER_ID,
+//                1000
+//        ).sorted().forEach(networkManager::addSupportedClientCluster)
+//
+//        listOf(
+//                ZclBasicCluster.CLUSTER_ID,
+//                ZclIdentifyCluster.CLUSTER_ID,
+//                ZclGroupsCluster.CLUSTER_ID,
+//                ZclScenesCluster.CLUSTER_ID,
+//                ZclPollControlCluster.CLUSTER_ID,
+//                ZclOnOffCluster.CLUSTER_ID,
+//                ZclLevelControlCluster.CLUSTER_ID,
+//                ZclColorControlCluster.CLUSTER_ID,
+//                ZclPressureMeasurementCluster.CLUSTER_ID,
+//                ZclWindowCoveringCluster.CLUSTER_ID,
+//                1000
+//        ).sorted().forEach(networkManager::addSupportedServerCluster)
 
         post(
                 if (networkManager.startup(resetNetwork) !== ZigBeeStatus.SUCCESS) "ZigBee console starting up ... [FAIL]"

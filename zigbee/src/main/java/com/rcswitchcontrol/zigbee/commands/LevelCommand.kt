@@ -78,6 +78,6 @@ class LevelCommand : AbsZigBeeCommand() {
 
         val cluster = endpoint.getInputCluster(ZclLevelControlCluster.CLUSTER_ID) as ZclLevelControlCluster
 
-        return cluster.sendCommand(MoveToLevelWithOnOffCommand(l, (time * 10).toInt()))
+        return cluster.moveToLevelWithOnOffCommand(l, (time * 10).toInt())
     }
 }

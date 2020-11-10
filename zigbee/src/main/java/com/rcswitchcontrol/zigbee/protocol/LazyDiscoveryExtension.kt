@@ -23,11 +23,11 @@ class LazyDiscoveryExtension(
 
         val backing = networkManager?.getExtension(ZigBeeDiscoveryExtension::class.java)
                 as? ZigBeeDiscoveryExtension
-                ?: return ZigBeeStatus.INVALID_STATE
+                ?: return ZigBeeStatus.NO_NETWORK
 
         Log.i("TEST", "CONFIGURED LAZY DISCOVERY")
 
-//        backing.setUpdateOnChange(true)
+        backing.setUpdateOnChange(true)
         backing.updatePeriod = ZigBeeProtocol.MESH_UPDATE_PERIOD
         backing.refresh()
 

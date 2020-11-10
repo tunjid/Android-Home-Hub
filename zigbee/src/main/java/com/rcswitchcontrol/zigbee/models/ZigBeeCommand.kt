@@ -29,6 +29,7 @@ import androidx.core.graphics.green
 import androidx.core.graphics.red
 import com.rcswitchcontrol.zigbee.protocol.NamedCommand
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
+import com.zsmartsystems.zigbee.zcl.protocol.ZclClusterType
 
 data class ZigBeeCommand(
         val name: String,
@@ -71,12 +72,19 @@ sealed class ZigBeeInput<InputT>(
             namedCommand = NamedCommand.Custom.Color
     )
 
+    data class Read(val feature: ZigBeeDevice.Feature) : ZigBeeInput<ZigBeeDevice.Feature>(
+            input = feature,
+            namedCommand = NamedCommand.Derived.AttributeRead
+    )
+
     internal fun from(zigBeeDevice: ZigBeeDevice): ZigBeeCommand = when (this) {
         is Rediscover -> listOf(zigBeeDevice.ieeeAddress)
         is Node -> listOf(zigBeeDevice.networkAdress)
-        is Toggle -> listOf(zigBeeDevice.onOffAddress)
-        is Level -> listOf(zigBeeDevice.levelAddress, level.toString())
-        is Color -> listOf(zigBeeDevice.colorAddress, rgb.red.toString(), rgb.green.toString(), rgb.blue.toString())
+        is Toggle -> listOf(zigBeeDevice.address(ZclClusterType.ON_OFF))
+        is Level -> listOf(zigBeeDevice.address(ZclClusterType.LEVEL_CONTROL), level.toString())
+        is Color -> listOf(zigBeeDevice.address(ZclClusterType.COLOR_CONTROL), rgb.red.toString(), rgb.green.toString(), rgb.blue.toString())
+        is Read -> listOf(zigBeeDevice.address(feature.clusterType), feature.clusterType.id.toString()) +
+                zigBeeDevice.clusterAttributeMap.getValue(feature.clusterType.id).map(Int::toString)
     }.let(this::args)
 
     private fun args(params: List<String>): ZigBeeCommand =

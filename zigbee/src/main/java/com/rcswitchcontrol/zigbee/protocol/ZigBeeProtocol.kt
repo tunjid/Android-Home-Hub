@@ -78,7 +78,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
     private val outStream = ConsoleStream { post(it) }
 
     private val dongle: ZigBeeDongleTiCc2531 = ZigBeeDongleTiCc2531(AndroidZigBeeSerialPort(driver, BAUD_RATE))
-    private val dataStore = ZigBeeDataStore("45")
+    private val dataStore = ZigBeeDataStore("46")
     private val networkManager: ZigBeeNetworkManager = ZigBeeNetworkManager(dongle)
 
     private val availableCommands: Map<String, NamedCommand> = generateAvailableCommands()

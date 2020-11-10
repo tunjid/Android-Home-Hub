@@ -82,6 +82,7 @@
 
     <!-- ZigBee Diagnostic Options -->
     <string name="zigbee_diagnostic_title">Choose ZigBee Command</string>
+    <string name="zigbee_diagnostic_read_attribute">Read %1$s</string>
     <string name="zigbee_diagnostic_node">Node</string>
     <string name="zigbee_diagnostic_rediscover">Rediscover</string>
 

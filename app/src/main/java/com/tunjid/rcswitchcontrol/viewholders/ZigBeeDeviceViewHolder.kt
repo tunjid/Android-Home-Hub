@@ -47,10 +47,17 @@ private var BindingViewHolder<ViewholderZigbeeDeviceBinding>.device by BindingVi
 private var BindingViewHolder<ViewholderZigbeeDeviceBinding>.listener by BindingViewHolder.Prop<ZigBeeDeviceListener>()
 private val BindingViewHolder<ViewholderZigbeeDeviceBinding>.diagnosticOptions
     get() = listOf(
-            R.string.zigbee_diagnostic_node to device.command(ZigBeeInput.Node),
-            R.string.zigbee_diagnostic_rediscover to device.command(ZigBeeInput.Rediscover)
-    ).map { itemView.context.getString(it.first) to it.second }
-
+            R.string.zigbee_diagnostic_node to ZigBeeInput.Node,
+            R.string.zigbee_diagnostic_rediscover to ZigBeeInput.Rediscover
+    )
+            .plus(device.supportedFeatures.map { it.nameRes to ZigBeeInput.Read(it) })
+            .map {
+                val context = itemView.context
+                when (it.second) {
+                    is ZigBeeInput.Read -> context.getString(R.string.zigbee_diagnostic_read_attribute, context.getString(it.first))
+                    else -> context.getString(it.first)
+                } to device.command(it.second)
+            }
 
 fun BindingViewHolder<ViewholderZigbeeDeviceBinding>.bind(device: ZigBeeDevice) {
     this.device = device
@@ -58,10 +65,10 @@ fun BindingViewHolder<ViewholderZigbeeDeviceBinding>.bind(device: ZigBeeDevice) 
 
     binding.apply {
         switchName.text = device.name
-        onSwitch.isVisible = device.supportsOnOff
-        offSwitch.isVisible = device.supportsOnOff
-        leveler.isVisible = device.supportsLevel
-        colorPicker.isVisible = device.supportsColor
+        onSwitch.isVisible = device.supports(ZigBeeDevice.Feature.OnOff)
+        offSwitch.isVisible = device.supports(ZigBeeDevice.Feature.OnOff)
+        leveler.isVisible = device.supports(ZigBeeDevice.Feature.Level)
+        colorPicker.isVisible = device.supports(ZigBeeDevice.Feature.Color)
     }
 }
 

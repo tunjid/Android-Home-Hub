@@ -56,4 +56,9 @@
     <string name="zigbeeprotocol_joined_groups">Joined Groups</string>
 
     <string name="zigbeeprotocol_formnet">Form Network</string>
+
+    <string name="zigbee_feature_on_off">On/Off</string>
+    <string name="zigbee_feature_color">Color</string>
+    <string name="zigbee_feature_level">Level</string>
+
 </resources>

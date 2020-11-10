@@ -68,6 +68,6 @@ class OffCommand : AbsZigBeeCommand() {
 
         val cluster = endpoint.getInputCluster(ZclOnOffCluster.CLUSTER_ID) as ZclOnOffCluster
 
-        return cluster.offCommand()
+        return cluster.sendCommand(OffCommand())
     }
 }

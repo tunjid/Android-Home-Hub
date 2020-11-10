@@ -42,10 +42,7 @@ class MembershipAddCommand : AbsZigBeeCommand() {
      * @return the command result future
      */
     private fun ZigBeeNetworkManager.addMembership(device: ZigBeeEndpoint, groupId: Int, groupName: String): Future<CommandResult> {
-        val command = AddGroupCommand()
-        command.groupId = groupId
-        command.groupName = groupName
-
+        val command = AddGroupCommand(groupId, groupName)
         command.destinationAddress = device.endpointAddress
 
         return sendTransaction(command, ZclTransactionMatcher())

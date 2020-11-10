@@ -26,7 +26,6 @@ package com.rcswitchcontrol.zigbee.commands
 
 import com.rcswitchcontrol.zigbee.R
 import com.tunjid.rcswitchcontrol.common.ContextProvider
-import com.zsmartsystems.zigbee.ExtendedPanId
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager
 import com.zsmartsystems.zigbee.transport.DeviceType
 import com.zsmartsystems.zigbee.transport.TransportConfig
@@ -47,22 +46,14 @@ class StartupCommand : AbsZigBeeCommand() {
     @Throws(Exception::class)
     override fun process(networkManager: ZigBeeNetworkManager, args: Array<out String>, out: PrintStream) {
         args.expect(3)
-//
-//        networkManager.zigBeeTransport.apply {
-//            updateTransportConfig(TransportConfig().apply {
-//                addOption(TransportConfigOption.DEVICE_TYPE, DeviceType.COORDINATOR)
-//            })
-////            out.println("ZigBees status is: ${startup(true)}")
-//            out.println("Reinitialize: ${networkManager.reinitialize()}")
-//            out.println("start up: ${networkManager.startup(true)}")
-//        }
 
-        val transportOptions = TransportConfig()
-
-        networkManager.setZigBeePanId(args[1].toInt())
-        networkManager.setZigBeeExtendedPanId(ExtendedPanId(args[2]))
-        transportOptions.addOption(TransportConfigOption.DEVICE_TYPE, DeviceType.COORDINATOR)
-        networkManager.getZigBeeTransport().updateTransportConfig(transportOptions)
-        out.println("start up: ${networkManager.startup(true)}")
+        networkManager.zigBeeTransport.apply {
+            updateTransportConfig(TransportConfig().apply {
+                addOption(TransportConfigOption.DEVICE_TYPE, DeviceType.COORDINATOR)
+            })
+//            out.println("ZigBees status is: ${startup(true)}")
+            out.println("Reinitialize: ${networkManager.reinitialize()}")
+            out.println("start up: ${networkManager.startup(true)}")
+        }
     }
 }

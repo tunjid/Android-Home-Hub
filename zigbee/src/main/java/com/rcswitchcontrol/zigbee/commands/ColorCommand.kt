@@ -87,6 +87,6 @@ class ColorCommand : AbsZigBeeCommand() {
         val endpoint = getNode(destination.address).getEndpoint(destination.endpoint) ?: return null
         val cluster = endpoint.getInputCluster(ZclColorControlCluster.CLUSTER_ID) as ZclColorControlCluster
 
-        return cluster.sendCommand(MoveToColorCommand(x, y, (time * 10).toInt()))
+        return cluster.moveToColorCommand(x, y, (time * 10).toInt())
     }
 }

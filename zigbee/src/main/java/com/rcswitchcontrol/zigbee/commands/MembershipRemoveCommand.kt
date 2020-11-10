@@ -40,7 +40,8 @@ class MembershipRemoveCommand : AbsZigBeeCommand() {
      * @return the command result future
      */
     private fun ZigBeeNetworkManager.removeMembership(device: ZigBeeEndpoint, groupId: Int): Future<CommandResult> {
-        val command = RemoveGroupCommand(groupId)
+        val command = RemoveGroupCommand()
+        command.groupId = groupId
         command.destinationAddress = device.endpointAddress
 
         return sendTransaction(command, ZclTransactionMatcher())

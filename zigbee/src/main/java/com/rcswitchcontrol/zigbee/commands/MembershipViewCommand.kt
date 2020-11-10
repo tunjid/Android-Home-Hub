@@ -52,7 +52,8 @@ class MembershipViewCommand : AbsZigBeeCommand() {
      * @return the command result future
      */
     fun ZigBeeNetworkManager.viewMembership(device: ZigBeeEndpoint, groupId: Int): Future<CommandResult> {
-        val command = ViewGroupCommand(groupId)
+        val command = ViewGroupCommand()
+        command.groupId = groupId
         command.destinationAddress = device.endpointAddress
 
         return sendTransaction(command, ZclTransactionMatcher())

@@ -25,12 +25,14 @@
 package com.tunjid.rcswitchcontrol.viewmodels
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import com.jakewharton.rx.replayingShare
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Device
 import com.rcswitchcontrol.protocols.models.Payload
+import com.rcswitchcontrol.zigbee.models.ZigBeeAttribute
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommandInfo
 import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
@@ -43,9 +45,9 @@ import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
 import com.tunjid.rcswitchcontrol.common.Broadcaster
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.deserializeList
-import com.tunjid.rcswitchcontrol.models.Record
 import com.tunjid.rcswitchcontrol.models.ControlState
 import com.tunjid.rcswitchcontrol.models.Page
+import com.tunjid.rcswitchcontrol.models.Record
 import com.tunjid.rcswitchcontrol.models.reduceCommands
 import com.tunjid.rcswitchcontrol.models.reduceDevices
 import com.tunjid.rcswitchcontrol.models.reduceHistory
@@ -94,7 +96,11 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
             val record = payload.extractRecord()
             val fetchedDevices = payload.extractDevices()
             val commandInfo = payload.extractCommandInfo()
+            val attributes = payload.extractDeviceAttributes()
 
+            if (attributes != null) {
+                Log.i("TEST", "ATTRIBUTES: $attributes")
+            }
             state.copy(isNew = isNew, connectionState = connectionState, commandInfo = commandInfo)
                     .reduceCommands(payload)
                     .reduceHistory(record)
@@ -180,7 +186,7 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun Payload.extractCommandInfo(): ZigBeeCommandInfo? {
         if (BLERFProtocol::class.java.name == key || SerialRFProtocol::class.java.name == key) return null
-        if (extractDevices() != null) return null
+        if (action == ZigBeeDevice.DEVICE_ATTRIBUTES_ACTION || extractDevices() != null) return null
         return data?.deserialize(ZigBeeCommandInfo::class)
     }
 
@@ -196,11 +202,19 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
                 else -> null
             }
             ZigBeeProtocol::class.java.name -> when (action) {
-                context.getString(R.string.zigbeeprotocol_saved_devices) -> serialized.deserializeList(ZigBeeDevice::class)
+                ZigBeeDevice.SAVED_DEVICES_ACTION -> serialized.deserializeList(ZigBeeDevice::class)
                 else -> null
             }
             else -> null
         }
+    }
+
+    private fun Payload.extractDeviceAttributes(): List<ZigBeeAttribute>? = when (key) {
+        ZigBeeProtocol::class.java.name -> when (action) {
+            ZigBeeDevice.DEVICE_ATTRIBUTES_ACTION -> data?.deserializeList(ZigBeeAttribute::class)
+            else -> null
+        }
+        else -> null
     }
 
 }

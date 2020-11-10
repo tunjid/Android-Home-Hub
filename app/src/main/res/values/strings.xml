@@ -85,6 +85,7 @@
     <string name="zigbee_diagnostic_read_attribute">Read %1$s</string>
     <string name="zigbee_diagnostic_node">Node</string>
     <string name="zigbee_diagnostic_rediscover">Rediscover</string>
+    <string name="zigbee_diagnostic_refresh">Refresh</string>
 
     <!-- ZigBee Command Arguments -->
     <string name="zigbee_command_arguments_title">Command: %1$s</string>

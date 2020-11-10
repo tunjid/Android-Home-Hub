@@ -28,11 +28,16 @@ import com.zsmartsystems.zigbee.CommandResult
 import com.zsmartsystems.zigbee.ZigBeeAddress
 import com.zsmartsystems.zigbee.ZigBeeEndpoint
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager
-import com.zsmartsystems.zigbee.console.ZigBeeConsoleCommand
+import com.zsmartsystems.zigbee.console.ZigBeeConsoleAbstractCommand
 import java.io.PrintStream
 import java.util.concurrent.Future
 
-abstract class AbsZigBeeCommand : ZigBeeConsoleCommand {
+/**
+ * Commands that push payloads out directly
+ */
+interface PayloadPublishing
+
+abstract class AbsZigBeeCommand : ZigBeeConsoleAbstractCommand() {
 
     override fun getSyntax(): String = "$command $args"
 
@@ -70,13 +75,10 @@ abstract class AbsZigBeeCommand : ZigBeeConsoleCommand {
      * @return the device
      */
 
-    protected fun ZigBeeNetworkManager.findDevice(deviceIdentifier: String): ZigBeeEndpoint? {
-        for (node in nodes)
-            for (endpoint in node.endpoints)
-                if (deviceIdentifier == node.networkAddress.toString() + "/" + endpoint.endpointId)
-                    return endpoint
-
-        return null
+    protected fun ZigBeeNetworkManager.findDevice(deviceIdentifier: String): ZigBeeEndpoint? = try {
+        getEndpoint(this, deviceIdentifier)
+    } catch (e: Exception) {
+        null
     }
 
     /**
@@ -97,6 +99,6 @@ abstract class AbsZigBeeCommand : ZigBeeConsoleCommand {
         }
     }
 
-    fun PrintStream.push(line: String) =  println(line)
+    fun PrintStream.push(line: String) = println(line)
 
 }

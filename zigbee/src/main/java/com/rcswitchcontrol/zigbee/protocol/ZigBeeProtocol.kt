@@ -30,6 +30,7 @@ import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.io.ConsoleStream
 import com.rcswitchcontrol.protocols.models.Payload
 import com.rcswitchcontrol.zigbee.R
+import com.rcswitchcontrol.zigbee.commands.PayloadPublishing
 import com.rcswitchcontrol.zigbee.io.AndroidZigBeeSerialPort
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommandInfo
@@ -39,7 +40,12 @@ import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.common.serializeList
-import com.zsmartsystems.zigbee.*
+import com.zsmartsystems.zigbee.ExtendedPanId
+import com.zsmartsystems.zigbee.ZigBeeChannel
+import com.zsmartsystems.zigbee.ZigBeeNetworkManager
+import com.zsmartsystems.zigbee.ZigBeeNetworkNodeListener
+import com.zsmartsystems.zigbee.ZigBeeNode
+import com.zsmartsystems.zigbee.ZigBeeStatus
 import com.zsmartsystems.zigbee.app.basic.ZigBeeBasicServerExtension
 import com.zsmartsystems.zigbee.app.discovery.ZigBeeDiscoveryExtension
 import com.zsmartsystems.zigbee.app.iasclient.ZigBeeIasCieExtension
@@ -53,7 +59,7 @@ import com.zsmartsystems.zigbee.transport.DeviceType
 import com.zsmartsystems.zigbee.transport.TransportConfig
 import com.zsmartsystems.zigbee.transport.TransportConfigOption
 import com.zsmartsystems.zigbee.transport.TrustCentreJoinMode
-import com.zsmartsystems.zigbee.zcl.clusters.*
+import com.zsmartsystems.zigbee.zcl.clusters.ZclIasZoneCluster
 import io.reactivex.Flowable
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.processors.PublishProcessor
@@ -63,19 +69,15 @@ import java.util.concurrent.TimeUnit
 @Suppress("PrivatePropertyName")
 class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
-    private val SAVED_DEVICES = ContextProvider.appContext.getString(R.string.zigbeeprotocol_saved_devices)
-    private val FORM_NETWORK = ContextProvider.appContext.getString(R.string.zigbeeprotocol_formnet)
-
     private val disposable = CompositeDisposable()
     private val outputProcessor: PublishProcessor<Payload> = PublishProcessor.create()
 
-    private val outStream = ConsoleStream { post(it) }
+    private val responseStream = ConsoleStream { post(it) }
+    private val payloadStream = ConsoleStream { pushOut(it.deserialize(Payload::class)) }
 
     private val dongle: ZigBeeDongleTiCc2531 = ZigBeeDongleTiCc2531(AndroidZigBeeSerialPort(driver, BAUD_RATE))
     private val dataStore = ZigBeeDataStore("46")
     private val networkManager: ZigBeeNetworkManager = ZigBeeNetworkManager(dongle)
-
-    private val availableCommands: Map<String, NamedCommand> = generateAvailableCommands()
 
     init {
         processOutput()
@@ -96,7 +98,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
                 this.action = SAVED_DEVICES
                 data = savedDevices()
                 response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_saved_devices_request)
-                appendCommands()
+                appendZigBeeCommands()
             }
             in availableCommands.keys -> {
                 val mapper = availableCommands.getValue(action)
@@ -122,10 +124,10 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
                     }
                 }
             }
-            else -> response = "Unrecognized command"
+            else -> response = "Unrecognized command $action"
         }
 
-        appendCommands()
+        appendZigBeeCommands()
     }
 
     /**
@@ -152,15 +154,9 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
             }
 
             addNetworkNodeListener(object : ZigBeeNetworkNodeListener {
-                override fun nodeAdded(node: ZigBeeNode) {
-                    Log.i("TEST", "Added node $node")
-                    post("Node Added $node")
-                }
+                override fun nodeAdded(node: ZigBeeNode) = post("Node Added $node")
 
-                override fun nodeUpdated(node: ZigBeeNode) {
-                    Log.i("TEST", "Added node $node")
-                    post("Node Updated $node")
-                }
+                override fun nodeUpdated(node: ZigBeeNode) = post("Node Updated $node")
 
                 override fun nodeRemoved(node: ZigBeeNode) = post("Node Removed $node")
             })
@@ -246,19 +242,21 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
     private fun NamedCommand.executeCommand(args: Array<String>) {
         sharedPool.submit {
             try {
-                consoleCommand.process(networkManager, args, outStream)
-            } catch (e: IllegalArgumentException) {
-                post(
-                        "Error executing command: ${e.message}",
-                        "${consoleCommand.command} ${consoleCommand.syntax}"
-                )
-            } catch (e: IllegalStateException) {
-                post(
-                        "Error executing command: " + e.message,
-                        consoleCommand.command + " " + consoleCommand.syntax
+                consoleCommand.process(
+                        networkManager,
+                        args,
+                        if (consoleCommand is PayloadPublishing) payloadStream else responseStream
                 )
             } catch (e: Exception) {
-                post("Error executing command: $e")
+                e.printStackTrace()
+                when(e)  {
+                    is IllegalArgumentException, is IllegalStateException -> post(
+                            "Error executing command: ${e.message}",
+                            "${consoleCommand.command} ${consoleCommand.syntax}"
+                    )
+                    else -> post("Error executing command: $e")
+                }
+
             }
         }
     }
@@ -301,20 +299,13 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
             .mapNotNull(ZigBeeNodeDao::device)
             .serializeList()
 
-    private fun Payload.appendCommands() {
-        addCommand(RESET)
-        addCommand(FORM_NETWORK)
-        addCommand(SAVED_DEVICES)
-        availableCommands.keys.forEach { addCommand(it) }
-    }
-
     private fun post(vararg messages: String) {
         val out = messages.commandString()
 
         sharedPool.submit {
             outputProcessor.onNext(Payload(this@ZigBeeProtocol.javaClass.name).apply {
                 response = out
-                appendCommands()
+                appendZigBeeCommands()
             })
         }
 
@@ -334,5 +325,8 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
         const val BAUD_RATE = 115200
         const val MESH_UPDATE_PERIOD = 60
         const val OUTPUT_BUFFER_RATE = 100L
+
+        internal val SAVED_DEVICES get() = ContextProvider.appContext.getString(R.string.zigbeeprotocol_saved_devices)
+        internal val FORM_NETWORK get() = ContextProvider.appContext.getString(R.string.zigbeeprotocol_formnet)
     }
 }

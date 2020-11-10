@@ -74,7 +74,7 @@ sealed class ZigBeeInput<InputT>(
 
     data class Read(val feature: ZigBeeDevice.Feature) : ZigBeeInput<ZigBeeDevice.Feature>(
             input = feature,
-            namedCommand = NamedCommand.Derived.AttributeRead
+            namedCommand = NamedCommand.Custom.DeviceAttributes
     )
 
     internal fun from(zigBeeDevice: ZigBeeDevice): ZigBeeCommand = when (this) {

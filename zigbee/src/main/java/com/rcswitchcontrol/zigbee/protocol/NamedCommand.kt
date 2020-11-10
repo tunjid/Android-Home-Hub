@@ -1,5 +1,7 @@
 package com.rcswitchcontrol.zigbee.protocol
 
+import com.rcswitchcontrol.protocols.CommsProtocol
+import com.rcswitchcontrol.protocols.models.Payload
 import com.rcswitchcontrol.zigbee.R
 import com.rcswitchcontrol.zigbee.commands.*
 import com.tunjid.rcswitchcontrol.common.ContextProvider
@@ -30,6 +32,7 @@ internal sealed class NamedCommand(open val consoleCommand: ZigBeeConsoleCommand
         object MembershipList : Custom(MembershipListCommand())
         object Rediscover : Custom(RediscoverCommand())
         object NetworkStart : Custom(StartupCommand())
+        object DeviceAttributes : Custom(ReadDeviceAttributesCommand())
 
         data class Help(val commandMap: Map<String, ZigBeeConsoleCommand>) : Custom(HelpCommand(commandMap))
     }
@@ -67,55 +70,65 @@ internal sealed class NamedCommand(open val consoleCommand: ZigBeeConsoleCommand
     }
 }
 
-internal fun generateAvailableCommands(): Map<String, NamedCommand> = mutableMapOf(
-        NamedCommand.Derived.NodeList.keyedPair,
-        NamedCommand.Derived.DescribeEndpoint.keyedPair,
-        NamedCommand.Derived.DescribeNode.keyedPair,
-        NamedCommand.Derived.Bind.keyedPair,
-        NamedCommand.Derived.Unbind.keyedPair,
-        NamedCommand.Derived.BindingTable.keyedPair,
+internal val ZigBeeProtocol.Companion.availableCommands: Map<String, NamedCommand> by lazy {
+    mutableMapOf(
+            NamedCommand.Derived.NodeList.keyedPair,
+            NamedCommand.Derived.DescribeEndpoint.keyedPair,
+            NamedCommand.Derived.DescribeNode.keyedPair,
+            NamedCommand.Derived.Bind.keyedPair,
+            NamedCommand.Derived.Unbind.keyedPair,
+            NamedCommand.Derived.BindingTable.keyedPair,
 
-        NamedCommand.Derived.AttributeRead.keyedPair,
-        NamedCommand.Derived.AttributeWrite.keyedPair,
+            NamedCommand.Derived.AttributeRead.keyedPair,
+            NamedCommand.Derived.AttributeWrite.keyedPair,
 
-        NamedCommand.Derived.AttributeSupported.keyedPair,
-        NamedCommand.Derived.SupportedCommands.keyedPair,
+            NamedCommand.Derived.AttributeSupported.keyedPair,
+            NamedCommand.Derived.SupportedCommands.keyedPair,
 
-        NamedCommand.Derived.DeviceInformation.keyedPair,
-        NamedCommand.Derived.NetworkJoin.keyedPair,
-        NamedCommand.Derived.NetworkLeave.keyedPair,
+            NamedCommand.Derived.DeviceInformation.keyedPair,
+            NamedCommand.Derived.NetworkJoin.keyedPair,
+            NamedCommand.Derived.NetworkLeave.keyedPair,
 
-        NamedCommand.Derived.ReportingConfig.keyedPair,
-        NamedCommand.Derived.ReportingSubscribe.keyedPair,
-        NamedCommand.Derived.ReportingUnsubscribe.keyedPair,
+            NamedCommand.Derived.ReportingConfig.keyedPair,
+            NamedCommand.Derived.ReportingSubscribe.keyedPair,
+            NamedCommand.Derived.ReportingUnsubscribe.keyedPair,
 
-        NamedCommand.Derived.InstallKey.keyedPair,
-        NamedCommand.Derived.LinkKey.keyedPair,
+            NamedCommand.Derived.InstallKey.keyedPair,
+            NamedCommand.Derived.LinkKey.keyedPair,
 
-        NamedCommand.Derived.NetworkBackup.keyedPair,
-        NamedCommand.Derived.NetworkDiscovery.keyedPair,
+            NamedCommand.Derived.NetworkBackup.keyedPair,
+            NamedCommand.Derived.NetworkDiscovery.keyedPair,
 
-        NamedCommand.Derived.OtaUpgrade.keyedPair,
-        NamedCommand.Derived.Channel.keyedPair,
+            NamedCommand.Derived.OtaUpgrade.keyedPair,
+            NamedCommand.Derived.Channel.keyedPair,
 
-        NamedCommand.Custom.On.keyedPair,
-        NamedCommand.Custom.Off.keyedPair,
-        NamedCommand.Custom.Color.keyedPair,
-        NamedCommand.Custom.Level.keyedPair,
+            NamedCommand.Custom.On.keyedPair,
+            NamedCommand.Custom.Off.keyedPair,
+            NamedCommand.Custom.Color.keyedPair,
+            NamedCommand.Custom.Level.keyedPair,
 
-        NamedCommand.Custom.GroupAdd.keyedPair,
-        NamedCommand.Custom.GroupRemove.keyedPair,
-        NamedCommand.Custom.GroupList.keyedPair,
+            NamedCommand.Custom.GroupAdd.keyedPair,
+            NamedCommand.Custom.GroupRemove.keyedPair,
+            NamedCommand.Custom.GroupList.keyedPair,
 
-        NamedCommand.Custom.MembershipAdd.keyedPair,
-        NamedCommand.Custom.MembershipRemove.keyedPair,
-        NamedCommand.Custom.MembershipView.keyedPair,
-        NamedCommand.Custom.MembershipList.keyedPair,
+            NamedCommand.Custom.MembershipAdd.keyedPair,
+            NamedCommand.Custom.MembershipRemove.keyedPair,
+            NamedCommand.Custom.MembershipView.keyedPair,
+            NamedCommand.Custom.MembershipList.keyedPair,
 
-        NamedCommand.Custom.Rediscover.keyedPair
+            NamedCommand.Custom.Rediscover.keyedPair,
+            NamedCommand.Custom.DeviceAttributes.keyedPair,
 
-).let { commands -> commands + NamedCommand.Custom.Help(commands.mapValues { it.value.consoleCommand }).keyedPair }
+    ).let { commands -> commands + NamedCommand.Custom.Help(commands.mapValues { it.value.consoleCommand }).keyedPair }
+}
 
 
 private val NamedCommand.keyedPair
     get() = name to this
+
+internal fun Payload.appendZigBeeCommands() = apply {
+    addCommand(CommsProtocol.RESET)
+    addCommand(ZigBeeProtocol.FORM_NETWORK)
+    addCommand(ZigBeeProtocol.SAVED_DEVICES)
+    ZigBeeProtocol.availableCommands.keys.forEach(::addCommand)
+}

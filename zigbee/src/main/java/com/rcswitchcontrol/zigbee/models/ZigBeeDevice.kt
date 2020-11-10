@@ -29,10 +29,19 @@ import com.rcswitchcontrol.zigbee.R
 import com.rcswitchcontrol.zigbee.commands.GroupAddCommand
 import com.rcswitchcontrol.zigbee.commands.MembershipAddCommand
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
+import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.zsmartsystems.zigbee.database.ZclAttributeDao
 import com.zsmartsystems.zigbee.database.ZclClusterDao
 import com.zsmartsystems.zigbee.database.ZigBeeNodeDao
 import com.zsmartsystems.zigbee.zcl.protocol.ZclClusterType
+
+data class ZigBeeAttribute(
+        val id: Int,
+        val endpointId: Int,
+        val clusterId: Int,
+        val type: String,
+        val value: Any
+)
 
 data class ZigBeeDevice internal constructor(
         override val name: String,
@@ -99,6 +108,11 @@ data class ZigBeeDevice internal constructor(
         if (clusterAttributeMap != other.clusterAttributeMap) return false
 
         return true
+    }
+
+    companion object {
+        val SAVED_DEVICES_ACTION get() = ContextProvider.appContext.getString(R.string.zigbeeprotocol_saved_devices)
+        val DEVICE_ATTRIBUTES_ACTION get() = ContextProvider.appContext.getString(R.string.zigbeeprotocol_device_attributes)
     }
 }
 

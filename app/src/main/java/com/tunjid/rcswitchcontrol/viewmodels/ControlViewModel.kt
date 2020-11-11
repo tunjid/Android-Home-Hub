@@ -30,11 +30,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import com.jakewharton.rx.replayingShare
 import com.rcswitchcontrol.protocols.CommsProtocol
-import com.rcswitchcontrol.protocols.models.Device
 import com.rcswitchcontrol.protocols.models.Payload
 import com.rcswitchcontrol.zigbee.models.ZigBeeAttribute
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommandInfo
-import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
+import com.rcswitchcontrol.zigbee.models.ZigBeeNode
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
 import com.tunjid.androidx.core.components.services.HardServiceConnection
 import com.tunjid.rcswitchcontrol.R
@@ -46,6 +45,7 @@ import com.tunjid.rcswitchcontrol.common.Broadcaster
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.deserializeList
 import com.tunjid.rcswitchcontrol.models.ControlState
+import com.tunjid.rcswitchcontrol.models.Device
 import com.tunjid.rcswitchcontrol.models.Page
 import com.tunjid.rcswitchcontrol.models.Record
 import com.tunjid.rcswitchcontrol.models.reduceCommands
@@ -186,7 +186,7 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun Payload.extractCommandInfo(): ZigBeeCommandInfo? {
         if (BLERFProtocol::class.java.name == key || SerialRFProtocol::class.java.name == key) return null
-        if (action == ZigBeeDevice.DEVICE_ATTRIBUTES_ACTION || extractDevices() != null) return null
+        if (action == ZigBeeNode.DEVICE_ATTRIBUTES_ACTION || extractDevices() != null) return null
         return data?.deserialize(ZigBeeCommandInfo::class)
     }
 
@@ -199,10 +199,12 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
                 ClientBleService.ACTION_TRANSMITTER,
                 context.getString(R.string.blercprotocol_delete_command),
                 context.getString(R.string.blercprotocol_rename_command) -> serialized.deserializeList(RfSwitch::class)
+                        .map(Device::RF)
                 else -> null
             }
             ZigBeeProtocol::class.java.name -> when (action) {
-                ZigBeeDevice.SAVED_DEVICES_ACTION -> serialized.deserializeList(ZigBeeDevice::class)
+                ZigBeeNode.SAVED_DEVICES_ACTION -> serialized.deserializeList(ZigBeeNode::class)
+                        .map(Device::ZigBee)
                 else -> null
             }
             else -> null
@@ -211,7 +213,7 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun Payload.extractDeviceAttributes(): List<ZigBeeAttribute>? = when (key) {
         ZigBeeProtocol::class.java.name -> when (action) {
-            ZigBeeDevice.DEVICE_ATTRIBUTES_ACTION -> data?.deserializeList(ZigBeeAttribute::class)
+            ZigBeeNode.DEVICE_ATTRIBUTES_ACTION -> data?.deserializeList(ZigBeeAttribute::class)
             else -> null
         }
         else -> null

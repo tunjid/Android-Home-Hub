@@ -24,7 +24,7 @@
 
 package com.rcswitchcontrol.zigbee.models
 
-import com.rcswitchcontrol.protocols.models.Device
+import com.rcswitchcontrol.protocols.models.Peripheral
 import com.rcswitchcontrol.zigbee.R
 import com.rcswitchcontrol.zigbee.commands.GroupAddCommand
 import com.rcswitchcontrol.zigbee.commands.MembershipAddCommand
@@ -43,13 +43,13 @@ data class ZigBeeAttribute(
         val value: Any
 )
 
-data class ZigBeeDevice internal constructor(
+data class ZigBeeNode internal constructor(
         override val name: String,
         override val key: String = ZigBeeProtocol::class.java.name,
 
         @Transient // This is not serialized, it's chunky
         internal val node: ZigBeeNodeDao
-) : Device {
+) : Peripheral {
 
     enum class Feature(
             val nameRes: Int,
@@ -99,7 +99,7 @@ data class ZigBeeDevice internal constructor(
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as ZigBeeDevice
+        other as ZigBeeNode
 
         if (name != other.name) return false
         if (ieeeAddress != other.ieeeAddress) return false
@@ -116,7 +116,7 @@ data class ZigBeeDevice internal constructor(
     }
 }
 
-fun List<ZigBeeDevice>.createGroupSequence(groupName: String): List<ZigBeeCommand> {
+fun List<ZigBeeNode>.createGroupSequence(groupName: String): List<ZigBeeCommand> {
     val result = mutableListOf<ZigBeeCommand>()
 
     val groupId = groupName.hashCode().toString()
@@ -129,7 +129,7 @@ fun List<ZigBeeDevice>.createGroupSequence(groupName: String): List<ZigBeeComman
     return result
 }
 
-internal fun ZigBeeNodeDao.device(): ZigBeeDevice? = ZigBeeDevice(
+internal fun ZigBeeNodeDao.device(): ZigBeeNode? = ZigBeeNode(
         name = ieeeAddress.toString(),
         node = this
 )

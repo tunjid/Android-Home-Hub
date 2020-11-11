@@ -35,9 +35,8 @@ import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ItemTouchHelper.Callback.makeMovementFlags
 import androidx.recyclerview.widget.RecyclerView
-import com.rcswitchcontrol.protocols.models.Device
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
-import com.rcswitchcontrol.zigbee.models.ZigBeeDevice
+import com.rcswitchcontrol.zigbee.models.ZigBeeNode
 import com.rcswitchcontrol.zigbee.models.createGroupSequence
 import com.tunjid.androidx.navigation.addOnBackPressedCallback
 import com.tunjid.androidx.recyclerview.gridLayoutManager
@@ -60,6 +59,7 @@ import com.tunjid.rcswitchcontrol.databinding.ViewholderZigbeeDeviceBinding
 import com.tunjid.rcswitchcontrol.dialogfragments.GroupDeviceDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
 import com.tunjid.rcswitchcontrol.models.ControlState
+import com.tunjid.rcswitchcontrol.models.Device
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
 import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver
@@ -88,7 +88,6 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
             if (!isEnabled) activity?.onBackPressed()
             else {
                 viewModel.clearSelections()
-                refresh()
                 refreshUi()
             }
         }
@@ -104,8 +103,8 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
                     viewTypeFunction = ::getDeviceViewType,
                     viewHolderBinder = { holder, device, _ ->
                         when (device) {
-                            is RfSwitch -> holder.typed<ViewholderRemoteSwitchBinding>().bind(device)
-                            is ZigBeeDevice -> holder.typed<ViewholderZigbeeDeviceBinding>().bind(device)
+                            is Device.RF -> holder.typed<ViewholderRemoteSwitchBinding>().bind(device)
+                            is Device.ZigBee -> holder.typed<ViewholderZigbeeDeviceBinding>().bind(device)
                         }
                     },
                     itemIdFunction = { it.hashCode().toLong() }
@@ -142,16 +141,16 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
     }
 
     override fun onPrepareOptionsMenu(menu: Menu) {
-        menu.findItem(R.id.menu_rename_device)?.isVisible = viewModel.withSelectedDevices { it.size == 1 && it.first() is RfSwitch }
-        menu.findItem(R.id.menu_create_group)?.isVisible = viewModel.withSelectedDevices { it.find { device -> device is RfSwitch } == null }
+        menu.findItem(R.id.menu_rename_device)?.isVisible = viewModel.withSelectedDevices { it.size == 1 && it.first() is Device.RF }
+        menu.findItem(R.id.menu_create_group)?.isVisible = viewModel.withSelectedDevices { it.find { device -> device is Device.RF } == null }
 
         super.onPrepareOptionsMenu(menu)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
-        R.id.menu_rename_device -> RenameSwitchDialogFragment.newInstance(
-                viewModel.withSelectedDevices { it.first() } as RfSwitch
-        ).show(childFragmentManager, item.itemId.toString()).let { true }
+//        R.id.menu_rename_device -> RenameSwitchDialogFragment.newInstance(
+//                viewModel.withSelectedDevices { it.first() } as Device.RF
+//        ).show(childFragmentManager, item.itemId.toString()).let { true }
         R.id.menu_create_group -> GroupDeviceDialogFragment.newInstance.show(childFragmentManager, item.itemId.toString()).let { true }
         else -> super.onOptionsItemSelected(item)
     }
@@ -165,9 +164,9 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
     override fun onLongClicked(device: Device): Boolean = viewModel.select(device).apply { refreshUi() }
 
     override fun onSwitchToggled(device: Device, isOn: Boolean) = when (device) {
-        is RfSwitch -> viewModel.dispatchPayload(device.key) {
+        is Device.RF -> viewModel.dispatchPayload(device.key) {
             action = ClientBleService.ACTION_TRANSMITTER
-            data = device.getEncodedTransmission(isOn)
+            data = device.switch.getEncodedTransmission(isOn)
         }
         else -> Unit
     }
@@ -179,7 +178,7 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
 
     override fun onGroupNamed(groupName: CharSequence) = viewModel.run {
         withSelectedDevices { devices ->
-            devices.filterIsInstance(ZigBeeDevice::class.java)
+            devices.filterIsInstance(ZigBeeNode::class.java)
                     .createGroupSequence(groupName.toString())
                     .forEach {
                         dispatchPayload(it.key) {
@@ -190,7 +189,6 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
         }
         clearSelections()
         refreshUi()
-        refresh()
     }
 
     override fun onSwitchRenamed(rfSwitch: RfSwitch) = viewModel.dispatchPayload(rfSwitch.key) {
@@ -198,17 +196,11 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
         data = rfSwitch.serialize()
     }
 
-    private fun refresh() = Unit // listManager.notifyDataSetChanged()
-
-    private fun getDeviceViewType(device: Device) = when (device) {
-        is RfSwitch -> RF_DEVICE
-        is ZigBeeDevice -> ZIG_BEE_DEVICE
-        else -> Int.MAX_VALUE
-    }
+    private fun getDeviceViewType(device: Device) = device::class.hashCode()
 
     private fun createViewHolder(parent: ViewGroup, viewType: Int) = when (viewType) {
-        RF_DEVICE -> parent.rfDeviceDeviceViewHolder(this)
-        ZIG_BEE_DEVICE -> parent.zigbeeDeviceViewHolder(this)
+        Device.RF::class.hashCode() -> parent.rfDeviceDeviceViewHolder(this)
+        Device.ZigBee::class.hashCode() -> parent.zigbeeDeviceViewHolder(this)
         else -> parent.viewHolderFrom(ViewholderPaddingBinding::inflate)
     }
 
@@ -231,7 +223,7 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
 
         val devices = viewModel.state.value?.devices ?: listOf()
         val deletionHandler = DeletionHandler<Device>(position) { self ->
-            if (self.hasItems() && self.peek() is RfSwitch) self.pop().also { device ->
+            if (self.hasItems() && self.peek() is Device.RF) self.pop().also { device ->
                 viewModel.dispatchPayload(device.key) {
                     action = getString(R.string.blercprotocol_delete_command)
                     data = device.serialize()
@@ -259,10 +251,6 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
     }
 
     companion object {
-
-        private const val RF_DEVICE = 1
-        private const val ZIG_BEE_DEVICE = 2
-
         fun newInstance(): DevicesFragment {
             val fragment = DevicesFragment()
             val bundle = Bundle()

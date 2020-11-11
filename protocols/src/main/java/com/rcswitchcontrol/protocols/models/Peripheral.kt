@@ -26,7 +26,7 @@ package com.rcswitchcontrol.protocols.models
 
 import com.tunjid.androidx.recyclerview.diff.Differentiable
 
-interface Device : Differentiable {
+interface Peripheral : Differentiable {
     val key: String
     val name: String
 }

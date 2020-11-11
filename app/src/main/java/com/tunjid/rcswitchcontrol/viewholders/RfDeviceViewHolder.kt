@@ -27,15 +27,15 @@ package com.tunjid.rcswitchcontrol.viewholders
 import android.view.ViewGroup
 import com.tunjid.androidx.recyclerview.viewbinding.BindingViewHolder
 import com.tunjid.androidx.recyclerview.viewbinding.viewHolderFrom
-import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 import com.tunjid.rcswitchcontrol.databinding.ViewholderRemoteSwitchBinding
+import com.tunjid.rcswitchcontrol.models.Device
 
 interface RfDeviceListener : DeviceLongClickListener
 
-var BindingViewHolder<ViewholderRemoteSwitchBinding>.device by BindingViewHolder.Prop<RfSwitch>()
+var BindingViewHolder<ViewholderRemoteSwitchBinding>.device by BindingViewHolder.Prop<Device.RF>()
 var BindingViewHolder<ViewholderRemoteSwitchBinding>.listener by BindingViewHolder.Prop<RfDeviceListener>()
 
-fun BindingViewHolder<ViewholderRemoteSwitchBinding>.bind(device: RfSwitch) {
+fun BindingViewHolder<ViewholderRemoteSwitchBinding>.bind(device: Device.RF) {
     this.device = device
     binding.switchName.text = device.name
     device.highlightViewHolder(this, listener::isSelected)

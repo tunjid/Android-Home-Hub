@@ -72,19 +72,19 @@ sealed class ZigBeeInput<InputT>(
             namedCommand = NamedCommand.Custom.Color
     )
 
-    data class Read(val feature: ZigBeeDevice.Feature) : ZigBeeInput<ZigBeeDevice.Feature>(
+    data class Read(val feature: ZigBeeNode.Feature) : ZigBeeInput<ZigBeeNode.Feature>(
             input = feature,
             namedCommand = NamedCommand.Custom.DeviceAttributes
     )
 
-    internal fun from(zigBeeDevice: ZigBeeDevice): ZigBeeCommand = when (this) {
-        is Rediscover -> listOf(zigBeeDevice.ieeeAddress)
-        is Node -> listOf(zigBeeDevice.networkAdress)
-        is Toggle -> listOf(zigBeeDevice.address(ZclClusterType.ON_OFF))
-        is Level -> listOf(zigBeeDevice.address(ZclClusterType.LEVEL_CONTROL), level.toString())
-        is Color -> listOf(zigBeeDevice.address(ZclClusterType.COLOR_CONTROL), rgb.red.toString(), rgb.green.toString(), rgb.blue.toString())
-        is Read -> listOf(zigBeeDevice.address(feature.clusterType), feature.clusterType.id.toString()) +
-                zigBeeDevice.clusterAttributeMap.getValue(feature.clusterType.id).map(Int::toString)
+    internal fun from(zigBeeNode: ZigBeeNode): ZigBeeCommand = when (this) {
+        is Rediscover -> listOf(zigBeeNode.ieeeAddress)
+        is Node -> listOf(zigBeeNode.networkAdress)
+        is Toggle -> listOf(zigBeeNode.address(ZclClusterType.ON_OFF))
+        is Level -> listOf(zigBeeNode.address(ZclClusterType.LEVEL_CONTROL), level.toString())
+        is Color -> listOf(zigBeeNode.address(ZclClusterType.COLOR_CONTROL), rgb.red.toString(), rgb.green.toString(), rgb.blue.toString())
+        is Read -> listOf(zigBeeNode.address(feature.clusterType), feature.clusterType.id.toString()) +
+                zigBeeNode.clusterAttributeMap.getValue(feature.clusterType.id).map(Int::toString)
     }.let(this::args)
 
     private fun args(params: List<String>): ZigBeeCommand =

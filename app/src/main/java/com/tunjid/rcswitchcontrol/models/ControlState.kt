@@ -2,7 +2,6 @@ package com.tunjid.rcswitchcontrol.models
 
 import android.content.res.Resources
 import androidx.fragment.app.Fragment
-import com.rcswitchcontrol.protocols.models.Device
 import com.rcswitchcontrol.protocols.models.Payload
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommandInfo
 import com.tunjid.rcswitchcontrol.R

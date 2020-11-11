@@ -26,7 +26,7 @@ package com.tunjid.rcswitchcontrol.a433mhz.models
 
 import android.util.Base64
 import androidx.annotation.StringDef
-import com.rcswitchcontrol.protocols.models.Device
+import com.rcswitchcontrol.protocols.models.Peripheral
 import com.tunjid.rcswitchcontrol.a433mhz.protocols.SerialRFProtocol
 
 /**
@@ -43,7 +43,7 @@ data class RfSwitch(
         val pulseLength: ByteArray = ByteArray(4),
         val onCode: ByteArray = ByteArray(4),
         val offCode: ByteArray = ByteArray(4)
-) : Device {
+) : Peripheral {
 
     override val key: String
         get() = SerialRFProtocol::class.java.name

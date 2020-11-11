@@ -44,13 +44,7 @@ import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
 import com.tunjid.rcswitchcontrol.common.Broadcaster
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.deserializeList
-import com.tunjid.rcswitchcontrol.models.ControlState
-import com.tunjid.rcswitchcontrol.models.Device
-import com.tunjid.rcswitchcontrol.models.Page
-import com.tunjid.rcswitchcontrol.models.Record
-import com.tunjid.rcswitchcontrol.models.reduceCommands
-import com.tunjid.rcswitchcontrol.models.reduceDevices
-import com.tunjid.rcswitchcontrol.models.reduceHistory
+import com.tunjid.rcswitchcontrol.models.*
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
 import com.tunjid.rcswitchcontrol.utils.toLiveData
@@ -105,6 +99,7 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
                     .reduceCommands(payload)
                     .reduceHistory(record)
                     .reduceDevices(fetchedDevices)
+                    .reduceZigBeeAttributes(attributes)
         }
                 .subscribeOn(single())
                 .doOnSubscribe { nsdConnection.boundService?.onAppForeGround() }

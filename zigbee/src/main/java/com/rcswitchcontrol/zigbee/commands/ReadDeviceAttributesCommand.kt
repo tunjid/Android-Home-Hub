@@ -24,6 +24,7 @@
 
 package com.rcswitchcontrol.zigbee.commands
 
+import android.util.Log
 import com.rcswitchcontrol.protocols.models.Payload
 import com.rcswitchcontrol.zigbee.R
 import com.rcswitchcontrol.zigbee.models.ZigBeeAttribute
@@ -37,6 +38,7 @@ import com.zsmartsystems.zigbee.ZigBeeNetworkManager
 import com.zsmartsystems.zigbee.zcl.ZclCluster
 import com.zsmartsystems.zigbee.zcl.ZclStatus
 import com.zsmartsystems.zigbee.zcl.clusters.general.ReadAttributesResponse
+import com.zsmartsystems.zigbee.zcl.protocol.ZclClusterType
 import java.io.PrintStream
 import java.util.concurrent.ExecutionException
 
@@ -88,6 +90,8 @@ private fun ZclCluster.pullAttributes(attributeIds: List<Int>): List<ZigBeeAttri
                                 clusterId = clusterId,
                                 type = it.attributeDataType.dataClass.simpleName,
                                 value = it.attributeValue
-                        )
+                        ).also { attr ->
+                            Log.i("TEST", "${ZclClusterType.values().firstOrNull { it.id == attr.clusterId }}: ${attr.value}")
+                        }
                     }
         }

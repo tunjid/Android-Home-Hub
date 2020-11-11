@@ -3,6 +3,7 @@ package com.tunjid.rcswitchcontrol.models
 import android.content.res.Resources
 import androidx.fragment.app.Fragment
 import com.rcswitchcontrol.protocols.models.Payload
+import com.rcswitchcontrol.zigbee.models.ZigBeeAttribute
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommandInfo
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.fragments.DevicesFragment
@@ -21,11 +22,22 @@ data class ControlState(
 )
 
 val ControlState.keys get() = commands.keys.sorted().map(::ProtocolKey)
+
 fun ControlState.reduceDevices(fetched: List<Device>?) = when {
     fetched != null -> copy(devices = (fetched + devices)
             .distinctBy(Device::diffId)
             .sortedBy(Device::name))
     else -> this
+}
+
+fun ControlState.reduceZigBeeAttributes(fetched: List<ZigBeeAttribute>?) = when (fetched) {
+    null -> this
+    else -> copy(devices = devices
+            .filterIsInstance<Device.ZigBee>()
+            .map { it.foldAttributes(fetched) }
+            .plus(devices)
+            .distinctBy(Device::diffId)
+    )
 }
 
 fun ControlState.reduceHistory(record: Record?) = when {

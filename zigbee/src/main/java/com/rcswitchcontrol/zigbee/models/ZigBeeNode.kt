@@ -35,14 +35,6 @@ import com.zsmartsystems.zigbee.database.ZclClusterDao
 import com.zsmartsystems.zigbee.database.ZigBeeNodeDao
 import com.zsmartsystems.zigbee.zcl.protocol.ZclClusterType
 
-data class ZigBeeAttribute(
-        val id: Int,
-        val endpointId: Int,
-        val clusterId: Int,
-        val type: String,
-        val value: Any
-)
-
 data class ZigBeeNode internal constructor(
         override val name: String,
         override val key: String = ZigBeeProtocol::class.java.name,
@@ -133,3 +125,6 @@ internal fun ZigBeeNodeDao.device(): ZigBeeNode? = ZigBeeNode(
         name = ieeeAddress.toString(),
         node = this
 )
+
+fun ZigBeeNode.owns(attribute: ZigBeeAttribute) =
+        endpointClusterMap.keys.contains(attribute.endpointId)

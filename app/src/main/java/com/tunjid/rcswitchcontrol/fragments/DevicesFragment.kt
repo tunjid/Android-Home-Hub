@@ -60,6 +60,7 @@ import com.tunjid.rcswitchcontrol.dialogfragments.GroupDeviceDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
 import com.tunjid.rcswitchcontrol.models.ControlState
 import com.tunjid.rcswitchcontrol.models.Device
+import com.tunjid.rcswitchcontrol.models.trifecta
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
 import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver
@@ -120,8 +121,16 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
             )
 
             viewModel.state.mapDistinct(ControlState::devices).observe(viewLifecycleOwner, listAdapter::submitList)
-            viewModel.state.mapDistinct(ControlState::devices).observe(viewLifecycleOwner) {
-                Log.i("TEST", "Devices: ${it.joinToString(separator = "\n")}")
+
+            viewModel.state
+                    .mapDistinct(ControlState::devices)
+                    .mapDistinct {
+                        it.filterIsInstance<Device.ZigBee>()
+                                .map(Device.ZigBee::trifecta)
+                                .map(Triple<Pair<String, Any?>, Pair<String, Any?>, Pair<String, Any?>>::toString)
+                    }
+                    .observe(viewLifecycleOwner) {
+                Log.i("TEST", "Trifecta: ${it.joinToString(separator = "\n")}")
             }
 
         }

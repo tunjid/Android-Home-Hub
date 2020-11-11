@@ -31,9 +31,9 @@ import kotlin.reflect.KClass
 
 private val converter = Gson()
 
-fun <T : Any> T.serialize(): String = converter.toJson(this)
+fun <T : Any> T.serialize(): String = converter.toJson(this).replace("\n", "")
 
-fun <T : Any> List<T>.serializeList(): String = converter.toJson(this)
+fun <T : Any> List<T>.serializeList(): String = converter.toJson(this).replace("\n", "")
 
 fun <T : Any> String.deserialize(kClass: KClass<T>): T = converter.fromJson(this, kClass.java)
 

@@ -24,7 +24,6 @@
 
 package com.rcswitchcontrol.zigbee.commands
 
-import android.util.Log
 import com.rcswitchcontrol.protocols.models.Payload
 import com.rcswitchcontrol.zigbee.R
 import com.rcswitchcontrol.zigbee.models.ZigBeeAttribute
@@ -70,7 +69,6 @@ class ReadDeviceAttributesCommand : AbsZigBeeCommand(), PayloadPublishing {
         )
                 .appendZigBeeCommands()
                 .serialize()
-                .also { Log.i("TEST", "attrs payload serialized: $it") }
         )
     }
 }

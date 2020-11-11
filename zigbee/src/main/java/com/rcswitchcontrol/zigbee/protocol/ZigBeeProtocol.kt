@@ -73,7 +73,11 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
     private val outputProcessor: PublishProcessor<Payload> = PublishProcessor.create()
 
     private val responseStream = ConsoleStream { post(it) }
-    private val payloadStream = ConsoleStream { pushOut(it.deserialize(Payload::class)) }
+    private val payloadStream = ConsoleStream {
+        it.takeIf(String::isNotBlank)
+                ?.deserialize(Payload::class)
+                ?.let(outputProcessor::onNext)
+    }
 
     private val dongle: ZigBeeDongleTiCc2531 = ZigBeeDongleTiCc2531(AndroidZigBeeSerialPort(driver, BAUD_RATE))
     private val dataStore = ZigBeeDataStore("46")
@@ -249,7 +253,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
                 )
             } catch (e: Exception) {
                 e.printStackTrace()
-                when(e)  {
+                when (e) {
                     is IllegalArgumentException, is IllegalStateException -> post(
                             "Error executing command: ${e.message}",
                             "${consoleCommand.command} ${consoleCommand.syntax}"

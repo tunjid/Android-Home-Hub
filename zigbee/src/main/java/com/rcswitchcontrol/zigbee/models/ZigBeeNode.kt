@@ -63,7 +63,7 @@ data class ZigBeeNode internal constructor(
             .map { it.endpointId to it.inputClusters.map(ZclClusterDao::getClusterId).toSet() }
             .toMap()
 
-     internal val clusterAttributeMap: Map<Int, Set<Int>> = node.endpoints
+    internal val clusterAttributeMap: Map<Int, Set<Int>> = node.endpoints
             .map { endpoint -> endpoint.inputClusters.map { it.clusterId to it.attributes.values.map(ZclAttributeDao::getId).toSet() } }
             .flatten()
             .toMap()
@@ -127,4 +127,7 @@ internal fun ZigBeeNodeDao.device(): ZigBeeNode? = ZigBeeNode(
 )
 
 fun ZigBeeNode.owns(attribute: ZigBeeAttribute) =
-        endpointClusterMap.keys.contains(attribute.endpointId)
+        attribute.nodeAddress == ZclClusterType.values()
+                .firstOrNull { it.id == attribute.clusterId }
+                ?.let(this::address)
+                && endpointClusterMap.keys.contains(attribute.endpointId)

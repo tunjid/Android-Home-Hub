@@ -24,7 +24,6 @@
 
 package com.rcswitchcontrol.zigbee.commands
 
-import android.util.Log
 import com.rcswitchcontrol.protocols.models.Payload
 import com.rcswitchcontrol.zigbee.R
 import com.rcswitchcontrol.zigbee.models.ZigBeeAttribute
@@ -38,7 +37,6 @@ import com.zsmartsystems.zigbee.ZigBeeNetworkManager
 import com.zsmartsystems.zigbee.zcl.ZclCluster
 import com.zsmartsystems.zigbee.zcl.ZclStatus
 import com.zsmartsystems.zigbee.zcl.clusters.general.ReadAttributesResponse
-import com.zsmartsystems.zigbee.zcl.protocol.ZclClusterType
 import java.io.PrintStream
 import java.util.concurrent.ExecutionException
 
@@ -57,13 +55,14 @@ class ReadDeviceAttributesCommand : AbsZigBeeCommand(), PayloadPublishing {
     override fun process(networkManager: ZigBeeNetworkManager?, args: Array<String>, out: PrintStream) {
         require(args.size >= 4) { "Invalid number of arguments" }
 
-        val endpoint: ZigBeeEndpoint = getEndpoint(networkManager, args[1])
+        val nodeAddress = args[1]
+        val endpoint: ZigBeeEndpoint = getEndpoint(networkManager, nodeAddress)
         val cluster: ZclCluster = getCluster(endpoint, args[2])
 
         out.println(Payload(
                 key = ZigBeeProtocol::class.java.name,
                 action = command,
-                data = cluster.pullAttributes(attributeIds = args
+                data = cluster.pullAttributes(nodeAddress = nodeAddress, attributeIds = args
                         .drop(3)
                         .filterNot { it.contains("=") }
                         .mapNotNull(String::toIntOrNull))
@@ -75,7 +74,7 @@ class ReadDeviceAttributesCommand : AbsZigBeeCommand(), PayloadPublishing {
     }
 }
 
-private fun ZclCluster.pullAttributes(attributeIds: List<Int>): List<ZigBeeAttribute> =
+private fun ZclCluster.pullAttributes(nodeAddress: String, attributeIds: List<Int>): List<ZigBeeAttribute> =
         when (val response = readAttributes(attributeIds)
                 .get()
                 .takeIf(CommandResult::isSuccess)
@@ -85,13 +84,12 @@ private fun ZclCluster.pullAttributes(attributeIds: List<Int>): List<ZigBeeAttri
                     .filter { it.status == ZclStatus.SUCCESS }
                     .map {
                         ZigBeeAttribute(
-                                id = it.attributeIdentifier,
+                                nodeAddress = nodeAddress,
+                                attributeId = it.attributeIdentifier,
                                 endpointId = zigBeeAddress.endpoint,
                                 clusterId = clusterId,
                                 type = it.attributeDataType.dataClass.simpleName,
                                 value = it.attributeValue
-                        ).also { attr ->
-                            Log.i("TEST", "${ZclClusterType.values().firstOrNull { it.id == attr.clusterId }}: ${attr.value}")
-                        }
+                        )
                     }
         }

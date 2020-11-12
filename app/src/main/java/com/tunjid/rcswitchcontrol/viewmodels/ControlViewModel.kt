@@ -92,9 +92,6 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
             val commandInfo = payload.extractCommandInfo()
             val attributes = payload.extractDeviceAttributes()
 
-            if (attributes != null) {
-                Log.i("TEST", "ATTRIBUTES: $attributes")
-            }
             state.copy(isNew = isNew, connectionState = connectionState, commandInfo = commandInfo)
                     .reduceCommands(payload)
                     .reduceHistory(record)

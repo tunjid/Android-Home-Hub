@@ -4,7 +4,7 @@ import com.rcswitchcontrol.zigbee.models.ZigBeeAttribute
 import com.rcswitchcontrol.zigbee.models.ZigBeeNode
 import com.rcswitchcontrol.zigbee.models.distinctId
 import com.rcswitchcontrol.zigbee.models.owns
-import com.rcswitchcontrol.zigbee.models.supports
+import com.rcswitchcontrol.zigbee.models.valueOf
 import com.tunjid.androidx.recyclerview.diff.Differentiable
 import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 
@@ -26,28 +26,25 @@ sealed class Device(
     }
 }
 
-val Device.ZigBee.trifecta get() = Triple(
-        "level" to level,
-        "color" to color,
-        "isOn" to isOn
-)
-
-val Device.ZigBee.level
-    get() = attributes
-            .firstOrNull { it.supports(ZigBeeNode.Feature.Level) }
-            ?.value
-
-val Device.ZigBee.color
-    get() = attributes
-            .firstOrNull { it.supports(ZigBeeNode.Feature.Color) }
-            ?.value
+val Device.ZigBee.trifecta
+    get() = Triple(
+            "level" to level,
+            "color" to color,
+            "isOn" to isOn
+    )
 
 val Device.ZigBee.isOn
-    get() = attributes
-            .firstOrNull { it.supports(ZigBeeNode.Feature.OnOff) }
-            ?.value
+    get() = attributes.valueOf(ZigBeeAttribute.Descriptor.OnOffState) as? Boolean
 
-fun Device.ZigBee.foldAttributes(attributes: List<ZigBeeAttribute>) =
+val Device.ZigBee.level
+    get() = attributes.valueOf(ZigBeeAttribute.Descriptor.LevelState)
+
+
+val Device.ZigBee.color
+    get() = attributes.valueOf(ZigBeeAttribute.Descriptor.LevelState)
+
+
+fun Device.ZigBee.foldAttributes(attributes: List<ZigBeeAttribute>): Device.ZigBee =
         attributes.fold(this) { device, attribute ->
             if (device.node.owns(attribute)) device.copy(attributes = listOf(attribute)
                     .plus(device.attributes)

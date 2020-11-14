@@ -102,7 +102,7 @@ class ZigBeeArgumentDialogFragment : DialogFragment() {
     }
 
     interface ZigBeeArgsListener {
-        fun onArgsEntered(args: ZigBeeCommand)
+        fun onArgsEntered(command: ZigBeeCommand)
     }
 
     companion object {

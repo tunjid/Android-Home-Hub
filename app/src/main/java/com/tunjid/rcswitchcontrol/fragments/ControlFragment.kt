@@ -39,6 +39,7 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HALF_EX
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN
 import com.google.android.material.bottomsheet.setupForBottomSheet
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
+import com.rcswitchcontrol.zigbee.models.payload
 import com.tunjid.androidx.core.content.colorAt
 import com.tunjid.androidx.view.util.InsetFlags
 import com.tunjid.rcswitchcontrol.R
@@ -47,7 +48,6 @@ import com.tunjid.rcswitchcontrol.abstractclasses.FragmentViewBindingDelegate
 import com.tunjid.rcswitchcontrol.activities.MainActivity
 import com.tunjid.rcswitchcontrol.common.Broadcaster
 import com.tunjid.rcswitchcontrol.common.mapDistinct
-import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.databinding.FragmentControlBinding
 import com.tunjid.rcswitchcontrol.dialogfragments.ZigBeeArgumentDialogFragment
 import com.tunjid.rcswitchcontrol.models.ControlState
@@ -190,10 +190,7 @@ class ControlFragment : BaseFragment(R.layout.fragment_control), ZigBeeArgumentD
         else -> childFragmentManager.findFragmentByTag("f${viewModel.pages[index].itemId}") as? BaseFragment
     }
 
-    override fun onArgsEntered(args: ZigBeeCommand) = viewModel.dispatchPayload(args.key) {
-        action = args.name
-        data = args.serialize()
-    }
+    override fun onArgsEntered(command: ZigBeeCommand) = viewModel.dispatchPayload(command.payload)
 
     companion object {
         fun newInstance() = ControlFragment().apply { arguments = Bundle() }

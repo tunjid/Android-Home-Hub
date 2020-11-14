@@ -25,10 +25,10 @@
 package com.rcswitchcontrol.zigbee.persistence
 
 import android.content.Context
-import android.util.Log
+import com.rcswitchcontrol.zigbee.models.device
+import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.serialize
-import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.zsmartsystems.zigbee.IeeeAddress
 import com.zsmartsystems.zigbee.database.ZigBeeNetworkDataStore
 import com.zsmartsystems.zigbee.database.ZigBeeNodeDao
@@ -37,6 +37,11 @@ class ZigBeeDataStore(private val networkId: String) : ZigBeeNetworkDataStore {
 
     val hasNoDevices: Boolean
         get() = preferences(networkId).all.isEmpty()
+
+    val savedDevices
+        get() = readNetworkNodes()
+                .map(::readNode)
+                .mapNotNull(ZigBeeNodeDao::device)
 
     override fun removeNode(address: IeeeAddress) =
             preferences(networkId).edit().remove(address.toString()).apply()

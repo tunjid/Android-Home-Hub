@@ -34,13 +34,13 @@ import com.hoho.android.usbserial.driver.UsbSerialPort
 import com.hoho.android.usbserial.util.SerialInputOutputManager
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
-import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.a433mhz.R
 import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 import com.tunjid.rcswitchcontrol.a433mhz.models.bytes
 import com.tunjid.rcswitchcontrol.a433mhz.persistence.RfSwitchDataStore
 import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
 import com.tunjid.rcswitchcontrol.common.ContextProvider
+import com.tunjid.rcswitchcontrol.common.deserialize
 import java.io.PrintWriter
 
 /**

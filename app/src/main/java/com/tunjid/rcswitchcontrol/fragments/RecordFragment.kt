@@ -38,6 +38,7 @@ import com.tunjid.androidx.recyclerview.verticalLayoutManager
 import com.tunjid.androidx.recyclerview.viewbinding.typed
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
+import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderCommandBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderHistoryBinding
@@ -45,7 +46,6 @@ import com.tunjid.rcswitchcontrol.models.ControlState
 import com.tunjid.rcswitchcontrol.models.ProtocolKey
 import com.tunjid.rcswitchcontrol.models.Record
 import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.bottomInset
-import com.tunjid.rcswitchcontrol.utils.mapDistinct
 import com.tunjid.rcswitchcontrol.viewholders.bind
 import com.tunjid.rcswitchcontrol.viewholders.bindCommand
 import com.tunjid.rcswitchcontrol.viewholders.commandViewHolder

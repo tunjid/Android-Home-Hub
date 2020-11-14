@@ -27,8 +27,10 @@ package com.rcswitchcontrol.zigbee.models
 import androidx.core.graphics.blue
 import androidx.core.graphics.green
 import androidx.core.graphics.red
+import com.rcswitchcontrol.protocols.models.Payload
 import com.rcswitchcontrol.zigbee.protocol.NamedCommand
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
+import com.tunjid.rcswitchcontrol.common.serialize
 import com.zsmartsystems.zigbee.zcl.protocol.ZclClusterType
 
 data class ZigBeeCommand(
@@ -90,3 +92,10 @@ sealed class ZigBeeInput<InputT>(
     private fun args(params: List<String>): ZigBeeCommand =
             ZigBeeCommand(name = namedCommand.name, args = listOf(namedCommand.command) + params)
 }
+
+val ZigBeeCommand.payload
+    get() = Payload(
+            key = key,
+            action = name,
+            data = serialize()
+    )

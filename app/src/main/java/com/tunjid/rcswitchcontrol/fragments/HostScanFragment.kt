@@ -40,10 +40,10 @@ import com.tunjid.androidx.recyclerview.viewbinding.BindingViewHolder
 import com.tunjid.androidx.recyclerview.viewbinding.viewHolderFrom
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
+import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentNsdScanBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderNsdListBinding
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
-import com.tunjid.rcswitchcontrol.utils.mapDistinct
 import com.tunjid.rcswitchcontrol.viewmodels.NSDState
 import com.tunjid.rcswitchcontrol.viewmodels.NsdItem
 import com.tunjid.rcswitchcontrol.viewmodels.NsdScanViewModel

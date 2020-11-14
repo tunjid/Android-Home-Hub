@@ -51,11 +51,17 @@ buildscript {
         constraintLayout = 'androidx.constraintlayout:constraintlayout:2.0.4'
         dynamicAnimationsKtx = 'androidx.dynamicanimation:dynamicanimation-ktx:1.0.0-alpha03'
 
+        lifecycleRuntimeKtx = 'androidx.lifecycle:lifecycle-runtime-ktx:2.2.0'
+        lifecycleViewModelKtx = 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.2.0'
+        lifecycleExtKtx = 'androidx.lifecycle:lifecycle-extensions:2.2.0'
+        lifecycleRxKtx = 'androidx.lifecycle:lifecycle-reactivestreams-ktx:2.2.0'
+
         gson = 'com.google.code.gson:gson:2.8.5'
 
         rxJava = 'io.reactivex.rxjava2:rxjava:2.2.10'
         rxKotlin = 'io.reactivex.rxjava2:rxkotlin:2.4.0'
         rxAndroid = 'io.reactivex.rxjava2:rxandroid:2.1.1'
+        rxRelay = 'com.jakewharton.rxrelay2:rxrelay:2.0.0'
         rxReplayingShare = 'com.jakewharton.rx2:replaying-share-kotlin:2.0.0'
 
         usbSerial = 'com.github.mik3y:usb-serial-for-android:3.3.0'

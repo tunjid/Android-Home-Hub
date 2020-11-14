@@ -25,7 +25,6 @@
 package com.tunjid.rcswitchcontrol.viewmodels
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import com.jakewharton.rx.replayingShare
@@ -44,10 +43,10 @@ import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
 import com.tunjid.rcswitchcontrol.common.Broadcaster
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.deserializeList
+import com.tunjid.rcswitchcontrol.common.toLiveData
 import com.tunjid.rcswitchcontrol.models.*
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
-import com.tunjid.rcswitchcontrol.utils.toLiveData
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.rxkotlin.Flowables
 import io.reactivex.schedulers.Schedulers.single
@@ -117,6 +116,10 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun dispatchPayload(key: String, payloadReceiver: Payload.() -> Unit) = dispatchPayload(key, { true }, payloadReceiver)
+
+    fun dispatchPayload(payload: Payload) {
+        if (isConnected) nsdConnection.boundService?.sendMessage(payload)
+    }
 
     fun onBackground() = nsdConnection.boundService?.onAppBackground()
 

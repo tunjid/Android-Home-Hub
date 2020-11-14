@@ -31,7 +31,6 @@ import com.zsmartsystems.zigbee.ZigBeeAddress
 import com.zsmartsystems.zigbee.ZigBeeEndpointAddress
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager
 import com.zsmartsystems.zigbee.zcl.clusters.ZclOnOffCluster
-import com.zsmartsystems.zigbee.zcl.clusters.onoff.OnCommand
 import java.io.PrintStream
 import java.util.concurrent.Future
 

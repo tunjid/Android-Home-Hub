@@ -29,6 +29,8 @@ import android.content.Intent
 import android.net.nsd.NsdServiceInfo
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.rcswitchcontrol.protocols.CommsProtocol
+import com.rcswitchcontrol.protocols.io.ConsoleWriter
 import com.tunjid.androidx.communications.nsd.NsdHelper
 import com.tunjid.androidx.communications.nsd.NsdHelper.createBufferedReader
 import com.tunjid.androidx.communications.nsd.NsdHelper.createPrintWriter
@@ -40,8 +42,6 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.common.Broadcaster
 import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService
-import com.rcswitchcontrol.protocols.io.ConsoleWriter
-import com.rcswitchcontrol.protocols.CommsProtocol
 import com.tunjid.rcswitchcontrol.nsd.protocols.ProxyProtocol
 import com.tunjid.rcswitchcontrol.services.ClientNsdService.Companion.ACTION_START_NSD_DISCOVERY
 import io.reactivex.disposables.CompositeDisposable

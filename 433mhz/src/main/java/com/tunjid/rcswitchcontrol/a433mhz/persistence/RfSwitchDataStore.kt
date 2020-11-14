@@ -25,11 +25,11 @@
 package com.tunjid.rcswitchcontrol.a433mhz.persistence
 
 import android.content.Context
-import com.tunjid.rcswitchcontrol.common.deserializeList
-import com.tunjid.rcswitchcontrol.common.serializeList
 import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch.Companion.SWITCH_PREFS
 import com.tunjid.rcswitchcontrol.common.ContextProvider
+import com.tunjid.rcswitchcontrol.common.deserializeList
+import com.tunjid.rcswitchcontrol.common.serializeList
 
 class RfSwitchDataStore {
 

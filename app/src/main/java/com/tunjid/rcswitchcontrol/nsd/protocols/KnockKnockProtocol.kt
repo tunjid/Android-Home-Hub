@@ -25,8 +25,8 @@
 package com.tunjid.rcswitchcontrol.nsd.protocols
 
 import com.rcswitchcontrol.protocols.CommsProtocol
-import com.tunjid.rcswitchcontrol.R
 import com.rcswitchcontrol.protocols.models.Payload
+import com.tunjid.rcswitchcontrol.R
 import java.io.PrintWriter
 
 /**

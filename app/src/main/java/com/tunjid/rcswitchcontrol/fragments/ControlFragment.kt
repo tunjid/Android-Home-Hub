@@ -46,6 +46,7 @@ import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.abstractclasses.FragmentViewBindingDelegate
 import com.tunjid.rcswitchcontrol.activities.MainActivity
 import com.tunjid.rcswitchcontrol.common.Broadcaster
+import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.databinding.FragmentControlBinding
 import com.tunjid.rcswitchcontrol.dialogfragments.ZigBeeArgumentDialogFragment
@@ -61,7 +62,6 @@ import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.bottomInset
 import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.topInset
 import com.tunjid.rcswitchcontrol.utils.attach
 import com.tunjid.rcswitchcontrol.utils.itemId
-import com.tunjid.rcswitchcontrol.utils.mapDistinct
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 
 class ControlFragment : BaseFragment(R.layout.fragment_control), ZigBeeArgumentDialogFragment.ZigBeeArgsListener {

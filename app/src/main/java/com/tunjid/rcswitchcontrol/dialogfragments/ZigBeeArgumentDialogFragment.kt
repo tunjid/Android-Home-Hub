@@ -36,11 +36,11 @@ import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.DialogFragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
+import com.rcswitchcontrol.zigbee.models.ZigBeeCommandInfo
 import com.tunjid.androidx.recyclerview.adapterOf
 import com.tunjid.androidx.view.util.inflate
 import com.tunjid.rcswitchcontrol.R
-import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
-import com.rcswitchcontrol.zigbee.models.ZigBeeCommandInfo
 
 
 @SuppressLint("InflateParams")

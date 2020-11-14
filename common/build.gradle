@@ -10,6 +10,8 @@ dependencies {
     implementation parent.ext.appCompat
     implementation parent.ext.ktxCore
 
+    implementation parent.ext.lifecycleRxKtx
+
     implementation parent.ext.rxJava
     implementation parent.ext.rxAndroid
 

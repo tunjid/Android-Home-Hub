@@ -1,7 +1,7 @@
 package com.rcswitchcontrol.zigbee.commands
 
-import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.rcswitchcontrol.zigbee.R
+import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.zsmartsystems.zigbee.CommandResult
 import com.zsmartsystems.zigbee.ZigBeeEndpoint
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager

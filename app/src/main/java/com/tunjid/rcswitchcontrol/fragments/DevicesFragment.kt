@@ -38,6 +38,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
 import com.rcswitchcontrol.zigbee.models.ZigBeeNode
 import com.rcswitchcontrol.zigbee.models.createGroupSequence
+import com.rcswitchcontrol.zigbee.models.payload
 import com.tunjid.androidx.navigation.addOnBackPressedCallback
 import com.tunjid.androidx.recyclerview.gridLayoutManager
 import com.tunjid.androidx.recyclerview.listAdapterOf
@@ -51,6 +52,7 @@ import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.abstractclasses.FragmentViewBindingDelegate
+import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderPaddingBinding
@@ -64,7 +66,6 @@ import com.tunjid.rcswitchcontrol.models.trifecta
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
 import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver
-import com.tunjid.rcswitchcontrol.utils.mapDistinct
 import com.tunjid.rcswitchcontrol.viewholders.DeviceAdapterListener
 import com.tunjid.rcswitchcontrol.viewholders.bind
 import com.tunjid.rcswitchcontrol.viewholders.performLongClick
@@ -180,10 +181,7 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
         else -> Unit
     }
 
-    override fun send(command: ZigBeeCommand) = viewModel.dispatchPayload(command.key) {
-        action = command.name
-        data = command.serialize()
-    }
+    override fun send(command: ZigBeeCommand) = viewModel.dispatchPayload(command.payload)
 
     override fun onGroupNamed(groupName: CharSequence) = viewModel.run {
         withSelectedDevices { devices ->

@@ -21,12 +21,12 @@ import com.tunjid.androidx.view.util.spring
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.abstractclasses.FragmentViewBindingDelegate
+import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentControlLandscapeBinding
-import com.tunjid.rcswitchcontrol.services.ServerNsdService
-import com.tunjid.rcswitchcontrol.utils.mapDistinct
-import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 import com.tunjid.rcswitchcontrol.models.ProtocolKey
 import com.tunjid.rcswitchcontrol.models.keys
+import com.tunjid.rcswitchcontrol.services.ServerNsdService
+import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 
 class LandscapeControlFragment : BaseFragment(R.layout.fragment_control_landscape), Navigator.TagProvider {
 

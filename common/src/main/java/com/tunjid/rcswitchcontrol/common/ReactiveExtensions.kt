@@ -1,4 +1,4 @@
-package com.tunjid.rcswitchcontrol.utils
+package com.tunjid.rcswitchcontrol.common
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.LiveDataReactiveStreams
@@ -10,7 +10,6 @@ import io.reactivex.disposables.CompositeDisposable
 fun <T> Flowable<T>.toLiveData(): LiveData<T> = MainThreadLiveData(this)
 
 inline fun <reified T> Flowable<*>.filterIsInstance(): Flowable<T> = filter { it is T }.cast(T::class.java)
-
 
 fun <T, R> LiveData<T>.mapDistinct(mapper: (T) -> R): LiveData<R> =
         Transformations.distinctUntilChanged(

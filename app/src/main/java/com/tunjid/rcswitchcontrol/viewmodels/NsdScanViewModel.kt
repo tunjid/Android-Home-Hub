@@ -30,8 +30,8 @@ import android.net.nsd.NsdServiceInfo
 import androidx.lifecycle.AndroidViewModel
 import com.tunjid.androidx.communications.nsd.NsdHelper
 import com.tunjid.androidx.recyclerview.diff.Differentiable
-import com.tunjid.rcswitchcontrol.utils.filterIsInstance
-import com.tunjid.rcswitchcontrol.utils.toLiveData
+import com.tunjid.rcswitchcontrol.common.filterIsInstance
+import com.tunjid.rcswitchcontrol.common.toLiveData
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.processors.PublishProcessor
 import io.reactivex.rxkotlin.Flowables

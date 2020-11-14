@@ -27,9 +27,9 @@ package com.rcswitchcontrol.protocols
 import android.content.Context
 import androidx.annotation.StringRes
 import com.rcswitchcontrol.protocols.models.Payload
+import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.serialize
-import com.tunjid.rcswitchcontrol.common.ContextProvider
 import java.io.Closeable
 import java.io.PrintWriter
 import java.util.concurrent.ExecutorService

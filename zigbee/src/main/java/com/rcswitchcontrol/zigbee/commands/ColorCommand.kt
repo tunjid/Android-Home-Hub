@@ -24,15 +24,14 @@
 
 package com.rcswitchcontrol.zigbee.commands
 
-import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.rcswitchcontrol.zigbee.R
 import com.rcswitchcontrol.zigbee.utilities.Cie
+import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.zsmartsystems.zigbee.CommandResult
 import com.zsmartsystems.zigbee.ZigBeeAddress
 import com.zsmartsystems.zigbee.ZigBeeEndpointAddress
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager
 import com.zsmartsystems.zigbee.zcl.clusters.ZclColorControlCluster
-import com.zsmartsystems.zigbee.zcl.clusters.colorcontrol.MoveToColorCommand
 import java.io.PrintStream
 import java.util.concurrent.Future
 

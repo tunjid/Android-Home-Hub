@@ -24,14 +24,13 @@
 
 package com.rcswitchcontrol.zigbee.commands
 
-import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.rcswitchcontrol.zigbee.R
+import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.zsmartsystems.zigbee.CommandResult
 import com.zsmartsystems.zigbee.ZigBeeAddress
 import com.zsmartsystems.zigbee.ZigBeeEndpointAddress
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager
 import com.zsmartsystems.zigbee.zcl.clusters.ZclLevelControlCluster
-import com.zsmartsystems.zigbee.zcl.clusters.levelcontrol.MoveToLevelWithOnOffCommand
 import java.io.PrintStream
 import java.util.concurrent.Future
 

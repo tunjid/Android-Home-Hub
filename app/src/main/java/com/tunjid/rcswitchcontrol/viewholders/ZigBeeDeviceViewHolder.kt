@@ -30,8 +30,8 @@ import com.flask.colorpicker.ColorPickerView
 import com.flask.colorpicker.builder.ColorPickerDialogBuilder
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
-import com.rcswitchcontrol.zigbee.models.ZigBeeNode
 import com.rcswitchcontrol.zigbee.models.ZigBeeInput
+import com.rcswitchcontrol.zigbee.models.ZigBeeNode
 import com.tunjid.androidx.recyclerview.viewbinding.BindingViewHolder
 import com.tunjid.androidx.recyclerview.viewbinding.viewHolderFrom
 import com.tunjid.rcswitchcontrol.R

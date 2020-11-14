@@ -108,18 +108,18 @@ data class ZigBeeNode internal constructor(
     }
 }
 
-fun List<ZigBeeNode>.createGroupSequence(groupName: String): List<ZigBeeCommand> {
-    val result = mutableListOf<ZigBeeCommand>()
-
-    val groupId = groupName.hashCode().toString()
-
-    result.add(GroupAddCommand().command.let { ZigBeeCommand(it, listOf(it, groupId, groupName)) })
-    result.addAll(map { device ->
-        MembershipAddCommand().command.let { ZigBeeCommand(it, listOf(it, device.address(ZclClusterType.ON_OFF), groupId, groupName)) }
-    })
-
-    return result
-}
+//fun List<ZigBeeNode>.createGroupSequence(groupName: String): List<ZigBeeCommand> {
+//    val result = mutableListOf<ZigBeeCommand>()
+//
+//    val groupId = groupName.hashCode().toString()
+//
+//    result.add(GroupAddCommand().command.let { ZigBeeCommand(it, listOf(it, groupId, groupName)) })
+//    result.addAll(map { device ->
+//        MembershipAddCommand().command.let { ZigBeeCommand(it, listOf(it, device.address(ZclClusterType.ON_OFF), groupId, groupName)) }
+//    })
+//
+//    return result
+//}
 
 internal fun ZigBeeNodeDao.device(): ZigBeeNode? = ZigBeeNode(
         name = ieeeAddress.toString(),

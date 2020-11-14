@@ -36,8 +36,6 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ItemTouchHelper.Callback.makeMovementFlags
 import androidx.recyclerview.widget.RecyclerView
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
-import com.rcswitchcontrol.zigbee.models.ZigBeeNode
-import com.rcswitchcontrol.zigbee.models.createGroupSequence
 import com.rcswitchcontrol.zigbee.models.payload
 import com.tunjid.androidx.navigation.addOnBackPressedCallback
 import com.tunjid.androidx.recyclerview.gridLayoutManager
@@ -49,11 +47,9 @@ import com.tunjid.androidx.recyclerview.viewbinding.typed
 import com.tunjid.androidx.recyclerview.viewbinding.viewHolderFrom
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
-import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
 import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.abstractclasses.FragmentViewBindingDelegate
 import com.tunjid.rcswitchcontrol.common.mapDistinct
-import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderPaddingBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderRemoteSwitchBinding
@@ -62,6 +58,9 @@ import com.tunjid.rcswitchcontrol.dialogfragments.GroupDeviceDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
 import com.tunjid.rcswitchcontrol.models.ControlState
 import com.tunjid.rcswitchcontrol.models.Device
+import com.tunjid.rcswitchcontrol.models.deletePayload
+import com.tunjid.rcswitchcontrol.models.renamedPayload
+import com.tunjid.rcswitchcontrol.models.togglePayload
 import com.tunjid.rcswitchcontrol.models.trifecta
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
@@ -131,8 +130,8 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
                                 .map(Triple<Pair<String, Any?>, Pair<String, Any?>, Pair<String, Any?>>::toString)
                     }
                     .observe(viewLifecycleOwner) {
-                Log.i("TEST", "Trifecta: \n ${it.joinToString(separator = "\n")}")
-            }
+                        Log.i("TEST", "Trifecta: \n ${it.joinToString(separator = "\n")}")
+                    }
 
         }
     }
@@ -174,34 +173,19 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
     override fun onLongClicked(device: Device): Boolean = viewModel.select(device).apply { refreshUi() }
 
     override fun onSwitchToggled(device: Device, isOn: Boolean) = when (device) {
-        is Device.RF -> viewModel.dispatchPayload(device.key) {
-            action = ClientBleService.ACTION_TRANSMITTER
-            data = device.switch.getEncodedTransmission(isOn)
-        }
+        is Device.RF -> viewModel.dispatchPayload(device.togglePayload(isOn))
         else -> Unit
     }
 
     override fun send(command: ZigBeeCommand) = viewModel.dispatchPayload(command.payload)
 
     override fun onGroupNamed(groupName: CharSequence) = viewModel.run {
-        withSelectedDevices { devices ->
-            devices.filterIsInstance(ZigBeeNode::class.java)
-                    .createGroupSequence(groupName.toString())
-                    .forEach {
-                        dispatchPayload(it.key) {
-                            action = it.name
-                            data = it.serialize()
-                        }
-                    }
-        }
+        withSelectedDevices {}
         clearSelections()
         refreshUi()
     }
 
-    override fun onSwitchRenamed(rfSwitch: RfSwitch) = viewModel.dispatchPayload(rfSwitch.key) {
-        action = getString(R.string.blercprotocol_rename_command)
-        data = rfSwitch.serialize()
-    }
+    override fun onSwitchRenamed(rfSwitch: RfSwitch) = viewModel.dispatchPayload(Device.RF(rfSwitch).renamedPayload)
 
     private fun getDeviceViewType(device: Device) = device::class.hashCode()
 
@@ -231,10 +215,7 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
         val devices = viewModel.state.value?.devices ?: listOf()
         val deletionHandler = DeletionHandler<Device>(position) { self ->
             if (self.hasItems() && self.peek() is Device.RF) self.pop().also { device ->
-                viewModel.dispatchPayload(device.key) {
-                    action = getString(R.string.blercprotocol_delete_command)
-                    data = device.serialize()
-                }
+                viewModel.dispatchPayload((device as Device.RF).deletePayload)
             }
             isDeleting = false
         }

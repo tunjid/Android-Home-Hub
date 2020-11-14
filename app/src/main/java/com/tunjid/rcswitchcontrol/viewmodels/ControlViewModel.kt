@@ -115,8 +115,6 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
         super.onCleared()
     }
 
-    fun dispatchPayload(key: String, payloadReceiver: Payload.() -> Unit) = dispatchPayload(key, { true }, payloadReceiver)
-
     fun dispatchPayload(payload: Payload) {
         if (isConnected) nsdConnection.boundService?.sendMessage(payload)
     }
@@ -143,10 +141,12 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
 
     fun <T> withSelectedDevices(function: (Set<Device>) -> T): T = function.invoke(selectedDevices.values.toSet())
 
-    fun pingServer() = dispatchPayload(
-            CommsProtocol::class.java.name,
-            { state.value?.commands.let { it == null || it.isEmpty() } }
-    ) { action = (CommsProtocol.PING) }
+    fun pingServer() {
+        if (state.value?.commands.let { it == null || it.isEmpty() }) dispatchPayload(Payload(
+                key = CommsProtocol::class.java.name,
+                action = CommsProtocol.PING
+        ))
+    }
 
     private fun getConnectionText(newState: String): String {
         val context = getApplication<Application>()

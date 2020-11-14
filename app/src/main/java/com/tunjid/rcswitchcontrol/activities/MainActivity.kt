@@ -27,6 +27,7 @@ package com.tunjid.rcswitchcontrol.activities
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -37,8 +38,8 @@ import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.common.Broadcaster
 import com.tunjid.rcswitchcontrol.fragments.ControlFragment
-import com.tunjid.rcswitchcontrol.fragments.StartFragment
 import com.tunjid.rcswitchcontrol.fragments.LandscapeControlFragment
+import com.tunjid.rcswitchcontrol.fragments.StartFragment
 import com.tunjid.rcswitchcontrol.navigation.AppNavigator
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
@@ -58,6 +59,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main),
         super.onCreate(savedInstanceState)
 
         window.statusBarColor = ContextCompat.getColor(this, R.color.transparent)
+        if (ServerNsdService.isServer) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         supportFragmentManager.registerFragmentLifecycleCallbacks(windowInsetsDriver(), false)
         supportFragmentManager.registerFragmentLifecycleCallbacks(transientBarCallback(), false)
 

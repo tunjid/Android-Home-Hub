@@ -24,7 +24,6 @@
 
 package com.rcswitchcontrol.zigbee.protocol
 
-import android.util.Log
 import com.hoho.android.usbserial.driver.UsbSerialDriver
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.io.ConsoleStream
@@ -50,6 +49,7 @@ import com.zsmartsystems.zigbee.app.basic.ZigBeeBasicServerExtension
 import com.zsmartsystems.zigbee.app.discovery.ZigBeeDiscoveryExtension
 import com.zsmartsystems.zigbee.app.iasclient.ZigBeeIasCieExtension
 import com.zsmartsystems.zigbee.app.otaserver.ZigBeeOtaUpgradeExtension
+import com.zsmartsystems.zigbee.console.ZigBeeConsoleCommand
 import com.zsmartsystems.zigbee.database.ZigBeeNodeDao
 import com.zsmartsystems.zigbee.dongle.cc2531.ZigBeeDongleTiCc2531
 import com.zsmartsystems.zigbee.security.ZigBeeKey
@@ -60,9 +60,12 @@ import com.zsmartsystems.zigbee.transport.TransportConfig
 import com.zsmartsystems.zigbee.transport.TransportConfigOption
 import com.zsmartsystems.zigbee.transport.TrustCentreJoinMode
 import com.zsmartsystems.zigbee.zcl.clusters.ZclIasZoneCluster
+import io.reactivex.Completable
 import io.reactivex.Flowable
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.processors.PublishProcessor
+import io.reactivex.rxkotlin.addTo
+import io.reactivex.schedulers.Schedulers
 import java.io.PrintWriter
 import java.util.concurrent.TimeUnit
 
@@ -70,6 +73,7 @@ import java.util.concurrent.TimeUnit
 class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsProtocol(printWriter) {
 
     private val disposable = CompositeDisposable()
+    private val argsProcessor: PublishProcessor<Pair<ZigBeeConsoleCommand, Array<String>>> = PublishProcessor.create()
     private val outputProcessor: PublishProcessor<Payload> = PublishProcessor.create()
 
     private val responseStream = ConsoleStream { post(it) }
@@ -84,64 +88,81 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
     private val networkManager: ZigBeeNetworkManager = ZigBeeNetworkManager(dongle)
 
     init {
-        processOutput()
+        val sharedScheduler = Schedulers.from(sharedPool)
+        outputProcessor
+                .onBackpressureBuffer()
+                .concatMap {
+                    Flowable.just(it)
+                            .delay(OUTPUT_BUFFER_RATE, TimeUnit.MILLISECONDS, sharedScheduler)
+                }
+                .observeOn(sharedScheduler)
+                .subscribe(this::pushOut)
+                .addTo(disposable)
+
+        argsProcessor.concatMapCompletable { (consoleCommand, args) ->
+            Completable.fromCallable {
+                consoleCommand.process(
+                        networkManager,
+                        args,
+                        if (consoleCommand is PayloadPublishing) payloadStream else responseStream
+                )
+            }
+                    .onErrorResumeNext {
+                        post(
+                                "Error executing command: ${it.message}",
+                                "${consoleCommand.command} ${consoleCommand.syntax}"
+                        )
+                        Completable.complete()
+                    }
+                    .subscribeOn(sharedScheduler)
+        }
+                .subscribe()
+                .addTo(disposable)
         sharedPool.submit(::start)
     }
 
     override fun processInput(payload: Payload): Payload = Payload(javaClass.name).apply {
         addCommand(RESET)
 
-        when (val action = payload.action ?: "invalid command") {
+        when (val payloadAction = payload.action ?: "invalid command") {
             RESET -> reset()
             FORM_NETWORK -> {
                 response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_forming_network)
                 formNetwork()
             }
             PING, SAVED_DEVICES -> {
-                response = (ContextProvider.appContext.getString(R.string.zigbeeprotocol_ping))
-                this.action = SAVED_DEVICES
-                data = savedDevices()
-                response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_saved_devices_request)
-                appendZigBeeCommands()
+                action = SAVED_DEVICES
+                response = ContextProvider.appContext.getString(
+                        if (payloadAction == PING) R.string.zigbeeprotocol_saved_devices_request
+                        else R.string.zigbeeprotocol_ping
+                )
+                data = dataStore.readNetworkNodes()
+                        .map(dataStore::readNode)
+                        .mapNotNull(ZigBeeNodeDao::device)
+                        .serializeList()
             }
             in availableCommands.keys -> {
-                val mapper = availableCommands.getValue(action)
+                val mapper = availableCommands.getValue(payloadAction)
                 val consoleCommand = mapper.consoleCommand
                 val command = payload.data?.deserialize(ZigBeeCommand::class)
                 val needsCommandArgs: Boolean = (command == null || command.isInvalid) && consoleCommand.syntax.isNotEmpty()
 
                 when {
                     needsCommandArgs -> {
-                        response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_enter_args, action)
-                        data = ZigBeeCommandInfo(action, consoleCommand.description, consoleCommand.syntax, consoleCommand.help).serialize()
+                        response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_enter_args, payloadAction)
+                        data = ZigBeeCommandInfo(payloadAction, consoleCommand.description, consoleCommand.syntax, consoleCommand.help).serialize()
                     }
                     else -> {
-                        val args = command?.args?.toTypedArray() ?: arrayOf(action)
+                        val args = command?.args?.toTypedArray() ?: arrayOf(payloadAction)
                         response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_executing, args.commandString())
-
-                        try {
-                            mapper.executeCommand(args)
-                        } catch (e: Exception) {
-                            post("Exception in executing command: ${args.commandString()}")
-                            e.printStackTrace()
-                        }
+                        argsProcessor.onNext(mapper.consoleCommand to args)
                     }
                 }
             }
-            else -> response = "Unrecognized command $action"
+            else -> response = "Unrecognized command $payloadAction"
         }
 
         appendZigBeeCommands()
-    }
-
-    /**
-     * Buffers writes to the output stream because quick concurrent writes cause data loss to the client
-     */
-    private fun processOutput() {
-        disposable.add(outputProcessor
-                .onBackpressureBuffer()
-                .concatMap { Flowable.just(it).delay(OUTPUT_BUFFER_RATE, TimeUnit.MILLISECONDS) }
-                .subscribe({ sharedPool.submit { pushOut(it) } }, { it.printStackTrace(); processOutput() }))
     }
 
     private fun start() {
@@ -238,33 +259,6 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
         dongle.setLedMode(2, false)
     }
 
-    /**
-     * Executes command.
-     *
-     * @param args the arguments including the command
-     */
-    private fun NamedCommand.executeCommand(args: Array<String>) {
-        sharedPool.submit {
-            try {
-                consoleCommand.process(
-                        networkManager,
-                        args,
-                        if (consoleCommand is PayloadPublishing) payloadStream else responseStream
-                )
-            } catch (e: Exception) {
-                e.printStackTrace()
-                when (e) {
-                    is IllegalArgumentException, is IllegalStateException -> post(
-                            "Error executing command: ${e.message}",
-                            "${consoleCommand.command} ${consoleCommand.syntax}"
-                    )
-                    else -> post("Error executing command: $e")
-                }
-
-            }
-        }
-    }
-
     private fun reset() {
         val nwkKey: ZigBeeKey = ZigBeeKey.createRandom()
         val linkKey = ZigBeeKey(intArrayOf(0x5A, 0x69, 0x67, 0x42, 0x65, 0x65, 0x41, 0x6C, 0x6C, 0x69, 0x61, 0x6E, 0x63, 0x65, 0x30, 0x39))
@@ -294,27 +288,16 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
         post(stringBuilder.toString())
     }
 
-    private fun formNetwork() = NamedCommand.Custom.NetworkStart.executeCommand(
+    private fun formNetwork() = argsProcessor.onNext(Pair(
+            NamedCommand.Custom.NetworkStart.consoleCommand,
             arrayOf(ContextProvider.appContext.getString(R.string.zigbeeprotocol_netstart), "${networkManager.zigBeePanId}", "${networkManager.zigBeeExtendedPanId}")
-    )
+    ))
 
-    private fun savedDevices() = dataStore.readNetworkNodes()
-            .map(dataStore::readNode)
-            .mapNotNull(ZigBeeNodeDao::device)
-            .serializeList()
-
-    private fun post(vararg messages: String) {
-        val out = messages.commandString()
-
-        sharedPool.submit {
+    private fun post(vararg messages: String) =
             outputProcessor.onNext(Payload(this@ZigBeeProtocol.javaClass.name).apply {
-                response = out
+                response = messages.commandString()
                 appendZigBeeCommands()
             })
-        }
-
-        Log.i("IOT", out)
-    }
 
     private fun Array<out String>.commandString() = joinToString(separator = " ")
 

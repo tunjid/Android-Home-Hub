@@ -19,7 +19,9 @@ dependencies {
     implementation parent.ext.tunjiAndroidxRecyclerView
 
     implementation parent.ext.rxJava
+    implementation parent.ext.rxKotlin
     implementation parent.ext.rxAndroid
+    implementation parent.ext.rxReplayingShare
 
     implementation parent.ext.usbSerial
 

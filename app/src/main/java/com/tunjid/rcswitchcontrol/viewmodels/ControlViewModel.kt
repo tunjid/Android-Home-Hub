@@ -41,6 +41,7 @@ import com.tunjid.rcswitchcontrol.a433mhz.protocols.BLERFProtocol
 import com.tunjid.rcswitchcontrol.a433mhz.protocols.SerialRFProtocol
 import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
 import com.tunjid.rcswitchcontrol.common.Broadcaster
+import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.deserializeList
 import com.tunjid.rcswitchcontrol.common.toLiveData
@@ -166,54 +167,6 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
             else -> ""
         }
     }
-
-    private fun dispatchPayload(key: String, predicate: (() -> Boolean), payloadReceiver: Payload.() -> Unit) {
-        val payload = Payload(key)
-        payloadReceiver.invoke(payload)
-        if (predicate.invoke() && isConnected) nsdConnection.boundService?.sendMessage(payload)
-                ?: Unit
-    }
-
-    private fun Payload.extractRecord(): Record? = response.let {
-        if (it == null || it.isBlank()) null
-        else Record(key, it, true)
-    }
-
-    private fun Payload.extractCommandInfo(): ZigBeeCommandInfo? {
-        if (BLERFProtocol::class.java.name == key || SerialRFProtocol::class.java.name == key) return null
-        if (action == ZigBeeNode.DEVICE_ATTRIBUTES_ACTION || extractDevices() != null) return null
-        return data?.deserialize(ZigBeeCommandInfo::class)
-    }
-
-    private fun Payload.extractDevices(): List<Device>? {
-        val serialized = data ?: return null
-        val context = getApplication<Application>()
-
-        return when (key) {
-            BLERFProtocol::class.java.name, SerialRFProtocol::class.java.name -> when (action) {
-                ClientBleService.ACTION_TRANSMITTER,
-                context.getString(R.string.blercprotocol_delete_command),
-                context.getString(R.string.blercprotocol_rename_command) -> serialized.deserializeList(RfSwitch::class)
-                        .map(Device::RF)
-                else -> null
-            }
-            ZigBeeProtocol::class.java.name -> when (action) {
-                ZigBeeNode.SAVED_DEVICES_ACTION -> serialized.deserializeList(ZigBeeNode::class)
-                        .map(Device::ZigBee)
-                else -> null
-            }
-            else -> null
-        }
-    }
-
-    private fun Payload.extractDeviceAttributes(): List<ZigBeeAttribute>? = when (key) {
-        ZigBeeProtocol::class.java.name -> when (action) {
-            ZigBeeNode.DEVICE_ATTRIBUTES_ACTION -> data?.deserializeList(ZigBeeAttribute::class)
-            else -> null
-        }
-        else -> null
-    }
-
 }
 
 private val connectionActions = arrayOf(
@@ -223,3 +176,42 @@ private val connectionActions = arrayOf(
         ClientNsdService.ACTION_START_NSD_DISCOVERY
 )
 
+private fun Payload.extractRecord(): Record? = response.let {
+    if (it == null || it.isBlank()) null
+    else Record(key, it, true)
+}
+
+private fun Payload.extractCommandInfo(): ZigBeeCommandInfo? {
+    if (BLERFProtocol::class.java.name == key || SerialRFProtocol::class.java.name == key) return null
+    if (action == ZigBeeNode.DEVICE_ATTRIBUTES_ACTION || extractDevices() != null) return null
+    return data?.deserialize(ZigBeeCommandInfo::class)
+}
+
+private fun Payload.extractDevices(): List<Device>? {
+    val serialized = data ?: return null
+    val context = ContextProvider.appContext
+
+    return when (key) {
+        BLERFProtocol::class.java.name, SerialRFProtocol::class.java.name -> when (action) {
+            ClientBleService.ACTION_TRANSMITTER,
+            context.getString(R.string.blercprotocol_delete_command),
+            context.getString(R.string.blercprotocol_rename_command) -> serialized.deserializeList(RfSwitch::class)
+                    .map(Device::RF)
+            else -> null
+        }
+        ZigBeeProtocol::class.java.name -> when (action) {
+            ZigBeeNode.SAVED_DEVICES_ACTION -> serialized.deserializeList(ZigBeeNode::class)
+                    .map(Device::ZigBee)
+            else -> null
+        }
+        else -> null
+    }
+}
+
+private fun Payload.extractDeviceAttributes(): List<ZigBeeAttribute>? = when (key) {
+    ZigBeeProtocol::class.java.name -> when (action) {
+        ZigBeeNode.DEVICE_ATTRIBUTES_ACTION -> data?.deserializeList(ZigBeeAttribute::class)
+        else -> null
+    }
+    else -> null
+}

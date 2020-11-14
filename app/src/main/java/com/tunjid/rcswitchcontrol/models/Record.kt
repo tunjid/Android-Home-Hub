@@ -24,13 +24,17 @@
 
 package com.tunjid.rcswitchcontrol.models
 
+import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.recyclerview.diff.Differentiable
 
 data class Record(
         val key: String,
         val entry: String,
         val fromServer: Boolean
-): Differentiable {
+) : Differentiable {
     override val diffId: String
         get() = key
 }
+
+val Record.payload
+    get() = Payload(key = key, action = entry)

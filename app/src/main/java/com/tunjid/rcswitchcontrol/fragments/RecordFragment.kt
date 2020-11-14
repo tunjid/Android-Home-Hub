@@ -45,6 +45,7 @@ import com.tunjid.rcswitchcontrol.databinding.ViewholderHistoryBinding
 import com.tunjid.rcswitchcontrol.models.ControlState
 import com.tunjid.rcswitchcontrol.models.ProtocolKey
 import com.tunjid.rcswitchcontrol.models.Record
+import com.tunjid.rcswitchcontrol.models.payload
 import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.bottomInset
 import com.tunjid.rcswitchcontrol.viewholders.bind
 import com.tunjid.rcswitchcontrol.viewholders.bindCommand
@@ -117,8 +118,7 @@ sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
         updateUi(altToolBarShows = false)
     }
 
-    private fun onRecordClicked(record: Record) =
-            viewModel.dispatchPayload(record.key) { action = record.entry }
+    private fun onRecordClicked(record: Record) = viewModel.dispatchPayload(record.payload)
 
     companion object {
 

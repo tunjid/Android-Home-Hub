@@ -79,7 +79,7 @@ sealed class ZigBeeInput<InputT>(
             namedCommand = NamedCommand.Custom.DeviceAttributes
     )
 
-    internal fun from(zigBeeNode: ZigBeeNode): ZigBeeCommand = when (this) {
+    internal fun commandFor(zigBeeNode: ZigBeeNode): ZigBeeCommand = when (this) {
         is Rediscover -> listOf(zigBeeNode.ieeeAddress)
         is Node -> listOf(zigBeeNode.networkAdress)
         is Toggle -> listOf(zigBeeNode.address(ZclClusterType.ON_OFF))

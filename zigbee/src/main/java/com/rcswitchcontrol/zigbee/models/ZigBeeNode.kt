@@ -26,8 +26,6 @@ package com.rcswitchcontrol.zigbee.models
 
 import com.rcswitchcontrol.protocols.models.Peripheral
 import com.rcswitchcontrol.zigbee.R
-import com.rcswitchcontrol.zigbee.commands.GroupAddCommand
-import com.rcswitchcontrol.zigbee.commands.MembershipAddCommand
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
 import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.zsmartsystems.zigbee.database.ZclAttributeDao
@@ -83,7 +81,7 @@ data class ZigBeeNode internal constructor(
             .firstOrNull { it.value.contains(clusterType.id) }
             ?.key
 
-    fun command(input: ZigBeeInput<*>): ZigBeeCommand = input.from(this)
+    fun command(input: ZigBeeInput<*>): ZigBeeCommand = input.commandFor(this)
 
     override fun hashCode(): Int = ieeeAddress.hashCode()
 

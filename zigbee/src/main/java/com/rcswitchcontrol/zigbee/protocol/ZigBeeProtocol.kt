@@ -140,12 +140,13 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
 
         actionProcessor
                 .filterIsInstance<Action.AttributeRequest>()
-                .switchMap { Flowable.fromIterable(it.nodes) }
-                .switchMap { node ->
+                .concatMap { Flowable.fromIterable(it.nodes) }
+                .concatMap { node ->
                     Flowable.fromIterable(node.supportedFeatures
                             .map { ZigBeeInput.Read(it) }
-                            .map { it.from(node) }
-                            .map(ZigBeeCommand::payload))
+                            .map { it.commandFor(node) }
+                            .map(ZigBeeCommand::payload)
+                    )
                 }
                 .subscribe(::processInput)
                 .addTo(disposable)

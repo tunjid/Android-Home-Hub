@@ -1,5 +1,6 @@
 package com.tunjid.rcswitchcontrol.models
 
+import android.util.Log
 import com.rcswitchcontrol.zigbee.models.ZigBeeAttribute
 import com.rcswitchcontrol.zigbee.models.ZigBeeNode
 import com.rcswitchcontrol.zigbee.models.distinctId
@@ -37,7 +38,12 @@ val Device.ZigBee.isOn
     get() = attributes.valueOf(ZigBeeAttribute.Descriptor.OnOffState) as? Boolean
 
 val Device.ZigBee.level
-    get() = attributes.valueOf(ZigBeeAttribute.Descriptor.LevelState)
+    get() = when (val value = attributes.valueOf(ZigBeeAttribute.Descriptor.LevelState)) {
+        is Float -> value * 100f / 256
+        is Double -> value.toFloat() * 100f / 256
+        is Int -> value.toFloat() * 100f / 256
+        else -> null
+    }.also { if(it != null) Log.i("TEST", "Level of $name is $it") }
 
 
 val Device.ZigBee.color

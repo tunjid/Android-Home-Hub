@@ -12,7 +12,10 @@ data class ZigBeeAttribute(
         val type: String,
         val value: Any
 ) {
-    enum class Descriptor(val attributeId: Int, val clusterId: Int) {
+    enum class Descriptor(
+            internal val attributeId: Int,
+            internal val clusterId: Int
+    ) {
         OnOff(ZclOnOffCluster.ATTR_ONOFF, ZclOnOffCluster.CLUSTER_ID),
         Level(ZclLevelControlCluster.ATTR_CURRENTLEVEL, ZclLevelControlCluster.CLUSTER_ID),
         Hue(ZclColorControlCluster.ATTR_CURRENTHUE, ZclColorControlCluster.CLUSTER_ID),
@@ -25,3 +28,6 @@ data class ZigBeeAttribute(
 val ZigBeeAttribute.distinctId get() = "$endpointId-$clusterId-$attributeId"
 
 val ZigBeeAttribute.numValue get() = value as? Number
+
+fun ZigBeeAttribute.Descriptor.matches(attribute: ZigBeeAttribute) =
+        attribute.attributeId == attributeId && attribute.clusterId == clusterId

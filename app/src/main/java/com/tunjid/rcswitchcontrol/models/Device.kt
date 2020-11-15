@@ -5,6 +5,7 @@ import com.rcswitchcontrol.protocols.models.Payload
 import com.rcswitchcontrol.zigbee.models.ZigBeeAttribute
 import com.rcswitchcontrol.zigbee.models.ZigBeeNode
 import com.rcswitchcontrol.zigbee.models.distinctId
+import com.rcswitchcontrol.zigbee.models.matches
 import com.rcswitchcontrol.zigbee.models.numValue
 import com.rcswitchcontrol.zigbee.models.owns
 import com.tunjid.androidx.recyclerview.diff.Differentiable
@@ -81,7 +82,6 @@ val Device.ZigBee.color
                     it.size < 2 -> null
                     else -> {
                         val (x, y) = it
-
                         @Suppress("LocalVariableName") val X = x / y
                         @Suppress("LocalVariableName") val Y = y
                         @Suppress("LocalVariableName") val Z = Y * (1 - x - y) / y
@@ -92,7 +92,7 @@ val Device.ZigBee.color
             }
 
 fun Device.ZigBee.describe(descriptor: ZigBeeAttribute.Descriptor) =
-        attributes.firstOrNull { it.attributeId == descriptor.attributeId && it.clusterId == descriptor.clusterId }
+        attributes.firstOrNull(descriptor::matches)
 
 fun Device.ZigBee.foldAttributes(attributes: List<ZigBeeAttribute>): Device.ZigBee =
         attributes.fold(this) { device, attribute ->

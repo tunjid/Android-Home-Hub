@@ -63,7 +63,7 @@ val Device.ZigBee.trifecta
     )
 
 val Device.ZigBee.isOn
-    get() = describe(ZigBeeAttribute.Descriptor.OnOff)?.value == true
+    get() = describe(ZigBeeAttribute.Descriptor.OnOff)?.value as? Boolean
 
 val Device.ZigBee.level
     get() = when (val value = describe(ZigBeeAttribute.Descriptor.Level)?.numValue) {

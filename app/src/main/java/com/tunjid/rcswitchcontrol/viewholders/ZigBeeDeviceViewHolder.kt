@@ -70,12 +70,12 @@ fun BindingViewHolder<ViewholderZigbeeDeviceBinding>.bind(device: Device.ZigBee)
 
     binding.apply {
         switchName.text = device.name
-        onSwitch.isVisible = device.node.supports(ZigBeeNode.Feature.OnOff)
-        offSwitch.isVisible = device.node.supports(ZigBeeNode.Feature.OnOff)
+        toggle.isEnabled = device.isOn != null
+        toggle.isVisible = device.node.supports(ZigBeeNode.Feature.OnOff)
         leveler.isVisible = device.node.supports(ZigBeeNode.Feature.Level)
         colorPicker.isVisible = device.node.supports(ZigBeeNode.Feature.Color)
 
-        println(device.isOn)
+        device.isOn?.let(toggle::setChecked)
         device.level?.let(leveler::setValue)
         device.color?.let(ColorStateList::valueOf)?.let(colorPicker::setIconTint)
     }
@@ -94,8 +94,7 @@ fun ViewGroup.zigbeeDeviceViewHolder(
             true
         }
 
-        offSwitch.setOnClickListener { listener.send(device.node.command(ZigBeeInput.Toggle(isOn = false))) }
-        onSwitch.setOnClickListener { listener.send(device.node.command(ZigBeeInput.Toggle(isOn = true))) }
+        toggle.setOnClickListener { listener.send(device.node.command(ZigBeeInput.Toggle(isOn = toggle.isChecked))) }
         leveler.addOnChangeListener { _, value, fromUser -> if (fromUser) throttle.run(value.toInt()) }
         zigbeeIcon.setOnClickListener {
             MaterialAlertDialogBuilder(context)

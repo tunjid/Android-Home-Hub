@@ -7,7 +7,6 @@ import com.rcswitchcontrol.zigbee.models.ZigBeeAttribute
 import com.rcswitchcontrol.zigbee.models.ZigBeeNode
 import com.rcswitchcontrol.zigbee.models.distinctId
 import com.rcswitchcontrol.zigbee.models.numValue
-import com.rcswitchcontrol.zigbee.models.of
 import com.rcswitchcontrol.zigbee.models.owns
 import com.tunjid.androidx.recyclerview.diff.Differentiable
 import com.tunjid.rcswitchcontrol.R
@@ -64,10 +63,10 @@ val Device.ZigBee.trifecta
     )
 
 val Device.ZigBee.isOn
-    get() = attributes.of(ZigBeeAttribute.Descriptor.OnOff)?.numValue == 1
+    get() = describe(ZigBeeAttribute.Descriptor.OnOff)?.value == true
 
 val Device.ZigBee.level
-    get() = when (val value = attributes.of(ZigBeeAttribute.Descriptor.Level)?.numValue) {
+    get() = when (val value = describe(ZigBeeAttribute.Descriptor.Level)?.numValue) {
         is Number -> value.toFloat() * 100f / 256
         else -> null
     }.also { if (it != null) Log.i("TEST", "Level of $name is $it") }
@@ -75,7 +74,7 @@ val Device.ZigBee.level
 
 val Device.ZigBee.color
     get() = listOf(ZigBeeAttribute.Descriptor.CieX, ZigBeeAttribute.Descriptor.CieY)
-            .mapNotNull(attributes::of)
+            .mapNotNull(::describe)
             .mapNotNull(ZigBeeAttribute::numValue)
             .map(Number::toDouble)
             .map { it / 65535 }
@@ -96,6 +95,8 @@ val Device.ZigBee.color
                 }
             }
 
+fun Device.ZigBee.describe(descriptor: ZigBeeAttribute.Descriptor) =
+        attributes.firstOrNull { it.attributeId == descriptor.attributeId && it.clusterId == descriptor.clusterId }
 
 fun Device.ZigBee.foldAttributes(attributes: List<ZigBeeAttribute>): Device.ZigBee =
         attributes.fold(this) { device, attribute ->

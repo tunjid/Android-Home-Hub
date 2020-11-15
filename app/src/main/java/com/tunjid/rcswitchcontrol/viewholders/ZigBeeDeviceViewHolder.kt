@@ -41,6 +41,7 @@ import com.tunjid.rcswitchcontrol.dialogfragments.Throttle
 import com.tunjid.rcswitchcontrol.dialogfragments.throttleColorChanges
 import com.tunjid.rcswitchcontrol.models.Device
 import com.tunjid.rcswitchcontrol.models.color
+import com.tunjid.rcswitchcontrol.models.isOn
 import com.tunjid.rcswitchcontrol.models.level
 
 interface ZigBeeDeviceListener : DeviceLongClickListener {
@@ -74,6 +75,7 @@ fun BindingViewHolder<ViewholderZigbeeDeviceBinding>.bind(device: Device.ZigBee)
         leveler.isVisible = device.node.supports(ZigBeeNode.Feature.Level)
         colorPicker.isVisible = device.node.supports(ZigBeeNode.Feature.Color)
 
+        println(device.isOn)
         device.level?.let(leveler::setValue)
         device.color?.let(ColorStateList::valueOf)?.let(colorPicker::setIconTint)
     }

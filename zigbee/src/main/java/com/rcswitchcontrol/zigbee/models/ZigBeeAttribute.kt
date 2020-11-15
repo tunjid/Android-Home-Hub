@@ -1,5 +1,6 @@
 package com.rcswitchcontrol.zigbee.models
 
+import com.zsmartsystems.zigbee.zcl.clusters.ZclColorControlCluster
 import com.zsmartsystems.zigbee.zcl.clusters.ZclLevelControlCluster
 import com.zsmartsystems.zigbee.zcl.clusters.ZclOnOffCluster
 
@@ -12,11 +13,17 @@ data class ZigBeeAttribute(
         val value: Any
 ) {
     enum class Descriptor(val id: Int) {
-        OnOffState(ZclOnOffCluster.ATTR_ONOFF),
-        LevelState(ZclLevelControlCluster.ATTR_CURRENTLEVEL)
+        OnOff(ZclOnOffCluster.ATTR_ONOFF),
+        Level(ZclLevelControlCluster.ATTR_CURRENTLEVEL),
+        Hue(ZclColorControlCluster.ATTR_CURRENTHUE),
+        Saturation(ZclColorControlCluster.ATTR_CURRENTSATURATION),
+        CieX(ZclColorControlCluster.ATTR_CURRENTX),
+        CieY(ZclColorControlCluster.ATTR_CURRENTY),
     }
 }
 
 val ZigBeeAttribute.distinctId get() = "$endpointId-$clusterId-$attributeId"
 
-fun List<ZigBeeAttribute>.valueOf(descriptor: ZigBeeAttribute.Descriptor) = firstOrNull { it.attributeId == descriptor.id }?.value
+fun List<ZigBeeAttribute>.of(descriptor: ZigBeeAttribute.Descriptor) = firstOrNull { it.attributeId == descriptor.id }
+
+val ZigBeeAttribute.numValue get() = value as? Number

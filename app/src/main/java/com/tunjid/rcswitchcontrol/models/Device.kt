@@ -1,12 +1,14 @@
 package com.tunjid.rcswitchcontrol.models
 
 import android.util.Log
+import androidx.core.graphics.ColorUtils
 import com.rcswitchcontrol.protocols.models.Payload
 import com.rcswitchcontrol.zigbee.models.ZigBeeAttribute
 import com.rcswitchcontrol.zigbee.models.ZigBeeNode
 import com.rcswitchcontrol.zigbee.models.distinctId
+import com.rcswitchcontrol.zigbee.models.numValue
+import com.rcswitchcontrol.zigbee.models.of
 import com.rcswitchcontrol.zigbee.models.owns
-import com.rcswitchcontrol.zigbee.models.valueOf
 import com.tunjid.androidx.recyclerview.diff.Differentiable
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
@@ -62,19 +64,37 @@ val Device.ZigBee.trifecta
     )
 
 val Device.ZigBee.isOn
-    get() = attributes.valueOf(ZigBeeAttribute.Descriptor.OnOffState) as? Boolean
+    get() = attributes.of(ZigBeeAttribute.Descriptor.OnOff)?.numValue == 1
 
 val Device.ZigBee.level
-    get() = when (val value = attributes.valueOf(ZigBeeAttribute.Descriptor.LevelState)) {
-        is Float -> value * 100f / 256
-        is Double -> value.toFloat() * 100f / 256
-        is Int -> value.toFloat() * 100f / 256
+    get() = when (val value = attributes.of(ZigBeeAttribute.Descriptor.Level)?.numValue) {
+        is Number -> value.toFloat() * 100f / 256
         else -> null
     }.also { if (it != null) Log.i("TEST", "Level of $name is $it") }
 
 
 val Device.ZigBee.color
-    get() = attributes.valueOf(ZigBeeAttribute.Descriptor.LevelState)
+    get() = listOf(ZigBeeAttribute.Descriptor.CieX, ZigBeeAttribute.Descriptor.CieY)
+            .mapNotNull(attributes::of)
+            .mapNotNull(ZigBeeAttribute::numValue)
+            .map(Number::toDouble)
+            .map { it / 65535 }
+            .let {
+                when {
+                    it.size < 2 -> null
+                    else -> {
+                        val (x, y) = it
+
+                        Log.i("TEST", "x: $x; y: $y")
+
+                        @Suppress("LocalVariableName") val X = x / y
+                        @Suppress("LocalVariableName") val Y = y
+                        @Suppress("LocalVariableName") val Z = Y * (1 - x - y) / y
+
+                        ColorUtils.XYZToColor(X, Y, Z)
+                    }
+                }
+            }
 
 
 fun Device.ZigBee.foldAttributes(attributes: List<ZigBeeAttribute>): Device.ZigBee =

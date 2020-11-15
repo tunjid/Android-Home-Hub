@@ -24,6 +24,7 @@
 
 package com.tunjid.rcswitchcontrol.viewholders
 
+import android.content.res.ColorStateList
 import android.view.ViewGroup
 import androidx.core.view.isVisible
 import com.flask.colorpicker.ColorPickerView
@@ -39,6 +40,7 @@ import com.tunjid.rcswitchcontrol.databinding.ViewholderZigbeeDeviceBinding
 import com.tunjid.rcswitchcontrol.dialogfragments.Throttle
 import com.tunjid.rcswitchcontrol.dialogfragments.throttleColorChanges
 import com.tunjid.rcswitchcontrol.models.Device
+import com.tunjid.rcswitchcontrol.models.color
 import com.tunjid.rcswitchcontrol.models.level
 
 interface ZigBeeDeviceListener : DeviceLongClickListener {
@@ -73,6 +75,7 @@ fun BindingViewHolder<ViewholderZigbeeDeviceBinding>.bind(device: Device.ZigBee)
         colorPicker.isVisible = device.node.supports(ZigBeeNode.Feature.Color)
 
         device.level?.let(leveler::setValue)
+        device.color?.let(ColorStateList::valueOf)?.let(colorPicker::setIconTint)
     }
 }
 

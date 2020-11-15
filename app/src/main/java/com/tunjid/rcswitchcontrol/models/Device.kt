@@ -1,6 +1,5 @@
 package com.tunjid.rcswitchcontrol.models
 
-import android.util.Log
 import androidx.core.graphics.ColorUtils
 import com.rcswitchcontrol.protocols.models.Payload
 import com.rcswitchcontrol.zigbee.models.ZigBeeAttribute
@@ -57,9 +56,9 @@ fun Device.RF.togglePayload(isOn: Boolean) = Payload(
 
 val Device.ZigBee.trifecta
     get() = Triple(
+            "isOn" to isOn,
             "level" to level,
-            "color" to color,
-            "isOn" to isOn
+            "color" to color
     )
 
 val Device.ZigBee.isOn
@@ -69,8 +68,7 @@ val Device.ZigBee.level
     get() = when (val value = describe(ZigBeeAttribute.Descriptor.Level)?.numValue) {
         is Number -> value.toFloat() * 100f / 256
         else -> null
-    }.also { if (it != null) Log.i("TEST", "Level of $name is $it") }
-
+    }
 
 val Device.ZigBee.color
     get() = listOf(ZigBeeAttribute.Descriptor.CieX, ZigBeeAttribute.Descriptor.CieY)
@@ -83,8 +81,6 @@ val Device.ZigBee.color
                     it.size < 2 -> null
                     else -> {
                         val (x, y) = it
-
-                        Log.i("TEST", "x: $x; y: $y")
 
                         @Suppress("LocalVariableName") val X = x / y
                         @Suppress("LocalVariableName") val Y = y

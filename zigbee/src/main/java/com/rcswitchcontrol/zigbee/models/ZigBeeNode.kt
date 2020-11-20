@@ -43,11 +43,24 @@ data class ZigBeeNode internal constructor(
 
     enum class Feature(
             val nameRes: Int,
-            internal val clusterType: ZclClusterType
+            internal val clusterType: ZclClusterType,
+            internal val descriptors: List<ZigBeeAttribute.Descriptor>
     ) {
-        OnOff(R.string.zigbee_feature_on_off, ZclClusterType.ON_OFF),
-        Color(R.string.zigbee_feature_color, ZclClusterType.COLOR_CONTROL),
-        Level(R.string.zigbee_feature_level, ZclClusterType.LEVEL_CONTROL),
+        OnOff(
+                nameRes = R.string.zigbee_feature_on_off,
+                clusterType = ZclClusterType.ON_OFF,
+                descriptors = listOf(ZigBeeAttribute.Descriptor.OnOff)
+        ),
+        Level(
+                nameRes = R.string.zigbee_feature_level,
+                clusterType = ZclClusterType.LEVEL_CONTROL,
+                descriptors = listOf(ZigBeeAttribute.Descriptor.Level)
+        ),
+        Color(
+                nameRes = R.string.zigbee_feature_color,
+                clusterType = ZclClusterType.COLOR_CONTROL,
+                descriptors = listOf(ZigBeeAttribute.Descriptor.CieX, ZigBeeAttribute.Descriptor.CieY)
+        ),
     }
 
     override val diffId

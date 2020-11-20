@@ -85,8 +85,12 @@ sealed class ZigBeeInput<InputT>(
         is Toggle -> listOf(zigBeeNode.address(ZclClusterType.ON_OFF))
         is Level -> listOf(zigBeeNode.address(ZclClusterType.LEVEL_CONTROL), level.toString())
         is Color -> listOf(zigBeeNode.address(ZclClusterType.COLOR_CONTROL), rgb.red.toString(), rgb.green.toString(), rgb.blue.toString())
-        is Read -> listOf(zigBeeNode.address(feature.clusterType), feature.clusterType.id.toString()) +
-                zigBeeNode.clusterAttributeMap.getValue(feature.clusterType.id).map(Int::toString)
+        is Read -> listOf(
+                zigBeeNode.address(feature.clusterType), feature.clusterType.id.toString())
+                .plus(zigBeeNode.clusterAttributeMap.getValue(feature.clusterType.id)
+                        .filter(feature.descriptors.map(ZigBeeAttribute.Descriptor::attributeId)::contains)
+                        .map(Int::toString)
+                )
     }.let(this::args)
 
     private fun args(params: List<String>): ZigBeeCommand =

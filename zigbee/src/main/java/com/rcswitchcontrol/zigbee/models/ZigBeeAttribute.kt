@@ -16,12 +16,30 @@ data class ZigBeeAttribute(
             internal val attributeId: Int,
             internal val clusterId: Int
     ) {
-        OnOff(ZclOnOffCluster.ATTR_ONOFF, ZclOnOffCluster.CLUSTER_ID),
-        Level(ZclLevelControlCluster.ATTR_CURRENTLEVEL, ZclLevelControlCluster.CLUSTER_ID),
-        Hue(ZclColorControlCluster.ATTR_CURRENTHUE, ZclColorControlCluster.CLUSTER_ID),
-        Saturation(ZclColorControlCluster.ATTR_CURRENTSATURATION, ZclColorControlCluster.CLUSTER_ID),
-        CieX(ZclColorControlCluster.ATTR_CURRENTX, ZclColorControlCluster.CLUSTER_ID),
-        CieY(ZclColorControlCluster.ATTR_CURRENTY, ZclColorControlCluster.CLUSTER_ID),
+        OnOff(
+                attributeId = ZclOnOffCluster.ATTR_ONOFF,
+                clusterId = ZclOnOffCluster.CLUSTER_ID
+        ),
+        Level(
+                attributeId = ZclLevelControlCluster.ATTR_CURRENTLEVEL,
+                clusterId = ZclLevelControlCluster.CLUSTER_ID
+        ),
+        Hue(
+                attributeId = ZclColorControlCluster.ATTR_CURRENTHUE,
+                clusterId = ZclColorControlCluster.CLUSTER_ID
+        ),
+        Saturation(
+                attributeId = ZclColorControlCluster.ATTR_CURRENTSATURATION,
+                clusterId = ZclColorControlCluster.CLUSTER_ID
+        ),
+        CieX(
+                attributeId = ZclColorControlCluster.ATTR_CURRENTX,
+                clusterId = ZclColorControlCluster.CLUSTER_ID
+        ),
+        CieY(
+                attributeId = ZclColorControlCluster.ATTR_CURRENTY,
+                clusterId = ZclColorControlCluster.CLUSTER_ID
+        ),
     }
 }
 

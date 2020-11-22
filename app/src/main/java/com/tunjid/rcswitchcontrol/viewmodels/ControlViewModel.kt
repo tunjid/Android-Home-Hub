@@ -181,10 +181,12 @@ private fun Payload.extractRecord(): Record? = response.let {
     else Record(key, it, true)
 }
 
-private fun Payload.extractCommandInfo(): ZigBeeCommandInfo? {
-    if (BLERFProtocol::class.java.name == key || SerialRFProtocol::class.java.name == key) return null
-    if (action == ZigBeeNode.DEVICE_ATTRIBUTES_ACTION || extractDevices() != null) return null
-    return data?.deserialize(ZigBeeCommandInfo::class)
+private fun Payload.extractCommandInfo(): ZigBeeCommandInfo? = when(key) {
+    ZigBeeProtocol::class.java.name -> when {
+        action == ZigBeeNode.DEVICE_ATTRIBUTES_ACTION || extractDevices() != null -> null
+        else -> data?.deserialize(ZigBeeCommandInfo::class)
+    }
+    else -> null
 }
 
 private fun Payload.extractDevices(): List<Device>? {

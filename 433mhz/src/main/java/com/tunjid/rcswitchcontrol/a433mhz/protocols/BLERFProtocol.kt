@@ -120,7 +120,7 @@ class BLERFProtocol constructor(printWriter: PrintWriter) : CommsProtocol(printW
     }
 
     override fun processInput(payload: Payload): Payload {
-        val output = Payload(javaClass.name).apply { addCommand(RESET) }
+        val output = bleRfPayload().apply { addCommand(RESET) }
 
         when (val receivedAction = payload.action) {
             PING, REFRESH_SWITCHES -> output.apply {
@@ -219,7 +219,7 @@ class BLERFProtocol constructor(printWriter: PrintWriter) : CommsProtocol(printW
         return output
     }
 
-    private fun onBleIntentReceived(intent: Intent) = Payload(javaClass.name).run {
+    private fun onBleIntentReceived(intent: Intent) = bleRfPayload().run {
         val intentAction = intent.action ?: return@run
 
         addCommand(RESET)
@@ -300,7 +300,7 @@ class BLERFProtocol constructor(printWriter: PrintWriter) : CommsProtocol(printW
         scanner.stopScan()
 
         val resources = appContext.resources
-        val output = Payload(this.javaClass.name)
+        val output = bleRfPayload()
         output.addCommand(RESET)
         output.addCommand(SCAN)
 
@@ -315,5 +315,17 @@ class BLERFProtocol constructor(printWriter: PrintWriter) : CommsProtocol(printW
         private val TAG = BLERFProtocol::class.java.simpleName
         private const val SCAN_DURATION = 5000
 
+        val key = Key(BLERFProtocol::class.java.name)
+
+        internal fun bleRfPayload(
+                data: String? = null,
+                action: String? = null,
+                response: String? = null
+        ) = Payload(
+                key = key,
+                data = data,
+                action = action,
+                response = response
+        )
     }
 }

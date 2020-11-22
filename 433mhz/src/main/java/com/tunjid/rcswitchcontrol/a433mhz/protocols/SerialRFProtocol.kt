@@ -89,7 +89,7 @@ class SerialRFProtocol constructor(
     }
 
     override fun processInput(payload: Payload): Payload {
-        val output = Payload(javaClass.name).apply { addCommand(RESET) }
+        val output = serialRfPayload().apply { addCommand(RESET) }
 
         when (val receivedAction = payload.action) {
             PING, REFRESH_SWITCHES -> output.apply {
@@ -165,7 +165,7 @@ class SerialRFProtocol constructor(
         addCommand(SNIFF)
     }
 
-    private fun onSerialRead(rawData: ByteArray) = Payload(this@SerialRFProtocol.javaClass.name).let {
+    private fun onSerialRead(rawData: ByteArray) = serialRfPayload().let {
         it.addCommand(RESET)
 
         when (rawData.size) {
@@ -234,5 +234,18 @@ class SerialRFProtocol constructor(
         const val ERROR_FLAG: Byte = 'E'.toByte()
         const val SNIFF_FLAG: Byte = 'R'.toByte()
         const val TRANSMIT_FLAG: Byte = 'T'.toByte()
+
+        val key = Key(SerialRFProtocol::class.java.name)
+
+        internal fun serialRfPayload(
+                data: String? = null,
+                action: String? = null,
+                response: String? = null
+        ) = Payload(
+                key = key,
+                data = data,
+                action = action,
+                response = response
+        )
     }
 }

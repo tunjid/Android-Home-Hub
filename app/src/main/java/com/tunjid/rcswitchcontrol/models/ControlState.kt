@@ -2,6 +2,7 @@ package com.tunjid.rcswitchcontrol.models
 
 import android.content.res.Resources
 import androidx.fragment.app.Fragment
+import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
 import com.rcswitchcontrol.zigbee.models.ZigBeeAttribute
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommandInfo
@@ -25,7 +26,7 @@ data class ControlState(
         val connectionState: String = "",
         val commandInfo: ZigBeeCommandInfo? = null,
         val history: List<Record> = listOf(),
-        val commands: Map<String, List<Record>> = mapOf(),
+        val commands: Map<CommsProtocol.Key, List<Record>> = mapOf(),
         val devices: List<Device> = listOf()
 )
 
@@ -46,7 +47,10 @@ enum class Page : Tab {
     }
 }
 
-val ControlState.keys get() = commands.keys.sorted().map(::ProtocolKey)
+val ControlState.keys get() = commands.keys
+        .map(CommsProtocol.Key::value)
+        .sorted()
+        .map(::ProtocolKey)
 
 fun ControlState.reduceDevices(fetched: List<Device>?) = when {
     fetched != null -> copy(devices = (fetched + devices)

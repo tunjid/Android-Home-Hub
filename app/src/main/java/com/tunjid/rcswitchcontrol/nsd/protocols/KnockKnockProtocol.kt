@@ -48,7 +48,7 @@ internal class KnockKnockProtocol(printWriter: PrintWriter) : CommsProtocol(prin
 
     override fun processInput(payload: Payload): Payload {
         val resources = appContext.resources
-        val output = Payload(javaClass.name)
+        val output = Payload(key)
         output.addCommand(RESET)
 
         val action = payload.action
@@ -128,5 +128,7 @@ internal class KnockKnockProtocol(printWriter: PrintWriter) : CommsProtocol(prin
         private const val SENT_KNOCK_KNOCK = 1
         private const val SENT_CLUE = 2
         private const val ANOTHER = 3
+
+        val key = Key(KnockKnockProtocol::class.java.name)
     }
 }

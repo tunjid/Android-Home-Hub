@@ -144,7 +144,7 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
 
     fun pingServer() {
         if (state.value?.commands.let { it == null || it.isEmpty() }) dispatchPayload(Payload(
-                key = CommsProtocol::class.java.name,
+                key = CommsProtocol.key,
                 action = CommsProtocol.PING
         ))
     }
@@ -182,7 +182,7 @@ private fun Payload.extractRecord(): Record? = response.let {
 }
 
 private fun Payload.extractCommandInfo(): ZigBeeCommandInfo? = when(key) {
-    ZigBeeProtocol::class.java.name -> when {
+    ZigBeeProtocol.key -> when {
         action == ZigBeeNode.DEVICE_ATTRIBUTES_ACTION || extractDevices() != null -> null
         else -> data?.deserialize(ZigBeeCommandInfo::class)
     }
@@ -194,14 +194,14 @@ private fun Payload.extractDevices(): List<Device>? {
     val context = ContextProvider.appContext
 
     return when (key) {
-        BLERFProtocol::class.java.name, SerialRFProtocol::class.java.name -> when (action) {
+        BLERFProtocol.key, SerialRFProtocol.key -> when (action) {
             ClientBleService.ACTION_TRANSMITTER,
             context.getString(R.string.blercprotocol_delete_command),
             context.getString(R.string.blercprotocol_rename_command) -> serialized.deserializeList(RfSwitch::class)
                     .map(Device::RF)
             else -> null
         }
-        ZigBeeProtocol::class.java.name -> when (action) {
+        ZigBeeProtocol.key -> when (action) {
             ZigBeeNode.SAVED_DEVICES_ACTION -> serialized.deserializeList(ZigBeeNode::class)
                     .map(Device::ZigBee)
             else -> null
@@ -211,7 +211,7 @@ private fun Payload.extractDevices(): List<Device>? {
 }
 
 private fun Payload.extractDeviceAttributes(): List<ZigBeeAttribute>? = when (key) {
-    ZigBeeProtocol::class.java.name -> when (action) {
+    ZigBeeProtocol.key -> when (action) {
         ZigBeeNode.DEVICE_ATTRIBUTES_ACTION -> data?.deserializeList(ZigBeeAttribute::class)
         else -> null
     }

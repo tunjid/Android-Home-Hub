@@ -24,9 +24,10 @@
 
 package com.rcswitchcontrol.protocols.models
 
+import com.rcswitchcontrol.protocols.CommsProtocol
 import com.tunjid.androidx.recyclerview.diff.Differentiable
 
 interface Peripheral : Differentiable {
-    val key: String
+    val key: CommsProtocol.Key
     val name: String
 }

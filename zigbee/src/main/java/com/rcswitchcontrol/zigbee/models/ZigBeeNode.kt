@@ -24,6 +24,7 @@
 
 package com.rcswitchcontrol.zigbee.models
 
+import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Peripheral
 import com.rcswitchcontrol.zigbee.R
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
@@ -35,7 +36,7 @@ import com.zsmartsystems.zigbee.zcl.protocol.ZclClusterType
 
 data class ZigBeeNode internal constructor(
         override val name: String,
-        override val key: String = ZigBeeProtocol::class.java.name,
+        override val key: CommsProtocol.Key = ZigBeeProtocol.key,
 
         @Transient // This is not serialized, it's chunky
         internal val node: ZigBeeNodeDao

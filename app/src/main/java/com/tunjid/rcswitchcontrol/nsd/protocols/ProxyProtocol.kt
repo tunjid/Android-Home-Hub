@@ -66,7 +66,7 @@ class ProxyProtocol(private val printWriter: PrintWriter) : CommsProtocol(printW
             SerialRFProtocol.ARDUINO_VENDOR_ID,
             SerialRFProtocol.ARDUINO_PRODUCT_ID,
             RF_REQUEST_CODE,
-            SerialRFProtocol::class.java.name,
+            SerialRFProtocol.key,
             protocolFunction = { SerialRFProtocol(it, printWriter) }
     )
 
@@ -74,13 +74,13 @@ class ProxyProtocol(private val printWriter: PrintWriter) : CommsProtocol(printW
             ZigBeeProtocol.TI_VENDOR_ID,
             ZigBeeProtocol.CC2531_PRODUCT_ID,
             ZIG_BEE_REQUEST_CODE,
-            ZigBeeProtocol::class.java.name,
+            ZigBeeProtocol.key,
             protocolFunction = { ZigBeeProtocol(it, printWriter) }
     )
 
     private val protocolMap = mutableMapOf(
-            BLERFProtocol::class.java.name to BLERFProtocol(printWriter),
-            KnockKnockProtocol::class.java.name to KnockKnockProtocol(printWriter)
+            BLERFProtocol.key to BLERFProtocol(printWriter),
+            KnockKnockProtocol.key to KnockKnockProtocol(printWriter)
     )
 
     init {
@@ -100,7 +100,7 @@ class ProxyProtocol(private val printWriter: PrintWriter) : CommsProtocol(printW
         return when {
             action == PING -> pingAll()
             protocol != null -> protocol.processInput(payload).apply { addCommand(RESET) }
-            else -> Payload(CommsProtocol::class.java.name).apply {
+            else -> Payload(key).apply {
                 response = getString(R.string.proxyprotocol_invalid_command)
                 addCommand(PING)
             }
@@ -109,18 +109,18 @@ class ProxyProtocol(private val printWriter: PrintWriter) : CommsProtocol(printW
 
     private fun pingAll(): Payload {
         protocolMap.values.forEach { pushOut(it.processInput(PING)) }
-        return Payload(CommsProtocol::class.java.name).apply { addCommand(PING) }
+        return Payload(key).apply { addCommand(PING) }
     }
 
 
     private fun attach(usbPeripheral: UsbPeripheral) = with(usbPeripheral) {
         val driver = findUsbDriver(this)
-        if (driver != null) protocolMap[name] = protocolFunction(driver)
+        if (driver != null) protocolMap[key] = protocolFunction(driver)
     }
 
     private fun onUsbPermissionGranted(it: Intent) {
         val device: UsbDevice = it.getParcelableExtra(UsbManager.EXTRA_DEVICE) ?: return
-        for (thing in listOf(rfPeripheral, zigBeePeripheral)) if (device.vendorId == thing.vendorId && protocolMap[thing.name] == null) {
+        for (thing in listOf(rfPeripheral, zigBeePeripheral)) if (device.vendorId == thing.vendorId && protocolMap[thing.key] == null) {
             attach(thing)
             pingAll()
         }
@@ -173,7 +173,7 @@ class UsbPeripheral(
         val vendorId: Int,
         val productId: Int,
         val requestCode: Int,
-        val name: String,
+        val key: CommsProtocol.Key,
         val protocolFunction: (driver: UsbSerialDriver) -> CommsProtocol
 )
 

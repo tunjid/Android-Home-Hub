@@ -1,6 +1,7 @@
 package com.tunjid.rcswitchcontrol.models
 
 import androidx.core.graphics.ColorUtils
+import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
 import com.rcswitchcontrol.zigbee.models.ZigBeeAttribute
 import com.rcswitchcontrol.zigbee.models.ZigBeeNode
@@ -16,7 +17,7 @@ import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.common.serialize
 
 sealed class Device(
-        val key: String,
+        val key: CommsProtocol.Key,
         val name: String
 ) : Differentiable {
     data class ZigBee(

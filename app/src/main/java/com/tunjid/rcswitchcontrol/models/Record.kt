@@ -24,16 +24,17 @@
 
 package com.tunjid.rcswitchcontrol.models
 
+import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.recyclerview.diff.Differentiable
 
 data class Record(
-        val key: String,
+        val key: CommsProtocol.Key,
         val entry: String,
         val fromServer: Boolean
 ) : Differentiable {
     override val diffId: String
-        get() = key
+        get() = key.value
 }
 
 val Record.payload

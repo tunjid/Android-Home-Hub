@@ -154,7 +154,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
         sharedPool.submit(::start)
     }
 
-    override fun processInput(payload: Payload): Payload = Payload(javaClass.name).apply {
+    override fun processInput(payload: Payload): Payload = zigBeePayload().apply {
         addCommand(RESET)
 
         when (val payloadAction = payload.action ?: "invalid command") {
@@ -193,8 +193,6 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
             }
             else -> response = "Unrecognized command $payloadAction"
         }
-
-        appendZigBeeCommands()
     }
 
     private fun start() {
@@ -326,10 +324,9 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
     ))
 
     private fun post(vararg messages: String) =
-            actionProcessor.onNext(Action.PayloadOutput(Payload(this@ZigBeeProtocol.javaClass.name).apply {
-                response = messages.toList().commandString()
-                appendZigBeeCommands()
-            }))
+            actionProcessor.onNext(Action.PayloadOutput(zigBeePayload(
+                    response = messages.toList().commandString()
+            )))
 
     override fun close() {
         disposable.clear()
@@ -343,9 +340,22 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
         const val MESH_UPDATE_PERIOD = 60
         const val OUTPUT_BUFFER_RATE = 100L
 
+        val key = Key(ZigBeeProtocol::class.java.name)
+
         internal val SAVED_DEVICES get() = ContextProvider.appContext.getString(R.string.zigbeeprotocol_saved_devices)
         internal val FORM_NETWORK get() = ContextProvider.appContext.getString(R.string.zigbeeprotocol_formnet)
 
         private fun List<String>.commandString() = joinToString(separator = " ")
+
+        internal fun zigBeePayload(
+                data: String? = null,
+                action: String? = null,
+                response: String? = null
+        ) = Payload(
+                key = key,
+                data = data,
+                action = action,
+                response = response
+        ).appendZigBeeCommands()
     }
 }

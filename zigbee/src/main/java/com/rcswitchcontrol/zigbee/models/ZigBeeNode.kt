@@ -113,11 +113,6 @@ data class ZigBeeNode internal constructor(
 
         return true
     }
-
-    companion object {
-        val SAVED_DEVICES_ACTION get() = ContextProvider.appContext.getString(R.string.zigbeeprotocol_saved_devices)
-        val DEVICE_ATTRIBUTES_ACTION get() = ContextProvider.appContext.getString(R.string.zigbeeprotocol_device_attributes)
-    }
 }
 
 //fun List<ZigBeeNode>.createGroupSequence(groupName: String): List<ZigBeeCommand> {

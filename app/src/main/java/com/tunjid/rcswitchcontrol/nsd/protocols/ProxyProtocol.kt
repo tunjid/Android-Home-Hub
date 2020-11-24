@@ -58,7 +58,7 @@ import java.io.PrintWriter
  * Created by tj.dahunsi on 2/11/17.
  */
 
-class ProxyProtocol(private val printWriter: PrintWriter) : CommsProtocol(printWriter) {
+class ProxyProtocol(override val printWriter: PrintWriter) : CommsProtocol {
 
     private val disposable = CompositeDisposable()
 
@@ -98,18 +98,18 @@ class ProxyProtocol(private val printWriter: PrintWriter) : CommsProtocol(printW
         val protocol = protocolMap[payload.key]
 
         return when {
-            action == PING -> pingAll()
-            protocol != null -> protocol.processInput(payload).apply { addCommand(RESET) }
-            else -> Payload(key).apply {
-                response = getString(R.string.proxyprotocol_invalid_command)
-                addCommand(PING)
+            action == CommsProtocol.pingAction -> pingAll()
+            protocol != null -> protocol.processInput(payload).apply { addCommand(CommsProtocol.resetAction) }
+            else -> Payload(CommsProtocol.key).apply {
+                response = ContextProvider.appContext.getString(R.string.proxyprotocol_invalid_command)
+                addCommand(CommsProtocol.pingAction)
             }
         }
     }
 
     private fun pingAll(): Payload {
-        protocolMap.values.forEach { pushOut(it.processInput(PING)) }
-        return Payload(key).apply { addCommand(PING) }
+        protocolMap.values.forEach { pushOut(it.processInput(CommsProtocol.pingAction.value)) }
+        return Payload(CommsProtocol.key).apply { addCommand(CommsProtocol.pingAction) }
     }
 
 

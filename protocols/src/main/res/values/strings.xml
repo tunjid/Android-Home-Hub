@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">protocols</string>
+
+    <string name="device_action_delete_command">Delete</string>
+    <string name="device_action_rename_command">Rename</string>
+    <string name="device_action_refresh_devices_command">Refresh Devices</string>
 </resources>

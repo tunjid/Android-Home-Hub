@@ -1,5 +1,6 @@
 package com.rcswitchcontrol.zigbee.protocol
 
+import com.rcswitchcontrol.protocols.CommonDeviceActions
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
 import com.rcswitchcontrol.zigbee.R
@@ -70,8 +71,8 @@ internal sealed class NamedCommand(open val consoleCommand: ZigBeeConsoleCommand
     }
 }
 
-internal val ZigBeeProtocol.Companion.availableCommands: Map<String, NamedCommand> by lazy {
-    mutableMapOf(
+internal val ZigBeeProtocol.Companion.availableCommands: Map<CommsProtocol.Action, NamedCommand> by lazy {
+    val commands = mutableMapOf(
             NamedCommand.Derived.NodeList.keyedPair,
             NamedCommand.Derived.DescribeEndpoint.keyedPair,
             NamedCommand.Derived.DescribeNode.keyedPair,
@@ -118,17 +119,22 @@ internal val ZigBeeProtocol.Companion.availableCommands: Map<String, NamedComman
 
             NamedCommand.Custom.Rediscover.keyedPair,
             NamedCommand.Custom.DeviceAttributes.keyedPair,
+            )
 
-    ).let { commands -> commands + NamedCommand.Custom.Help(commands.mapValues { it.value.consoleCommand }).keyedPair }
+    val commandsMap = commands
+            .map { it.key.value to it.value.consoleCommand }
+            .toMap()
+
+    commands + NamedCommand.Custom.Help(commandsMap).keyedPair
 }
 
 
 private val NamedCommand.keyedPair
-    get() = name to this
+    get() = CommsProtocol.Action(name) to this
 
 internal fun Payload.appendZigBeeCommands() = apply {
-    addCommand(CommsProtocol.RESET)
-    addCommand(ZigBeeProtocol.FORM_NETWORK)
-    addCommand(ZigBeeProtocol.SAVED_DEVICES)
+    addCommand(CommsProtocol.resetAction)
+    addCommand(ZigBeeProtocol.formNetworkAction)
+    addCommand(CommonDeviceActions.refreshDevicesAction)
     ZigBeeProtocol.availableCommands.keys.forEach(::addCommand)
 }

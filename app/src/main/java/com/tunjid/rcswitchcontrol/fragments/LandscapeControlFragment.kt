@@ -71,7 +71,7 @@ class LandscapeControlFragment : BaseFragment(R.layout.fragment_control_landscap
     private fun onHeaderHighlighted(key: Any) = when (key) {
         host -> HostFragment.newInstance()
         devices -> DevicesFragment.newInstance()
-        is ProtocolKey -> RecordFragment.commandInstance(ProtocolKey(key.name))
+        is ProtocolKey -> RecordFragment.commandInstance(ProtocolKey(key.key))
         else -> null
     }?.let { innerNavigator.push(it); Unit } ?: Unit
 

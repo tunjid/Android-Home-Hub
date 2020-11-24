@@ -13,8 +13,8 @@ import com.tunjid.rcswitchcontrol.fragments.RecordFragment
 import com.tunjid.rcswitchcontrol.utils.Tab
 import java.util.*
 
-data class ProtocolKey(val name: String) : Tab {
-    val title get() = name.split(".").last().toUpperCase(Locale.US).removeSuffix("PROTOCOL")
+data class ProtocolKey(val key: CommsProtocol.Key) : Tab {
+    val title get() = key.value.split(".").last().toUpperCase(Locale.US).removeSuffix("PROTOCOL")
 
     override fun title(res: Resources) = title
 
@@ -26,7 +26,7 @@ data class ControlState(
         val connectionState: String = "",
         val commandInfo: ZigBeeCommandInfo? = null,
         val history: List<Record> = listOf(),
-        val commands: Map<CommsProtocol.Key, List<Record>> = mapOf(),
+        val commands: Map<CommsProtocol.Key, List<Record.Command>> = mapOf(),
         val devices: List<Device> = listOf()
 )
 
@@ -48,8 +48,7 @@ enum class Page : Tab {
 }
 
 val ControlState.keys get() = commands.keys
-        .map(CommsProtocol.Key::value)
-        .sorted()
+        .sortedBy(CommsProtocol.Key::value)
         .map(::ProtocolKey)
 
 fun ControlState.reduceDevices(fetched: List<Device>?) = when {
@@ -76,6 +75,6 @@ fun ControlState.reduceHistory(record: Record?) = when {
 
 fun ControlState.reduceCommands(payload: Payload) = copy(
         commands = HashMap(commands).apply {
-            this[payload.key] = payload.commands.map { Record(payload.key, it, true) }
+            this[payload.key] = payload.commands.map { Record.Command(key = payload.key, command = it) }
         }
 )

@@ -27,6 +27,7 @@ package com.rcswitchcontrol.zigbee.models
 import androidx.core.graphics.blue
 import androidx.core.graphics.green
 import androidx.core.graphics.red
+import com.rcswitchcontrol.protocols.asAction
 import com.rcswitchcontrol.zigbee.protocol.NamedCommand
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol.Companion.zigBeePayload
@@ -99,6 +100,6 @@ sealed class ZigBeeInput<InputT>(
 
 val ZigBeeCommand.payload
     get() = zigBeePayload(
-            action = name,
+            action = name.asAction,
             data = serialize()
     )

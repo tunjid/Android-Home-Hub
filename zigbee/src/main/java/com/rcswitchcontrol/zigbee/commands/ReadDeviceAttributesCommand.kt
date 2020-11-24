@@ -24,6 +24,7 @@
 
 package com.rcswitchcontrol.zigbee.commands
 
+import com.rcswitchcontrol.protocols.asAction
 import com.rcswitchcontrol.zigbee.R
 import com.rcswitchcontrol.zigbee.models.ZigBeeAttribute
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol.Companion.zigBeePayload
@@ -58,7 +59,7 @@ class ReadDeviceAttributesCommand : AbsZigBeeCommand(), PayloadPublishing {
         val cluster: ZclCluster = getCluster(endpoint, args[2])
 
         out.println(zigBeePayload(
-                action = command,
+                action = command.asAction,
                 data = cluster.pullAttributes(nodeAddress = nodeAddress, attributeIds = args
                         .drop(3)
                         .filterNot { it.contains("=") }

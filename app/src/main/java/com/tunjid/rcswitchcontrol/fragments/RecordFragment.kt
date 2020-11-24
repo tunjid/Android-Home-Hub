@@ -32,6 +32,7 @@ import com.google.android.flexbox.AlignItems
 import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.FlexboxLayoutManager
 import com.google.android.flexbox.JustifyContent
+import com.rcswitchcontrol.protocols.CommsProtocol
 import com.tunjid.androidx.core.components.args
 import com.tunjid.androidx.recyclerview.listAdapterOf
 import com.tunjid.androidx.recyclerview.verticalLayoutManager
@@ -58,7 +59,7 @@ sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
     class HistoryFragment : RecordFragment()
     class CommandsFragment : RecordFragment()
 
-    internal var key: String? by args()
+    internal var key: CommsProtocol.Key? by args()
     private val viewModel by activityViewModels<ControlViewModel>()
 
     override val stableTag: String get() = "${javaClass.simpleName}-$key"
@@ -118,12 +119,15 @@ sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
         updateUi(altToolBarShows = false)
     }
 
-    private fun onRecordClicked(record: Record) = viewModel.dispatchPayload(record.payload)
+    private fun onRecordClicked(record: Record) = when(record) {
+        is Record.Command -> viewModel.dispatchPayload(record.payload)
+        is Record.Response -> Unit
+    }
 
     companion object {
 
         fun historyInstance(): HistoryFragment = HistoryFragment()
 
-        fun commandInstance(key: ProtocolKey): CommandsFragment = CommandsFragment().apply { this.key = key.name }
+        fun commandInstance(key: ProtocolKey): CommandsFragment = CommandsFragment().apply { this.key = key.key }
     }
 }

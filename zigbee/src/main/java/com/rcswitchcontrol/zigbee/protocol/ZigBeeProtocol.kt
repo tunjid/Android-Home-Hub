@@ -25,6 +25,7 @@
 package com.rcswitchcontrol.zigbee.protocol
 
 import com.hoho.android.usbserial.driver.UsbSerialDriver
+import com.rcswitchcontrol.protocols.CommonDeviceActions
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.io.ConsoleStream
 import com.rcswitchcontrol.protocols.models.Payload
@@ -83,7 +84,7 @@ private sealed class Action {
 }
 
 @Suppress("PrivatePropertyName")
-class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsProtocol(printWriter) {
+class ZigBeeProtocol(driver: UsbSerialDriver, override val printWriter: PrintWriter) : CommsProtocol {
 
     private val disposable = CompositeDisposable()
     private val actionProcessor: PublishProcessor<Action> = PublishProcessor.create()
@@ -101,7 +102,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
     private val networkManager: ZigBeeNetworkManager = ZigBeeNetworkManager(dongle)
 
     init {
-        val sharedScheduler = Schedulers.from(sharedPool)
+        val sharedScheduler = Schedulers.from(CommsProtocol.sharedPool)
 
         actionProcessor
                 .filterIsInstance<Action.PayloadOutput>()
@@ -151,23 +152,24 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
                 .subscribe(::processInput)
                 .addTo(disposable)
 
-        sharedPool.submit(::start)
+        CommsProtocol.sharedPool.submit(::start)
     }
 
-    override fun processInput(payload: Payload): Payload = Payload(javaClass.name).apply {
-        addCommand(RESET)
+    override fun processInput(payload: Payload): Payload = zigBeePayload().apply {
+        addCommand(CommsProtocol.resetAction)
 
-        when (val payloadAction = payload.action ?: "invalid command") {
-            RESET -> reset()
-            FORM_NETWORK -> {
+        when (val payloadAction = payload.action) {
+            null -> response = "Unrecognized command $payloadAction"
+            CommsProtocol.resetAction -> reset()
+            formNetworkAction -> {
                 response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_forming_network)
                 formNetwork()
             }
-            PING, SAVED_DEVICES -> {
+            CommsProtocol.pingAction, CommonDeviceActions.refreshDevicesAction -> {
                 val savedDevices = dataStore.savedDevices
-                action = SAVED_DEVICES
+                action = CommonDeviceActions.refreshDevicesAction
                 response = ContextProvider.appContext.getString(
-                        if (payloadAction == PING) R.string.zigbeeprotocol_saved_devices_request
+                        if (payloadAction == CommsProtocol.pingAction) R.string.zigbeeprotocol_saved_devices_request
                         else R.string.zigbeeprotocol_ping
                 )
                 data = savedDevices.serializeList()
@@ -182,10 +184,10 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
                 when {
                     needsCommandArgs -> {
                         response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_enter_args, payloadAction)
-                        data = ZigBeeCommandInfo(payloadAction, consoleCommand.description, consoleCommand.syntax, consoleCommand.help).serialize()
+                        data = ZigBeeCommandInfo(payloadAction.value, consoleCommand.description, consoleCommand.syntax, consoleCommand.help).serialize()
                     }
                     else -> {
-                        val args = command?.args ?: listOf(payloadAction)
+                        val args = command?.args ?: listOf(payloadAction.value)
                         response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_executing, args.commandString())
                         actionProcessor.onNext(Action.CommandInput(mapper.consoleCommand, args))
                     }
@@ -193,8 +195,6 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
             }
             else -> response = "Unrecognized command $payloadAction"
         }
-
-        appendZigBeeCommands()
     }
 
     private fun start() {
@@ -326,10 +326,9 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
     ))
 
     private fun post(vararg messages: String) =
-            actionProcessor.onNext(Action.PayloadOutput(Payload(this@ZigBeeProtocol.javaClass.name).apply {
-                response = messages.toList().commandString()
-                appendZigBeeCommands()
-            }))
+            actionProcessor.onNext(Action.PayloadOutput(zigBeePayload(
+                    response = messages.toList().commandString()
+            )))
 
     override fun close() {
         disposable.clear()
@@ -343,9 +342,22 @@ class ZigBeeProtocol(driver: UsbSerialDriver, printWriter: PrintWriter) : CommsP
         const val MESH_UPDATE_PERIOD = 60
         const val OUTPUT_BUFFER_RATE = 100L
 
-        internal val SAVED_DEVICES get() = ContextProvider.appContext.getString(R.string.zigbeeprotocol_saved_devices)
-        internal val FORM_NETWORK get() = ContextProvider.appContext.getString(R.string.zigbeeprotocol_formnet)
+        val key = CommsProtocol.Key(ZigBeeProtocol::class.java.name)
+
+        internal val formNetworkAction get() = CommsProtocol.Action(ContextProvider.appContext.getString(R.string.zigbeeprotocol_formnet))
+        val deviceAttributesAction get() = CommsProtocol.Action(ContextProvider.appContext.getString(R.string.zigbeeprotocol_device_attributes))
 
         private fun List<String>.commandString() = joinToString(separator = " ")
+
+        internal fun zigBeePayload(
+                data: String? = null,
+                action: CommsProtocol.Action? = null,
+                response: String? = null
+        ) = Payload(
+                key = key,
+                data = data,
+                action = action,
+                response = response
+        ).appendZigBeeCommands()
     }
 }

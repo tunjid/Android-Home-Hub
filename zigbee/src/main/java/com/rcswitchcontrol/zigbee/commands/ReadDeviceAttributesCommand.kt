@@ -24,11 +24,10 @@
 
 package com.rcswitchcontrol.zigbee.commands
 
-import com.rcswitchcontrol.protocols.models.Payload
+import com.rcswitchcontrol.protocols.asAction
 import com.rcswitchcontrol.zigbee.R
 import com.rcswitchcontrol.zigbee.models.ZigBeeAttribute
-import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
-import com.rcswitchcontrol.zigbee.protocol.appendZigBeeCommands
+import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol.Companion.zigBeePayload
 import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.common.serialize
 import com.zsmartsystems.zigbee.CommandResult
@@ -59,16 +58,14 @@ class ReadDeviceAttributesCommand : AbsZigBeeCommand(), PayloadPublishing {
         val endpoint: ZigBeeEndpoint = getEndpoint(networkManager, nodeAddress)
         val cluster: ZclCluster = getCluster(endpoint, args[2])
 
-        out.println(Payload(
-                key = ZigBeeProtocol::class.java.name,
-                action = command,
+        out.println(zigBeePayload(
+                action = command.asAction,
                 data = cluster.pullAttributes(nodeAddress = nodeAddress, attributeIds = args
                         .drop(3)
                         .filterNot { it.contains("=") }
                         .mapNotNull(String::toIntOrNull))
                         .serialize()
         )
-                .appendZigBeeCommands()
                 .serialize()
         )
     }

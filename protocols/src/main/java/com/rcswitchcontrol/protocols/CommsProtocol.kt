@@ -24,12 +24,11 @@
 
 package com.rcswitchcontrol.protocols
 
-import android.content.Context
-import androidx.annotation.StringRes
+import android.os.Parcelable
 import com.rcswitchcontrol.protocols.models.Payload
-import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.serialize
+import kotlinx.android.parcel.Parcelize
 import java.io.Closeable
 import java.io.PrintWriter
 import java.util.concurrent.ExecutorService
@@ -42,30 +41,31 @@ import java.util.concurrent.Executors
  * Created by tj.dahunsi on 2/6/17.
  */
 
-abstract class CommsProtocol(private val printWriter: PrintWriter) : Closeable {
+interface CommsProtocol : Closeable {
 
-    val appContext: Context = ContextProvider.appContext
+    val printWriter: PrintWriter
 
-    abstract fun processInput(payload: Payload): Payload
+    fun processInput(payload: Payload): Payload
 
     fun processInput(input: String?): Payload = processInput(when (input) {
-        null, PING -> Payload(key = CommsProtocol::class.java.name, action = PING)
-        RESET -> Payload(key = CommsProtocol::class.java.name, action = RESET)
+        null, pingAction.value -> Payload(key = key, action = pingAction)
+        resetAction.value -> Payload(key = key, action = resetAction)
         else -> input.deserialize(Payload::class)
     })
 
     fun pushOut(payload: Payload) = printWriter.println(payload.serialize())
 
-    protected fun getString(@StringRes id: Int): String = appContext.getString(id)
+    @Parcelize
+    data class Key(val value: String): Parcelable
 
-    protected fun getString(@StringRes id: Int, vararg args: Any): String = appContext.getString(id, *args)
+    data class Action(val value: String)
 
     companion object {
-
-        const val PING = "Ping"
-        const val RESET = "Reset"
-
+        val key get() = Key(CommsProtocol::class.java.name)
+        val pingAction get() = Action("Ping")
+        val resetAction get() = Action("Reset")
         val sharedPool: ExecutorService = Executors.newFixedThreadPool(5)
     }
-
 }
+
+val String.asAction get() = CommsProtocol.Action(this)

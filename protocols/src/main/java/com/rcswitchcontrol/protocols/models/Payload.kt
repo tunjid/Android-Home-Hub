@@ -24,6 +24,7 @@
 
 package com.rcswitchcontrol.protocols.models
 
+import com.rcswitchcontrol.protocols.CommsProtocol
 import java.io.Serializable
 import java.util.*
 
@@ -35,12 +36,13 @@ import java.util.*
  */
 
 data class Payload(
-        val key: String,
+        val key: CommsProtocol.Key,
         var data: String? = null,
-        var action: String? = null,
+        var action: CommsProtocol.Action? = null,
         var response: String? = null
 ) : Serializable {
-    val commands = LinkedHashSet<String>()
+    val commands = LinkedHashSet<CommsProtocol.Action>()
 
-    fun addCommand(command: String) = commands.add(command)
+    fun addCommand(command: CommsProtocol.Action) = commands.add(command)
+
 }

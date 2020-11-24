@@ -140,10 +140,10 @@ class ServerNsdService : Service(), SelfBindingService<ServerNsdService> {
     /**
      * Thread for communications between [ServerNsdService] and it's clients
      */
-    private class ServerThread internal constructor(private val serverSocket: ServerSocket) : Thread(), Closeable {
+    private class ServerThread(private val serverSocket: ServerSocket) : Thread(), Closeable {
 
         @Volatile
-        internal var isRunning: Boolean = false
+        var isRunning: Boolean = false
         private val portMap = ConcurrentHashMap<Int, Connection>()
 
         private val protocol = ProxyProtocol(ConsoleWriter(this::broadcastToClients))
@@ -206,7 +206,7 @@ class ServerNsdService : Service(), SelfBindingService<ServerNsdService> {
     /**
      * Connection between [ServerNsdService] and it's clients
      */
-    private class Connection internal constructor(
+    private class Connection(
             private val socket: Socket,
             private val inputProcessor: (input: String?) -> String,
             private val outputProcessor: (output: String) -> Unit,
@@ -227,7 +227,7 @@ class ServerNsdService : Service(), SelfBindingService<ServerNsdService> {
                 val reader = createBufferedReader(socket)
 
                 // Initiate conversation with client
-                outputProcessor.invoke(inputProcessor.invoke(CommsProtocol.PING))
+                outputProcessor.invoke(inputProcessor.invoke(CommsProtocol.pingAction.value))
 
                 while (true) {
                     val input = reader.readLine() ?: break

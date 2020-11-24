@@ -47,6 +47,7 @@ import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
 import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService.Companion.C_HANDLE_CONTROL
 import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService.Companion.STATE_SNIFFING
 import com.tunjid.rcswitchcontrol.common.Broadcaster
+import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.common.deserialize
 import io.reactivex.disposables.CompositeDisposable
 import java.io.PrintWriter
@@ -60,22 +61,14 @@ import java.util.*
  */
 
 @Suppress("PrivatePropertyName")
-class BLERFProtocol constructor(printWriter: PrintWriter) : CommsProtocol(printWriter) {
-
-    private val SCAN: String = appContext.getString(R.string.scan)
-    private val SNIFF: String = appContext.getString(R.string.scanblercprotocol_sniff)
-    private val RENAME: String = appContext.getString(R.string.blercprotocol_rename_command)
-    private val DELETE: String = appContext.getString(R.string.blercprotocol_delete_command)
-    private val DISCONNECT: String = appContext.getString(R.string.menu_disconnect)
-    private val REFRESH_SWITCHES: String = appContext.getString(R.string.blercprotocol_refresh_switches_command)
-
-    private val deviceMap = HashMap<String, BluetoothDevice>()
+class BLERFProtocol constructor(override val printWriter: PrintWriter) : CommsProtocol, RFProtocolActions by SharedRFProtocolActions {
+    private val deviceMap = HashMap<CommsProtocol.Action, BluetoothDevice>()
     private val disposable = CompositeDisposable()
 
     private val switchStore = RfSwitchDataStore()
     private val switchCreator = RfSwitch.SwitchCreator()
 
-    private val bleConnection = HardServiceConnection(appContext, ClientBleService::class.java)
+    private val bleConnection = HardServiceConnection(ContextProvider.appContext, ClientBleService::class.java)
 
     private val scanner: BLEScanner
     private val scanHandler = Handler(Looper.getMainLooper())
@@ -84,7 +77,7 @@ class BLERFProtocol constructor(printWriter: PrintWriter) : CommsProtocol(printW
         get() = bleConnection.boundService?.isConnected == true
 
     init {
-        val bluetoothManager = appContext.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+        val bluetoothManager = ContextProvider.appContext.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         val bluetoothAdapter = bluetoothManager.adapter
 
         if (!bluetoothAdapter.isEnabled) bluetoothAdapter.enable()
@@ -96,7 +89,7 @@ class BLERFProtocol constructor(printWriter: PrintWriter) : CommsProtocol(printW
                 .withCallBack {
                     val record = it.scanRecord
                     val device = it.device
-                    val deviceName = record?.deviceName
+                    val deviceName = record?.deviceName?.let(CommsProtocol::Action)
 
                     if (deviceName != null) deviceMap[deviceName] = device
                 }
@@ -104,12 +97,12 @@ class BLERFProtocol constructor(printWriter: PrintWriter) : CommsProtocol(printW
 
         bleConnection.bind()
         disposable.add(Broadcaster.listen(
-                ClientBleService.ACTION_GATT_CONNECTED,
-                ClientBleService.ACTION_GATT_CONNECTING,
-                ClientBleService.ACTION_GATT_DISCONNECTED,
-                ClientBleService.ACTION_GATT_SERVICES_DISCOVERED,
-                ClientBleService.ACTION_CONTROL,
-                ClientBleService.ACTION_SNIFFER,
+                ClientBleService.gattConnectedAction.value,
+                ClientBleService.gattConnectingAction.value,
+                ClientBleService.gattDisconnectedAction.value,
+                ClientBleService.gattServicesDiscoveredAction.value,
+                ClientBleService.controlAction.value,
+                ClientBleService.snifferAction.value,
                 ClientBleService.DATA_AVAILABLE_UNKNOWN)
                 .subscribe(this::onBleIntentReceived, Throwable::printStackTrace))
     }
@@ -120,32 +113,32 @@ class BLERFProtocol constructor(printWriter: PrintWriter) : CommsProtocol(printW
     }
 
     override fun processInput(payload: Payload): Payload {
-        val output = Payload(javaClass.name).apply { addCommand(RESET) }
+        val output = bleRfPayload().apply { addCommand(CommsProtocol.resetAction) }
 
         when (val receivedAction = payload.action) {
-            PING, REFRESH_SWITCHES -> output.apply {
-                response = (getString(
-                        if (receivedAction == PING) R.string.blercprotocol_ping_response
+            CommsProtocol.pingAction, refreshDevicesAction -> output.apply {
+                response = (ContextProvider.appContext.getString(
+                        if (receivedAction == CommsProtocol.pingAction) R.string.blercprotocol_ping_response
                         else R.string.blercprotocol_refresh_response
                 ))
-                action = ClientBleService.ACTION_TRANSMITTER
+                action = ClientBleService.transmitterAction
                 data = switchStore.serializedSavedSwitches
 
                 if (isConnected) {
-                    addCommand(REFRESH_SWITCHES)
-                    addCommand(SNIFF)
-                } else addCommand(SCAN)
+                    addCommand(refreshDevicesAction)
+                    addCommand(sniffAction)
+                } else addCommand(scanAction)
             }
 
-            SCAN -> {
+            scanAction -> {
                 deviceMap.clear()
                 scanHandler.post(scanner::startScan)
                 scanHandler.postDelayed(this::onScanComplete, SCAN_DURATION.toLong())
 
-                output.response = getString(R.string.scanblercprotocol_start_scan_reponse)
+                output.response = ContextProvider.appContext.getString(R.string.scanblercprotocol_start_scan_reponse)
             }
 
-            DISCONNECT -> bleConnection.boundService?.disconnect()
+            disconnectAction -> bleConnection.boundService?.disconnect()
 
             in deviceMap -> {
                 val extras = Bundle()
@@ -155,14 +148,14 @@ class BLERFProtocol constructor(printWriter: PrintWriter) : CommsProtocol(printW
                 bleConnection.bind { replaceExtras(extras) }
             }
 
-            SNIFF -> output.apply {
-                response = appContext.getString(R.string.blercprotocol_start_sniff_response)
-                addCommand(RESET)
-                addCommand(DISCONNECT)
+            sniffAction -> output.apply {
+                response = ContextProvider.appContext.getString(R.string.blercprotocol_start_sniff_response)
+                addCommand(CommsProtocol.resetAction)
+                addCommand(disconnectAction)
                 bleConnection.boundService?.writeCharacteristicArray(C_HANDLE_CONTROL, byteArrayOf(STATE_SNIFFING))
             }
 
-            RENAME -> output.apply {
+            renameAction -> output.apply {
                 val switches = switchStore.savedSwitches
                 val rcSwitch = payload.data?.deserialize(RfSwitch::class)
 
@@ -170,9 +163,9 @@ class BLERFProtocol constructor(printWriter: PrintWriter) : CommsProtocol(printW
                 val hasSwitch = position > -1
 
                 response = if (hasSwitch && rcSwitch != null)
-                    getString(R.string.blercprotocol_renamed_response, switches[position].name, rcSwitch.name)
+                    ContextProvider.appContext.getString(R.string.blercprotocol_renamed_response, switches[position].name, rcSwitch.name)
                 else
-                    getString(R.string.blercprotocol_no_such_switch_response)
+                    ContextProvider.appContext.getString(R.string.blercprotocol_no_such_switch_response)
 
                 // Switches are equal based on their codes, not their names.
                 // Remove the switch with the old name, and add the switch with the new name.
@@ -184,18 +177,18 @@ class BLERFProtocol constructor(printWriter: PrintWriter) : CommsProtocol(printW
 
                 action = receivedAction
                 data = switchStore.serializedSavedSwitches
-                addCommand(SNIFF)
+                addCommand(sniffAction)
             }
 
-            DELETE -> output.apply {
+            deleteAction -> output.apply {
                 val switches = switchStore.savedSwitches
                 val rcSwitch = payload.data?.deserialize(RfSwitch::class)
                 val removed = switches.filterNot { it.bytes.contentEquals(rcSwitch?.bytes) }
 
                 val response = if (rcSwitch == null || switches.size == removed.size)
-                    getString(R.string.blercprotocol_no_such_switch_response)
+                    ContextProvider.appContext.getString(R.string.blercprotocol_no_such_switch_response)
                 else
-                    getString(R.string.blercprotocol_deleted_response, rcSwitch.name)
+                    ContextProvider.appContext.getString(R.string.blercprotocol_deleted_response, rcSwitch.name)
 
                 // Save switches before sending them
                 switchStore.saveSwitches(removed)
@@ -203,15 +196,15 @@ class BLERFProtocol constructor(printWriter: PrintWriter) : CommsProtocol(printW
                 output.response = response
                 action = receivedAction
                 data = switchStore.serializedSavedSwitches
-                addCommand(SNIFF)
+                addCommand(sniffAction)
             }
 
-            ClientBleService.ACTION_TRANSMITTER -> output.apply {
-                response = getString(R.string.blercprotocol_transmission_response)
-                addCommand(SNIFF)
-                addCommand(REFRESH_SWITCHES)
+            ClientBleService.transmitterAction -> output.apply {
+                response = ContextProvider.appContext.getString(R.string.blercprotocol_transmission_response)
+                addCommand(sniffAction)
+                addCommand(refreshDevicesAction)
 
-                Broadcaster.push(Intent(ClientBleService.ACTION_TRANSMITTER)
+                Broadcaster.push(Intent(ClientBleService.transmitterAction.value)
                         .putExtra(ClientBleService.DATA_AVAILABLE_TRANSMITTER, payload.data))
             }
         }
@@ -219,41 +212,41 @@ class BLERFProtocol constructor(printWriter: PrintWriter) : CommsProtocol(printW
         return output
     }
 
-    private fun onBleIntentReceived(intent: Intent) = Payload(javaClass.name).run {
-        val intentAction = intent.action ?: return@run
+    private fun onBleIntentReceived(intent: Intent) = bleRfPayload().run {
+        val intentAction = intent.action?.let(CommsProtocol::Action) ?: return@run
 
-        addCommand(RESET)
+        addCommand(CommsProtocol.resetAction)
 
         when (intentAction) {
-            ClientBleService.ACTION_GATT_CONNECTED -> {
-                response = appContext.getString(R.string.connected)
-                addCommand(REFRESH_SWITCHES)
-                addCommand(SNIFF)
-                addCommand(DISCONNECT)
+            ClientBleService.gattConnectedAction -> {
+                response = ContextProvider.appContext.getString(R.string.connected)
+                addCommand(refreshDevicesAction)
+                addCommand(sniffAction)
+                addCommand(disconnectAction)
             }
-            ClientBleService.ACTION_GATT_CONNECTING -> {
-                response = appContext.getString(R.string.connecting)
-                addCommand(SCAN)
+            ClientBleService.gattConnectingAction -> {
+                response = ContextProvider.appContext.getString(R.string.connecting)
+                addCommand(scanAction)
             }
-            ClientBleService.ACTION_GATT_DISCONNECTED -> {
-                response = appContext.getString(R.string.disconnected)
-                addCommand(SCAN)
+            ClientBleService.gattDisconnectedAction -> {
+                response = ContextProvider.appContext.getString(R.string.disconnected)
+                addCommand(scanAction)
             }
 
-            ClientBleService.ACTION_CONTROL -> {
+            ClientBleService.controlAction -> {
                 val rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_CONTROL)
                         ?: return@run
                 if (stoppedSniffing(rawData)) {
-                    action = (intentAction)
-                    response = (getString(R.string.blercprotocol_stop_sniff_response))
+                    action = intentAction
+                    response = ContextProvider.appContext.getString(R.string.blercprotocol_stop_sniff_response)
                     data = (rawData[0].toString())
 
-                    addCommand(REFRESH_SWITCHES)
-                    addCommand(SNIFF)
+                    addCommand(refreshDevicesAction)
+                    addCommand(sniffAction)
                 }
             }
 
-            ClientBleService.ACTION_SNIFFER -> {
+            ClientBleService.snifferAction -> {
                 val rawData = intent.getByteArrayExtra(ClientBleService.DATA_AVAILABLE_SNIFFER)
                         ?: return@run
                 data = switchCreator.state
@@ -262,8 +255,8 @@ class BLERFProtocol constructor(printWriter: PrintWriter) : CommsProtocol(printW
                     RfSwitch.ON_CODE -> {
                         switchCreator.withOnCode(rawData)
                         action = intentAction
-                        response = appContext.getString(R.string.blercprotocol_sniff_on_response)
-                        addCommand(SNIFF)
+                        response = ContextProvider.appContext.getString(R.string.blercprotocol_sniff_on_response)
+                        addCommand(sniffAction)
                     }
                     RfSwitch.OFF_CODE -> {
                         val switches = switchStore.savedSwitches
@@ -271,18 +264,18 @@ class BLERFProtocol constructor(printWriter: PrintWriter) : CommsProtocol(printW
                         val containsSwitch = switches.map(RfSwitch::bytes).contains(rcSwitch.bytes)
 
                         action = (intentAction)
-                        response = getString(
+                        response = ContextProvider.appContext.getString(
                                 if (containsSwitch) R.string.scanblercprotocol_sniff_already_exists_response
                                 else R.string.blercprotocol_sniff_off_response
                         )
-                        addCommand(REFRESH_SWITCHES)
-                        addCommand(SNIFF)
+                        addCommand(refreshDevicesAction)
+                        addCommand(sniffAction)
 
                         if (!containsSwitch) {
                             switches.add(rcSwitch.copy(name = "Switch " + (switches.size + 1)))
 
                             switchStore.saveSwitches(switches)
-                            action = (ClientBleService.ACTION_TRANSMITTER)
+                            action = (ClientBleService.transmitterAction)
                             data = (switchStore.serializedSavedSwitches)
                         }
                     }
@@ -290,7 +283,7 @@ class BLERFProtocol constructor(printWriter: PrintWriter) : CommsProtocol(printW
             }
         }
 
-        sharedPool.submit { pushOut(this) }
+        CommsProtocol.sharedPool.submit { pushOut(this) }
         Log.i(TAG, "Received data for: $intentAction")
     }
 
@@ -299,12 +292,12 @@ class BLERFProtocol constructor(printWriter: PrintWriter) : CommsProtocol(printW
     private fun onScanComplete() {
         scanner.stopScan()
 
-        val resources = appContext.resources
-        val output = Payload(this.javaClass.name)
-        output.addCommand(RESET)
-        output.addCommand(SCAN)
+        val resources = ContextProvider.appContext.resources
+        val output = bleRfPayload()
+        output.addCommand(CommsProtocol.resetAction)
+        output.addCommand(scanAction)
 
-        for (device in deviceMap.values) output.addCommand(device.name)
+        for (device in deviceMap.values) output.addCommand(CommsProtocol.Action(device.name))
 
         output.response = resources.getString(R.string.scanblercprotocol_scan_response, deviceMap.size)
         pushOut(output)
@@ -315,5 +308,17 @@ class BLERFProtocol constructor(printWriter: PrintWriter) : CommsProtocol(printW
         private val TAG = BLERFProtocol::class.java.simpleName
         private const val SCAN_DURATION = 5000
 
+        val key = CommsProtocol.Key(BLERFProtocol::class.java.name)
+
+        internal fun bleRfPayload(
+                data: String? = null,
+                action: CommsProtocol.Action? = null,
+                response: String? = null
+        ) = Payload(
+                key = key,
+                data = data,
+                action = action,
+                response = response
+        )
     }
 }

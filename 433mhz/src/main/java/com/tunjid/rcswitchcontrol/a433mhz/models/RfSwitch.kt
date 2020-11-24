@@ -45,15 +45,15 @@ data class RfSwitch(
         val offCode: ByteArray = ByteArray(4)
 ) : Peripheral {
 
-    override val key: String
-        get() = SerialRFProtocol::class.java.name
+    override val key
+        get() = SerialRFProtocol.key
 
     override val diffId
         get() = bytes.contentToString()
 
     @Retention(AnnotationRetention.SOURCE)
     @StringDef(ON_CODE, OFF_CODE)
-    internal annotation class SwitchCode {}
+    internal annotation class SwitchCode
 
     private fun getTransmission(state: Boolean): ByteArray {
         val transmission = ByteArray(10)

@@ -1,6 +1,8 @@
 package com.tunjid.rcswitchcontrol.models
 
 import androidx.core.graphics.ColorUtils
+import com.rcswitchcontrol.protocols.CommonDeviceActions
+import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
 import com.rcswitchcontrol.zigbee.models.ZigBeeAttribute
 import com.rcswitchcontrol.zigbee.models.ZigBeeNode
@@ -9,14 +11,12 @@ import com.rcswitchcontrol.zigbee.models.matches
 import com.rcswitchcontrol.zigbee.models.numValue
 import com.rcswitchcontrol.zigbee.models.owns
 import com.tunjid.androidx.recyclerview.diff.Differentiable
-import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
-import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.common.serialize
 
 sealed class Device(
-        val key: String,
+        val key: CommsProtocol.Key,
         val name: String
 ) : Differentiable {
     data class ZigBee(
@@ -36,7 +36,7 @@ sealed class Device(
 val Device.RF.deletePayload
     get() = Payload(
             key = key,
-            action = ContextProvider.appContext.getString(R.string.blercprotocol_delete_command),
+            action = CommonDeviceActions.deleteAction,
             data = serialize()
 
     )
@@ -44,14 +44,13 @@ val Device.RF.deletePayload
 val Device.RF.renamedPayload
     get() = Payload(
             key = key,
-            action = ContextProvider.appContext.getString(R.string.blercprotocol_rename_command),
+            action = CommonDeviceActions.renameAction,
             data = serialize()
-
     )
 
 fun Device.RF.togglePayload(isOn: Boolean) = Payload(
         key = key,
-        action = ClientBleService.ACTION_TRANSMITTER,
+        action = ClientBleService.transmitterAction,
         data = switch.getEncodedTransmission(isOn)
 )
 

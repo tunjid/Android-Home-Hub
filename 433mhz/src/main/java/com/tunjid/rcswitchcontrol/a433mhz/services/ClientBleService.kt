@@ -35,6 +35,7 @@ import android.os.HandlerThread
 import android.util.Base64
 import android.util.Log
 import android.widget.Toast
+import com.rcswitchcontrol.protocols.CommsProtocol
 import com.tunjid.androidx.core.components.services.SelfBinder
 import com.tunjid.androidx.core.components.services.SelfBindingService
 import com.tunjid.rcswitchcontrol.a433mhz.R
@@ -50,12 +51,12 @@ import java.util.*
 class ClientBleService : Service(), SelfBindingService<ClientBleService> {
 
     val isConnected: Boolean
-        get() = connectionState == ACTION_GATT_CONNECTED
+        get() = connectionState == gattConnectedAction.value
 
     private val binder = Binder()
     private val disposable = CompositeDisposable()
 
-    var connectionState = ACTION_GATT_DISCONNECTED
+    var connectionState = gattDisconnectedAction.value
         private set
     private var bluetoothAdapter: BluetoothAdapter? = null
     private var bluetoothGatt: BluetoothGatt? = null
@@ -75,7 +76,7 @@ class ClientBleService : Service(), SelfBindingService<ClientBleService> {
 
             when (newState) {
                 BluetoothProfile.STATE_CONNECTED -> {
-                    connectionState = ACTION_GATT_CONNECTED
+                    connectionState = gattConnectedAction.value
                     bluetoothGatt?.discoverServices()
 
                     // Save this device for connnecting later
@@ -84,11 +85,11 @@ class ClientBleService : Service(), SelfBindingService<ClientBleService> {
                             .apply()
                 }
                 BluetoothProfile.STATE_CONNECTING -> {
-                    connectionState = ACTION_GATT_CONNECTING
+                    connectionState = gattConnectingAction.value
                     broadcastUpdate(connectionState)
                 }
                 BluetoothProfile.STATE_DISCONNECTED -> {
-                    connectionState = ACTION_GATT_DISCONNECTED
+                    connectionState = gattDisconnectedAction.value
                     broadcastUpdate(connectionState)
                 }
             }
@@ -100,7 +101,7 @@ class ClientBleService : Service(), SelfBindingService<ClientBleService> {
             val success = status == BluetoothGatt.GATT_SUCCESS
 
             if (success) {
-                broadcastUpdate(ACTION_GATT_SERVICES_DISCOVERED)
+                broadcastUpdate(gattServicesDiscoveredAction.value)
                 findGattServices(supportedGattServices)
                 broadcastUpdate(connectionState)
             }
@@ -126,7 +127,7 @@ class ClientBleService : Service(), SelfBindingService<ClientBleService> {
             if (readQueue.size > 0) readQueue.remove()
 
             when (characteristic.uuid.toString()) {
-                C_HANDLE_CONTROL -> broadcastUpdate(ACTION_CONTROL, characteristic)
+                C_HANDLE_CONTROL -> broadcastUpdate(controlAction.value, characteristic)
                 C_HANDLE_SNIFFER -> broadcastUpdate(DATA_AVAILABLE_SNIFFER, characteristic)
                 C_HANDLE_TRANSMITTER -> broadcastUpdate(DATA_AVAILABLE_TRANSMITTER, characteristic)
                 else -> broadcastUpdate(DATA_AVAILABLE_UNKNOWN, characteristic)
@@ -137,9 +138,9 @@ class ClientBleService : Service(), SelfBindingService<ClientBleService> {
 
         override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
             when (characteristic.uuid.toString()) {
-                C_HANDLE_CONTROL -> broadcastUpdate(ACTION_CONTROL, characteristic)
-                C_HANDLE_SNIFFER -> broadcastUpdate(ACTION_SNIFFER, characteristic)
-                C_HANDLE_TRANSMITTER -> broadcastUpdate(ACTION_TRANSMITTER, characteristic)
+                C_HANDLE_CONTROL -> broadcastUpdate(controlAction.value, characteristic)
+                C_HANDLE_SNIFFER -> broadcastUpdate(snifferAction.value, characteristic)
+                C_HANDLE_TRANSMITTER -> broadcastUpdate(transmitterAction.value, characteristic)
             }
         }
     }
@@ -156,7 +157,7 @@ class ClientBleService : Service(), SelfBindingService<ClientBleService> {
     override fun onCreate() {
         super.onCreate()
 
-        disposable.add(Broadcaster.listen(ACTION_TRANSMITTER).subscribe({ intent ->
+        disposable.add(Broadcaster.listen(transmitterAction.value).subscribe({ intent ->
             val data = intent.getStringExtra(DATA_AVAILABLE_TRANSMITTER)
             val transmission = Base64.decode(data, Base64.DEFAULT)
             writeCharacteristicArray(C_HANDLE_TRANSMITTER, transmission)
@@ -177,7 +178,7 @@ class ClientBleService : Service(), SelfBindingService<ClientBleService> {
         if (intent == null || isConnected) return
 
         val adapter = (getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
-        if (adapter == null || !adapter.isEnabled || ACTION_GATT_CONNECTING == connectionState) return
+        if (adapter == null || !adapter.isEnabled || gattConnectingAction.value == connectionState) return
 
         bluetoothAdapter = adapter
 
@@ -231,7 +232,7 @@ class ClientBleService : Service(), SelfBindingService<ClientBleService> {
             showToast(this, R.string.ble_service_reconnecting)
 
             when (bluetoothGatt?.connect()) {
-                true -> broadcastUpdate({ connectionState = ACTION_GATT_CONNECTING; connectionState }())
+                true -> broadcastUpdate({ connectionState = gattConnectingAction.value; connectionState }())
                 else -> showToast(this, R.string.ble_service_failed_to_connect)
             }
         } else {
@@ -241,7 +242,7 @@ class ClientBleService : Service(), SelfBindingService<ClientBleService> {
                 else -> bluetoothDevice.connectGatt(this, true, gattCallback)
             }
 
-            connectionState = ACTION_GATT_CONNECTING
+            connectionState = gattConnectingAction.value
 
             broadcastUpdate(connectionState)
             showToast(this, R.string.ble_service_new_connection)
@@ -261,7 +262,7 @@ class ClientBleService : Service(), SelfBindingService<ClientBleService> {
      * released properly.
      */
     fun close() {
-        connectionState = ACTION_GATT_DISCONNECTED
+        connectionState = gattDisconnectedAction.value
         if (bluetoothGatt == null) return
 
         bluetoothGatt?.close()
@@ -383,16 +384,17 @@ class ClientBleService : Service(), SelfBindingService<ClientBleService> {
         const val C_HANDLE_SNIFFER = "21819ab0-c937-4188-b0db-b9621e1696cd"
         const val C_HANDLE_TRANSMITTER = "3c79909b-cc1c-4bb9-8595-f99fa98c6503"
 
+        val controlAction = CommsProtocol.Action("ACTION_CONTROL")
+        val snifferAction = CommsProtocol.Action("ACTION_SNIFFER")
+        val transmitterAction = CommsProtocol.Action("ACTION_TRANSMITTER")
+        val gattConnectedAction = CommsProtocol.Action("ACTION_GATT_CONNECTED")
+        val gattConnectingAction = CommsProtocol.Action("ACTION_GATT_CONNECTING")
+        val gattDisconnectedAction = CommsProtocol.Action("ACTION_GATT_DISCONNECTED")
+        val gattServicesDiscoveredAction = CommsProtocol.Action("ACTION_GATT_SERVICES_DISCOVERED")
+
         // Keys for data
         const val BLUETOOTH_DEVICE = "BLUETOOTH_DEVICE"
         const val LAST_PAIRED_DEVICE = "LAST_PAIRED_DEVICE"
-        const val ACTION_GATT_CONNECTED = "ACTION_GATT_CONNECTED"
-        const val ACTION_GATT_CONNECTING = "ACTION_GATT_CONNECTING"
-        const val ACTION_GATT_DISCONNECTED = "ACTION_GATT_DISCONNECTED"
-        const val ACTION_GATT_SERVICES_DISCOVERED = "ACTION_GATT_SERVICES_DISCOVERED"
-        const val ACTION_CONTROL = "ACTION_CONTROL"
-        const val ACTION_SNIFFER = "ACTION_SNIFFER"
-        const val ACTION_TRANSMITTER = "ACTION_TRANSMITTER"
         const val DATA_AVAILABLE_CONTROL = "DATA_AVAILABLE_CONTROL"
         const val DATA_AVAILABLE_SNIFFER = "DATA_AVAILABLE_SNIFFER"
         const val DATA_AVAILABLE_TRANSMITTER = "DATA_AVAILABLE_TRANSMITTER"

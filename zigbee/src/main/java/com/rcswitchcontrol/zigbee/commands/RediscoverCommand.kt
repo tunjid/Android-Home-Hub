@@ -24,29 +24,24 @@
 
 package com.rcswitchcontrol.zigbee.commands
 
+import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.zigbee.R
 import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.zsmartsystems.zigbee.IeeeAddress
-import com.zsmartsystems.zigbee.ZigBeeNetworkManager
-import java.io.PrintStream
 
 /**
  * Rediscover a node from its IEEE address.
  */
-class RediscoverCommand : AbsZigBeeCommand() {
-    override val args: String = "IEEEADDRESS"
+class RediscoverCommand : PayloadPublishingCommand by AbsZigBeeCommand(
+        log = true,
+        args = "IEEEADDRESS",
+        commandString = ContextProvider.appContext.getString(R.string.zigbeeprotocol_rediscover),
+        descriptionString = "Rediscover a node from its IEEE address.",
+        processor = { _: CommsProtocol.Action, args: Array<out String> ->
+            if (args.size != 2) throw IllegalArgumentException("Invalid command arguments")
 
-    override fun getCommand(): String = ContextProvider.appContext.getString(R.string.zigbeeprotocol_rediscover)
+            val address = IeeeAddress(args[1])
+            rediscoverNode(address)
 
-    override fun getDescription(): String = "Rediscover a node from its IEEE address."
-
-    @Throws(Exception::class)
-    override fun process(networkManager: ZigBeeNetworkManager, args: Array<out String>, out: PrintStream) {
-        if (args.size != 2) throw IllegalArgumentException("Invalid command arguments")
-
-        val address = IeeeAddress(args[1])
-
-        out.push("Sending rediscovery request for address $address")
-        networkManager.rediscoverNode(address)
-    }
-}
+            null
+        })

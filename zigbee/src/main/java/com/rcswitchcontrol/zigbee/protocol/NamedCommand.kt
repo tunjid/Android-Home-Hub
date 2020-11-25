@@ -2,6 +2,7 @@ package com.rcswitchcontrol.zigbee.protocol
 
 import com.rcswitchcontrol.protocols.CommonDeviceActions
 import com.rcswitchcontrol.protocols.CommsProtocol
+import com.rcswitchcontrol.protocols.asAction
 import com.rcswitchcontrol.protocols.models.Payload
 import com.rcswitchcontrol.zigbee.R
 import com.rcswitchcontrol.zigbee.commands.*
@@ -19,7 +20,10 @@ internal sealed class NamedCommand(open val consoleCommand: ZigBeeConsoleCommand
     internal val command
         get() = consoleCommand.command
 
-    sealed class Custom(override val consoleCommand: AbsZigBeeCommand) : NamedCommand(consoleCommand) {
+    sealed class Custom(override val consoleCommand: PayloadPublishingCommand) : NamedCommand(consoleCommand) {
+
+        val action get() = command.asAction
+
         object On : Custom(OnCommand())
         object Off : Custom(OffCommand())
         object Color : Custom(ColorCommand())

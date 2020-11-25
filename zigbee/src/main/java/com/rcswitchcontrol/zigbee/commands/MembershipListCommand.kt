@@ -1,62 +1,39 @@
 package com.rcswitchcontrol.zigbee.commands
 
+import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.zigbee.R
+import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
+import com.rcswitchcontrol.zigbee.utilities.expect
+import com.rcswitchcontrol.zigbee.utilities.getEndpoint
 import com.tunjid.rcswitchcontrol.common.ContextProvider
-import com.zsmartsystems.zigbee.CommandResult
-import com.zsmartsystems.zigbee.ZigBeeEndpoint
-import com.zsmartsystems.zigbee.ZigBeeNetworkManager
 import com.zsmartsystems.zigbee.zcl.ZclTransactionMatcher
 import com.zsmartsystems.zigbee.zcl.clusters.groups.GetGroupMembershipCommand
 import com.zsmartsystems.zigbee.zcl.clusters.groups.GetGroupMembershipResponse
-import java.io.PrintStream
-import java.util.concurrent.Future
 
 /**
  * Lists group memberships from device.
  */
-class MembershipListCommand : AbsZigBeeCommand() {
-    override val args: String = "[DEVICE]"
+class MembershipListCommand : PayloadPublishingCommand by AbsZigBeeCommand(
+        args = "[DEVICE]",
+        commandString = ContextProvider.appContext.getString(R.string.zigbeeprotocol_joined_groups),
+        descriptionString = "Lists group memberships from device.",
+        processor = { _: CommsProtocol.Action, args: Array<out String> ->
 
-    override fun getCommand(): String = ContextProvider.appContext.getString(R.string.zigbeeprotocol_joined_groups)
+            args.expect(2)
 
-    override fun getDescription(): String = "Lists group memberships from device."
+            val command = GetGroupMembershipCommand()
 
-    @Throws(Exception::class)
-    override fun process(networkManager: ZigBeeNetworkManager, args: Array<String>, out: PrintStream) {
-        args.expect(2)
+            command.groupCount = 0
+            command.groupList = emptyList()
+            command.destinationAddress = getEndpoint(args[1]).endpointAddress
 
-        networkManager.findDevice(args[1]).then(
-                { networkManager.getGroupMemberships(it) },
-                { onCommandProcessed(it, out) }
-        )
-    }
+            val result = sendTransaction(command, ZclTransactionMatcher()).get()
 
-    override fun onCommandProcessed(result: CommandResult, out: PrintStream) {
-        if (!result.isSuccess) return out.println("Error executing command: $result")
-
-        val response = result.getResponse<GetGroupMembershipResponse>()
-        out.print("Member of groups:")
-
-        for (value in response.groupList) {
-            out.print(' ')
-            out.print(value)
-        }
-        out.println()
-    }
-
-    /**
-     * Gets group memberships from device.
-     *
-     * @param device the device
-     * @return the command result future
-     */
-    private fun ZigBeeNetworkManager.getGroupMemberships(device: ZigBeeEndpoint): Future<CommandResult> {
-        val command = GetGroupMembershipCommand()
-
-        command.groupCount = 0
-        command.groupList = emptyList()
-        command.destinationAddress = device.endpointAddress
-
-        return sendTransaction(command, ZclTransactionMatcher())
-    }
-}
+            when (result.isSuccess) {
+                true -> ZigBeeProtocol.zigBeePayload(
+                        response = "Member of groups:\n" +
+                                result.getResponse<GetGroupMembershipResponse>().groupList.joinToString(separator = "\n")
+                )
+                else -> ZigBeeProtocol.zigBeePayload(response = "Error executing command: $result")
+            }
+        })

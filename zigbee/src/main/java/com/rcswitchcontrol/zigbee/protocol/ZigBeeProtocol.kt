@@ -30,7 +30,7 @@ import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.io.ConsoleStream
 import com.rcswitchcontrol.protocols.models.Payload
 import com.rcswitchcontrol.zigbee.R
-import com.rcswitchcontrol.zigbee.commands.PayloadPublishing
+import com.rcswitchcontrol.zigbee.commands.PayloadPublishingCommand
 import com.rcswitchcontrol.zigbee.io.AndroidZigBeeSerialPort
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommandInfo
@@ -120,11 +120,10 @@ class ZigBeeProtocol(driver: UsbSerialDriver, override val printWriter: PrintWri
                 .onBackpressureBuffer()
                 .concatMapCompletable { (consoleCommand, args) ->
                     Completable.fromCallable {
-                        post("Executing command: $args")
                         consoleCommand.process(
                                 networkManager,
                                 args.toTypedArray(),
-                                if (consoleCommand is PayloadPublishing) payloadStream else responseStream
+                                if (consoleCommand is PayloadPublishingCommand) payloadStream else responseStream
                         )
                     }
                             .onErrorResumeNext {
@@ -345,7 +344,14 @@ class ZigBeeProtocol(driver: UsbSerialDriver, override val printWriter: PrintWri
         val key = CommsProtocol.Key(ZigBeeProtocol::class.java.name)
 
         internal val formNetworkAction get() = CommsProtocol.Action(ContextProvider.appContext.getString(R.string.zigbeeprotocol_formnet))
-        val deviceAttributesAction get() = CommsProtocol.Action(ContextProvider.appContext.getString(R.string.zigbeeprotocol_device_attributes))
+        val attributeCarryingActions
+            get() = listOf(
+                    NamedCommand.Custom.On.action,
+                    NamedCommand.Custom.Off.action,
+                    NamedCommand.Custom.Level.action,
+                    NamedCommand.Custom.Color.action,
+                    NamedCommand.Custom.DeviceAttributes.action,
+            )
 
         private fun List<String>.commandString() = joinToString(separator = " ")
 

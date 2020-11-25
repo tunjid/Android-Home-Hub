@@ -24,35 +24,33 @@
 
 package com.rcswitchcontrol.zigbee.commands
 
-import com.zsmartsystems.zigbee.ZigBeeNetworkManager
+import com.rcswitchcontrol.protocols.CommsProtocol
+import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
 import com.zsmartsystems.zigbee.console.ZigBeeConsoleCommand
-import java.io.PrintStream
-import java.util.*
 
 /**
  * Prints help on console.
  */
-class HelpCommand(private val commands: Map<String, ZigBeeConsoleCommand>) : AbsZigBeeCommand() {
-    override val args: String = "[COMMAND]"
+class HelpCommand(private val commands: Map<String, ZigBeeConsoleCommand>) : PayloadPublishingCommand by AbsZigBeeCommand(
+        args = "[COMMAND]",
+        commandString = "View command help.",
+        descriptionString = "help",
+        processor = { _: CommsProtocol.Action, args: Array<out String> ->
+            when (args.size) {
+                2 -> if (commands.containsKey(args[1])) {
+                    val command = commands[args[1]]
 
-    override fun getDescription(): String = "View command help."
+                    ZigBeeProtocol.zigBeePayload(response = "Description: ${command!!.description}\nSyntax: ${command.syntax}")
 
-    override fun getCommand(): String = "help"
+                } else throw IllegalArgumentException("Command ${args[1]} does not exist")
+                1 -> {
+                    val joined = commands.keys
+                            .sorted()
+                            .joinToString(separator = "\n") { command -> "$command - ${commands.getValue(command).description}" }
 
-    override fun process(networkManager: ZigBeeNetworkManager, args: Array<out String>, out: PrintStream) = when (args.size) {
-        2 -> if (commands.containsKey(args[1])) {
-            val command = commands[args[1]]
-            out.push(command!!.description)
-            out.push("")
-            out.push("Syntax: " + command.syntax)
-        } else throw IllegalArgumentException("Command ${args[1]} does not exist")
-        1 -> {
-            val commandList = ArrayList(commands.keys)
-            commandList.sort()
-            out.push("Commands:")
-
-            for (command in commands.keys) out.push("$command - ${commands.getValue(command).description}")
+                    ZigBeeProtocol.zigBeePayload(response = "Commands:\n$joined")
+                }
+                else -> throw IllegalArgumentException("Invalid command arguments")
+            }
         }
-        else -> throw IllegalArgumentException("Invalid command arguments")
-    }
-}
+)

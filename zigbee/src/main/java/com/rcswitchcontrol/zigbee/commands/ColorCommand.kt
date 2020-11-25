@@ -24,68 +24,70 @@
 
 package com.rcswitchcontrol.zigbee.commands
 
+import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.zigbee.R
+import com.rcswitchcontrol.zigbee.models.ZigBeeAttribute
+import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
 import com.rcswitchcontrol.zigbee.utilities.Cie
+import com.rcswitchcontrol.zigbee.utilities.addressOf
+import com.rcswitchcontrol.zigbee.utilities.expect
+import com.rcswitchcontrol.zigbee.utilities.trifecta
 import com.tunjid.rcswitchcontrol.common.ContextProvider
-import com.zsmartsystems.zigbee.CommandResult
-import com.zsmartsystems.zigbee.ZigBeeAddress
-import com.zsmartsystems.zigbee.ZigBeeEndpointAddress
-import com.zsmartsystems.zigbee.ZigBeeNetworkManager
+import com.tunjid.rcswitchcontrol.common.serialize
 import com.zsmartsystems.zigbee.zcl.clusters.ZclColorControlCluster
-import java.io.PrintStream
-import java.util.concurrent.Future
 
 /**
  * Changes a light color on device.
  */
-class ColorCommand : AbsZigBeeCommand() {
-    override val args: String = "DEVICEID RED GREEN BLUE"
+class ColorCommand : PayloadPublishingCommand by AbsZigBeeCommand(
+        args = "DEVICEID RED GREEN BLUE",
+        commandString = ContextProvider.appContext.getString(R.string.zigbeeprotocol_color),
+        descriptionString = "Changes light color.",
+        processor = { action: CommsProtocol.Action, args: Array<out String> ->
+            args.expect(5)
 
-    override fun getCommand(): String = ContextProvider.appContext.getString(R.string.zigbeeprotocol_color)
+            val red = args[2].toDouble()
+            val green = args[3].toDouble()
+            val blue = args[4].toDouble()
+            val time = 1.0
 
-    override fun getDescription(): String = "Changes light color."
+            val cie = Cie.rgb2cie(red, green, blue)
 
-    @Throws(Exception::class)
-    override fun process(networkManager: ZigBeeNetworkManager, args: Array<out String>, out: PrintStream) {
-        args.expect(5)
+            var x = (cie.x * 65536).toInt()
+            var y = (cie.y * 65536).toInt()
 
-        val red = args[2].toDouble()
-        val green = args[3].toDouble()
-        val blue = args[4].toDouble()
+            if (x > 65279) x = 65279
+            if (y > 65279) y = 65279
 
-        networkManager.findDestination(args[1]).then(
-                { networkManager.color(it, red, green, blue, 1.0) },
-                { onCommandProcessed(it, out) }
-        )
-    }
+            val (node, endpoint, cluster) = trifecta<ZclColorControlCluster>(args[1])
+            val result = cluster.moveToColorCommand(x, y, (time * 10).toInt()).get()
 
-    /**
-     * Colors device light.
-     *
-     * @param destination the [ZigBeeAddress]
-     * @param red the red component [0..1]
-     * @param green the green component [0..1]
-     * @param blue the blue component [0..1]
-     * @param time the in seconds
-     * @return the command result future.
-     */
-    private fun ZigBeeNetworkManager.color(destination: ZigBeeAddress,
-                                           red: Double,
-                                           green: Double,
-                                           blue: Double, time: Double): Future<CommandResult>? {
-        val cie = Cie.rgb2cie(red, green, blue)
-
-        var x = (cie.x * 65536).toInt()
-        var y = (cie.y * 65536).toInt()
-
-        if (x > 65279) x = 65279
-        if (y > 65279) y = 65279
-
-        if (destination !is ZigBeeEndpointAddress) return null
-
-        val endpoint = getNode(destination.address).getEndpoint(destination.endpoint) ?: return null
-        val cluster = endpoint.getInputCluster(ZclColorControlCluster.CLUSTER_ID) as ZclColorControlCluster
-
-        return cluster.moveToColorCommand(x, y, (time * 10).toInt())
-    }
-}
+            when (result.isSuccess) {
+                true -> ZigBeeProtocol.zigBeePayload(
+                        action = action,
+                        data = listOf(
+                                ZigBeeAttribute(
+                                        nodeAddress = node.addressOf(endpoint),
+                                        attributeId = ZclColorControlCluster.ATTR_CURRENTX,
+                                        endpointId = endpoint.endpointId,
+                                        clusterId = cluster.clusterId,
+                                        type = Int::class.java.simpleName,
+                                        value = x
+                                ),
+                                ZigBeeAttribute(
+                                        nodeAddress = node.addressOf(endpoint),
+                                        attributeId = ZclColorControlCluster.ATTR_CURRENTY,
+                                        endpointId = endpoint.endpointId,
+                                        clusterId = cluster.clusterId,
+                                        type = Int::class.java.simpleName,
+                                        value = y
+                                )
+                        )
+                                .serialize()
+                )
+                else -> ZigBeeProtocol.zigBeePayload(
+                        response = "Error changing color of device $result"
+                )
+            }
+        }
+)

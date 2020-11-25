@@ -24,81 +24,51 @@
 
 package com.rcswitchcontrol.zigbee.commands
 
-import com.zsmartsystems.zigbee.CommandResult
-import com.zsmartsystems.zigbee.ZigBeeAddress
-import com.zsmartsystems.zigbee.ZigBeeEndpoint
+import com.rcswitchcontrol.protocols.CommsProtocol
+import com.rcswitchcontrol.protocols.asAction
+import com.rcswitchcontrol.protocols.models.Payload
+import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
+import com.tunjid.rcswitchcontrol.common.serialize
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager
 import com.zsmartsystems.zigbee.console.ZigBeeConsoleAbstractCommand
+import com.zsmartsystems.zigbee.console.ZigBeeConsoleCommand
 import java.io.PrintStream
-import java.util.concurrent.Future
 
 /**
  * Commands that push payloads out directly
  */
-interface PayloadPublishing
+interface PayloadPublishingCommand : ZigBeeConsoleCommand
 
-abstract class AbsZigBeeCommand : ZigBeeConsoleAbstractCommand() {
+class AbsZigBeeCommand(
+        private val args: String,
+        private val descriptionString: String,
+        private val commandString: String,
+        private val log: Boolean = false,
+        private val processor: ZigBeeNetworkManager.(action: CommsProtocol.Action, args: Array<out String>) -> Payload?
+) : ZigBeeConsoleAbstractCommand(), PayloadPublishingCommand {
+
+    override fun getCommand(): String = commandString
+
+    override fun getDescription(): String = descriptionString
 
     override fun getSyntax(): String = "$command $args"
 
     override fun getHelp(): String = "Command: $command\nDescription: $description\n Syntax: $syntax"
 
-    abstract val args: String
+    override fun process(networkManager: ZigBeeNetworkManager, args: Array<out String>, out: PrintStream) {
+        if (log) out.println(ZigBeeProtocol
+                .zigBeePayload(response = "Executing $commandString with args $args")
+                .serialize())
 
-    protected fun Array<out String>.expect(expected: Int) {
-        if (size != expected) throw IllegalArgumentException("Invalid number of command arguments, expected $expected, got $size")
-    }
-
-    protected fun <T> T?.then(function: (T) -> Future<CommandResult>?, done: (CommandResult) -> Unit) {
-        this ?: throw IllegalArgumentException("Target not found")
-        val result = function.invoke(this)?.get()
-                ?: throw IllegalArgumentException("Unable to execute command")
-
-        done(result)
-    }
-
-    /**
-     * Default processing for command result.
-     *
-     * @param result the command result
-     * @param out the output
-     * @return TRUE if result is success
-     */
-    protected open fun onCommandProcessed(result: CommandResult, out: PrintStream) =
-            if (result.isSuccess) out.println("Success response received.")
-            else out.println("Error executing command \"$command\": $result")
-
-    /**
-     * Gets device by device identifier.
-     *
-     * @param deviceIdentifier the device identifier
-     * @return the device
-     */
-
-    protected fun ZigBeeNetworkManager.findDevice(deviceIdentifier: String): ZigBeeEndpoint? = try {
-        getEndpoint(this, deviceIdentifier)
-    } catch (e: Exception) {
-        null
-    }
-
-    /**
-     * Gets destination by device identifier or group ID.
-     *
-     * @param destinationIdentifier the device identifier or group ID
-     * @return the device
-     */
-    protected fun ZigBeeNetworkManager.findDestination(destinationIdentifier: String): ZigBeeAddress? {
-        findDevice(destinationIdentifier)?.let { return it.endpointAddress }
         try {
-            for (group in groups) if (destinationIdentifier == group.label) return group
-
-            val groupId = destinationIdentifier.toInt()
-            return getGroup(groupId)
-        } catch (e: NumberFormatException) {
-            return null
+            processor(networkManager, commandString.asAction, args)?.serialize()?.let(out::println)
+            if (log) out.println(ZigBeeProtocol
+                    .zigBeePayload(response = "Executed $commandString with args $args")
+                    .serialize())
+        } catch (e: Exception) {
+            out.println(ZigBeeProtocol
+                    .zigBeePayload(response = "Error executing $commandString. Message:\n${e.message}")
+                    .serialize())
         }
     }
-
-    fun PrintStream.push(line: String) = println(line)
-
 }

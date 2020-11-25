@@ -24,59 +24,54 @@
 
 package com.rcswitchcontrol.zigbee.commands
 
+import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.zigbee.R
+import com.rcswitchcontrol.zigbee.models.ZigBeeAttribute
+import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
+import com.rcswitchcontrol.zigbee.utilities.addressOf
+import com.rcswitchcontrol.zigbee.utilities.expect
+import com.rcswitchcontrol.zigbee.utilities.trifecta
 import com.tunjid.rcswitchcontrol.common.ContextProvider
-import com.zsmartsystems.zigbee.CommandResult
-import com.zsmartsystems.zigbee.ZigBeeAddress
-import com.zsmartsystems.zigbee.ZigBeeEndpointAddress
-import com.zsmartsystems.zigbee.ZigBeeNetworkManager
+import com.tunjid.rcswitchcontrol.common.serialize
 import com.zsmartsystems.zigbee.zcl.clusters.ZclLevelControlCluster
-import java.io.PrintStream
-import java.util.concurrent.Future
 
 /**
  * Changes a device level for example lamp brightness.
  */
-class LevelCommand : AbsZigBeeCommand() {
-    override val args: String = "DEVICEID LEVEL [RATE]"
+class LevelCommand : PayloadPublishingCommand by AbsZigBeeCommand(
+        args = "DEVICEID LEVEL [RATE]",
+        commandString = ContextProvider.appContext.getString(R.string.zigbeeprotocol_level),
+        descriptionString = "Changes device level for example lamp brightness, where LEVEL is between 0 and 1.",
+        processor = { action: CommsProtocol.Action, args: Array<out String> ->
+            args.expect(3)
 
-    override fun getCommand(): String = ContextProvider.appContext.getString(R.string.zigbeeprotocol_level)
+            val level = args[2].toDouble()
+            val time = if (args.size == 4) args[3].toDouble() else 1.0
 
-    override fun getDescription(): String = "Changes device level for example lamp brightness, where LEVEL is between 0 and 1."
+            var l = (level * 254).toInt()
 
-    @Throws(Exception::class)
-    override fun process(networkManager: ZigBeeNetworkManager, args: Array<out String>, out: PrintStream) {
-        args.expect(3)
+            if (l > 254) l = 254
+            if (l < 0) l = 0
 
-        val level = args[2].toDouble()
-        val time = if (args.size == 4) args[3].toDouble() else 1.0
+            val (node, endpoint, cluster) = trifecta<ZclLevelControlCluster>(args[1])
+            val result = cluster.moveToLevelWithOnOffCommand(l, (time * 10).toInt()).get()
 
-        networkManager.findDestination(args[1]).then(
-                { networkManager.level(it, level, time) },
-                { onCommandProcessed(it, out) }
-        )
-    }
-
-    /**
-     * Moves device level.
-     *
-     * @param destination the [ZigBeeAddress]
-     * @param level the level
-     * @param time the transition time
-     * @return the command result future.
-     */
-    private fun ZigBeeNetworkManager.level(destination: ZigBeeAddress, level: Double, time: Double): Future<CommandResult>? {
-        var l = (level * 254).toInt()
-
-        if (l > 254) l = 254
-        if (l < 0) l = 0
-
-        if (destination !is ZigBeeEndpointAddress) return null
-
-        val endpoint = getNode(destination.address).getEndpoint(destination.endpoint) ?: return null
-
-        val cluster = endpoint.getInputCluster(ZclLevelControlCluster.CLUSTER_ID) as ZclLevelControlCluster
-
-        return cluster.moveToLevelWithOnOffCommand(l, (time * 10).toInt())
-    }
-}
+            when (result.isSuccess) {
+                true -> ZigBeeProtocol.zigBeePayload(
+                        action = action,
+                        data = listOf(ZigBeeAttribute(
+                                nodeAddress = node.addressOf(endpoint),
+                                attributeId = ZclLevelControlCluster.ATTR_CURRENTLEVEL,
+                                endpointId = endpoint.endpointId,
+                                clusterId = cluster.clusterId,
+                                type = Int::class.java.simpleName,
+                                value = l
+                        ))
+                                .serialize()
+                )
+                else -> ZigBeeProtocol.zigBeePayload(
+                        response = "Error changing device level:\n$result"
+                )
+            }
+        }
+)

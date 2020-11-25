@@ -24,7 +24,10 @@
 
 package com.rcswitchcontrol.zigbee.commands
 
+import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.zigbee.R
+import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
+import com.rcswitchcontrol.zigbee.utilities.expect
 import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.zsmartsystems.zigbee.ExtendedPanId
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager
@@ -37,17 +40,14 @@ import java.io.PrintStream
 /**
  * Switches a device on.
  */
-class StartupCommand : AbsZigBeeCommand() {
-    override val args: String = "PANID EPANID"
+class StartupCommand : PayloadPublishingCommand by AbsZigBeeCommand(
+        args = "PANID EPANID",
+        commandString = ContextProvider.appContext.getString(R.string.zigbeeprotocol_formnet),
+        descriptionString = "Forms a network",
+        processor = { action: CommsProtocol.Action, args: Array<out String> ->
+            args.expect(3)
 
-    override fun getCommand(): String = ContextProvider.appContext.getString(R.string.zigbeeprotocol_formnet)
-
-    override fun getDescription(): String = "Forms a network"
-
-    @Throws(Exception::class)
-    override fun process(networkManager: ZigBeeNetworkManager, args: Array<out String>, out: PrintStream) {
-        args.expect(3)
-//
+            //
 //        networkManager.zigBeeTransport.apply {
 //            updateTransportConfig(TransportConfig().apply {
 //                addOption(TransportConfigOption.DEVICE_TYPE, DeviceType.COORDINATOR)
@@ -57,12 +57,11 @@ class StartupCommand : AbsZigBeeCommand() {
 //            out.println("start up: ${networkManager.startup(true)}")
 //        }
 
-        val transportOptions = TransportConfig()
+            val transportOptions = TransportConfig()
 
-        networkManager.setZigBeePanId(args[1].toInt())
-        networkManager.setZigBeeExtendedPanId(ExtendedPanId(args[2]))
-        transportOptions.addOption(TransportConfigOption.DEVICE_TYPE, DeviceType.COORDINATOR)
-        networkManager.getZigBeeTransport().updateTransportConfig(transportOptions)
-        out.println("start up: ${networkManager.startup(true)}")
-    }
-}
+            setZigBeePanId(args[1].toInt())
+            setZigBeeExtendedPanId(ExtendedPanId(args[2]))
+            transportOptions.addOption(TransportConfigOption.DEVICE_TYPE, DeviceType.COORDINATOR)
+            getZigBeeTransport().updateTransportConfig(transportOptions)
+            ZigBeeProtocol.zigBeePayload(response = "start up: ${startup(true)}")
+        })

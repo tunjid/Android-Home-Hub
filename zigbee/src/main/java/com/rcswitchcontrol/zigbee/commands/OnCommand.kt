@@ -24,43 +24,46 @@
 
 package com.rcswitchcontrol.zigbee.commands
 
+import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.zigbee.R
+import com.rcswitchcontrol.zigbee.models.ZigBeeAttribute
+import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
+import com.rcswitchcontrol.zigbee.utilities.addressOf
+import com.rcswitchcontrol.zigbee.utilities.expect
+import com.rcswitchcontrol.zigbee.utilities.trifecta
 import com.tunjid.rcswitchcontrol.common.ContextProvider
-import com.zsmartsystems.zigbee.CommandResult
-import com.zsmartsystems.zigbee.ZigBeeAddress
-import com.zsmartsystems.zigbee.ZigBeeEndpointAddress
-import com.zsmartsystems.zigbee.ZigBeeNetworkManager
+import com.tunjid.rcswitchcontrol.common.serialize
 import com.zsmartsystems.zigbee.zcl.clusters.ZclOnOffCluster
-import java.io.PrintStream
-import java.util.concurrent.Future
 
 /**
  * Switches a device on.
  */
-class OnCommand : AbsZigBeeCommand() {
-    override val args: String = "DEVICEID/DEVICELABEL/GROUPID"
+class OnCommand : PayloadPublishingCommand by AbsZigBeeCommand(
+        args = "DEVICEID/DEVICELABEL/GROUPID",
+        commandString = ContextProvider.appContext.getString(R.string.zigbeeprotocol_on),
+        descriptionString = "Switches device on.",
+        processor = { action: CommsProtocol.Action, args: Array<out String> ->
+            args.expect(2)
 
-    override fun getCommand(): String = ContextProvider.appContext.getString(R.string.zigbeeprotocol_on)
+            val (node, endpoint, cluster) = trifecta<ZclOnOffCluster>(args[1])
+            val result = cluster.onCommand().get()
 
-    override fun getDescription(): String = "Switches device on."
-
-    @Throws(Exception::class)
-    override fun process(networkManager: ZigBeeNetworkManager, args: Array<out String>, out: PrintStream) {
-        args.expect(2)
-
-        networkManager.findDestination(args[1]).then(
-                { networkManager.on(it) },
-                { onCommandProcessed(it, out) }
-        )
-    }
-
-    private fun ZigBeeNetworkManager.on(destination: ZigBeeAddress): Future<CommandResult>? {
-        if (destination !is ZigBeeEndpointAddress) return null
-
-        val endpoint = getNode(destination.address).getEndpoint(destination.endpoint) ?: return null
-
-        val cluster = endpoint.getInputCluster(ZclOnOffCluster.CLUSTER_ID) as ZclOnOffCluster
-
-        return cluster.onCommand()
-    }
-}
+            when (result.isSuccess) {
+                true -> ZigBeeProtocol.zigBeePayload(
+                        action = action,
+                        data = listOf(ZigBeeAttribute(
+                                nodeAddress = node.addressOf(endpoint),
+                                attributeId = ZclOnOffCluster.ATTR_ONOFF,
+                                endpointId = endpoint.endpointId,
+                                clusterId = cluster.clusterId,
+                                type = Boolean::class.java.simpleName,
+                                value = true
+                        ))
+                                .serialize()
+                )
+                else -> ZigBeeProtocol.zigBeePayload(
+                        response = "Error turning on device:\n$result"
+                )
+            }
+        }
+)

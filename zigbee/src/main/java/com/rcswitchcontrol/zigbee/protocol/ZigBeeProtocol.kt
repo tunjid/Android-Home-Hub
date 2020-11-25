@@ -27,6 +27,7 @@ package com.rcswitchcontrol.zigbee.protocol
 import com.hoho.android.usbserial.driver.UsbSerialDriver
 import com.rcswitchcontrol.protocols.CommonDeviceActions
 import com.rcswitchcontrol.protocols.CommsProtocol
+import com.rcswitchcontrol.protocols.asAction
 import com.rcswitchcontrol.protocols.io.ConsoleStream
 import com.rcswitchcontrol.protocols.models.Payload
 import com.rcswitchcontrol.zigbee.R
@@ -182,6 +183,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, override val printWriter: PrintWri
 
                 when {
                     needsCommandArgs -> {
+                        action = commandInfoAction
                         response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_enter_args, payloadAction)
                         data = ZigBeeCommandInfo(payloadAction.value, consoleCommand.description, consoleCommand.syntax, consoleCommand.help).serialize()
                     }
@@ -344,6 +346,8 @@ class ZigBeeProtocol(driver: UsbSerialDriver, override val printWriter: PrintWri
         val key = CommsProtocol.Key(ZigBeeProtocol::class.java.name)
 
         internal val formNetworkAction get() = CommsProtocol.Action(ContextProvider.appContext.getString(R.string.zigbeeprotocol_formnet))
+
+        val commandInfoAction get() = "ZigBeeCommandInfo".asAction
         val attributeCarryingActions
             get() = listOf(
                     NamedCommand.Custom.On.action,

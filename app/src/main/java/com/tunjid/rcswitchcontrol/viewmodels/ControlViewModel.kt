@@ -181,13 +181,9 @@ private fun Payload.extractRecord(): Record.Response? = response.let {
     else Record.Response(key = key, entry = it)
 }
 
-private fun Payload.extractCommandInfo(): ZigBeeCommandInfo? = when (key) {
-    ZigBeeProtocol.key -> when {
-        action in ZigBeeProtocol.attributeCarryingActions || extractDevices() != null -> null
-        else -> data?.deserialize(ZigBeeCommandInfo::class)
-    }
-    else -> null
-}
+private fun Payload.extractCommandInfo(): ZigBeeCommandInfo? =
+        if (key == ZigBeeProtocol.key && action == ZigBeeProtocol.commandInfoAction) data?.deserialize(ZigBeeCommandInfo::class)
+        else null
 
 private fun Payload.extractDevices(): List<Device>? = when (val serialized = data) {
     null -> null

@@ -127,13 +127,7 @@ class ZigBeeProtocol(driver: UsbSerialDriver, override val printWriter: PrintWri
                                 if (consoleCommand is PayloadPublishingCommand) payloadStream else responseStream
                         )
                     }
-                            .onErrorResumeNext {
-                                post(
-                                        "Error executing command: ${it.message}",
-                                        "${consoleCommand.command} ${consoleCommand.syntax}"
-                                )
-                                Completable.complete()
-                            }
+                            .onErrorComplete()
                             .subscribeOn(sharedScheduler)
                 }
                 .subscribe()

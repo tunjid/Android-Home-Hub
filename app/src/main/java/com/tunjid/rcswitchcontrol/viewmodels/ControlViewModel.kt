@@ -142,12 +142,10 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
 
     fun <T> withSelectedDevices(function: (Set<Device>) -> T): T = function.invoke(selectedDevices.values.toSet())
 
-    fun pingServer() {
-        if (state.value?.commands.let { it == null || it.isEmpty() }) dispatchPayload(Payload(
-                key = CommsProtocol.key,
-                action = CommsProtocol.pingAction
-        ))
-    }
+    fun pingServer() = dispatchPayload(Payload(
+            key = CommsProtocol.key,
+            action = CommsProtocol.pingAction
+    ))
 
     private fun getConnectionText(newState: String): String {
         val context = getApplication<Application>()

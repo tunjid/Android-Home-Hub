@@ -53,7 +53,10 @@ class LevelCommand : PayloadPublishingCommand by AbsZigBeeCommand(
             if (l > 254) l = 254
             if (l < 0) l = 0
 
-            val (node, endpoint, cluster) = trifecta<ZclLevelControlCluster>(args[1])
+            val (node, endpoint, cluster) = trifecta<ZclLevelControlCluster>(
+                    lookUpId = args[1],
+                    clusterId = ZclLevelControlCluster.CLUSTER_ID
+            )
             val result = cluster.moveToLevelWithOnOffCommand(l, (time * 10).toInt()).get()
 
             when (result.isSuccess) {

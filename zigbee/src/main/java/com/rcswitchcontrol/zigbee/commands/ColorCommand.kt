@@ -59,7 +59,10 @@ class ColorCommand : PayloadPublishingCommand by AbsZigBeeCommand(
             if (x > 65279) x = 65279
             if (y > 65279) y = 65279
 
-            val (node, endpoint, cluster) = trifecta<ZclColorControlCluster>(args[1])
+            val (node, endpoint, cluster) = trifecta<ZclColorControlCluster>(
+                    lookUpId = args[1],
+                    clusterId = ZclColorControlCluster.CLUSTER_ID
+            )
             val result = cluster.moveToColorCommand(x, y, (time * 10).toInt()).get()
 
             when (result.isSuccess) {

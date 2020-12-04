@@ -10,7 +10,6 @@ import com.zsmartsystems.zigbee.ZigBeeNetworkManager
 import com.zsmartsystems.zigbee.ZigBeeNode
 import com.zsmartsystems.zigbee.zcl.ZclCluster
 import com.zsmartsystems.zigbee.zcl.ZclStatus
-import com.zsmartsystems.zigbee.zcl.clusters.ZclOnOffCluster
 import com.zsmartsystems.zigbee.zcl.clusters.general.ReadAttributesResponse
 
 fun Array<out String>.expect(expected: Int) {
@@ -20,15 +19,15 @@ fun Array<out String>.expect(expected: Int) {
 fun ZigBeeNode.addressOf(endpoint: ZigBeeEndpoint) =
         "$networkAddress/${endpoint.endpointId}"
 
-inline fun <reified T : ZclCluster> ZigBeeNetworkManager.trifecta(where: String): Triple<ZigBeeNode, ZigBeeEndpoint, T> {
-    val destination = findDestination(where)
+inline fun <reified T : ZclCluster> ZigBeeNetworkManager.trifecta(lookUpId: String, clusterId: Int): Triple<ZigBeeNode, ZigBeeEndpoint, T> {
+    val destination = findDestination(lookUpId)
     if (destination !is ZigBeeEndpointAddress) throw Exception("This is not a ZigBee Endpoint Address")
 
     val node = getNode(destination.address)
     val endpoint = node.getEndpoint(destination.endpoint)
             ?: throw Exception("Unable to find end point")
 
-    val cluster = endpoint.getInputCluster(ZclOnOffCluster.CLUSTER_ID) as T
+    val cluster = endpoint.getInputCluster(clusterId) as T
 
     return Triple(node, endpoint, cluster)
 }
@@ -72,17 +71,16 @@ fun ZclCluster.pullAttributes(nodeAddress: String, attributeIds: List<Int>): Lis
  * @param destinationIdentifier the device identifier or group ID
  * @return the device
  */
-fun ZigBeeNetworkManager.findDestination(destinationIdentifier: String): ZigBeeAddress {
-    findDevice(destinationIdentifier)?.let { return it.endpointAddress }
-    try {
-        for (group in groups) if (destinationIdentifier == group.label) return group
-
-        val groupId = destinationIdentifier.toInt()
-        return getGroup(groupId)
-    } catch (e: java.lang.Exception) {
-        throw Exception("Unable to find device. Error  message: ${e.message}")
-    }
-}
+fun ZigBeeNetworkManager.findDestination(destinationIdentifier: String): ZigBeeAddress =
+        when (val device = findDevice(destinationIdentifier)) {
+            null -> try {
+                groups.firstOrNull { destinationIdentifier == it.label }
+                        ?: getGroup(destinationIdentifier.toInt())
+            } catch (e: Exception) {
+                throw Exception("Unable to find device. Error  message: ${e.message}")
+            }
+            else -> device.endpointAddress
+        }
 
 /**
  * Gets a [ZigBeeNode]
@@ -92,36 +90,35 @@ fun ZigBeeNetworkManager.findDestination(destinationIdentifier: String): ZigBeeA
  * @return the [ZigBeeNode]
  * @throws IllegalArgumentException
  */
-@Throws(java.lang.IllegalArgumentException::class)
+@Throws(IllegalArgumentException::class)
 fun ZigBeeNetworkManager.getNode(nodeId: String): ZigBeeNode {
     try {
         val nwkAddress = nodeId.toInt()
         if (getNode(nwkAddress) != null) return getNode(nwkAddress)
-    } catch (e: java.lang.Exception) {
+    } catch (e: Exception) {
     }
     try {
         val ieeeAddress = IeeeAddress(nodeId)
         if (getNode(ieeeAddress) != null) return getNode(ieeeAddress)
-    } catch (e: java.lang.Exception) {
+    } catch (e: Exception) {
     }
-    throw java.lang.IllegalArgumentException("Node '$nodeId' is not found.")
+    throw IllegalArgumentException("Node '$nodeId' is not found.")
 }
 
 /**
  * Gets [ZigBeeEndpoint] by device identifier.
  *
- * @param this@getEndpoint the [ZigBeeNetworkManager]
  * @param endpointId the device identifier
  * @return the [ZigBeeEndpoint]
  * @throws IllegalArgumentException
  */
-@Throws(java.lang.IllegalArgumentException::class)
+@Throws(IllegalArgumentException::class)
 fun ZigBeeNetworkManager.getEndpoint(endpointId: String): ZigBeeEndpoint {
     for (node in nodes)
         for (endpoint in node.endpoints)
             if (endpointId == node.networkAddress.toString() + "/" + endpoint.endpointId)
                 return endpoint
-    throw java.lang.IllegalArgumentException("Endpoint '$endpointId' is not found")
+    throw IllegalArgumentException("Endpoint '$endpointId' is not found")
 }
 
 /**
@@ -132,11 +129,11 @@ fun ZigBeeNetworkManager.getEndpoint(endpointId: String): ZigBeeEndpoint {
  * @return the cluster ID as an integer
  * @throws IllegalArgumentException
  */
-@Throws(java.lang.IllegalArgumentException::class)
+@Throws(IllegalArgumentException::class)
 fun parseClusterId(clusterId: String): Int = try {
     getInteger(clusterId)
-} catch (e: java.lang.NumberFormatException) {
-    throw java.lang.IllegalArgumentException("Cluster ID '$clusterId' uses an invalid number format.")
+} catch (e: NumberFormatException) {
+    throw IllegalArgumentException("Cluster ID '$clusterId' uses an invalid number format.")
 }
 
 /**
@@ -157,12 +154,11 @@ fun parseClusterId(clusterId: String): Int = try {
  *  * server:11
  *
  *
- * @param this@findCluster the ZigBee endpoint to get the cluster from (must be non-null)
  * @param clusterSpecifier a cluster specified as described above (must be non-null)
  * @return the specified cluster provided by the endpoint or null if no such cluster is found
  * @throws IllegalArgumentException if the clusterSpecifier uses an invalid number format, or if no cluster is found
  */
-@Throws(java.lang.IllegalArgumentException::class)
+@Throws(IllegalArgumentException::class)
 fun ZigBeeEndpoint.findCluster(clusterSpecifier: String): ZclCluster {
     val isInput: Boolean
     val isOutput: Boolean
@@ -192,10 +188,10 @@ fun ZigBeeEndpoint.findCluster(clusterSpecifier: String): ZclCluster {
         cluster ?: getOutputCluster(clusterId)
     }
     return result
-            ?: throw java.lang.IllegalArgumentException("A cluster specified by " + clusterSpecifier
+            ?: throw IllegalArgumentException("A cluster specified by " + clusterSpecifier
                     + " is not found for endpoint " + endpointId)
 }
 
 private fun getInteger(string: String): Int =
         if (string.startsWith("0x")) string.substring(2).toInt(16)
-else string.toInt()
+        else string.toInt()

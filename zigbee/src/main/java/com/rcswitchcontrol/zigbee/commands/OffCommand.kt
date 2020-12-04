@@ -45,7 +45,10 @@ class OffCommand : PayloadPublishingCommand by AbsZigBeeCommand(
         processor = { action: CommsProtocol.Action, args: Array<out String> ->
             args.expect(2)
 
-            val (node, endpoint,  cluster) = trifecta<ZclOnOffCluster>(args[1])
+            val (node, endpoint,  cluster) = trifecta<ZclOnOffCluster>(
+                    lookUpId = args[1],
+                    clusterId = ZclOnOffCluster.CLUSTER_ID
+            )
             val result = cluster.offCommand().get()
 
             when (result.isSuccess) {

@@ -69,7 +69,7 @@ fun ControlState.reduceZigBeeAttributes(fetched: List<ZigBeeAttribute>?) = when 
 }
 
 fun ControlState.reduceHistory(record: Record?) = when {
-    record != null -> copy(history = (history + record))
+    record != null -> copy(history = (history + record).takeLast(500))
     else -> this
 }
 

@@ -31,6 +31,7 @@ import android.view.MenuItem
 import android.view.View
 import androidx.core.view.doOnLayout
 import androidx.core.view.updateLayoutParams
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -41,16 +42,21 @@ import com.google.android.material.bottomsheet.setupForBottomSheet
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
 import com.rcswitchcontrol.zigbee.models.payload
 import com.tunjid.androidx.core.content.colorAt
-import com.tunjid.androidx.view.util.InsetFlags
+import com.tunjid.androidx.core.delegates.viewLifecycle
+import com.tunjid.globalui.InsetFlags
+import com.tunjid.globalui.UiState
+import com.tunjid.globalui.liveUiState
+import com.tunjid.globalui.uiState
+import com.tunjid.globalui.updatePartial
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
-import com.tunjid.rcswitchcontrol.abstractclasses.FragmentViewBindingDelegate
 import com.tunjid.rcswitchcontrol.activities.MainActivity
 import com.tunjid.rcswitchcontrol.common.Broadcaster
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentControlBinding
+import com.tunjid.rcswitchcontrol.dialogfragments.GroupDeviceDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.ZigBeeArgumentDialogFragment
 import com.tunjid.rcswitchcontrol.models.ControlState
+import com.tunjid.rcswitchcontrol.models.Device
 import com.tunjid.rcswitchcontrol.models.Page
 import com.tunjid.rcswitchcontrol.models.Page.HISTORY
 import com.tunjid.rcswitchcontrol.models.ProtocolKey
@@ -58,32 +64,28 @@ import com.tunjid.rcswitchcontrol.models.keys
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
 import com.tunjid.rcswitchcontrol.utils.FragmentTabAdapter
-import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.bottomInset
-import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.topInset
 import com.tunjid.rcswitchcontrol.utils.attach
-import com.tunjid.rcswitchcontrol.utils.itemId
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 
-class ControlFragment : BaseFragment(R.layout.fragment_control), ZigBeeArgumentDialogFragment.ZigBeeArgsListener {
+class ControlFragment : Fragment(R.layout.fragment_control), ZigBeeArgumentDialogFragment.ZigBeeArgsListener {
 
-    private val viewBinding by FragmentViewBindingDelegate(FragmentControlBinding::bind)
+    private val viewBinding by viewLifecycle(FragmentControlBinding::bind)
     private val viewModel by activityViewModels<ControlViewModel>()
-
-    private val currentPage: BaseFragment?
-        get() = when {
-            view == null || viewModel.pages.isEmpty() -> null
-            else -> fromPager(viewBinding.mainPager.currentItem)
-        }
-
-    override val insetFlags: InsetFlags = InsetFlags(hasLeftInset = true, hasTopInset = true, hasRightInset = true, hasBottomInset = false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        defaultUi(
+        uiState = UiState(
+                toolbarShows = true,
                 toolbarTitle = getString(R.string.switches),
-                toolBarMenu = R.menu.menu_fragment_nsd_client,
-                navBarColor = view.context.colorAt(R.color.black_50)
+                toolbarMenuRes = R.menu.menu_fragment_nsd_client,
+                toolbarMenuRefresher = ::onToolbarRefreshed,
+                toolbarMenuClickListener = ::onToolbarMenuItemSelected,
+                altToolbarMenuRes = R.menu.menu_alt_devices,
+                altToolbarMenuRefresher = ::onToolbarRefreshed,
+                altToolbarMenuClickListener = ::onToolbarMenuItemSelected,
+                navBarColor = view.context.colorAt(R.color.black_50),
+                insetFlags = InsetFlags.NO_BOTTOM
         )
 
         val bottomSheetBehavior = BottomSheetBehavior.from(viewBinding.bottomSheet)
@@ -120,8 +122,11 @@ class ControlFragment : BaseFragment(R.layout.fragment_control), ZigBeeArgumentD
         }
 
         view.doOnLayout {
-            viewBinding.bottomSheet.updateLayoutParams { height = it.height - topInset - resources.getDimensionPixelSize(R.dimen.double_and_half_margin) }
-            bottomSheetBehavior.peekHeight = resources.getDimensionPixelSize(R.dimen.sextuple_margin) + bottomInset
+            liveUiState.mapDistinct { it.systemUI.dynamic.run { topInset to bottomInset } }.observe(viewLifecycleOwner) { (topInset, bottomInset) ->
+                viewBinding.bottomSheet.updateLayoutParams { height = it.height - topInset - resources.getDimensionPixelSize(R.dimen.double_and_half_margin) }
+                bottomSheetBehavior.peekHeight = resources.getDimensionPixelSize(R.dimen.sextuple_margin) + bottomInset
+            }
+
             bottomSheetBehavior.expandedOffset = offset
             bottomSheetBehavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
                 override fun onSlide(bottomSheet: View, slideOffset: Float) {
@@ -144,7 +149,7 @@ class ControlFragment : BaseFragment(R.layout.fragment_control), ZigBeeArgumentD
                 if (it != null) ZigBeeArgumentDialogFragment.newInstance(it).show(childFragmentManager, "info")
             }
             mapDistinct(ControlState::connectionState).observe(viewLifecycleOwner) { text ->
-                updateUi(toolbarInvalidated = true)
+                ::uiState.updatePartial { copy(toolbarInvalidated = true) }
                 viewBinding.connectionStatus.text = resources.getString(R.string.connection_state, text)
             }
         }
@@ -155,19 +160,17 @@ class ControlFragment : BaseFragment(R.layout.fragment_control), ZigBeeArgumentD
         viewModel.onBackground()
     }
 
-    override fun onPrepareOptionsMenu(menu: Menu) {
+    private fun onToolbarRefreshed(menu: Menu) {
         menu.findItem(R.id.menu_ping)?.isVisible = viewModel.isConnected
         menu.findItem(R.id.menu_connect)?.isVisible = !viewModel.isConnected
         menu.findItem(R.id.menu_forget)?.isVisible = !ServerNsdService.isServer
 
-        currentPage?.onPrepareOptionsMenu(menu)
-        super.onPrepareOptionsMenu(menu)
+        menu.findItem(R.id.menu_rename_device)?.isVisible = viewModel.withSelectedDevices { it.size == 1 && it.first() is Device.RF }
+        menu.findItem(R.id.menu_create_group)?.isVisible = viewModel.withSelectedDevices { it.find { device -> device is Device.RF } == null }
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (!viewModel.isBound) return super.onOptionsItemSelected(item)
-
-        return when (item.itemId) {
+    private fun onToolbarMenuItemSelected(item: MenuItem) {
+        if (viewModel.isBound) when (item.itemId) {
             R.id.menu_ping -> viewModel.pingServer().let { true }
             R.id.menu_connect -> Broadcaster.push(Intent(ClientNsdService.ACTION_START_NSD_DISCOVERY)).let { true }
             R.id.menu_forget -> requireActivity().let {
@@ -178,16 +181,13 @@ class ControlFragment : BaseFragment(R.layout.fragment_control), ZigBeeArgumentD
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 
                 it.finish()
-
-                true
             }
-            else -> currentPage?.onOptionsItemSelected(item) ?: super.onOptionsItemSelected(item)
+            //        R.id.menu_rename_device -> RenameSwitchDialogFragment.newInstance(
+//                viewModel.withSelectedDevices { it.first() } as Device.RF
+//        ).show(childFragmentManager, item.itemId.toString()).let { true }
+            R.id.menu_create_group -> GroupDeviceDialogFragment.newInstance.show(childFragmentManager, item.itemId.toString())
+            else -> Unit
         }
-    }
-
-    private fun fromPager(index: Int): BaseFragment? = when {
-        index < 0 -> null
-        else -> childFragmentManager.findFragmentByTag("f${viewModel.pages[index].itemId}") as? BaseFragment
     }
 
     override fun onArgsEntered(command: ZigBeeCommand) = viewModel.dispatchPayload(command.payload)

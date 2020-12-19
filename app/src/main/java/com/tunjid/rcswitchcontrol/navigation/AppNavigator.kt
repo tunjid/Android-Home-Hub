@@ -12,7 +12,7 @@ class AppNavigator(host: FragmentActivity) : Navigator, TransientBarController {
 
     val activeNavigator get() = delegate
 
-    private val delegate by host.stackNavigationController(R.id.main_fragment_container)
+    private val delegate by host.stackNavigationController(R.id.content_container)
 
     override val transientBarDriver by lazy { TransientBarDriver(host.findViewById(R.id.coordinator_layout)) }
 

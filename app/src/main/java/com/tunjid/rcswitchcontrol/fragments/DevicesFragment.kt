@@ -26,17 +26,18 @@ package com.tunjid.rcswitchcontrol.fragments
 
 import android.os.Bundle
 import android.util.Log
-import android.view.Menu
-import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.updatePadding
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ItemTouchHelper.Callback.makeMovementFlags
 import androidx.recyclerview.widget.RecyclerView
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
 import com.rcswitchcontrol.zigbee.models.payload
+import com.tunjid.androidx.core.delegates.viewLifecycle
+import com.tunjid.androidx.navigation.activityNavigatorController
 import com.tunjid.androidx.navigation.addOnBackPressedCallback
 import com.tunjid.androidx.recyclerview.gridLayoutManager
 import com.tunjid.androidx.recyclerview.listAdapterOf
@@ -45,10 +46,11 @@ import com.tunjid.androidx.recyclerview.viewHolderForItemId
 import com.tunjid.androidx.recyclerview.viewbinding.BindingViewHolder
 import com.tunjid.androidx.recyclerview.viewbinding.typed
 import com.tunjid.androidx.recyclerview.viewbinding.viewHolderFrom
+import com.tunjid.globalui.liveUiState
+import com.tunjid.globalui.uiState
+import com.tunjid.globalui.updatePartial
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
-import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
-import com.tunjid.rcswitchcontrol.abstractclasses.FragmentViewBindingDelegate
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderPaddingBinding
@@ -62,9 +64,9 @@ import com.tunjid.rcswitchcontrol.models.deletePayload
 import com.tunjid.rcswitchcontrol.models.renamedPayload
 import com.tunjid.rcswitchcontrol.models.togglePayload
 import com.tunjid.rcswitchcontrol.models.trifecta
+import com.tunjid.rcswitchcontrol.navigation.AppNavigator
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
-import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver
 import com.tunjid.rcswitchcontrol.viewholders.DeviceAdapterListener
 import com.tunjid.rcswitchcontrol.viewholders.bind
 import com.tunjid.rcswitchcontrol.viewholders.performLongClick
@@ -72,14 +74,15 @@ import com.tunjid.rcswitchcontrol.viewholders.rfDeviceDeviceViewHolder
 import com.tunjid.rcswitchcontrol.viewholders.zigbeeDeviceViewHolder
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 
-class DevicesFragment : BaseFragment(R.layout.fragment_list),
+class DevicesFragment : Fragment(R.layout.fragment_list),
         DeviceAdapterListener,
         GroupDeviceDialogFragment.GroupNameListener,
         RenameSwitchDialogFragment.SwitchNameListener {
 
     private var isDeleting: Boolean = false
-    private val viewBinding by FragmentViewBindingDelegate(FragmentListBinding::bind)
+    private val viewBinding by viewLifecycle(FragmentListBinding::bind)
     private val viewModel by activityViewModels<ControlViewModel>()
+    private val navigator by activityNavigatorController<AppNavigator>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -96,8 +99,11 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
         viewBinding.list.apply {
-            updatePadding(bottom = WindowInsetsDriver.bottomInset)
+            liveUiState.mapDistinct { it.systemUI.dynamic.bottomInset }.observe(viewLifecycleOwner) {
+                updatePadding(bottom = it)
+            }
             val listAdapter = listAdapterOf(
                     initialItems = viewModel.state.value?.devices ?: listOf(),
                     viewHolderCreator = ::createViewHolder,
@@ -141,27 +147,11 @@ class DevicesFragment : BaseFragment(R.layout.fragment_list),
         refreshUi()
     }
 
-    private fun refreshUi() {
-        updateUi(
-                altToolBarMenu = R.menu.menu_alt_devices,
+    private fun refreshUi() = ::uiState.updatePartial {
+        copy(
                 altToolbarTitle = getString(R.string.devices_selected, viewModel.numSelections()),
-                altToolBarShows = viewModel.withSelectedDevices { it.isNotEmpty() }
+                altToolbarShows = viewModel.withSelectedDevices { it.isNotEmpty() }
         )
-    }
-
-    override fun onPrepareOptionsMenu(menu: Menu) {
-        menu.findItem(R.id.menu_rename_device)?.isVisible = viewModel.withSelectedDevices { it.size == 1 && it.first() is Device.RF }
-        menu.findItem(R.id.menu_create_group)?.isVisible = viewModel.withSelectedDevices { it.find { device -> device is Device.RF } == null }
-
-        super.onPrepareOptionsMenu(menu)
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
-//        R.id.menu_rename_device -> RenameSwitchDialogFragment.newInstance(
-//                viewModel.withSelectedDevices { it.first() } as Device.RF
-//        ).show(childFragmentManager, item.itemId.toString()).let { true }
-        R.id.menu_create_group -> GroupDeviceDialogFragment.newInstance.show(childFragmentManager, item.itemId.toString()).let { true }
-        else -> super.onOptionsItemSelected(item)
     }
 
     override fun isSelected(device: Device): Boolean = viewModel.withSelectedDevices { it.map(Device::diffId).contains(device.diffId) }

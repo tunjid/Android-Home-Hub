@@ -28,7 +28,7 @@ import android.annotation.SuppressLint
 import android.app.Dialog
 import android.os.Bundle
 import androidx.fragment.app.DialogFragment
-import com.tunjid.androidx.core.components.args
+import com.tunjid.androidx.core.delegates.fragmentArgs
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 
@@ -36,7 +36,7 @@ import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 @SuppressLint("InflateParams")
 class RenameSwitchDialogFragment : DialogFragment() {
 
-    private var rfSwitch by args<RfSwitch>()
+    private var rfSwitch by fragmentArgs<RfSwitch>()
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog = editTextDialog { editText, builder ->
         val listener = parentFragment as? SwitchNameListener

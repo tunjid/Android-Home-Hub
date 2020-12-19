@@ -26,12 +26,9 @@ package com.tunjid.rcswitchcontrol.activities
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.View
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentManager
 import com.tunjid.androidx.core.components.services.HardServiceConnection
 import com.tunjid.androidx.navigation.Navigator
 import com.tunjid.rcswitchcontrol.App
@@ -43,27 +40,26 @@ import com.tunjid.rcswitchcontrol.fragments.StartFragment
 import com.tunjid.rcswitchcontrol.navigation.AppNavigator
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
-import com.tunjid.rcswitchcontrol.utils.GlobalUiController
-import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver
-import com.tunjid.rcswitchcontrol.utils.globalUiDriver
+import com.tunjid.globalui.GlobalUiDriver
+import com.tunjid.globalui.GlobalUiHost
+import com.tunjid.rcswitchcontrol.databinding.ActivityMainBinding
 
-class MainActivity : AppCompatActivity(R.layout.activity_main),
-        GlobalUiController,
+class MainActivity : AppCompatActivity(),
+        GlobalUiHost,
         Navigator.Controller {
 
     override val navigator: AppNavigator by lazy { AppNavigator(this) }
+    private val binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
 
-    override var uiState by globalUiDriver(currentSource = navigator::current)
+    override val globalUiController by lazy { GlobalUiDriver(this, binding, navigator) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContentView(binding.root)
 
         window.statusBarColor = ContextCompat.getColor(this, R.color.transparent)
         if (ServerNsdService.isServer) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        supportFragmentManager.registerFragmentLifecycleCallbacks(windowInsetsDriver(), false)
-        supportFragmentManager.registerFragmentLifecycleCallbacks(transientBarCallback(), false)
 
-        uiState = uiState.copy(fabShows = false)
 //        uiState = if (savedInstanceState == null) UiState.freshState() else savedInstanceState.getParcelable(UI_STATE)!!
 
         val startIntent = intent
@@ -83,23 +79,4 @@ class MainActivity : AppCompatActivity(R.layout.activity_main),
         })
     }
 
-    private fun adjustKeyboardPadding(suggestion: Int): Int = suggestion
-
-    private fun windowInsetsDriver(): WindowInsetsDriver = WindowInsetsDriver(
-            stackNavigatorSource = this.navigator::activeNavigator,
-            parentContainer = findViewById(R.id.constraint_layout),
-            contentContainer = findViewById(R.id.main_fragment_container),
-            coordinatorLayout = findViewById(R.id.coordinator_layout),
-            toolbar = findViewById(R.id.toolbar),
-            topInsetView = findViewById(R.id.top_inset),
-            bottomInsetView = findViewById(R.id.bottom_inset),
-            keyboardPadding = findViewById(R.id.keyboard_padding),
-            insetAdjuster = this::adjustKeyboardPadding
-    )
-
-    private fun transientBarCallback() = object : FragmentManager.FragmentLifecycleCallbacks() {
-        override fun onFragmentViewCreated(fm: FragmentManager, f: Fragment, v: View, savedInstanceState: Bundle?) {
-            if (f.id == navigator.activeNavigator.containerId) navigator.transientBarDriver.clearTransientBars()
-        }
-    }
 }

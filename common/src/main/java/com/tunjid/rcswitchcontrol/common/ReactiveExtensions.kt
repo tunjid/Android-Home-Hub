@@ -9,6 +9,10 @@ import io.reactivex.disposables.CompositeDisposable
 
 fun <T> Flowable<T>.toLiveData(): LiveData<T> = MainThreadLiveData(this)
 
+fun <T, R> LiveData<T>.map(mapper: (T) -> R) = Transformations.map(this, mapper)
+
+fun <T> LiveData<T>.distinctUntilChanged() = Transformations.distinctUntilChanged(this)
+
 inline fun <reified T> Flowable<*>.filterIsInstance(): Flowable<T> = filter { it is T }.cast(T::class.java)
 
 fun <T, R> LiveData<T>.mapDistinct(mapper: (T) -> R): LiveData<R> =

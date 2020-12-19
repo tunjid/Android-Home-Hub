@@ -30,6 +30,7 @@ import android.view.ViewGroup
 import androidx.dynamicanimation.animation.SpringAnimation
 import com.google.android.material.button.MaterialButton
 import com.tunjid.androidx.recyclerview.viewbinding.BindingViewHolder
+import com.tunjid.androidx.recyclerview.viewbinding.viewHolderDelegate
 import com.tunjid.androidx.recyclerview.viewbinding.viewHolderFrom
 import com.tunjid.androidx.view.util.spring
 import com.tunjid.rcswitchcontrol.App
@@ -59,7 +60,7 @@ fun BindingViewHolder<ViewholderHistoryBinding>.bind(record: Record) {
     binding.text.text = record.entry
 }
 
-private var BindingViewHolder<ViewholderCommandBinding>.record by BindingViewHolder.Prop<Record>()
+private var BindingViewHolder<ViewholderCommandBinding>.record by viewHolderDelegate<Record>()
 
 fun BindingViewHolder<ViewholderCommandBinding>.bindCommand(record: Record) = binding.run {
     this@bindCommand.record = record

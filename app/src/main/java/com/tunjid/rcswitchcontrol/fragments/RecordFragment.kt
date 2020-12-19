@@ -27,18 +27,21 @@ package com.tunjid.rcswitchcontrol.fragments
 import android.os.Bundle
 import android.view.View
 import androidx.core.view.updatePadding
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.google.android.flexbox.AlignItems
 import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.FlexboxLayoutManager
 import com.google.android.flexbox.JustifyContent
 import com.rcswitchcontrol.protocols.CommsProtocol
-import com.tunjid.androidx.core.components.args
+import com.tunjid.androidx.core.delegates.fragmentArgs
 import com.tunjid.androidx.recyclerview.listAdapterOf
 import com.tunjid.androidx.recyclerview.verticalLayoutManager
 import com.tunjid.androidx.recyclerview.viewbinding.typed
+import com.tunjid.globalui.liveUiState
+import com.tunjid.globalui.uiState
+import com.tunjid.globalui.updatePartial
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderCommandBinding
@@ -47,26 +50,25 @@ import com.tunjid.rcswitchcontrol.models.ControlState
 import com.tunjid.rcswitchcontrol.models.ProtocolKey
 import com.tunjid.rcswitchcontrol.models.Record
 import com.tunjid.rcswitchcontrol.models.payload
-import com.tunjid.rcswitchcontrol.utils.WindowInsetsDriver.Companion.bottomInset
 import com.tunjid.rcswitchcontrol.viewholders.bind
 import com.tunjid.rcswitchcontrol.viewholders.bindCommand
 import com.tunjid.rcswitchcontrol.viewholders.commandViewHolder
 import com.tunjid.rcswitchcontrol.viewholders.historyViewHolder
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 
-sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
+sealed class RecordFragment : Fragment(R.layout.fragment_list) {
 
     class HistoryFragment : RecordFragment()
     class CommandsFragment : RecordFragment()
 
-    internal var key: CommsProtocol.Key? by args()
+    internal var key: CommsProtocol.Key? by fragmentArgs()
     private val viewModel by activityViewModels<ControlViewModel>()
-
-    override val stableTag: String get() = "${javaClass.simpleName}-$key"
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        view.updatePadding(bottom = bottomInset)
+        liveUiState.mapDistinct { it.systemUI.dynamic.bottomInset }.observe(viewLifecycleOwner) {
+            view.updatePadding(bottom = it)
+        }
 
         val binding = FragmentListBinding.bind(view)
         binding.list.apply {
@@ -116,10 +118,11 @@ sealed class RecordFragment : BaseFragment(R.layout.fragment_list) {
 
     override fun onResume() {
         super.onResume()
-        updateUi(altToolBarShows = false)
+        uiState
+        ::uiState.updatePartial { copy(altToolbarShows = false) }
     }
 
-    private fun onRecordClicked(record: Record) = when(record) {
+    private fun onRecordClicked(record: Record) = when (record) {
         is Record.Command -> viewModel.dispatchPayload(record.payload)
         is Record.Response -> Unit
     }

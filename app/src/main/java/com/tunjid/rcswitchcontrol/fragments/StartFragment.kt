@@ -25,40 +25,37 @@
 package com.tunjid.rcswitchcontrol.fragments
 
 import android.os.Bundle
-
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
-
+import androidx.fragment.app.Fragment
+import com.tunjid.androidx.navigation.activityNavigatorController
+import com.tunjid.globalui.UiState
+import com.tunjid.globalui.uiState
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
+import com.tunjid.rcswitchcontrol.databinding.FragmentStartBinding
+import com.tunjid.rcswitchcontrol.navigation.AppNavigator
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
 
-class StartFragment : BaseFragment(), View.OnClickListener {
+class StartFragment : Fragment(R.layout.fragment_start) {
 
-    override fun onCreateView(inflater: LayoutInflater,
-                              container: ViewGroup?,
-                              savedInstanceState: Bundle?): View? {
+    private val navigator by activityNavigatorController<AppNavigator>()
 
-        defaultUi(toolbarTitle = getString(R.string.app_name))
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
-        val rootView = inflater.inflate(R.layout.fragment_start, container, false)
-        val serverButton = rootView.findViewById<View>(R.id.server)
-        val clientButton = rootView.findViewById<View>(R.id.client)
-
-        serverButton.setOnClickListener(this)
-        clientButton.setOnClickListener(this)
-
-        return rootView
-    }
-
-    override fun onClick(v: View) {
-        when (v.id) {
-            R.id.server -> {
-                ServerNsdService.isServer = true
-                navigator.push(ControlFragment.newInstance())
+        uiState = UiState(toolbarTitle = getString(R.string.app_name))
+        val onClick: (View) -> Unit = { v: View ->
+            when (v.id) {
+                R.id.server -> {
+                    ServerNsdService.isServer = true
+                    navigator.push(ControlFragment.newInstance())
+                }
+                R.id.client -> navigator.push(HostScanFragment.newInstance())
             }
-            R.id.client -> navigator.push(HostScanFragment.newInstance())
+        }
+
+        FragmentStartBinding.bind(view).apply {
+            server.setOnClickListener(onClick)
+            client.setOnClickListener(onClick)
         }
     }
 

@@ -28,14 +28,17 @@ import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import com.tunjid.globalui.uiState
+import com.tunjid.globalui.updatePartial
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.activities.MainActivity
+import com.tunjid.rcswitchcontrol.databinding.FragmentHostBinding
 import com.tunjid.rcswitchcontrol.dialogfragments.NameServiceDialogFragment
 import com.tunjid.rcswitchcontrol.viewmodels.HostViewModel
 
-class HostFragment : BaseFragment(R.layout.fragment_host),
+class HostFragment : Fragment(R.layout.fragment_host),
         NameServiceDialogFragment.ServiceNameListener {
 
     private val viewModel by activityViewModels<HostViewModel>()
@@ -43,14 +46,16 @@ class HostFragment : BaseFragment(R.layout.fragment_host),
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        view.findViewById<View>(R.id.rename_server).setOnClickListener { NameServiceDialogFragment.newInstance().show(childFragmentManager, "") }
-        view.findViewById<View>(R.id.restart_server).setOnClickListener { viewModel.restartServer() }
-        view.findViewById<View>(R.id.stop_server).setOnClickListener {
-            viewModel.stop()
-            startActivity(Intent(requireActivity(), MainActivity::class.java)
-                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            requireActivity().finish()
+        FragmentHostBinding.bind(view).apply {
+            renameServer.setOnClickListener { NameServiceDialogFragment.newInstance().show(childFragmentManager, "") }
+            restartServer.setOnClickListener { viewModel.restartServer() }
+            stopServer.setOnClickListener {
+                viewModel.stop()
+                startActivity(Intent(requireActivity(), MainActivity::class.java)
+                        .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                requireActivity().finish()
+            }
         }
     }
 
@@ -63,7 +68,7 @@ class HostFragment : BaseFragment(R.layout.fragment_host),
 
     override fun onResume() {
         super.onResume()
-        updateUi(altToolBarShows = false)
+        ::uiState.updatePartial { copy(altToolbarShows = false) }
     }
 
     override fun onServiceNamed(name: String) = viewModel.nameServer(name)

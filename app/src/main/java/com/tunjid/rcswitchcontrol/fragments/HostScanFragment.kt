@@ -32,17 +32,22 @@ import android.text.SpannableStringBuilder
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.tunjid.androidx.core.text.scale
+import com.tunjid.androidx.navigation.activityNavigatorController
 import com.tunjid.androidx.recyclerview.listAdapterOf
 import com.tunjid.androidx.recyclerview.verticalLayoutManager
 import com.tunjid.androidx.recyclerview.viewbinding.BindingViewHolder
 import com.tunjid.androidx.recyclerview.viewbinding.viewHolderFrom
+import com.tunjid.globalui.UiState
+import com.tunjid.globalui.uiState
+import com.tunjid.globalui.updatePartial
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.abstractclasses.BaseFragment
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentNsdScanBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderNsdListBinding
+import com.tunjid.rcswitchcontrol.navigation.AppNavigator
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.viewmodels.NSDState
 import com.tunjid.rcswitchcontrol.viewmodels.NsdItem
@@ -51,15 +56,20 @@ import com.tunjid.rcswitchcontrol.viewmodels.NsdScanViewModel
 /**
  * A [androidx.fragment.app.Fragment] listing supported NSD servers
  */
-class HostScanFragment : BaseFragment(R.layout.fragment_nsd_scan) {
+class HostScanFragment : Fragment(R.layout.fragment_nsd_scan) {
 
     private val viewModel by viewModels<NsdScanViewModel>()
     private val isScanning: Boolean get() = viewModel.state.value?.isScanning == true
+    private val navigator by activityNavigatorController<AppNavigator>()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        updateUi(toolBarMenu = R.menu.menu_nsd_scan)
+        uiState = UiState(
+                toolbarMenuRes = R.menu.menu_nsd_scan,
+                toolbarMenuRefresher = ::onToolbarRefreshed,
+                toolbarMenuClickListener = ::onToolbarMenuItemSelected,
+        )
         val binding = FragmentNsdScanBinding.bind(view)
 
         binding.list.apply {
@@ -78,7 +88,7 @@ class HostScanFragment : BaseFragment(R.layout.fragment_nsd_scan) {
 
             viewModel.state.apply {
                 mapDistinct(NSDState::items).observe(viewLifecycleOwner, listAdapter::submitList)
-                mapDistinct(NSDState::isScanning).observe(viewLifecycleOwner) { updateUi(toolbarInvalidated = true) }
+                mapDistinct(NSDState::isScanning).observe(viewLifecycleOwner) { ::uiState.updatePartial { copy(toolbarInvalidated = true) } }
             }
         }
     }
@@ -93,7 +103,7 @@ class HostScanFragment : BaseFragment(R.layout.fragment_nsd_scan) {
         scanDevices(false)
     }
 
-    override fun onPrepareOptionsMenu(menu: Menu) {
+    private fun onToolbarRefreshed(menu: Menu) {
         super.onPrepareOptionsMenu(menu)
         menu.findItem(R.id.menu_stop)?.isVisible = isScanning
         menu.findItem(R.id.menu_scan)?.isVisible = !isScanning
@@ -104,18 +114,10 @@ class HostScanFragment : BaseFragment(R.layout.fragment_nsd_scan) {
         if (isScanning) refresh?.setActionView(R.layout.actionbar_indeterminate_progress)
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
-            R.id.menu_scan -> {
-                scanDevices(true)
-                return true
-            }
-            R.id.menu_stop -> {
-                scanDevices(false)
-                return true
-            }
-        }
-        return super.onOptionsItemSelected(item)
+    private fun onToolbarMenuItemSelected(item: MenuItem) = when (item.itemId) {
+        R.id.menu_scan -> scanDevices(true)
+        R.id.menu_stop -> scanDevices(false)
+        else -> Unit
     }
 
     private fun onServiceClicked(serviceInfo: NsdServiceInfo) {

@@ -66,6 +66,8 @@ class HostScanFragment : Fragment(R.layout.fragment_nsd_scan) {
         super.onViewCreated(view, savedInstanceState)
 
         uiState = UiState(
+                toolbarShows = true,
+                toolbarTitle = getString(R.string.app_name),
                 toolbarMenuRes = R.menu.menu_nsd_scan,
                 toolbarMenuRefresher = ::onToolbarRefreshed,
                 toolbarMenuClickListener = ::onToolbarMenuItemSelected,

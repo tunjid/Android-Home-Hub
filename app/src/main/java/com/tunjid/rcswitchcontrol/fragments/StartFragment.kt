@@ -42,7 +42,11 @@ class StartFragment : Fragment(R.layout.fragment_start) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        uiState = UiState(toolbarTitle = getString(R.string.app_name))
+        uiState = UiState(
+                toolbarShows = true,
+                toolbarTitle = getString(R.string.app_name)
+        )
+
         val onClick: (View) -> Unit = { v: View ->
             when (v.id) {
                 R.id.server -> {

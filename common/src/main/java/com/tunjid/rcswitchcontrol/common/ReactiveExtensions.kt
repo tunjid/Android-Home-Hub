@@ -1,5 +1,6 @@
 package com.tunjid.rcswitchcontrol.common
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.LiveDataReactiveStreams
 import androidx.lifecycle.Transformations
@@ -8,6 +9,13 @@ import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 
 fun <T> Flowable<T>.toLiveData(): LiveData<T> = MainThreadLiveData(this)
+
+private fun <T> Flowable<T>.debug(tag: String): Flowable<T> =
+        doOnSubscribe { Log.i(tag, "Subscribed") }
+                .doOnNext { Log.i(tag, "Saw $it") }
+                .doOnCancel { Log.i(tag, "Canceled") }
+                .doOnTerminate { Log.i(tag, "Terminated") }
+                .doOnError { Log.i(tag, "Error", it) }
 
 fun <T, R> LiveData<T>.map(mapper: (T) -> R) = Transformations.map(this, mapper)
 

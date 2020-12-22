@@ -10,7 +10,7 @@ import io.reactivex.disposables.CompositeDisposable
 
 fun <T> Flowable<T>.toLiveData(): LiveData<T> = MainThreadLiveData(this)
 
-private fun <T> Flowable<T>.debug(tag: String): Flowable<T> =
+fun <T> Flowable<T>.debug(tag: String): Flowable<T> =
         doOnSubscribe { Log.i(tag, "Subscribed") }
                 .doOnNext { Log.i(tag, "Saw $it") }
                 .doOnCancel { Log.i(tag, "Canceled") }

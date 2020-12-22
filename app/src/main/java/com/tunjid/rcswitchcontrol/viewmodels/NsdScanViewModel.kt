@@ -109,21 +109,22 @@ private fun Context.nsdServices(): Flowable<NsdServiceInfo> {
 
     return emissions.filterIsInstance<NsdUpdate.Helper>().switchMap { (nsdHelper) ->
         emissions
-                .doOnSubscribe { nsdHelper.discoverServices() }
                 .doOnNext(nsdHelper::onUpdate)
                 .doFinally(nsdHelper::tearDown)
                 .filterIsInstance<NsdUpdate.Resolved>()
                 .map(NsdUpdate.Resolved::service)
+                .startWith(Flowable.empty<NsdServiceInfo>().delay(2, TimeUnit.SECONDS, Schedulers.io()))
     }
             .takeUntil(Flowable.timer(SCAN_PERIOD, TimeUnit.SECONDS, Schedulers.io()))
 }
 
 private fun NsdHelper.onUpdate(update: NsdUpdate) = when (update) {
+    is NsdUpdate.Helper -> discoverServices()
+    is NsdUpdate.Found -> resolveService(update.service)
     is NsdUpdate.ResolutionFailed -> when (update.errorCode) {
         NsdManager.FAILURE_ALREADY_ACTIVE -> resolveService(update.service)
         else -> Unit
     }
-    is NsdUpdate.Found -> resolveService(update.service)
     else -> Unit
 }
 

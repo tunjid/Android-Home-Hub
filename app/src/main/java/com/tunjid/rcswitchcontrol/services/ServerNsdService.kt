@@ -105,7 +105,10 @@ class ServerNsdService : Service(), SelfBindingService<ServerNsdService> {
             nsdHelper = NsdHelper.getBuilder(this)
                     .setRegisterSuccessConsumer(this::onNsdServiceRegistered)
                     .setRegisterErrorConsumer { service, error -> Log.i(TAG, "Could not register service " + service.serviceName + ". Error code: " + error) }
-                    .build().apply { registerService(serverSocket.localPort, initialServiceName) }
+                    .build()
+                    .apply {
+                        registerService(serverSocket.localPort, initialServiceName)
+                    }
 
             serverThread = ServerThread(serverSocket).apply { start() }
             startForeground(NOTIFICATION_ID, NotificationCompat.Builder(this, ClientStartedBoundService.NOTIFICATION_TYPE)
@@ -117,7 +120,6 @@ class ServerNsdService : Service(), SelfBindingService<ServerNsdService> {
             e.printStackTrace()
             stopSelf()
         }
-
     }
 
     private fun onNsdServiceRegistered(service: NsdServiceInfo) {
@@ -274,5 +276,4 @@ class ServerNsdService : Service(), SelfBindingService<ServerNsdService> {
             get() = App.preferences.getBoolean(SERVER_FLAG, App.isAndroidThings)
             set(value) = App.preferences.edit().putBoolean(SERVER_FLAG, value).apply()
     }
-
 }

@@ -25,6 +25,7 @@
 package com.tunjid.rcswitchcontrol.services
 
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.net.nsd.NsdServiceInfo
 import android.util.Log
@@ -110,7 +111,7 @@ class ServerNsdService : Service(), SelfBindingService<ServerNsdService> {
                         registerService(serverSocket.localPort, initialServiceName)
                     }
 
-            serverThread = ServerThread(serverSocket).apply { start() }
+            serverThread = ServerThread(context = this, serverSocket = serverSocket).apply { start() }
             startForeground(NOTIFICATION_ID, NotificationCompat.Builder(this, ClientStartedBoundService.NOTIFICATION_TYPE)
                     .setSmallIcon(R.drawable.ic_notification)
                     .setContentTitle(getText(R.string.started_server_service))
@@ -142,13 +143,16 @@ class ServerNsdService : Service(), SelfBindingService<ServerNsdService> {
     /**
      * Thread for communications between [ServerNsdService] and it's clients
      */
-    private class ServerThread(private val serverSocket: ServerSocket) : Thread(), Closeable {
+    private class ServerThread(
+        context: Context,
+        private val serverSocket: ServerSocket
+        ) : Thread(), Closeable {
 
         @Volatile
         var isRunning: Boolean = false
         private val portMap = ConcurrentHashMap<Int, Connection>()
 
-        private val protocol = ProxyProtocol(ConsoleWriter(this::broadcastToClients))
+        private val protocol = ProxyProtocol(context, ConsoleWriter(this::broadcastToClients))
         private val pool = Executors.newFixedThreadPool(5)
 
         override fun run() {

@@ -37,13 +37,15 @@ import com.tunjid.rcswitchcontrol.a433mhz.protocols.SerialRFProtocol
  */
 
 data class RfSwitch(
-        override val name: String = "Switch",
-        val bitLength: Byte = 0,
-        val protocol: Byte = 0,
-        val pulseLength: ByteArray = ByteArray(4),
-        val onCode: ByteArray = ByteArray(4),
-        val offCode: ByteArray = ByteArray(4)
+    val name: String,
+    val bitLength: Byte = 0,
+    val protocol: Byte = 0,
+    val pulseLength: ByteArray = ByteArray(4),
+    val onCode: ByteArray = ByteArray(4),
+    val offCode: ByteArray = ByteArray(4)
 ) : Peripheral {
+
+    override val id: String get() = name
 
     override val key
         get() = SerialRFProtocol.key
@@ -67,7 +69,7 @@ data class RfSwitch(
     }
 
     fun getEncodedTransmission(state: Boolean): String =
-            Base64.encodeToString(getTransmission(state), Base64.DEFAULT)
+        Base64.encodeToString(getTransmission(state), Base64.DEFAULT)
 
     // Equals considers the code only, not the name
     override fun equals(other: Any?): Boolean {
@@ -76,7 +78,7 @@ data class RfSwitch(
 
         val rcSwitch = other as RfSwitch? ?: return false
 
-        return bytes.contentEquals(rcSwitch.bytes) && name == rcSwitch.name
+        return bytes.contentEquals(rcSwitch.bytes) && id == rcSwitch.id
     }
 
     override fun hashCode(): Int = bytes.contentHashCode()
@@ -92,7 +94,7 @@ data class RfSwitch(
         fun withOnCode(code: ByteArray) {
             state = OFF_CODE
 
-            rfSwitch = RfSwitch(bitLength = code[8], protocol = code[9])
+            rfSwitch = RfSwitch(name = "Switch", bitLength = code[8], protocol = code[9])
 
             System.arraycopy(code, 0, rfSwitch.onCode, 0, 4)
             System.arraycopy(code, 4, rfSwitch.pulseLength, 0, 4)

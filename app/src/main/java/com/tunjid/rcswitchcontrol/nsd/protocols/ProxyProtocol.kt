@@ -58,29 +58,32 @@ import java.io.PrintWriter
  * Created by tj.dahunsi on 2/11/17.
  */
 
-class ProxyProtocol(override val printWriter: PrintWriter) : CommsProtocol {
+class ProxyProtocol(
+    context: Context,
+    override val printWriter: PrintWriter
+) : CommsProtocol {
 
     private val disposable = CompositeDisposable()
 
     private val rfPeripheral = UsbPeripheral(
-            SerialRFProtocol.ARDUINO_VENDOR_ID,
-            SerialRFProtocol.ARDUINO_PRODUCT_ID,
-            RF_REQUEST_CODE,
-            SerialRFProtocol.key,
-            protocolFunction = { SerialRFProtocol(it, printWriter) }
+        SerialRFProtocol.ARDUINO_VENDOR_ID,
+        SerialRFProtocol.ARDUINO_PRODUCT_ID,
+        RF_REQUEST_CODE,
+        SerialRFProtocol.key,
+        protocolFunction = { SerialRFProtocol(it, printWriter) }
     )
 
     private val zigBeePeripheral = UsbPeripheral(
-            ZigBeeProtocol.TI_VENDOR_ID,
-            ZigBeeProtocol.CC2531_PRODUCT_ID,
-            ZIG_BEE_REQUEST_CODE,
-            ZigBeeProtocol.key,
-            protocolFunction = { ZigBeeProtocol(it, printWriter) }
+        ZigBeeProtocol.TI_VENDOR_ID,
+        ZigBeeProtocol.CC2531_PRODUCT_ID,
+        ZIG_BEE_REQUEST_CODE,
+        ZigBeeProtocol.key,
+        protocolFunction = { ZigBeeProtocol(context = context, driver = it, printWriter = printWriter) }
     )
 
     private val protocolMap = mutableMapOf(
-            BLERFProtocol.key to BLERFProtocol(printWriter),
-            KnockKnockProtocol.key to KnockKnockProtocol(printWriter)
+        BLERFProtocol.key to BLERFProtocol(printWriter),
+        KnockKnockProtocol.key to KnockKnockProtocol(printWriter)
     )
 
     init {
@@ -111,7 +114,6 @@ class ProxyProtocol(override val printWriter: PrintWriter) : CommsProtocol {
         protocolMap.values.forEach { pushOut(it.processInput(CommsProtocol.pingAction.value)) }
         return Payload(CommsProtocol.key).apply { addCommand(CommsProtocol.pingAction) }
     }
-
 
     private fun attach(usbPeripheral: UsbPeripheral) = with(usbPeripheral) {
         val driver = findUsbDriver(this)
@@ -170,11 +172,11 @@ class USBDeviceReceiver : BroadcastReceiver() {
 }
 
 class UsbPeripheral(
-        val vendorId: Int,
-        val productId: Int,
-        val requestCode: Int,
-        val key: CommsProtocol.Key,
-        val protocolFunction: (driver: UsbSerialDriver) -> CommsProtocol
+    val vendorId: Int,
+    val productId: Int,
+    val requestCode: Int,
+    val key: CommsProtocol.Key,
+    val protocolFunction: (driver: UsbSerialDriver) -> CommsProtocol
 )
 
 private const val RF_REQUEST_CODE = 1

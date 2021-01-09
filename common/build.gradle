@@ -1,6 +1,7 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
+apply plugin: 'kotlin-parcelize'
+apply plugin: 'kotlin-kapt'
 apply from: "${project.rootDir}/androidConfig.gradle"
 
 dependencies {
@@ -13,7 +14,9 @@ dependencies {
     implementation parent.ext.lifecycleRxKtx
 
     implementation parent.ext.rxJava
+    implementation parent.ext.rxKotlin
     implementation parent.ext.rxAndroid
+    implementation rxReplayingShare
 
     implementation parent.ext.gson
 }

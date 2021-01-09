@@ -3,5 +3,6 @@
 
     <string name="device_action_delete_command">Delete</string>
     <string name="device_action_rename_command">Rename</string>
+    <string name="device_action_name_changed_command">Name changed</string>
     <string name="device_action_refresh_devices_command">Refresh Devices</string>
 </resources>

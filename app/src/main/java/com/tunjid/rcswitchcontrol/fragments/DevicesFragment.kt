@@ -50,18 +50,15 @@ import com.tunjid.globalui.liveUiState
 import com.tunjid.globalui.uiState
 import com.tunjid.globalui.updatePartial
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderPaddingBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderRemoteSwitchBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderZigbeeDeviceBinding
 import com.tunjid.rcswitchcontrol.dialogfragments.GroupDeviceDialogFragment
-import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
 import com.tunjid.rcswitchcontrol.models.ControlState
 import com.tunjid.rcswitchcontrol.models.Device
 import com.tunjid.rcswitchcontrol.models.deletePayload
-import com.tunjid.rcswitchcontrol.models.renamedPayload
 import com.tunjid.rcswitchcontrol.models.togglePayload
 import com.tunjid.rcswitchcontrol.models.trifecta
 import com.tunjid.rcswitchcontrol.navigation.AppNavigator
@@ -75,9 +72,8 @@ import com.tunjid.rcswitchcontrol.viewholders.zigbeeDeviceViewHolder
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 
 class DevicesFragment : Fragment(R.layout.fragment_list),
-        DeviceAdapterListener,
-        GroupDeviceDialogFragment.GroupNameListener,
-        RenameSwitchDialogFragment.SwitchNameListener {
+    DeviceAdapterListener,
+    GroupDeviceDialogFragment.GroupNameListener {
 
     private var isDeleting: Boolean = false
     private val viewBinding by viewLifecycle(FragmentListBinding::bind)
@@ -105,39 +101,39 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
                 updatePadding(bottom = it)
             }
             val listAdapter = listAdapterOf(
-                    initialItems = viewModel.state.value?.devices ?: listOf(),
-                    viewHolderCreator = ::createViewHolder,
-                    viewTypeFunction = ::getDeviceViewType,
-                    viewHolderBinder = { holder, device, _ ->
-                        when (device) {
-                            is Device.RF -> holder.typed<ViewholderRemoteSwitchBinding>().bind(device)
-                            is Device.ZigBee -> holder.typed<ViewholderZigbeeDeviceBinding>().bind(device)
-                        }
-                    },
-                    itemIdFunction = { it.hashCode().toLong() }
+                initialItems = viewModel.state.value?.devices ?: listOf(),
+                viewHolderCreator = ::createViewHolder,
+                viewTypeFunction = ::getDeviceViewType,
+                viewHolderBinder = { holder, device, _ ->
+                    when (device) {
+                        is Device.RF -> holder.typed<ViewholderRemoteSwitchBinding>().bind(device)
+                        is Device.ZigBee -> holder.typed<ViewholderZigbeeDeviceBinding>().bind(device)
+                    }
+                },
+                itemIdFunction = { it.hashCode().toLong() }
             )
 
             layoutManager = gridLayoutManager(spanCount = SpanCountCalculator.spanCount)
             adapter = listAdapter
 
             setSwipeDragOptions(
-                    swipeConsumer = { viewHolder: RecyclerView.ViewHolder, _ -> onDelete(viewHolder) },
-                    movementFlagFunction = ::swipeDirection,
-                    itemViewSwipeSupplier = { true }
+                swipeConsumer = { viewHolder: RecyclerView.ViewHolder, _ -> onDelete(viewHolder) },
+                movementFlagFunction = ::swipeDirection,
+                itemViewSwipeSupplier = { true }
             )
 
             viewModel.state.mapDistinct(ControlState::devices).observe(viewLifecycleOwner, listAdapter::submitList)
 
             viewModel.state
-                    .mapDistinct(ControlState::devices)
-                    .mapDistinct {
-                        it.filterIsInstance<Device.ZigBee>()
-                                .map(Device.ZigBee::trifecta)
-                                .map(Triple<Pair<String, Any?>, Pair<String, Any?>, Pair<String, Any?>>::toString)
-                    }
-                    .observe(viewLifecycleOwner) {
-                        Log.i("TEST", "Trifecta: \n ${it.joinToString(separator = "\n")}")
-                    }
+                .mapDistinct(ControlState::devices)
+                .mapDistinct {
+                    it.filterIsInstance<Device.ZigBee>()
+                        .map(Device.ZigBee::trifecta)
+                        .map(Triple<Pair<String, Any?>, Pair<String, Any?>, Pair<String, Any?>>::toString)
+                }
+                .observe(viewLifecycleOwner) {
+                    Log.i("TEST", "Trifecta: \n ${it.joinToString(separator = "\n")}")
+                }
 
         }
     }
@@ -149,8 +145,8 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
 
     private fun refreshUi() = ::uiState.updatePartial {
         copy(
-                altToolbarTitle = getString(R.string.devices_selected, viewModel.numSelections()),
-                altToolbarShows = viewModel.withSelectedDevices { it.isNotEmpty() }
+            altToolbarTitle = getString(R.string.devices_selected, viewModel.numSelections()),
+            altToolbarShows = viewModel.withSelectedDevices { it.isNotEmpty() }
         )
     }
 
@@ -175,8 +171,6 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
         refreshUi()
     }
 
-    override fun onSwitchRenamed(rfSwitch: RfSwitch) = viewModel.dispatchPayload(Device.RF(rfSwitch).renamedPayload)
-
     private fun getDeviceViewType(device: Device) = device::class.hashCode()
 
     private fun createViewHolder(parent: ViewGroup, viewType: Int) = when (viewType) {
@@ -186,12 +180,12 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
     }
 
     private fun swipeDirection(holder: BindingViewHolder<*>): Int =
-            if (isDeleting || holder.binding is ViewholderZigbeeDeviceBinding) 0
-            else makeMovementFlags(0, ItemTouchHelper.LEFT)
+        if (isDeleting || holder.binding is ViewholderZigbeeDeviceBinding) 0
+        else makeMovementFlags(0, ItemTouchHelper.LEFT)
 
     private fun longClickDevice(device: Device) {
         viewBinding.list.viewHolderForItemId<BindingViewHolder<*>>(device.hashCode().toLong())
-                ?.let { device.performLongClick(holder = it, this) }
+            ?.let { device.performLongClick(holder = it, this) }
     }
 
     private fun onDelete(viewHolder: RecyclerView.ViewHolder) {
@@ -216,15 +210,15 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
 
         navigator.transientBarDriver.showSnackBar { snackBar ->
             snackBar.setText(R.string.deleted_switch)
-                    .addCallback(deletionHandler)
-                    .setAction(R.string.undo) {
-                        if (deletionHandler.hasItems()) {
-                            val deletedAt = deletionHandler.deletedPosition
+                .addCallback(deletionHandler)
+                .setAction(R.string.undo) {
+                    if (deletionHandler.hasItems()) {
+                        val deletedAt = deletionHandler.deletedPosition
 //                            devices.add(deletedAt, deletionHandler.pop())
 //                            listManager.notifyItemInserted(deletedAt)
-                        }
-                        isDeleting = false
                     }
+                    isDeleting = false
+                }
         }
     }
 

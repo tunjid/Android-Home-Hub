@@ -29,5 +29,5 @@ import com.tunjid.androidx.recyclerview.diff.Differentiable
 
 interface Peripheral : Differentiable {
     val key: CommsProtocol.Key
-    val name: String
+    val id: String
 }

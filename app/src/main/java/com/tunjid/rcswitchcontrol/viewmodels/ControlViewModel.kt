@@ -30,6 +30,7 @@ import androidx.lifecycle.LiveData
 import com.jakewharton.rx.replayingShare
 import com.rcswitchcontrol.protocols.CommonDeviceActions
 import com.rcswitchcontrol.protocols.CommsProtocol
+import com.rcswitchcontrol.protocols.Name
 import com.rcswitchcontrol.protocols.models.Payload
 import com.rcswitchcontrol.zigbee.models.ZigBeeAttribute
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommandInfo
@@ -45,7 +46,15 @@ import com.tunjid.rcswitchcontrol.common.Broadcaster
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.deserializeList
 import com.tunjid.rcswitchcontrol.common.toLiveData
-import com.tunjid.rcswitchcontrol.models.*
+import com.tunjid.rcswitchcontrol.models.ControlState
+import com.tunjid.rcswitchcontrol.models.Device
+import com.tunjid.rcswitchcontrol.models.Page
+import com.tunjid.rcswitchcontrol.models.Record
+import com.tunjid.rcswitchcontrol.models.reduceCommands
+import com.tunjid.rcswitchcontrol.models.reduceDeviceName
+import com.tunjid.rcswitchcontrol.models.reduceDevices
+import com.tunjid.rcswitchcontrol.models.reduceHistory
+import com.tunjid.rcswitchcontrol.models.reduceZigBeeAttributes
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
 import io.reactivex.disposables.CompositeDisposable
@@ -73,34 +82,31 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         val connectionStatuses = Broadcaster.listen(*connectionActions)
-                .map { getConnectionText(it.action ?: "") }
-                .startWith(getConnectionText(ClientNsdService.ACTION_SOCKET_DISCONNECTED))
+            .map { getConnectionText(it.action ?: "") }
+            .startWith(getConnectionText(ClientNsdService.ACTION_SOCKET_DISCONNECTED))
 
         val serverResponses = Broadcaster.listen(ClientNsdService.ACTION_SERVER_RESPONSE)
-                .map { it.getStringExtra(ClientNsdService.DATA_SERVER_RESPONSE) }
-                .filter(String::isNotBlank)
-                .map { it.deserialize(Payload::class) }
+            .map { it.getStringExtra(ClientNsdService.DATA_SERVER_RESPONSE) }
+            .filter(String::isNotBlank)
+            .map { it.deserialize(Payload::class) }
 
         val stateObservable = Flowables.combineLatest(
-                serverResponses,
-                connectionStatuses
+            serverResponses,
+            connectionStatuses
         ).scan(ControlState()) { state, (payload, connectionState) ->
             val key = payload.key
             val isNew = !state.commands.keys.contains(key)
-            val record = payload.extractRecord()
-            val fetchedDevices = payload.extractDevices()
-            val commandInfo = payload.extractCommandInfo()
-            val attributes = payload.extractDeviceAttributes()
 
-            state.copy(isNew = isNew, connectionState = connectionState, commandInfo = commandInfo)
-                    .reduceCommands(payload)
-                    .reduceHistory(record)
-                    .reduceDevices(fetchedDevices)
-                    .reduceZigBeeAttributes(attributes)
+            state.copy(isNew = isNew, connectionState = connectionState, commandInfo = payload.extractCommandInfo)
+                .reduceCommands(payload)
+                .reduceDeviceName(payload.deviceName)
+                .reduceHistory(payload.extractRecord)
+                .reduceDevices(payload.extractDevices)
+                .reduceZigBeeAttributes(payload.extractDeviceAttributes)
         }
-                .subscribeOn(single())
-                .doOnSubscribe { nsdConnection.boundService?.onAppForeGround() }
-                .replayingShare()
+            .subscribeOn(single())
+            .doOnSubscribe { nsdConnection.boundService?.onAppForeGround() }
+            .replayingShare()
 
         state = stateObservable.toLiveData()
 
@@ -143,8 +149,8 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
     fun <T> withSelectedDevices(function: (Set<Device>) -> T): T = function.invoke(selectedDevices.values.toSet())
 
     fun pingServer() = dispatchPayload(Payload(
-            key = CommsProtocol.key,
-            action = CommsProtocol.pingAction
+        key = CommsProtocol.key,
+        action = CommsProtocol.pingAction
     ))
 
     private fun getConnectionText(newState: String): String {
@@ -168,44 +174,52 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
 }
 
 private val connectionActions = arrayOf(
-        ClientNsdService.ACTION_SOCKET_CONNECTED,
-        ClientNsdService.ACTION_SOCKET_CONNECTING,
-        ClientNsdService.ACTION_SOCKET_DISCONNECTED,
-        ClientNsdService.ACTION_START_NSD_DISCOVERY
+    ClientNsdService.ACTION_SOCKET_CONNECTED,
+    ClientNsdService.ACTION_SOCKET_CONNECTING,
+    ClientNsdService.ACTION_SOCKET_DISCONNECTED,
+    ClientNsdService.ACTION_START_NSD_DISCOVERY
 )
 
-private fun Payload.extractRecord(): Record.Response? = response.let {
-    if (it == null || it.isBlank()) null
-    else Record.Response(key = key, entry = it)
-}
+private val Payload.deviceName: Name?
+    get() = when (action) {
+        CommonDeviceActions.nameChangedAction -> data?.deserialize(Name::class)
+        else -> null
+    }
+private val Payload.extractRecord: Record.Response?
+    get() = response.let {
+        if (it == null || it.isBlank()) null
+        else Record.Response(key = key, entry = it)
+    }
 
-private fun Payload.extractCommandInfo(): ZigBeeCommandInfo? =
-        if (key == ZigBeeProtocol.key && action == ZigBeeProtocol.commandInfoAction) data?.deserialize(ZigBeeCommandInfo::class)
-        else null
+private val Payload.extractCommandInfo: ZigBeeCommandInfo?
+    get() = if (key == ZigBeeProtocol.key && action == ZigBeeProtocol.commandInfoAction) data?.deserialize(ZigBeeCommandInfo::class)
+    else null
 
-private fun Payload.extractDevices(): List<Device>? = when (val serialized = data) {
-    null -> null
-    else -> when (key) {
-        BLERFProtocol.key, SerialRFProtocol.key -> when (action) {
-            ClientBleService.transmitterAction,
-            CommonDeviceActions.deleteAction,
-            CommonDeviceActions.renameAction -> serialized.deserializeList(RfSwitch::class)
+private val Payload.extractDevices: List<Device>?
+    get() = when (val serialized = data) {
+        null -> null
+        else -> when (key) {
+            BLERFProtocol.key, SerialRFProtocol.key -> when (action) {
+                ClientBleService.transmitterAction,
+                CommonDeviceActions.deleteAction,
+                CommonDeviceActions.renameAction -> serialized.deserializeList(RfSwitch::class)
                     .map(Device::RF)
-            else -> null
-        }
-        ZigBeeProtocol.key -> when (action) {
-            CommonDeviceActions.refreshDevicesAction -> serialized.deserializeList(ZigBeeNode::class)
+                else -> null
+            }
+            ZigBeeProtocol.key -> when (action) {
+                CommonDeviceActions.refreshDevicesAction -> serialized.deserializeList(ZigBeeNode::class)
                     .map(Device::ZigBee)
+                else -> null
+            }
+            else -> null
+        }
+    }
+
+private val Payload.extractDeviceAttributes: List<ZigBeeAttribute>?
+    get() = when (key) {
+        ZigBeeProtocol.key -> when (action) {
+            in ZigBeeProtocol.attributeCarryingActions -> data?.deserializeList(ZigBeeAttribute::class)
             else -> null
         }
         else -> null
     }
-}
-
-private fun Payload.extractDeviceAttributes(): List<ZigBeeAttribute>? = when (key) {
-    ZigBeeProtocol.key -> when (action) {
-        in ZigBeeProtocol.attributeCarryingActions -> data?.deserializeList(ZigBeeAttribute::class)
-        else -> null
-    }
-    else -> null
-}

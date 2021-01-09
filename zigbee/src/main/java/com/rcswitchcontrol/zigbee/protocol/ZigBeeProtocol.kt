@@ -178,7 +178,7 @@ class ZigBeeProtocol(
             .map { deviceName ->
                 zigBeePayload(
                     data = deviceName,
-                    action = deviceNameAction
+                    action = CommonDeviceActions.nameChangedAction
                 )
             }
             .map(Action::PayloadOutput)
@@ -388,7 +388,6 @@ class ZigBeeProtocol(
 
         internal val formNetworkAction get() = CommsProtocol.Action(ContextProvider.appContext.getString(R.string.zigbeeprotocol_formnet))
 
-        val deviceNameAction: CommsProtocol.Action = CommsProtocol.Action("zigbeeDeviceName")
         val commandInfoAction: CommsProtocol.Action get() = "ZigBeeCommandInfo".asAction
         val attributeCarryingActions: List<CommsProtocol.Action>
             get() = listOf(

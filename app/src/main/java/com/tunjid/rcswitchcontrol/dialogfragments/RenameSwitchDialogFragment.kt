@@ -29,35 +29,32 @@ import android.app.Dialog
 import android.os.Bundle
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.activityViewModels
+import com.rcswitchcontrol.protocols.Name
+import com.rcswitchcontrol.protocols.renamePayload
 import com.tunjid.androidx.core.delegates.fragmentArgs
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.models.Device
-import com.tunjid.rcswitchcontrol.models.renamedPayload
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 
 @SuppressLint("InflateParams")
 class RenameSwitchDialogFragment : DialogFragment() {
 
-    private var device by fragmentArgs<Device>()
+    private var name by fragmentArgs<Name>()
     private val viewModel by activityViewModels<ControlViewModel>()
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog = editTextDialog { editText, builder ->
-        editText.setText(device.name)
+        editText.setText(name.value)
 
         builder
             .setTitle(R.string.rename_switch)
             .setPositiveButton(R.string.rename) { _, _ ->
-                viewModel.dispatchPayload(when (val device = device) {
-                    is Device.ZigBee -> TODO()
-                    is Device.RF -> device.renamedPayload
-                })
+                viewModel.dispatchPayload(name.copy(value = editText.text.toString()).renamePayload)
                 dismiss()
             }
     }
 
     companion object {
-        fun newInstance(device: Device): RenameSwitchDialogFragment = RenameSwitchDialogFragment().apply {
-            this.device = device
+        fun newInstance(name: Name): RenameSwitchDialogFragment = RenameSwitchDialogFragment().apply {
+            this.name = name
         }
     }
 }

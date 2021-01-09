@@ -2,8 +2,9 @@ package com.tunjid.rcswitchcontrol.models
 
 import androidx.core.graphics.ColorUtils
 import com.rcswitchcontrol.protocols.CommonDeviceActions
-import com.rcswitchcontrol.protocols.CommsProtocol
+import com.rcswitchcontrol.protocols.Name
 import com.rcswitchcontrol.protocols.models.Payload
+import com.rcswitchcontrol.protocols.models.Peripheral
 import com.rcswitchcontrol.zigbee.models.ZigBeeAttribute
 import com.rcswitchcontrol.zigbee.models.ZigBeeNode
 import com.rcswitchcontrol.zigbee.models.distinctId
@@ -16,20 +17,19 @@ import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
 import com.tunjid.rcswitchcontrol.common.serialize
 
 sealed class Device(
-    val key: CommsProtocol.Key,
     val name: String
-) : Differentiable {
+) : Peripheral {
     data class ZigBee(
         val node: ZigBeeNode,
-        val givenName: String = node.name,
+        val givenName: String = node.id,
         val attributes: List<ZigBeeAttribute> = listOf()
-    ) : Device(node.key, givenName), Differentiable by node {
+    ) : Device(givenName), Peripheral by node {
         override fun areContentsTheSame(other: Differentiable): Boolean = this == other
     }
 
     data class RF(
         val switch: RfSwitch
-    ) : Device(switch.key, switch.name), Differentiable by switch {
+    ) : Device(switch.id), Peripheral by switch {
         override fun areContentsTheSame(other: Differentiable): Boolean = this == other
     }
 }
@@ -42,13 +42,13 @@ val Device.RF.deletePayload
 
     )
 
-val Device.renamedPayload
-    get() = Payload(
+val Device.editName
+    get() = Name(
+        id = id,
         key = key,
-        action = CommonDeviceActions.renameAction,
-        data = when (this) {
-            is Device.ZigBee -> serialize()
-            is Device.RF -> serialize()
+        value = when (this) {
+            is Device.ZigBee -> givenName
+            is Device.RF -> name
         }
     )
 

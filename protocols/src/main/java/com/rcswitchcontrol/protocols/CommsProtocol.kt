@@ -28,11 +28,11 @@ import android.os.Parcelable
 import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.serialize
-import kotlinx.android.parcel.Parcelize
 import java.io.Closeable
 import java.io.PrintWriter
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import kotlinx.parcelize.Parcelize
 
 /**
  * Class for Server communication with input from client
@@ -69,3 +69,16 @@ interface CommsProtocol : Closeable {
 }
 
 val String.asAction get() = CommsProtocol.Action(this)
+
+@Parcelize
+data class Name(
+    val id: String,
+    val key: CommsProtocol.Key,
+    val value: String
+): Parcelable
+
+val Name.renamePayload get() = Payload(
+    key = key,
+    action = CommonDeviceActions.renameAction,
+    data = serialize()
+)

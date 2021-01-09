@@ -28,16 +28,14 @@ import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Peripheral
 import com.rcswitchcontrol.zigbee.R
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
-import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.zsmartsystems.zigbee.database.ZclAttributeDao
 import com.zsmartsystems.zigbee.database.ZclClusterDao
 import com.zsmartsystems.zigbee.database.ZigBeeNodeDao
 import com.zsmartsystems.zigbee.zcl.protocol.ZclClusterType
 
 data class ZigBeeNode internal constructor(
-        override val name: String,
+        override val id: String,
         override val key: CommsProtocol.Key = ZigBeeProtocol.key,
-
         @Transient // This is not serialized, it's chunky
         internal val node: ZigBeeNodeDao
 ) : Peripheral {
@@ -105,7 +103,7 @@ data class ZigBeeNode internal constructor(
 
         other as ZigBeeNode
 
-        if (name != other.name) return false
+        if (id != other.id) return false
         if (ieeeAddress != other.ieeeAddress) return false
         if (networkAdress != other.networkAdress) return false
         if (endpointClusterMap != other.endpointClusterMap) return false
@@ -128,8 +126,8 @@ data class ZigBeeNode internal constructor(
 //    return result
 //}
 
-internal fun ZigBeeNodeDao.device(): ZigBeeNode? = ZigBeeNode(
-        name = ieeeAddress.toString(),
+internal fun ZigBeeNodeDao.device(): ZigBeeNode = ZigBeeNode(
+        id = ieeeAddress.toString(),
         node = this
 )
 

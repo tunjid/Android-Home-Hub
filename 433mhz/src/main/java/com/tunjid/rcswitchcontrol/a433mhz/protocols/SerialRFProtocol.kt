@@ -33,6 +33,7 @@ import com.hoho.android.usbserial.driver.UsbSerialDriver
 import com.hoho.android.usbserial.driver.UsbSerialPort
 import com.hoho.android.usbserial.util.SerialInputOutputManager
 import com.rcswitchcontrol.protocols.CommsProtocol
+import com.rcswitchcontrol.protocols.Name
 import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.rcswitchcontrol.a433mhz.R
 import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
@@ -101,21 +102,21 @@ class SerialRFProtocol constructor(
 
             renameAction -> output.apply {
                 val switches = switchStore.savedSwitches
-                val rcSwitch = payload.data?.deserialize(RfSwitch::class)
+                val name = payload.data?.deserialize(Name::class)
 
-                val position = switches.map(RfSwitch::bytes).indexOf(rcSwitch?.bytes)
+                val position = switches.map(RfSwitch::id).indexOf(name?.id)
                 val hasSwitch = position > -1
 
-                response = if (hasSwitch && rcSwitch != null)
-                    ContextProvider.appContext.getString(R.string.blercprotocol_renamed_response, switches[position].name, rcSwitch.name)
+                response = if (hasSwitch && name != null)
+                    ContextProvider.appContext.getString(R.string.blercprotocol_renamed_response, switches[position].id, name.value)
                 else
                     ContextProvider.appContext.getString(R.string.blercprotocol_no_such_switch_response)
 
                 // Switches are equal based on their codes, not their names.
                 // Remove the switch with the old name, and add the switch with the new name.
-                if (hasSwitch && rcSwitch != null) {
-                    switches.removeAt(position)
-                    switches.add(position, rcSwitch)
+                if (hasSwitch && name != null) {
+                    val switch = switches.removeAt(position)
+                    switches.add(position, switch.copy(name = name.value))
                     switchStore.saveSwitches(switches)
                 }
 
@@ -132,7 +133,7 @@ class SerialRFProtocol constructor(
                 val response = if (rcSwitch == null || switches.size == removed.size)
                     ContextProvider.appContext.getString(R.string.blercprotocol_no_such_switch_response)
                 else
-                    ContextProvider.appContext.getString(R.string.blercprotocol_deleted_response, rcSwitch.name)
+                    ContextProvider.appContext.getString(R.string.blercprotocol_deleted_response, rcSwitch.id)
 
                 // Save switches before sending them
                 switchStore.saveSwitches(removed)

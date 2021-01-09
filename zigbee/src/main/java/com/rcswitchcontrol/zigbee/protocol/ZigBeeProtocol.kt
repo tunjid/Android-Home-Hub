@@ -25,9 +25,11 @@
 package com.rcswitchcontrol.zigbee.protocol
 
 import android.content.Context
+import android.util.Log
 import com.hoho.android.usbserial.driver.UsbSerialDriver
 import com.rcswitchcontrol.protocols.CommonDeviceActions
 import com.rcswitchcontrol.protocols.CommsProtocol
+import com.rcswitchcontrol.protocols.Name
 import com.rcswitchcontrol.protocols.asAction
 import com.rcswitchcontrol.protocols.io.ConsoleStream
 import com.rcswitchcontrol.protocols.models.Payload
@@ -162,6 +164,7 @@ class ZigBeeProtocol(
         actionProcessor
             .filterIsInstance<Action.NodeChange.Added>()
             .map(Action.NodeChange.Added::node)
+            .distinct(ZigBeeNode::getIeeeAddress)
             .flatMap { node ->
                 ReactivePreference(
                     reactivePreferences = deviceNames,
@@ -170,6 +173,7 @@ class ZigBeeProtocol(
                 )
                     .monitor
                     .takeUntil(actionProcessor.filterIsInstance<Action.NodeChange.Removed>())
+                    .doOnNext { Log.i("TEST", "Device name changed. id: ${node.ieeeAddress}; new name: $it") }
             }
             .map { deviceName ->
                 zigBeePayload(
@@ -203,6 +207,14 @@ class ZigBeeProtocol(
                 )
                 data = savedDevices.serializeList()
                 actionProcessor.onNext(Action.AttributeRequest(nodes = savedDevices))
+            }
+            CommonDeviceActions.renameAction -> when (val newName = payload.data?.deserialize(Name::class)) {
+                null -> Unit
+                else -> ReactivePreference(
+                    reactivePreferences = deviceNames,
+                    key = newName.id,
+                    default = newName.id
+                ).value = newName.value
             }
             in availableCommands.keys -> {
                 val mapper = availableCommands.getValue(payloadAction)

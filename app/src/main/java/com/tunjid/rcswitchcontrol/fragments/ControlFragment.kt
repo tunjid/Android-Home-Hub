@@ -61,6 +61,7 @@ import com.tunjid.rcswitchcontrol.models.Device
 import com.tunjid.rcswitchcontrol.models.Page
 import com.tunjid.rcswitchcontrol.models.Page.HISTORY
 import com.tunjid.rcswitchcontrol.models.ProtocolKey
+import com.tunjid.rcswitchcontrol.models.editName
 import com.tunjid.rcswitchcontrol.models.keys
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
@@ -166,7 +167,7 @@ class ControlFragment : Fragment(R.layout.fragment_control), ZigBeeArgumentDialo
         menu.findItem(R.id.menu_connect)?.isVisible = !viewModel.isConnected
         menu.findItem(R.id.menu_forget)?.isVisible = !ServerNsdService.isServer
 
-        menu.findItem(R.id.menu_rename_device)?.isVisible = viewModel.withSelectedDevices { it.size == 1 && it.first() is Device.RF }
+        menu.findItem(R.id.menu_rename_device)?.isVisible = viewModel.withSelectedDevices { it.size == 1 }
         menu.findItem(R.id.menu_create_group)?.isVisible = viewModel.withSelectedDevices { it.find { device -> device is Device.RF } == null }
     }
 
@@ -184,7 +185,7 @@ class ControlFragment : Fragment(R.layout.fragment_control), ZigBeeArgumentDialo
                 it.finish()
             }
             R.id.menu_rename_device -> RenameSwitchDialogFragment.newInstance(
-                viewModel.withSelectedDevices { it.first() }
+                viewModel.withSelectedDevices { it.first().editName }
             ).show(childFragmentManager, item.itemId.toString()).let { true }
             R.id.menu_create_group -> GroupDeviceDialogFragment.newInstance.show(childFragmentManager, item.itemId.toString())
             else -> Unit

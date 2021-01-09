@@ -166,20 +166,21 @@ class ZigBeeProtocol(
             .map(Action.NodeChange.Added::node)
             .distinct(ZigBeeNode::getIeeeAddress)
             .flatMap { node ->
+                val id = node.ieeeAddress.toString()
                 ReactivePreference(
                     reactivePreferences = deviceNames,
-                    key = node.ieeeAddress.toString(),
-                    default = node.ieeeAddress.toString()
+                    key = id,
+                    default = id
                 )
                     .monitor
+                    .map { deviceName ->
+                        zigBeePayload(
+                            data = Name(id = id, key = key, value = deviceName).serialize(),
+                            action = CommonDeviceActions.nameChangedAction
+                        )
+                    }
                     .takeUntil(actionProcessor.filterIsInstance<Action.NodeChange.Removed>())
                     .doOnNext { Log.i("TEST", "Device name changed. id: ${node.ieeeAddress}; new name: $it") }
-            }
-            .map { deviceName ->
-                zigBeePayload(
-                    data = deviceName,
-                    action = CommonDeviceActions.nameChangedAction
-                )
             }
             .map(Action::PayloadOutput)
             .subscribe(actionProcessor::onNext)

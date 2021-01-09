@@ -24,8 +24,10 @@
 
 package com.tunjid.rcswitchcontrol.common
 
+import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import java.lang.Exception
 import kotlin.reflect.KClass
 
 
@@ -35,6 +37,11 @@ fun <T : Any> T.serialize(): String = converter.toJson(this).replace("\n", "").t
 
 fun <T : Any> List<T>.serializeList(): String = converter.toJson(this).replace("\n", "").trim()
 
-fun <T : Any> String.deserialize(kClass: KClass<T>): T = converter.fromJson(this, kClass.java)
+fun <T : Any> String.deserialize(kClass: KClass<T>): T = try {
+    converter.fromJson(this, kClass.java)
+}catch (exception: Exception) {
+    Log.i("TEST", "Error deserializing ${kClass.java.name}", exception)
+    throw exception
+}
 
 fun <T : Any> String.deserializeList(kClass: KClass<T>): List<T> = converter.fromJson(this, TypeToken.getParameterized(List::class.java, kClass.java).type)

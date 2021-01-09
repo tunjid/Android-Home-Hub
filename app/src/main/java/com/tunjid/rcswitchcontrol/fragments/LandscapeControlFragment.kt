@@ -20,6 +20,9 @@ import com.tunjid.androidx.navigation.Navigator
 import com.tunjid.androidx.navigation.childStackNavigationController
 import com.tunjid.androidx.recyclerview.listAdapterOf
 import com.tunjid.androidx.view.util.spring
+import com.tunjid.globalui.InsetFlags
+import com.tunjid.globalui.UiState
+import com.tunjid.globalui.uiState
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentControlLandscapeBinding
@@ -43,6 +46,7 @@ class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape), 
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        uiState = UiState(toolbarShows = false, insetFlags = InsetFlags.NONE)
 
         viewBinding.list.apply {
             val persistentItems = when {
@@ -50,11 +54,11 @@ class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape), 
                 else -> listOf(devices)
             }
             val listAdapter = listAdapterOf(
-                    initialItems = persistentItems + (viewModel.state.value?.keys ?: listOf()),
-                    viewHolderCreator = { parent, _ ->
-                        HeaderViewHolder(parent.context, ::onHeaderHighlighted)
-                    },
-                    viewHolderBinder = { holder, key, _ -> holder.bind(key) }
+                initialItems = persistentItems + (viewModel.state.value?.keys ?: listOf()),
+                viewHolderCreator = { parent, _ ->
+                    HeaderViewHolder(parent.context, ::onHeaderHighlighted)
+                },
+                viewHolderBinder = { holder, key, _ -> holder.bind(key) }
             )
 
             layoutManager = FlexboxLayoutManager(context).apply {
@@ -77,7 +81,7 @@ class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape), 
 
     companion object {
         fun newInstance(): LandscapeControlFragment =
-                LandscapeControlFragment().apply { arguments = bundleOf() }
+            LandscapeControlFragment().apply { arguments = bundleOf() }
     }
 }
 
@@ -109,5 +113,4 @@ class HeaderViewHolder(context: Context, onFocused: (Any) -> Unit) : RecyclerVie
             else -> "unknown"
         }
     }
-
 }

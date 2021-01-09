@@ -76,8 +76,7 @@ import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 
 class DevicesFragment : Fragment(R.layout.fragment_list),
     DeviceAdapterListener,
-    GroupDeviceDialogFragment.GroupNameListener,
-    RenameSwitchDialogFragment.SwitchNameListener {
+    GroupDeviceDialogFragment.GroupNameListener {
 
     private var isDeleting: Boolean = false
     private val viewBinding by viewLifecycle(FragmentListBinding::bind)
@@ -174,8 +173,6 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
         clearSelections()
         refreshUi()
     }
-
-    override fun onSwitchRenamed(rfSwitch: RfSwitch) = viewModel.dispatchPayload(Device.RF(rfSwitch).renamedPayload)
 
     private fun getDeviceViewType(device: Device) = device::class.hashCode()
 

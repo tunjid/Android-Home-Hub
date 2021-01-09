@@ -54,6 +54,7 @@ import com.tunjid.rcswitchcontrol.common.Broadcaster
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentControlBinding
 import com.tunjid.rcswitchcontrol.dialogfragments.GroupDeviceDialogFragment
+import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.ZigBeeArgumentDialogFragment
 import com.tunjid.rcswitchcontrol.models.ControlState
 import com.tunjid.rcswitchcontrol.models.Device
@@ -76,16 +77,16 @@ class ControlFragment : Fragment(R.layout.fragment_control), ZigBeeArgumentDialo
         super.onViewCreated(view, savedInstanceState)
 
         uiState = UiState(
-                toolbarShows = true,
-                toolbarTitle = getString(R.string.switches),
-                toolbarMenuRes = R.menu.menu_fragment_nsd_client,
-                toolbarMenuRefresher = ::onToolbarRefreshed,
-                toolbarMenuClickListener = ::onToolbarMenuItemSelected,
-                altToolbarMenuRes = R.menu.menu_alt_devices,
-                altToolbarMenuRefresher = ::onToolbarRefreshed,
-                altToolbarMenuClickListener = ::onToolbarMenuItemSelected,
-                navBarColor = view.context.colorAt(R.color.black_50),
-                insetFlags = InsetFlags.NO_BOTTOM
+            toolbarShows = true,
+            toolbarTitle = getString(R.string.switches),
+            toolbarMenuRes = R.menu.menu_fragment_nsd_client,
+            toolbarMenuRefresher = ::onToolbarRefreshed,
+            toolbarMenuClickListener = ::onToolbarMenuItemSelected,
+            altToolbarMenuRes = R.menu.menu_alt_devices,
+            altToolbarMenuRefresher = ::onToolbarRefreshed,
+            altToolbarMenuClickListener = ::onToolbarMenuItemSelected,
+            navBarColor = view.context.colorAt(R.color.black_50),
+            insetFlags = InsetFlags.NO_BOTTOM
         )
 
         val bottomSheetBehavior = BottomSheetBehavior.from(viewBinding.bottomSheet)
@@ -177,14 +178,14 @@ class ControlFragment : Fragment(R.layout.fragment_control), ZigBeeArgumentDialo
                 viewModel.forgetService()
 
                 startActivity(Intent(it, MainActivity::class.java)
-                        .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 
                 it.finish()
             }
-            //        R.id.menu_rename_device -> RenameSwitchDialogFragment.newInstance(
-//                viewModel.withSelectedDevices { it.first() } as Device.RF
-//        ).show(childFragmentManager, item.itemId.toString()).let { true }
+            R.id.menu_rename_device -> RenameSwitchDialogFragment.newInstance(
+                viewModel.withSelectedDevices { it.first() }
+            ).show(childFragmentManager, item.itemId.toString()).let { true }
             R.id.menu_create_group -> GroupDeviceDialogFragment.newInstance.show(childFragmentManager, item.itemId.toString())
             else -> Unit
         }

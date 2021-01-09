@@ -28,35 +28,36 @@ import android.annotation.SuppressLint
 import android.app.Dialog
 import android.os.Bundle
 import androidx.fragment.app.DialogFragment
+import androidx.fragment.app.activityViewModels
 import com.tunjid.androidx.core.delegates.fragmentArgs
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
-
+import com.tunjid.rcswitchcontrol.models.Device
+import com.tunjid.rcswitchcontrol.models.renamedPayload
+import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 
 @SuppressLint("InflateParams")
 class RenameSwitchDialogFragment : DialogFragment() {
 
-    private var rfSwitch by fragmentArgs<RfSwitch>()
+    private var device by fragmentArgs<Device>()
+    private val viewModel by activityViewModels<ControlViewModel>()
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog = editTextDialog { editText, builder ->
-        val listener = parentFragment as? SwitchNameListener
-        editText.setText(rfSwitch.name)
+        editText.setText(device.name)
 
         builder
-                .setTitle(R.string.rename_switch)
-                .setPositiveButton(R.string.rename) { _, _ ->
-                    listener?.onSwitchRenamed(rfSwitch.copy(name = editText.text.toString()))
-                    dismiss()
-                }
-    }
-
-    interface SwitchNameListener {
-        fun onSwitchRenamed(rfSwitch: RfSwitch)
+            .setTitle(R.string.rename_switch)
+            .setPositiveButton(R.string.rename) { _, _ ->
+                viewModel.dispatchPayload(when (val device = device) {
+                    is Device.ZigBee -> TODO()
+                    is Device.RF -> device.renamedPayload
+                })
+                dismiss()
+            }
     }
 
     companion object {
-        fun newInstance(rfSwitch: RfSwitch): RenameSwitchDialogFragment = RenameSwitchDialogFragment().apply {
-            this.rfSwitch = rfSwitch
+        fun newInstance(device: Device): RenameSwitchDialogFragment = RenameSwitchDialogFragment().apply {
+            this.device = device
         }
     }
 }

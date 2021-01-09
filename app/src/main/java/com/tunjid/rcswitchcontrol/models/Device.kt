@@ -16,18 +16,19 @@ import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
 import com.tunjid.rcswitchcontrol.common.serialize
 
 sealed class Device(
-        val key: CommsProtocol.Key,
-        val name: String
+    val key: CommsProtocol.Key,
+    val name: String
 ) : Differentiable {
     data class ZigBee(
-            val node: ZigBeeNode,
-            val attributes: List<ZigBeeAttribute> = listOf()
-    ) : Device(node.key, node.name), Differentiable by node {
+        val node: ZigBeeNode,
+        val givenName: String = node.name,
+        val attributes: List<ZigBeeAttribute> = listOf()
+    ) : Device(node.key, givenName), Differentiable by node {
         override fun areContentsTheSame(other: Differentiable): Boolean = this == other
     }
 
     data class RF(
-            val switch: RfSwitch
+        val switch: RfSwitch
     ) : Device(switch.key, switch.name), Differentiable by switch {
         override fun areContentsTheSame(other: Differentiable): Boolean = this == other
     }
@@ -35,30 +36,33 @@ sealed class Device(
 
 val Device.RF.deletePayload
     get() = Payload(
-            key = key,
-            action = CommonDeviceActions.deleteAction,
-            data = serialize()
+        key = key,
+        action = CommonDeviceActions.deleteAction,
+        data = serialize()
 
     )
 
-val Device.RF.renamedPayload
+val Device.renamedPayload
     get() = Payload(
-            key = key,
-            action = CommonDeviceActions.renameAction,
-            data = serialize()
+        key = key,
+        action = CommonDeviceActions.renameAction,
+        data = when (this) {
+            is Device.ZigBee -> serialize()
+            is Device.RF -> serialize()
+        }
     )
 
 fun Device.RF.togglePayload(isOn: Boolean) = Payload(
-        key = key,
-        action = ClientBleService.transmitterAction,
-        data = switch.getEncodedTransmission(isOn)
+    key = key,
+    action = ClientBleService.transmitterAction,
+    data = switch.getEncodedTransmission(isOn)
 )
 
 val Device.ZigBee.trifecta
     get() = Triple(
-            "isOn" to isOn,
-            "level" to level,
-            "color" to color
+        "isOn" to isOn,
+        "level" to level,
+        "color" to color
     )
 
 val Device.ZigBee.isOn
@@ -72,32 +76,32 @@ val Device.ZigBee.level
 
 val Device.ZigBee.color
     get() = listOf(ZigBeeAttribute.Descriptor.CieX, ZigBeeAttribute.Descriptor.CieY)
-            .mapNotNull(::describe)
-            .mapNotNull(ZigBeeAttribute::numValue)
-            .map(Number::toDouble)
-            .map { it / 65535 }
-            .let {
-                when {
-                    it.size < 2 -> null
-                    else -> {
-                        val (x, y) = it
-                        @Suppress("LocalVariableName") val X = x / y
-                        @Suppress("LocalVariableName") val Y = y
-                        @Suppress("LocalVariableName") val Z = Y * (1 - x - y) / y
+        .mapNotNull(::describe)
+        .mapNotNull(ZigBeeAttribute::numValue)
+        .map(Number::toDouble)
+        .map { it / 65535 }
+        .let {
+            when {
+                it.size < 2 -> null
+                else -> {
+                    val (x, y) = it
+                    @Suppress("LocalVariableName") val X = x / y
+                    @Suppress("LocalVariableName") val Y = y
+                    @Suppress("LocalVariableName") val Z = Y * (1 - x - y) / y
 
-                        ColorUtils.XYZToColor(X, Y, Z)
-                    }
+                    ColorUtils.XYZToColor(X, Y, Z)
                 }
             }
+        }
 
 fun Device.ZigBee.describe(descriptor: ZigBeeAttribute.Descriptor) =
-        attributes.firstOrNull(descriptor::matches)
+    attributes.firstOrNull(descriptor::matches)
 
 fun Device.ZigBee.foldAttributes(attributes: List<ZigBeeAttribute>): Device.ZigBee =
-        attributes.fold(this) { device, attribute ->
-            if (device.node.owns(attribute)) device.copy(attributes = listOf(attribute)
-                    .plus(device.attributes)
-                    .distinctBy(ZigBeeAttribute::distinctId)
-            )
-            else device
-        }
+    attributes.fold(this) { device, attribute ->
+        if (device.node.owns(attribute)) device.copy(attributes = listOf(attribute)
+            .plus(device.attributes)
+            .distinctBy(ZigBeeAttribute::distinctId)
+        )
+        else device
+    }

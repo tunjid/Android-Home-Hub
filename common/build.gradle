@@ -13,7 +13,9 @@ dependencies {
     implementation parent.ext.lifecycleRxKtx
 
     implementation parent.ext.rxJava
+    implementation parent.ext.rxKotlin
     implementation parent.ext.rxAndroid
+    implementation rxReplayingShare
 
     implementation parent.ext.gson
 }

@@ -22,11 +22,14 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelLazy
 import androidx.lifecycle.ViewModelProvider
 import com.tunjid.fingergestures.di.ViewModelCreators
 import com.tunjid.fingergestures.di.ViewModelFactory
 import com.tunjid.fingergestures.di.ViewModelKey
+import com.tunjid.rcswitchcontrol.services.ServiceViewModelStoreProvider
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.HostViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.NsdScanViewModel
@@ -44,6 +47,13 @@ inline fun <reified VM : ViewModel> Fragment.activityViewModelFactory() =
 
 inline fun <reified VM : ViewModel> FragmentActivity.viewModelFactory() =
     viewModels<VM> { dagger.viewModelFactory }
+
+inline fun <reified VM : ViewModel> LifecycleService.viewModelFactory() =
+    ViewModelLazy(
+        viewModelClass = VM::class,
+        storeProducer = { ServiceViewModelStoreProvider(this).viewModelStore },
+        factoryProducer = { dagger.viewModelFactory }
+    )
 
 val Dagger.viewModelFactory get() = appComponent.viewModelFactory()
 

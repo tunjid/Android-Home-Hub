@@ -24,9 +24,9 @@
 
 package com.tunjid.rcswitchcontrol.viewmodels
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import android.content.Context
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.ViewModel
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.core.components.services.HardServiceConnection
@@ -34,6 +34,7 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.common.Broadcaster
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.toLiveData
+import com.tunjid.rcswitchcontrol.di.AppContext
 import com.tunjid.rcswitchcontrol.models.ControlState
 import com.tunjid.rcswitchcontrol.models.Device
 import com.tunjid.rcswitchcontrol.models.Page
@@ -41,11 +42,14 @@ import com.tunjid.rcswitchcontrol.models.controlState
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
 import io.reactivex.disposables.CompositeDisposable
+import javax.inject.Inject
 
-class ControlViewModel(app: Application) : AndroidViewModel(app) {
+class ControlViewModel @Inject constructor(
+    @AppContext private val context: Context
+) : ViewModel() {
 
     private val disposable: CompositeDisposable = CompositeDisposable()
-    private val nsdConnection = HardServiceConnection(app, ClientNsdService::class.java) { pingServer() }
+    private val nsdConnection = HardServiceConnection(context, ClientNsdService::class.java) { pingServer() }
 
     private val selectedDevices = mutableMapOf<String, Device>()
 
@@ -123,7 +127,6 @@ class ControlViewModel(app: Application) : AndroidViewModel(app) {
     ))
 
     private fun getConnectionText(newState: String): String {
-        val context = getApplication<Application>()
         val boundService = nsdConnection.boundService
         return when (newState) {
             ClientNsdService.ACTION_SOCKET_CONNECTED -> {

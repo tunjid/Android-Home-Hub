@@ -41,6 +41,7 @@ import com.google.android.things.pio.PeripheralManager
 import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 import com.tunjid.rcswitchcontrol.common.Broadcaster
 import com.tunjid.rcswitchcontrol.common.ContextProvider
+import com.tunjid.rcswitchcontrol.di.Dagger
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 
 
@@ -52,6 +53,8 @@ import com.tunjid.rcswitchcontrol.services.ClientNsdService
  */
 
 class App : android.app.Application() {
+
+    val dagger: Dagger by lazy { Dagger.make(this) }
 
     private val receiver: WifiStatusReceiver by lazy {
         val receiver = WifiStatusReceiver()

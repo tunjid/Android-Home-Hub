@@ -47,6 +47,7 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentNsdScanBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderNsdListBinding
+import com.tunjid.rcswitchcontrol.di.viewModelFactory
 import com.tunjid.rcswitchcontrol.navigation.AppNavigator
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.viewmodels.NSDState
@@ -58,7 +59,7 @@ import com.tunjid.rcswitchcontrol.viewmodels.NsdScanViewModel
  */
 class HostScanFragment : Fragment(R.layout.fragment_nsd_scan) {
 
-    private val viewModel by viewModels<NsdScanViewModel>()
+    private val viewModel by viewModelFactory<NsdScanViewModel>()
     private val isScanning: Boolean get() = viewModel.state.value?.isScanning == true
     private val navigator by activityNavigatorController<AppNavigator>()
 

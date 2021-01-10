@@ -32,7 +32,6 @@ import android.view.View
 import androidx.core.view.doOnLayout
 import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED
@@ -53,6 +52,7 @@ import com.tunjid.rcswitchcontrol.activities.MainActivity
 import com.tunjid.rcswitchcontrol.common.Broadcaster
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentControlBinding
+import com.tunjid.rcswitchcontrol.di.activityViewModelFactory
 import com.tunjid.rcswitchcontrol.dialogfragments.GroupDeviceDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.ZigBeeArgumentDialogFragment
@@ -72,7 +72,7 @@ import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 class ControlFragment : Fragment(R.layout.fragment_control), ZigBeeArgumentDialogFragment.ZigBeeArgsListener {
 
     private val viewBinding by viewLifecycle(FragmentControlBinding::bind)
-    private val viewModel by activityViewModels<ControlViewModel>()
+    private val viewModel by activityViewModelFactory<ControlViewModel>()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)

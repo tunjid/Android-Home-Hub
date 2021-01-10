@@ -7,7 +7,6 @@ import android.view.View
 import androidx.core.os.bundleOf
 import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.flexbox.AlignItems
 import com.google.android.flexbox.FlexDirection
@@ -26,6 +25,7 @@ import com.tunjid.globalui.uiState
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentControlLandscapeBinding
+import com.tunjid.rcswitchcontrol.di.activityViewModelFactory
 import com.tunjid.rcswitchcontrol.models.ProtocolKey
 import com.tunjid.rcswitchcontrol.models.keys
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
@@ -36,7 +36,7 @@ class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape), 
     private val innerNavigator by childStackNavigationController(R.id.child_fragment_container)
 
     private val viewBinding by viewLifecycle(FragmentControlLandscapeBinding::bind)
-    private val viewModel by activityViewModels<ControlViewModel>()
+    private val viewModel by activityViewModelFactory<ControlViewModel>()
 
     private val host by lazy { requireActivity().getString(R.string.host) }
 

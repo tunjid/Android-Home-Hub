@@ -30,7 +30,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ItemTouchHelper.Callback.makeMovementFlags
 import androidx.recyclerview.widget.RecyclerView
@@ -55,6 +54,7 @@ import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderPaddingBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderRemoteSwitchBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderZigbeeDeviceBinding
+import com.tunjid.rcswitchcontrol.di.activityViewModelFactory
 import com.tunjid.rcswitchcontrol.dialogfragments.GroupDeviceDialogFragment
 import com.tunjid.rcswitchcontrol.models.ControlState
 import com.tunjid.rcswitchcontrol.models.Device
@@ -77,7 +77,7 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
 
     private var isDeleting: Boolean = false
     private val viewBinding by viewLifecycle(FragmentListBinding::bind)
-    private val viewModel by activityViewModels<ControlViewModel>()
+    private val viewModel by activityViewModelFactory<ControlViewModel>()
     private val navigator by activityNavigatorController<AppNavigator>()
 
     override fun onCreate(savedInstanceState: Bundle?) {

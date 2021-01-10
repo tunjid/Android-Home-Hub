@@ -24,17 +24,16 @@
 
 package com.tunjid.rcswitchcontrol.viewmodels
 
-import android.app.Application
 import android.content.Context
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import com.jakewharton.rx.replayingShare
 import com.tunjid.androidx.communications.nsd.NsdHelper
 import com.tunjid.androidx.recyclerview.diff.Differentiable
-import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.common.filterIsInstance
 import com.tunjid.rcswitchcontrol.common.toLiveData
+import com.tunjid.rcswitchcontrol.di.AppContext
 import io.reactivex.BackpressureStrategy
 import io.reactivex.Flowable
 import io.reactivex.disposables.CompositeDisposable
@@ -42,14 +41,15 @@ import io.reactivex.processors.PublishProcessor
 import io.reactivex.rxkotlin.Flowables
 import io.reactivex.schedulers.Schedulers
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 
 data class NSDState(
-        val isScanning: Boolean = false,
-        val items: List<NsdItem> = listOf()
+    val isScanning: Boolean = false,
+    val items: List<NsdItem> = listOf()
 )
 
 data class NsdItem(
-        val info: NsdServiceInfo
+    val info: NsdServiceInfo
 ) : Differentiable {
     override val diffId: String
         get() = info.host.hostAddress
@@ -57,18 +57,20 @@ data class NsdItem(
 
 private val NsdItem.sortKey get() = info.serviceName
 
-class NsdScanViewModel(application: Application) : AndroidViewModel(application) {
+class NsdScanViewModel @Inject constructor(
+    @AppContext private val context: Context
+) : ViewModel() {
 
     private val disposables = CompositeDisposable()
     private val scanProcessor: PublishProcessor<Output> = PublishProcessor.create()
 
     val state = Flowables.combineLatest(
-            scanProcessor.filterIsInstance<Output.Scanning>()
-                    .map(Output.Scanning::isScanning),
-            scanProcessor.filterIsInstance<Output.ScanResult>()
-                    .startWith(Output.ScanResult(listOf()))
-                    .map(Output.ScanResult::items),
-            ::NSDState
+        scanProcessor.filterIsInstance<Output.Scanning>()
+            .map(Output.Scanning::isScanning),
+        scanProcessor.filterIsInstance<Output.ScanResult>()
+            .startWith(Output.ScanResult(listOf()))
+            .map(Output.ScanResult::items),
+        ::NSDState
     ).toLiveData()
 
     override fun onCleared() = disposables.clear()
@@ -76,16 +78,16 @@ class NsdScanViewModel(application: Application) : AndroidViewModel(application)
     fun findDevices() {
         stopScanning()
         disposables.add(
-                getApplication<App>().nsdServices()
-                        .map(::NsdItem)
-                        .scan(state.value?.items ?: listOf()) { list, item ->
-                            (list + item)
-                                    .distinctBy(NsdItem::diffId)
-                                    .sortedBy(NsdItem::sortKey)
-                        }
-                        .doOnSubscribe { scanProcessor.onNext(Output.Scanning(true)) }
-                        .doFinally { scanProcessor.onNext(Output.Scanning(false)) }
-                        .subscribe { scanProcessor.onNext(Output.ScanResult(it)) }
+            context.nsdServices()
+                .map(::NsdItem)
+                .scan(state.value?.items ?: listOf()) { list, item ->
+                    (list + item)
+                        .distinctBy(NsdItem::diffId)
+                        .sortedBy(NsdItem::sortKey)
+                }
+                .doOnSubscribe { scanProcessor.onNext(Output.Scanning(true)) }
+                .doFinally { scanProcessor.onNext(Output.Scanning(false)) }
+                .subscribe { scanProcessor.onNext(Output.ScanResult(it)) }
         )
     }
 
@@ -100,22 +102,22 @@ class NsdScanViewModel(application: Application) : AndroidViewModel(application)
 private fun Context.nsdServices(): Flowable<NsdServiceInfo> {
     val emissions = Flowables.create<NsdUpdate>(BackpressureStrategy.BUFFER) { emitter ->
         emitter.onNext(NsdUpdate.Helper(NsdHelper.getBuilder(this)
-                .setServiceFoundConsumer { emitter.onNext(NsdUpdate.Found(it)) }
-                .setResolveSuccessConsumer { emitter.onNext(NsdUpdate.Resolved(it)) }
-                .setResolveErrorConsumer { service, errorCode -> emitter.onNext(NsdUpdate.ResolutionFailed(service, errorCode)) }
-                .build()))
+            .setServiceFoundConsumer { emitter.onNext(NsdUpdate.Found(it)) }
+            .setResolveSuccessConsumer { emitter.onNext(NsdUpdate.Resolved(it)) }
+            .setResolveErrorConsumer { service, errorCode -> emitter.onNext(NsdUpdate.ResolutionFailed(service, errorCode)) }
+            .build()))
     }
-            .replayingShare()
+        .replayingShare()
 
     return emissions.filterIsInstance<NsdUpdate.Helper>().switchMap { (nsdHelper) ->
         emissions
-                .doOnNext(nsdHelper::onUpdate)
-                .doFinally(nsdHelper::tearDown)
-                .filterIsInstance<NsdUpdate.Resolved>()
-                .map(NsdUpdate.Resolved::service)
-                .startWith(Flowable.empty<NsdServiceInfo>().delay(2, TimeUnit.SECONDS, Schedulers.io()))
+            .doOnNext(nsdHelper::onUpdate)
+            .doFinally(nsdHelper::tearDown)
+            .filterIsInstance<NsdUpdate.Resolved>()
+            .map(NsdUpdate.Resolved::service)
+            .startWith(Flowable.empty<NsdServiceInfo>().delay(2, TimeUnit.SECONDS, Schedulers.io()))
     }
-            .takeUntil(Flowable.timer(SCAN_PERIOD, TimeUnit.SECONDS, Schedulers.io()))
+        .takeUntil(Flowable.timer(SCAN_PERIOD, TimeUnit.SECONDS, Schedulers.io()))
 }
 
 private fun NsdHelper.onUpdate(update: NsdUpdate) = when (update) {

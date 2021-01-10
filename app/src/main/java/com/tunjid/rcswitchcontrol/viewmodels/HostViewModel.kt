@@ -24,20 +24,24 @@
 
 package com.tunjid.rcswitchcontrol.viewmodels
 
-import android.app.Application
+import android.content.Context
 import android.content.Intent
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import com.tunjid.androidx.core.components.services.HardServiceConnection
 import com.tunjid.rcswitchcontrol.common.Broadcaster
+import com.tunjid.rcswitchcontrol.di.AppContext
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
 import io.reactivex.disposables.CompositeDisposable
+import javax.inject.Inject
 
-class HostViewModel(app: Application) : AndroidViewModel(app) {
+class HostViewModel @Inject constructor(
+    @AppContext context: Context
+) : ViewModel() {
 
     private val disposable: CompositeDisposable = CompositeDisposable()
 
-    private val serverConnection = HardServiceConnection(app, ServerNsdService::class.java)
+    private val serverConnection = HardServiceConnection(context, ServerNsdService::class.java)
 
     init {
         serverConnection.bind()

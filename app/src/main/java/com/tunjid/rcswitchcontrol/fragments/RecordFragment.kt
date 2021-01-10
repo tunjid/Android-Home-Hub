@@ -28,7 +28,6 @@ import android.os.Bundle
 import android.view.View
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
 import com.google.android.flexbox.AlignItems
 import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.FlexboxLayoutManager
@@ -46,6 +45,7 @@ import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderCommandBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderHistoryBinding
+import com.tunjid.rcswitchcontrol.di.activityViewModelFactory
 import com.tunjid.rcswitchcontrol.models.ControlState
 import com.tunjid.rcswitchcontrol.models.ProtocolKey
 import com.tunjid.rcswitchcontrol.models.Record
@@ -62,7 +62,7 @@ sealed class RecordFragment : Fragment(R.layout.fragment_list) {
     class CommandsFragment : RecordFragment()
 
     internal var key: CommsProtocol.Key? by fragmentArgs()
-    private val viewModel by activityViewModels<ControlViewModel>()
+    private val viewModel by activityViewModelFactory<ControlViewModel>()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -73,21 +73,21 @@ sealed class RecordFragment : Fragment(R.layout.fragment_list) {
         val binding = FragmentListBinding.bind(view)
         binding.list.apply {
             val listAdapter = listAdapterOf(
-                    initialItems = initialItems(),
-                    viewHolderCreator = { parent, viewType ->
-                        when (viewType) {
-                            0 -> parent.historyViewHolder()
-                            1 -> parent.commandViewHolder(::onRecordClicked)
-                            else -> throw IllegalArgumentException("Invalid view type")
-                        }
-                    },
-                    viewHolderBinder = { holder, record, _ ->
-                        when (holder.binding) {
-                            is ViewholderHistoryBinding -> holder.typed<ViewholderHistoryBinding>().bind(record)
-                            is ViewholderCommandBinding -> holder.typed<ViewholderCommandBinding>().bindCommand(record)
-                        }
-                    },
-                    viewTypeFunction = { if (key == null) 0 else 1 }
+                initialItems = initialItems(),
+                viewHolderCreator = { parent, viewType ->
+                    when (viewType) {
+                        0 -> parent.historyViewHolder()
+                        1 -> parent.commandViewHolder(::onRecordClicked)
+                        else -> throw IllegalArgumentException("Invalid view type")
+                    }
+                },
+                viewHolderBinder = { holder, record, _ ->
+                    when (holder.binding) {
+                        is ViewholderHistoryBinding -> holder.typed<ViewholderHistoryBinding>().bind(record)
+                        is ViewholderCommandBinding -> holder.typed<ViewholderCommandBinding>().bindCommand(record)
+                    }
+                },
+                viewTypeFunction = { if (key == null) 0 else 1 }
             )
 
             layoutManager = when (key) {

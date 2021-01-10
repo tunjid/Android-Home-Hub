@@ -29,19 +29,19 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
 import com.tunjid.globalui.uiState
 import com.tunjid.globalui.updatePartial
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.activities.MainActivity
 import com.tunjid.rcswitchcontrol.databinding.FragmentHostBinding
+import com.tunjid.rcswitchcontrol.di.activityViewModelFactory
 import com.tunjid.rcswitchcontrol.dialogfragments.NameServiceDialogFragment
 import com.tunjid.rcswitchcontrol.viewmodels.HostViewModel
 
 class HostFragment : Fragment(R.layout.fragment_host),
-        NameServiceDialogFragment.ServiceNameListener {
+    NameServiceDialogFragment.ServiceNameListener {
 
-    private val viewModel by activityViewModels<HostViewModel>()
+    private val viewModel by activityViewModelFactory<HostViewModel>()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -52,8 +52,8 @@ class HostFragment : Fragment(R.layout.fragment_host),
             stopServer.setOnClickListener {
                 viewModel.stop()
                 startActivity(Intent(requireActivity(), MainActivity::class.java)
-                        .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 requireActivity().finish()
             }
         }

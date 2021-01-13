@@ -45,9 +45,12 @@ import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.a433mhz.protocols.BLERFProtocol
 import com.tunjid.rcswitchcontrol.a433mhz.protocols.SerialRFProtocol
-import com.tunjid.rcswitchcontrol.common.Broadcaster
 import com.tunjid.rcswitchcontrol.common.ContextProvider
+import com.tunjid.rcswitchcontrol.common.filterIsInstance
+import com.tunjid.rcswitchcontrol.di.dagger
+import com.tunjid.rcswitchcontrol.models.Broadcast
 import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.rxkotlin.addTo
 import java.io.IOException
 import java.io.PrintWriter
 
@@ -88,7 +91,11 @@ class ProxyProtocol(
 
     init {
         ContextProvider.appContext.registerReceiver(USBDeviceReceiver(), IntentFilter(ACTION_USB_PERMISSION))
-        disposable.add(Broadcaster.listen(ACTION_USB_PERMISSION).subscribe(::onUsbPermissionGranted, Throwable::printStackTrace))
+        context.dagger.appComponent.broadcasts()
+            .filterIsInstance<Broadcast.USB.Connected>()
+            .map(Broadcast.USB.Connected::device)
+            .subscribe(::onUsbPermissionGranted, Throwable::printStackTrace)
+            .addTo(disposable)
 
         Handler().apply {
             postDelayed(PERMISSION_REQUEST_DELAY) { attach(rfPeripheral) }
@@ -120,8 +127,7 @@ class ProxyProtocol(
         if (driver != null) protocolMap[key] = protocolFunction(driver)
     }
 
-    private fun onUsbPermissionGranted(it: Intent) {
-        val device: UsbDevice = it.getParcelableExtra(UsbManager.EXTRA_DEVICE) ?: return
+    private fun onUsbPermissionGranted(device: UsbDevice) {
         for (thing in listOf(rfPeripheral, zigBeePeripheral)) if (device.vendorId == thing.vendorId && protocolMap[thing.key] == null) {
             attach(thing)
             pingAll()
@@ -165,7 +171,10 @@ class ProxyProtocol(
 class USBDeviceReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) = when (ACTION_USB_PERMISSION) {
         intent.action -> synchronized(this) {
-            if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) Broadcaster.push(intent)
+            if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false))
+                intent.getParcelableExtra<UsbDevice>(UsbManager.EXTRA_DEVICE)
+                    ?.let(Broadcast.USB::Connected)
+                    ?.let(context.dagger.appComponent.broadcaster)
         }
         else -> Unit
     }

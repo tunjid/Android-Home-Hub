@@ -40,12 +40,14 @@ import com.tunjid.androidx.core.components.services.SelfBindingService
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.App.Companion.catcher
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.common.Broadcaster
+import com.tunjid.rcswitchcontrol.common.filterIsInstance
 import com.tunjid.rcswitchcontrol.common.serialize
+import com.tunjid.rcswitchcontrol.di.dagger
 import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService
+import com.tunjid.rcswitchcontrol.models.Broadcast
 import com.tunjid.rcswitchcontrol.nsd.protocols.ProxyProtocol
-import com.tunjid.rcswitchcontrol.services.ClientNsdService.Companion.ACTION_START_NSD_DISCOVERY
 import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.rxkotlin.addTo
 import java.io.Closeable
 import java.io.IOException
 import java.io.PrintWriter
@@ -70,10 +72,13 @@ class ServerNsdService : Service(), SelfBindingService<ServerNsdService> {
         super.onCreate()
         initialize()
 
-        disposable.add(Broadcaster.listen(ACTION_STOP).subscribe({
-            tearDown()
-            stopSelf()
-        }, Throwable::printStackTrace))
+        dagger.appComponent.broadcasts()
+            .filterIsInstance<Broadcast.ServerNsd.Stop>()
+            .subscribe({
+                tearDown()
+                stopSelf()
+            }, Throwable::printStackTrace)
+            .addTo(disposable)
     }
 
     override fun onBind(intent: Intent): SelfBinder<ServerNsdService> = binder
@@ -104,19 +109,18 @@ class ServerNsdService : Service(), SelfBindingService<ServerNsdService> {
         try {
             val serverSocket = ServerSocket(0)
             nsdHelper = NsdHelper.getBuilder(this)
-                    .setRegisterSuccessConsumer(this::onNsdServiceRegistered)
-                    .setRegisterErrorConsumer { service, error -> Log.i(TAG, "Could not register service " + service.serviceName + ". Error code: " + error) }
-                    .build()
-                    .apply {
-                        registerService(serverSocket.localPort, initialServiceName)
-                    }
+                .setRegisterSuccessConsumer(this::onNsdServiceRegistered)
+                .setRegisterErrorConsumer { service, error -> Log.i(TAG, "Could not register service " + service.serviceName + ". Error code: " + error) }
+                .build()
+                .apply {
+                    registerService(serverSocket.localPort, initialServiceName)
+                }
 
             serverThread = ServerThread(context = this, serverSocket = serverSocket).apply { start() }
             startForeground(NOTIFICATION_ID, NotificationCompat.Builder(this, ClientStartedBoundService.NOTIFICATION_TYPE)
-                    .setSmallIcon(R.drawable.ic_notification)
-                    .setContentTitle(getText(R.string.started_server_service))
-                    .build())
-
+                .setSmallIcon(R.drawable.ic_notification)
+                .setContentTitle(getText(R.string.started_server_service))
+                .build())
         } catch (e: Exception) {
             e.printStackTrace()
             stopSelf()
@@ -129,7 +133,7 @@ class ServerNsdService : Service(), SelfBindingService<ServerNsdService> {
         ClientNsdService.lastConnectedService = service.serviceName
 
         Log.i(TAG, "Registered data for: " + service.serviceName)
-        Broadcaster.push(Intent(ACTION_START_NSD_DISCOVERY).putExtra(ClientNsdService.NSD_SERVICE_INFO_KEY, service))
+        dagger.appComponent.broadcaster(Broadcast.ClientNsd.StartDiscovery(service.takeIf { it.host != null }))
     }
 
     /**
@@ -146,7 +150,7 @@ class ServerNsdService : Service(), SelfBindingService<ServerNsdService> {
     private class ServerThread(
         context: Context,
         private val serverSocket: ServerSocket
-        ) : Thread(), Closeable {
+    ) : Thread(), Closeable {
 
         @Volatile
         var isRunning: Boolean = false
@@ -163,12 +167,12 @@ class ServerNsdService : Service(), SelfBindingService<ServerNsdService> {
             while (isRunning) {
                 try {
                     Connection( // Create new connection for every new client
-                            serverSocket.accept(), // Block this ServerThread till a socket connects
-                            this::onClientWrite,
-                            this::broadcastToClients,
-                            this::onConnectionOpened,
-                            this::onConnectionClosed)
-                            .apply { pool.submit(this) }
+                        serverSocket.accept(), // Block this ServerThread till a socket connects
+                        this::onClientWrite,
+                        this::broadcastToClients,
+                        this::onConnectionOpened,
+                        this::onConnectionClosed)
+                        .apply { pool.submit(this) }
                 } catch (e: Exception) {
                     Log.e(TAG, "Error creating client connection: ", e)
                 }
@@ -213,11 +217,11 @@ class ServerNsdService : Service(), SelfBindingService<ServerNsdService> {
      * Connection between [ServerNsdService] and it's clients
      */
     private class Connection(
-            private val socket: Socket,
-            private val inputProcessor: (input: String?) -> String,
-            private val outputProcessor: (output: String) -> Unit,
-            private val onOpen: (port: Int, connection: Connection) -> Unit,
-            private val onClose: (port: Int) -> Unit
+        private val socket: Socket,
+        private val inputProcessor: (input: String?) -> String,
+        private val outputProcessor: (output: String) -> Unit,
+        private val onOpen: (port: Int, connection: Connection) -> Unit,
+        private val onClose: (port: Int) -> Unit
     ) : Runnable, Closeable {
 
         val port: Int = socket.port
@@ -261,19 +265,16 @@ class ServerNsdService : Service(), SelfBindingService<ServerNsdService> {
     }
 
     companion object {
-
         private val TAG = ServerNsdService::class.java.simpleName
 
-        const val ACTION_STOP = "com.tunjid.rcswitchcontrol.ServerNsdService.services.server.stop"
         private const val SERVER_FLAG = "com.tunjid.rcswitchcontrol.ServerNsdService.services.server.flag"
         private const val SERVICE_NAME_KEY = "com.tunjid.rcswitchcontrol.ServerNsdService.services.server.serviceName"
         private const val WIRELESS_SWITCH_SERVICE = "Wireless Switch Service"
         private const val NOTIFICATION_ID = 3
 
-
         var serviceName: String
             get() = App.preferences.getString(SERVICE_NAME_KEY, WIRELESS_SWITCH_SERVICE)
-                    ?: WIRELESS_SWITCH_SERVICE
+                ?: WIRELESS_SWITCH_SERVICE
             set(value) = App.preferences.edit().putString(SERVICE_NAME_KEY, value).apply()
 
         var isServer: Boolean

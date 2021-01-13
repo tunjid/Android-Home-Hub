@@ -30,6 +30,7 @@ import android.app.ActivityManager
 import android.app.Service
 import android.app.UiModeManager
 import android.content.Context
+import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
@@ -37,13 +38,15 @@ import android.content.res.Configuration
 import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.util.Log
+import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.lifecycle.ViewModelProvider
 import com.google.android.things.pio.PeripheralManager
 import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
-import com.tunjid.rcswitchcontrol.common.Broadcaster
 import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.di.Dagger
-import com.tunjid.rcswitchcontrol.services.ClientNsdService
-
+import com.tunjid.rcswitchcontrol.services.LifecycleViewModelStoreProvider
+import com.tunjid.rcswitchcontrol.services.ServerNsdService
+import com.tunjid.rcswitchcontrol.viewmodels.NsdScanViewModel
 
 /**
  * App Singleton.
@@ -64,10 +67,14 @@ class App : android.app.Application() {
             addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION)
         })
 
-        Broadcaster.listen(ClientNsdService.ACTION_START_NSD_DISCOVERY)
-                .subscribe({ intent -> receiver.onReceive(this, intent) }, Throwable::printStackTrace)
-
         receiver
+    }
+
+    private val viewModel by lazy {
+        ViewModelProvider(
+            LifecycleViewModelStoreProvider(ProcessLifecycleOwner.get().lifecycle),
+            dagger.appComponent.viewModelFactory()
+        ).get(NsdScanViewModel::class.java)
     }
 
     @SuppressLint("CheckResult")
@@ -77,7 +84,13 @@ class App : android.app.Application() {
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
 
-            override fun onActivityStarted(activity: Activity) = receiver.let { Unit } // Initialize lazy receiver
+            override fun onActivityStarted(activity: Activity) {
+                // If we're designated as a NSD server, start it.
+                if (ServerNsdService.isServer) startService(Intent(activity, ServerNsdService::class.java))
+                // Initialize lazy objects
+                receiver
+                viewModel
+            }
 
             override fun onActivityResumed(activity: Activity) = Unit
 
@@ -130,7 +143,6 @@ class App : android.app.Application() {
             } catch (e: Exception) {
                 Log.e(tag, log, e)
             }
-
         }
     }
 }

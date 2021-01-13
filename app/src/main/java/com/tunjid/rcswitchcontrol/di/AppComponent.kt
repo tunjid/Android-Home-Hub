@@ -30,7 +30,7 @@ interface AppComponent {
 
     fun broadcasts(): AppBroadcasts
 
-    fun broadcaster(): AppBroadcaster
+    val broadcaster: AppBroadcaster
 
     fun appDisposable(): AppDisposable
 

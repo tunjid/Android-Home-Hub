@@ -24,29 +24,29 @@
 
 package com.tunjid.rcswitchcontrol.activities
 
-import android.content.Intent
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.tunjid.androidx.core.components.services.HardServiceConnection
 import com.tunjid.androidx.navigation.Navigator
+import com.tunjid.globalui.GlobalUiDriver
+import com.tunjid.globalui.GlobalUiHost
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.common.Broadcaster
+import com.tunjid.rcswitchcontrol.databinding.ActivityMainBinding
+import com.tunjid.rcswitchcontrol.di.dagger
 import com.tunjid.rcswitchcontrol.fragments.ControlFragment
 import com.tunjid.rcswitchcontrol.fragments.LandscapeControlFragment
 import com.tunjid.rcswitchcontrol.fragments.StartFragment
+import com.tunjid.rcswitchcontrol.models.Broadcast
 import com.tunjid.rcswitchcontrol.navigation.AppNavigator
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
-import com.tunjid.globalui.GlobalUiDriver
-import com.tunjid.globalui.GlobalUiHost
-import com.tunjid.rcswitchcontrol.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity(),
-        GlobalUiHost,
-        Navigator.Controller {
+    GlobalUiHost,
+    Navigator.Controller {
 
     override val navigator: AppNavigator by lazy { AppNavigator(this) }
     private val binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
@@ -69,7 +69,7 @@ class MainActivity : AppCompatActivity(),
         val isNsdClient = startIntent.hasExtra(ClientNsdService.NSD_SERVICE_INFO_KEY) || ClientNsdService.lastConnectedService != null
 
         if (isNsdServer) HardServiceConnection(applicationContext, ServerNsdService::class.java).start()
-        if (isNsdClient) Broadcaster.push(Intent(ClientNsdService.ACTION_START_NSD_DISCOVERY))
+        if (isNsdClient) dagger.appComponent.broadcaster(Broadcast.ClientNsd.StartDiscovery())
 
         if (!isSavedInstance) navigator.push(when {
             App.isAndroidThings || isNsdClient || isNsdServer ->
@@ -78,5 +78,4 @@ class MainActivity : AppCompatActivity(),
             else -> StartFragment.newInstance()
         })
     }
-
 }

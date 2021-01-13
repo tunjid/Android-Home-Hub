@@ -25,18 +25,19 @@
 package com.tunjid.rcswitchcontrol.viewmodels
 
 import android.content.Context
-import android.content.Intent
 import androidx.lifecycle.ViewModel
 import com.tunjid.androidx.core.components.services.HardServiceConnection
-import com.tunjid.rcswitchcontrol.common.Broadcaster
+import com.tunjid.rcswitchcontrol.di.AppBroadcaster
 import com.tunjid.rcswitchcontrol.di.AppContext
+import com.tunjid.rcswitchcontrol.models.Broadcast
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
 import io.reactivex.disposables.CompositeDisposable
 import javax.inject.Inject
 
 class HostViewModel @Inject constructor(
-    @AppContext context: Context
+    @AppContext context: Context,
+    private val broadcaster: AppBroadcaster
 ) : ViewModel() {
 
     private val disposable: CompositeDisposable = CompositeDisposable()
@@ -60,7 +61,7 @@ class HostViewModel @Inject constructor(
     fun stop() {
         ServerNsdService.isServer = false
         ClientNsdService.lastConnectedService = null
-        Broadcaster.push(Intent(ServerNsdService.ACTION_STOP))
+        broadcaster(Broadcast.ServerNsd.Stop)
     }
 
     fun nameServer(name: String) {

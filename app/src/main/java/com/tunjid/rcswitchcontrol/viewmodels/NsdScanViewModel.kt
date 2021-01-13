@@ -25,6 +25,7 @@
 package com.tunjid.rcswitchcontrol.viewmodels
 
 import android.content.Context
+import android.content.Intent
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
 import androidx.lifecycle.ViewModel
@@ -33,12 +34,16 @@ import com.tunjid.androidx.communications.nsd.NsdHelper
 import com.tunjid.androidx.recyclerview.diff.Differentiable
 import com.tunjid.rcswitchcontrol.common.filterIsInstance
 import com.tunjid.rcswitchcontrol.common.toLiveData
+import com.tunjid.rcswitchcontrol.di.AppBroadcasts
 import com.tunjid.rcswitchcontrol.di.AppContext
+import com.tunjid.rcswitchcontrol.models.Broadcast
+import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import io.reactivex.BackpressureStrategy
 import io.reactivex.Flowable
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.processors.PublishProcessor
 import io.reactivex.rxkotlin.Flowables
+import io.reactivex.rxkotlin.addTo
 import io.reactivex.schedulers.Schedulers
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -58,6 +63,7 @@ data class NsdItem(
 private val NsdItem.sortKey get() = info.serviceName
 
 class NsdScanViewModel @Inject constructor(
+    broadcasts: AppBroadcasts,
     @AppContext private val context: Context
 ) : ViewModel() {
 
@@ -72,6 +78,20 @@ class NsdScanViewModel @Inject constructor(
             .map(Output.ScanResult::items),
         ::NSDState
     ).toLiveData()
+
+    init {
+        broadcasts.filterIsInstance<Broadcast.ClientNsd.StartDiscovery>()
+            .filter { ClientNsdService.lastConnectedService != null }
+            .switchMap { broadcast ->
+                broadcast.service?.let { Flowable.just(it) }
+                    ?: context.nsdServices().filter { it.serviceName == ClientNsdService.lastConnectedService }
+            }
+            .subscribe {
+                context.startService(Intent(context, ClientNsdService::class.java)
+                    .putExtra(ClientNsdService.NSD_SERVICE_INFO_KEY, it))
+            }
+            .addTo(disposables)
+    }
 
     override fun onCleared() = disposables.clear()
 

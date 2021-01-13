@@ -49,13 +49,14 @@ import com.tunjid.globalui.uiState
 import com.tunjid.globalui.updatePartial
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.activities.MainActivity
-import com.tunjid.rcswitchcontrol.common.Broadcaster
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentControlBinding
 import com.tunjid.rcswitchcontrol.di.activityViewModelFactory
+import com.tunjid.rcswitchcontrol.di.dagger
 import com.tunjid.rcswitchcontrol.dialogfragments.GroupDeviceDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.ZigBeeArgumentDialogFragment
+import com.tunjid.rcswitchcontrol.models.Broadcast
 import com.tunjid.rcswitchcontrol.models.ControlState
 import com.tunjid.rcswitchcontrol.models.Device
 import com.tunjid.rcswitchcontrol.models.Page
@@ -63,7 +64,6 @@ import com.tunjid.rcswitchcontrol.models.Page.HISTORY
 import com.tunjid.rcswitchcontrol.models.ProtocolKey
 import com.tunjid.rcswitchcontrol.models.editName
 import com.tunjid.rcswitchcontrol.models.keys
-import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
 import com.tunjid.rcswitchcontrol.utils.FragmentTabAdapter
 import com.tunjid.rcswitchcontrol.utils.attach
@@ -174,7 +174,7 @@ class ControlFragment : Fragment(R.layout.fragment_control), ZigBeeArgumentDialo
     private fun onToolbarMenuItemSelected(item: MenuItem) {
         if (viewModel.isBound) when (item.itemId) {
             R.id.menu_ping -> viewModel.pingServer().let { true }
-            R.id.menu_connect -> Broadcaster.push(Intent(ClientNsdService.ACTION_START_NSD_DISCOVERY)).let { true }
+            R.id.menu_connect -> dagger.appComponent.broadcaster(Broadcast.ClientNsd.StartDiscovery())
             R.id.menu_forget -> requireActivity().let {
                 viewModel.forgetService()
 

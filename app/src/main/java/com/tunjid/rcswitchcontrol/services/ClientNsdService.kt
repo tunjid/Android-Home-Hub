@@ -30,7 +30,6 @@ import android.app.Service
 import android.content.Intent
 import android.net.nsd.NsdServiceInfo
 import android.util.Log
-import androidx.annotation.StringDef
 import androidx.core.app.NotificationCompat
 import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.communications.nsd.NsdHelper
@@ -41,10 +40,14 @@ import com.tunjid.androidx.core.components.services.SelfBindingService
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.activities.MainActivity
-import com.tunjid.rcswitchcontrol.common.Broadcaster
+import com.tunjid.rcswitchcontrol.common.filterIsInstance
 import com.tunjid.rcswitchcontrol.common.serialize
+import com.tunjid.rcswitchcontrol.di.dagger
 import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService
+import com.tunjid.rcswitchcontrol.models.Broadcast
+import com.tunjid.rcswitchcontrol.models.Status
 import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.rxkotlin.addTo
 import java.io.Closeable
 import java.io.IOException
 import java.io.PrintWriter
@@ -52,18 +55,16 @@ import java.net.Socket
 import java.util.*
 import java.util.concurrent.Executors
 
-
 class ClientNsdService : Service(), SelfBindingService<ClientNsdService>, ClientStartedBoundService {
 
     private var isUserInApp: Boolean = false
     private lateinit var nsdHelper: NsdHelper
     private var currentService: NsdServiceInfo? = null
 
-    @ConnectionState
-    var connectionState = ACTION_SOCKET_DISCONNECTED
+    var connectionState = Status.Disconnected
         set(value) {
             field = value
-            Broadcaster.push(Intent(connectionState))
+            dagger.appComponent.broadcaster(Broadcast.ClientNsd.ConnectionStatus(value))
 
             if (!isConnected) return  // Update the notification
             if (!isUserInApp) startForeground(NOTIFICATION_ID, connectedNotification())
@@ -79,28 +80,27 @@ class ClientNsdService : Service(), SelfBindingService<ClientNsdService>, Client
     private val binder = NsdClientBinder()
 
     override val isConnected: Boolean
-        get() = connectionState == ACTION_SOCKET_CONNECTED
+        get() = connectionState == Status.Connected
 
     val serviceName: String?
         get() = if (currentService == null) null else currentService!!.serviceName
-
-    @Retention(AnnotationRetention.SOURCE)
-    @StringDef(ACTION_SOCKET_CONNECTED, ACTION_SOCKET_CONNECTING, ACTION_SOCKET_DISCONNECTED)
-    internal annotation class ConnectionState
 
     override fun onCreate() {
         super.onCreate()
         addChannel(R.string.switch_service, R.string.switch_service_description)
 
         nsdHelper = NsdHelper.getBuilder(this).build()
-        disposable.add(Broadcaster.listen(ACTION_STOP).subscribe({
-            stopForeground(true)
-            tearDown()
-            stopSelf()
-        }, Throwable::printStackTrace))
+        dagger.appComponent.broadcasts()
+            .filterIsInstance<Broadcast.ClientNsd.Stop>()
+            .subscribe({
+                stopForeground(true)
+                tearDown()
+                stopSelf()
+            }, Throwable::printStackTrace)
+            .addTo(disposable)
     }
 
-    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         initialize(intent)
         return super.onStartCommand(intent, flags, startId)
     }
@@ -115,7 +115,7 @@ class ClientNsdService : Service(), SelfBindingService<ClientNsdService>, Client
         if (isConnected || intent == null || !intent.hasExtra(NSD_SERVICE_INFO_KEY)) return
 
         currentService = intent.getParcelableExtra(NSD_SERVICE_INFO_KEY)
-        currentService?.run { connect(this) }
+        currentService?.let(::connect)
     }
 
     override fun onAppBackground() {
@@ -141,7 +141,7 @@ class ClientNsdService : Service(), SelfBindingService<ClientNsdService>, Client
         // If we're already connected to this service, return
         if (isConnected) return
 
-        connectionState = ACTION_SOCKET_CONNECTING
+        connectionState = Status.Connecting
 
         // Initialize current service if we are starting up the first time
         if (messageThread == null) {
@@ -176,13 +176,13 @@ class ClientNsdService : Service(), SelfBindingService<ClientNsdService>, Client
         resumeIntent.putExtra(NSD_SERVICE_INFO_KEY, currentService)
 
         val activityPendingIntent = PendingIntent.getActivity(
-                this, 0, resumeIntent, PendingIntent.FLAG_CANCEL_CURRENT)
+            this, 0, resumeIntent, PendingIntent.FLAG_CANCEL_CURRENT)
 
         val notificationBuilder = NotificationCompat.Builder(this, ClientStartedBoundService.NOTIFICATION_TYPE)
-                .setSmallIcon(R.drawable.ic_notification)
-                .setContentTitle(getText(R.string.connected))
-                .setContentText(getText(R.string.connected_to_server))
-                .setContentIntent(activityPendingIntent)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(getText(R.string.connected))
+            .setContentText(getText(R.string.connected_to_server))
+            .setContentIntent(activityPendingIntent)
 
         return notificationBuilder.build()
     }
@@ -192,9 +192,10 @@ class ClientNsdService : Service(), SelfBindingService<ClientNsdService>, Client
             get() = this@ClientNsdService
     }
 
-    private class MessageThread internal constructor(
-            internal var service: NsdServiceInfo,
-            internal var clientNsdService: ClientNsdService) : Thread(), Closeable {
+    private class MessageThread(
+        var service: NsdServiceInfo,
+        var clientNsdService: ClientNsdService
+    ) : Thread(), Closeable {
 
         var currentSocket: Socket? = null
         private var out: PrintWriter? = null
@@ -210,7 +211,7 @@ class ClientNsdService : Service(), SelfBindingService<ClientNsdService>, Client
 
             Log.d(TAG, "Connection-side socket initialized.")
 
-            clientNsdService.connectionState = ACTION_SOCKET_CONNECTED
+            clientNsdService.connectionState = Status.Connected
 
             if (!clientNsdService.messageQueue.isEmpty()) {
                 out?.println(clientNsdService.messageQueue.remove())
@@ -220,26 +221,21 @@ class ClientNsdService : Service(), SelfBindingService<ClientNsdService>, Client
                 val fromServer = `in`.readLine() ?: break
 
                 Log.i(TAG, "Server: $fromServer")
-
-                val serverResponse = Intent()
-                serverResponse.action = ACTION_SERVER_RESPONSE
-                serverResponse.putExtra(DATA_SERVER_RESPONSE, fromServer)
-
-                Broadcaster.push(serverResponse)
+                clientNsdService.dagger.appComponent.broadcaster(Broadcast.ClientNsd.ServerResponse(data = fromServer))
 
                 if (fromServer == "Bye.") {
-                    clientNsdService.connectionState = ACTION_SOCKET_DISCONNECTED
+                    clientNsdService.connectionState = Status.Disconnected
                     break
                 }
             }
         } catch (e: IOException) {
             e.printStackTrace()
-            clientNsdService.connectionState = ACTION_SOCKET_DISCONNECTED
+            clientNsdService.connectionState = Status.Disconnected
         } finally {
             close()
         }
 
-        internal fun send(message: String) {
+        fun send(message: String) {
             out?.let {
                 if (it.checkError()) close()
                 else pool.submit { it.println(message) }
@@ -248,7 +244,7 @@ class ClientNsdService : Service(), SelfBindingService<ClientNsdService>, Client
 
         override fun close() {
             App.catcher(TAG, "Exiting message thread") { currentSocket?.close() }
-            clientNsdService.connectionState = ACTION_SOCKET_DISCONNECTED
+            clientNsdService.connectionState = Status.Disconnected
         }
     }
 
@@ -259,15 +255,6 @@ class ClientNsdService : Service(), SelfBindingService<ClientNsdService>, Client
 
         private val TAG = ClientNsdService::class.java.simpleName
         private const val LAST_CONNECTED_SERVICE = "com.tunjid.rcswitchcontrol.services.ClientNsdService.last connected service"
-
-        const val ACTION_STOP = "com.tunjid.rcswitchcontrol.services.ClientNsdService.stop"
-        const val ACTION_SERVER_RESPONSE = "com.tunjid.rcswitchcontrol.services.ClientNsdService.service.response"
-        const val ACTION_SOCKET_CONNECTED = "com.tunjid.rcswitchcontrol.services.ClientNsdService.service.socket.connected"
-        const val ACTION_SOCKET_CONNECTING = "com.tunjid.rcswitchcontrol.services.ClientNsdService.service.socket.connecting"
-        const val ACTION_SOCKET_DISCONNECTED = "com.tunjid.rcswitchcontrol.services.ClientNsdService.service.socket.disconnected"
-        const val ACTION_START_NSD_DISCOVERY = "com.tunjid.rcswitchcontrol.services.ClientNsdService.start.nsd.discovery"
-
-        const val DATA_SERVER_RESPONSE = "service_response"
 
         var lastConnectedService: String?
             get() = App.preferences.getString(LAST_CONNECTED_SERVICE, null)

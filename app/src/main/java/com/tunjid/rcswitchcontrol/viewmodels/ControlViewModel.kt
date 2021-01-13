@@ -31,13 +31,16 @@ import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.core.components.services.HardServiceConnection
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.common.Broadcaster
 import com.tunjid.rcswitchcontrol.common.deserialize
+import com.tunjid.rcswitchcontrol.common.filterIsInstance
 import com.tunjid.rcswitchcontrol.common.toLiveData
+import com.tunjid.rcswitchcontrol.di.AppBroadcasts
 import com.tunjid.rcswitchcontrol.di.AppContext
+import com.tunjid.rcswitchcontrol.models.Broadcast
 import com.tunjid.rcswitchcontrol.models.ControlState
 import com.tunjid.rcswitchcontrol.models.Device
 import com.tunjid.rcswitchcontrol.models.Page
+import com.tunjid.rcswitchcontrol.models.Status
 import com.tunjid.rcswitchcontrol.models.controlState
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
@@ -45,7 +48,8 @@ import io.reactivex.disposables.CompositeDisposable
 import javax.inject.Inject
 
 class ControlViewModel @Inject constructor(
-    @AppContext private val context: Context
+    @AppContext private val context: Context,
+    broadcasts: AppBroadcasts
 ) : ViewModel() {
 
     private val disposable: CompositeDisposable = CompositeDisposable()
@@ -66,12 +70,18 @@ class ControlViewModel @Inject constructor(
     val state: LiveData<ControlState>
 
     init {
-        val connectionStatuses = Broadcaster.listen(*connectionActions)
-            .map { getConnectionText(it.action ?: "") }
-            .startWith(getConnectionText(ClientNsdService.ACTION_SOCKET_DISCONNECTED))
+        val connectionStatuses = broadcasts.filterIsInstance<Broadcast.ClientNsd.ConnectionStatus>()
+            .map(Broadcast.ClientNsd.ConnectionStatus::status)
+            .mergeWith(
+                broadcasts.filterIsInstance<Broadcast.ClientNsd.StartDiscovery>()
+                    .map { Status.Connecting }
+            )
+            .map(::getConnectionText)
+            .startWith(getConnectionText(Status.Disconnected))
 
-        val serverResponses = Broadcaster.listen(ClientNsdService.ACTION_SERVER_RESPONSE)
-            .map { it.getStringExtra(ClientNsdService.DATA_SERVER_RESPONSE) }
+        val serverResponses = broadcasts
+            .filterIsInstance<Broadcast.ClientNsd.ServerResponse>()
+            .map(Broadcast.ClientNsd.ServerResponse::data)
             .filter(String::isNotBlank)
             .map { it.deserialize(Payload::class) }
 
@@ -126,28 +136,20 @@ class ControlViewModel @Inject constructor(
         action = CommsProtocol.pingAction
     ))
 
-    private fun getConnectionText(newState: String): String {
-        val boundService = nsdConnection.boundService
-        return when (newState) {
-            ClientNsdService.ACTION_SOCKET_CONNECTED -> {
-                pingServer()
-                if (boundService == null) context.getString(R.string.connected)
-                else context.getString(R.string.connected_to, boundService.serviceName)
+    private fun getConnectionText(status: Status): String = when (status) {
+        Status.Connected -> {
+            pingServer()
+            when (val boundService = nsdConnection.boundService) {
+                null -> context.getString(R.string.connected)
+                else -> context.getString(R.string.connected_to, boundService.serviceName)
             }
-            ClientNsdService.ACTION_SOCKET_CONNECTING,
-            ClientNsdService.ACTION_START_NSD_DISCOVERY ->
-                if (boundService == null) context.getString(R.string.connecting)
-                else context.getString(R.string.connecting_to, boundService.serviceName)
-
-            ClientNsdService.ACTION_SOCKET_DISCONNECTED -> context.getString(R.string.disconnected)
-            else -> ""
         }
+        Status.Connecting -> {
+            when (val boundService = nsdConnection.boundService) {
+                null -> context.getString(R.string.connecting)
+                else -> context.getString(R.string.connecting_to, boundService.serviceName)
+            }
+        }
+        Status.Disconnected -> context.getString(R.string.disconnected)
     }
 }
-
-private val connectionActions = arrayOf(
-    ClientNsdService.ACTION_SOCKET_CONNECTED,
-    ClientNsdService.ACTION_SOCKET_CONNECTING,
-    ClientNsdService.ACTION_SOCKET_DISCONNECTED,
-    ClientNsdService.ACTION_START_NSD_DISCOVERY
-)

@@ -64,7 +64,7 @@ class ControlViewModel @Inject constructor(
     init {
         val connectionStatuses = broadcasts.filterIsInstance<Broadcast.ClientNsd.ConnectionStatus>()
             .map(Broadcast.ClientNsd.ConnectionStatus::status)
-            .startWith(Status.Disconnected)
+            .startWith(Status.Disconnected())
 
         val serverResponses = broadcasts
             .filterIsInstance<Broadcast.ClientNsd.ServerResponse>()

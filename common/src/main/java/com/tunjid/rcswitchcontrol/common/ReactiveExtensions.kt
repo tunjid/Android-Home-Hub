@@ -54,7 +54,10 @@ private class MainThreadLiveData<T>(val source: Flowable<T>) : LiveData<T>() {
 }
 
 fun <T> Flowable<T>.onErrorComplete(): Flowable<T> =
-    onErrorResumeNext(Flowable.empty())
+    onErrorResumeNext { throwable: Throwable ->
+        Log.i("TEST", "Terminated bc of throwable", throwable)
+        Flowable.empty()
+    }
 
 private data class Optional<T>(val item: T?)
 
@@ -75,3 +78,5 @@ fun <T> Flowables.fromBlockingCallable(blockingCall: () -> T): Flowable<T> =
 
 fun <T> Flowable<T>.composeOnIo(): Flowable<T> =
     compose { it.subscribeOn(Schedulers.io()).observeOn(Schedulers.io()) }
+
+operator fun <T> Flowable<T>.plus(other: Flowable<T>) = concatWith(other)

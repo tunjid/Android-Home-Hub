@@ -25,13 +25,11 @@
 package com.tunjid.rcswitchcontrol.common
 
 import android.util.Log
-import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
-import java.lang.Exception
 import kotlin.reflect.KClass
 
-
-private val converter = Gson()
+private val converter = GsonBuilder().create()
 
 fun <T : Any> T.serialize(): String = converter.toJson(this).replace("\n", "").trim()
 
@@ -39,7 +37,7 @@ fun <T : Any> List<T>.serializeList(): String = converter.toJson(this).replace("
 
 fun <T : Any> String.deserialize(kClass: KClass<T>): T = try {
     converter.fromJson(this, kClass.java)
-}catch (exception: Exception) {
+} catch (exception: Exception) {
     Log.i("TEST", "Error deserializing ${kClass.java.name}\nvalue:$this\n", exception)
     throw exception
 }

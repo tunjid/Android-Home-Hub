@@ -15,6 +15,7 @@ import com.tunjid.rcswitchcontrol.common.fromBlockingCallable
 import com.tunjid.rcswitchcontrol.common.onErrorComplete
 import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.common.toLiveData
+import com.tunjid.rcswitchcontrol.control.ControlStateCache
 import com.tunjid.rcswitchcontrol.di.AppBroadcaster
 import com.tunjid.rcswitchcontrol.di.AppBroadcasts
 import com.tunjid.rcswitchcontrol.di.AppContext
@@ -64,6 +65,11 @@ private sealed class Output {
     }
 }
 
+private class CachingProtocol(
+    protocol: CommsProtocol,
+    val cache: ControlStateCache = ControlStateCache()
+) : CommsProtocol by protocol
+
 class ServerViewModel @Inject constructor(
     @AppContext context: Context,
     broadcaster: AppBroadcaster,
@@ -74,9 +80,10 @@ class ServerViewModel @Inject constructor(
 
     private val disposable = CompositeDisposable()
     private val processor = PublishProcessor.create<Input>()
-    private val protocol = ProxyProtocol(context = context, printWriter = ConsoleWriter {
-        processor.onNext(Response(it))
-    })
+    private val protocol = CachingProtocol(ProxyProtocol(
+        context = context,
+        printWriter = ConsoleWriter { processor.onNext(Response(it)) }
+    ))
 
     init {
         val inputs = processor
@@ -183,12 +190,13 @@ private fun ServerSocket.clients(): Flowable<Socket> =
         .onErrorComplete()
         .composeOnIo()
 
-private fun CommsProtocol.outputs(socket: Socket): Flowable<Output.Client> =
+private fun CachingProtocol.outputs(socket: Socket): Flowable<Output.Client> =
     Flowable.defer {
         val outWriter = NsdHelper.createPrintWriter(socket)
         val reader = NsdHelper.createBufferedReader(socket)
 
         // Initiate conversation with client
+        // outWriter.println(cache.payload.serialize())
         outWriter.println(processInput(CommsProtocol.pingAction.value).serialize())
 
         Flowables.fromBlockingCallable<Output.Client> {

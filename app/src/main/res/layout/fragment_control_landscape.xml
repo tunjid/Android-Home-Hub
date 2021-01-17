@@ -26,7 +26,7 @@
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/history"
-        android:name="com.tunjid.rcswitchcontrol.fragments.RecordFragment$HistoryFragment"
+        android:name="com.tunjid.rcswitchcontrol.control.RecordFragment$HistoryFragment"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:descendantFocusability="blocksDescendants"

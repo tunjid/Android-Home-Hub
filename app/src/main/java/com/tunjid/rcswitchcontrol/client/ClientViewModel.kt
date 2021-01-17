@@ -27,7 +27,7 @@ import java.net.Socket
 import javax.inject.Inject
 
 data class State(
-    val status: Status = Status.Disconnected,
+    val status: Status = Status.Disconnected(),
     val serviceName: String? = null,
     val inBackground: Boolean = true,
     val isStopped: Boolean = false
@@ -36,7 +36,7 @@ data class State(
 sealed class Status {
     data class Connected(val serviceName: String) : Status()
     data class Connecting(val serviceName: String? = null) : Status()
-    object Disconnected : Status()
+    data class Disconnected(val at: Long = System.currentTimeMillis()) : Status()
 }
 
 sealed class Input {
@@ -49,7 +49,7 @@ private sealed class Output {
     sealed class Connection(val status: Status) : Output() {
         data class Connected(val serviceName: String, val writer: PrintWriter) : Connection(status = Status.Connected(serviceName))
         data class Connecting(val serviceName: String) : Connection(status = Status.Connecting(serviceName))
-        object Disconnected : Connection(status = Status.Disconnected)
+        object Disconnected : Connection(status = Status.Disconnected())
     }
 
     data class Response(val data: String) : Output()

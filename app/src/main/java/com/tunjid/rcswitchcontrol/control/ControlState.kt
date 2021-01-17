@@ -19,6 +19,7 @@ import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
 import com.tunjid.rcswitchcontrol.client.Status
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.deserializeList
+import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.server.HostFragment
 import com.tunjid.rcswitchcontrol.utils.Tab
 import io.reactivex.Flowable
@@ -54,7 +55,7 @@ enum class Page : Tab {
 
 data class ControlState(
     val isNew: Boolean = false,
-    val connectionStatus: Status = Status.Disconnected,
+    val connectionStatus: Status = Status.Disconnected(),
     val commandInfo: ZigBeeCommandInfo? = null,
     val history: List<Record> = listOf(),
     val commands: Map<CommsProtocol.Key, List<Record.Command>> = mapOf(),
@@ -62,6 +63,8 @@ data class ControlState(
 )
 
 val ControlState?.isConnected get() = this?.connectionStatus is Status.Connected
+
+private val cacheAction = CommsProtocol.Action("controlStateCache")
 
 fun controlState(
     status: Flowable<Status>,
@@ -73,6 +76,21 @@ fun controlState(
     .subscribeOn(Schedulers.single())
     .replayingShare()
 
+class ControlStateCache {
+    private var cache = ControlState()
+
+    val payload
+        get() = Payload(
+            key = CommsProtocol.key,
+            action = cacheAction,
+            data = ControlState(devices = cache.devices).serialize()
+        )
+
+    fun add(input: String) {
+        cache = cache.reduce(Status.Disconnected() to input.deserialize(Payload::class))
+    }
+}
+
 val ControlState.keys
     get() = commands.keys
         .sortedBy(CommsProtocol.Key::value)
@@ -83,7 +101,7 @@ private fun ControlState.reduce(pair: Pair<Status, Payload>): ControlState {
     val key = payload.key
     val isNew = !commands.keys.contains(key)
 
-    return copy(isNew = isNew, connectionStatus = connectionStatus, commandInfo = payload.extractCommandInfo)
+    return payload.cache ?: copy(isNew = isNew, connectionStatus = connectionStatus, commandInfo = payload.extractCommandInfo)
         .reduceCommands(payload)
         .reduceDeviceName(payload.deviceName)
         .reduceHistory(payload.extractRecord)
@@ -133,11 +151,18 @@ private fun ControlState.reduceDeviceName(name: Name?) = when (name) {
     )
 }
 
+private val Payload.cache: ControlState?
+    get() = when (action) {
+        cacheAction -> data?.deserialize(ControlState::class)
+        else -> null
+    }
+
 private val Payload.deviceName: Name?
     get() = when (action) {
         CommonDeviceActions.nameChangedAction -> data?.deserialize(Name::class)
         else -> null
     }
+
 private val Payload.extractRecord: Record.Response?
     get() = response.let {
         if (it == null || it.isBlank()) null

@@ -28,22 +28,25 @@ import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.recyclerview.diff.Differentiable
 
-sealed class Record(
-        open val key: CommsProtocol.Key,
-        open val entry: String
-) : Differentiable {
+sealed class Record : Differentiable {
+    abstract val key: CommsProtocol.Key
+    abstract val entry: String
+
     override val diffId: String
         get() = key.value
 
     data class Command(
-            override val key: CommsProtocol.Key,
-            val command: CommsProtocol.Action
-    ): Record(key = key, entry = command.value)
+        override val key: CommsProtocol.Key,
+        val command: CommsProtocol.Action
+    ) : Record() {
+        override val entry: String
+            get() = command.value
+    }
 
     data class Response(
-            override val key: CommsProtocol.Key,
-            override val entry: String,
-    ): Record(key = key, entry = entry)
+        override val key: CommsProtocol.Key,
+        override val entry: String,
+    ) : Record()
 }
 
 val Record.Command.payload

@@ -47,15 +47,15 @@ import com.tunjid.globalui.UiState
 import com.tunjid.globalui.liveUiState
 import com.tunjid.globalui.uiState
 import com.tunjid.globalui.updatePartial
-import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.MainActivity
+import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.client.Status
 import com.tunjid.rcswitchcontrol.common.mapDistinct
+import com.tunjid.rcswitchcontrol.control.Page.HISTORY
 import com.tunjid.rcswitchcontrol.databinding.FragmentControlBinding
 import com.tunjid.rcswitchcontrol.di.activityViewModelFactory
 import com.tunjid.rcswitchcontrol.di.dagger
 import com.tunjid.rcswitchcontrol.models.Broadcast
-import com.tunjid.rcswitchcontrol.control.Page.HISTORY
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
 import com.tunjid.rcswitchcontrol.utils.FragmentTabAdapter
 import com.tunjid.rcswitchcontrol.utils.attach
@@ -190,7 +190,7 @@ class ControlFragment : Fragment(R.layout.fragment_control), ZigBeeArgumentDialo
                 null -> getString(R.string.connecting)
                 else -> getString(R.string.connecting_to, serviceName)
             }
-            Status.Disconnected -> getString(R.string.disconnected)
+            is Status.Disconnected -> getString(R.string.disconnected)
         }
 
     override fun onArgsEntered(command: ZigBeeCommand) = viewModel.dispatchPayload(command.payload)

@@ -9,6 +9,7 @@ import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.io.ConsoleWriter
 import com.tunjid.androidx.communications.nsd.NsdHelper
 import com.tunjid.rcswitchcontrol.common.filterIsInstance
+import com.tunjid.rcswitchcontrol.common.onErrorComplete
 import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.common.toLiveData
 import com.tunjid.rcswitchcontrol.di.AppBroadcaster
@@ -209,8 +210,5 @@ private fun CommsProtocol.liaison(socket: Socket): Flowable<Output.Client> =
         .onErrorComplete()
         .hopSchedulers()
 
-private fun <T> Flowable<T>.hopSchedulers(): Flowable<T> =
+fun <T> Flowable<T>.hopSchedulers(): Flowable<T> =
     compose { it.subscribeOn(Schedulers.io()).observeOn(Schedulers.io()) }
-
-private fun <T> Flowable<T>.onErrorComplete(): Flowable<T> =
-    onErrorResumeNext(Flowable.empty())

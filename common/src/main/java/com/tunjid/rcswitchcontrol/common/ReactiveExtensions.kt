@@ -46,3 +46,6 @@ private class MainThreadLiveData<T>(val source: Flowable<T>) : LiveData<T>() {
 
     override fun onInactive() = disposables.clear()
 }
+
+fun <T> Flowable<T>.onErrorComplete(): Flowable<T> =
+    onErrorResumeNext(Flowable.empty())

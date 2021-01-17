@@ -1,7 +1,6 @@
 package com.tunjid.rcswitchcontrol.client
 
 import android.net.nsd.NsdServiceInfo
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import com.jakewharton.rx.replayingShare
@@ -9,6 +8,7 @@ import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.communications.nsd.NsdHelper
 import com.tunjid.rcswitchcontrol.common.Mutation
 import com.tunjid.rcswitchcontrol.common.Mutator
+import com.tunjid.rcswitchcontrol.common.composeOnIo
 import com.tunjid.rcswitchcontrol.common.filterIsInstance
 import com.tunjid.rcswitchcontrol.common.fromBlockingCallable
 import com.tunjid.rcswitchcontrol.common.onErrorComplete
@@ -17,7 +17,6 @@ import com.tunjid.rcswitchcontrol.common.toLiveData
 import com.tunjid.rcswitchcontrol.di.AppBroadcaster
 import com.tunjid.rcswitchcontrol.di.AppBroadcasts
 import com.tunjid.rcswitchcontrol.models.Broadcast
-import com.tunjid.rcswitchcontrol.common.composeOnIo
 import io.reactivex.Flowable
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.processors.PublishProcessor
@@ -63,7 +62,7 @@ private data class Write(
 
 private val Write.isValid get() = writer != null && !writer.checkError()
 
-private fun Write.print() = writer?.println(data)?.also { Log.i("TEST", "WROTE: $data") } ?: Unit
+private fun Write.print() = writer?.println(data) ?: Unit
 
 class ClientViewModel @Inject constructor(
     broadcaster: AppBroadcaster,
@@ -83,9 +82,7 @@ class ClientViewModel @Inject constructor(
         val outputs = inputs
             .filterIsInstance<Input.Connect>()
             .map(Input.Connect::service)
-            .doOnNext { Log.i("TEST", "PROSPECTIVE REQ") }
             .onBackpressureDrop()
-            .doOnNext { Log.i("TEST", "GOING TO CONNECT") }
             .concatMap(NsdServiceInfo::outputs)
             .replayingShare()
 
@@ -128,7 +125,6 @@ class ClientViewModel @Inject constructor(
         outputs
             .filterIsInstance<Output.Response>()
             .map(Output.Response::data)
-            .doOnNext { Log.i("TEST", "SERVER SAYS: $it") }
             .map(Broadcast.ClientNsd::ServerResponse)
             .subscribe(broadcaster)
             .addTo(disposable)
@@ -148,14 +144,13 @@ class ClientViewModel @Inject constructor(
 
 private fun NsdServiceInfo.outputs(): Flowable<Output> =
     Flowable.defer {
-        Log.i("TEST", "OPENING SOCKET")
         val socket = Socket(host, port)
         val outWriter = NsdHelper.createPrintWriter(socket)
         val reader = NsdHelper.createBufferedReader(socket)
 
         Flowables.fromBlockingCallable<Output> {
             val input = reader.readLine()
-            if (input == "Bye.") socket.close()
+            if (input == null || input == "Bye.") socket.close()
             Output.Response(data = input)
         }
             .repeatUntil(socket::isClosed)

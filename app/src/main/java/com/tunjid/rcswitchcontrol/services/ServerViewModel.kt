@@ -8,9 +8,9 @@ import com.jakewharton.rx.replayingShare
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.io.ConsoleWriter
 import com.tunjid.androidx.communications.nsd.NsdHelper
+import com.tunjid.rcswitchcontrol.common.composeOnIo
 import com.tunjid.rcswitchcontrol.common.filterIsInstance
 import com.tunjid.rcswitchcontrol.common.fromBlockingCallable
-import com.tunjid.rcswitchcontrol.common.composeOnIo
 import com.tunjid.rcswitchcontrol.common.onErrorComplete
 import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.common.toLiveData
@@ -117,7 +117,6 @@ class ServerViewModel @Inject constructor(
                 .filterIsInstance<Response>()
                 .map(Response::data)
             )
-            .composeOnIo()
             .replayingShare()
 
         val backingState = Flowables.combineLatest(
@@ -134,6 +133,7 @@ class ServerViewModel @Inject constructor(
         // Kick off
         writes
             .withLatestFrom(clients, ::Pair)
+            .composeOnIo()
             .subscribe { (data, writers) -> writers.forEach { it.println(data) } }
             .addTo(disposable)
 
@@ -193,7 +193,7 @@ private fun CommsProtocol.outputs(socket: Socket): Flowable<Output.Client> =
         Flowables.fromBlockingCallable<Output.Client> {
             val input = reader.readLine()
             val output = processInput(input).serialize()
-            if (output == "Bye.") socket.close()
+            if (input == null || output == "Bye.") socket.close()
             Output.Client.Request(port = socket.port, data = output)
         }
             .repeatUntil(socket::isClosed)

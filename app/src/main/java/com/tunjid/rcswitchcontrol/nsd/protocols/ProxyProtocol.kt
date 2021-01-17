@@ -33,6 +33,7 @@ import android.content.IntentFilter
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.Handler
+import android.util.Log
 import androidx.core.content.getSystemService
 import androidx.core.os.postDelayed
 import com.hoho.android.usbserial.driver.CdcAcmSerialDriver
@@ -130,7 +131,9 @@ class ProxyProtocol(
     private fun onUsbPermissionGranted(device: UsbDevice) {
         for (thing in listOf(rfPeripheral, zigBeePeripheral)) if (device.vendorId == thing.vendorId && protocolMap[thing.key] == null) {
             attach(thing)
-            pingAll()
+            protocolMap[thing.key]
+                ?.processInput(CommsProtocol.pingAction.value)
+                ?.let(::pushOut)
         }
     }
 

@@ -21,7 +21,7 @@ fun <T, R> LiveData<T>.map(mapper: (T) -> R) = Transformations.map(this, mapper)
 
 fun <T> LiveData<T>.distinctUntilChanged() = Transformations.distinctUntilChanged(this)
 
-inline fun <reified T> Flowable<*>.filterIsInstance(): Flowable<T> = filter { it is T }.cast(T::class.java)
+inline fun <reified T> Flowable<in T>.filterIsInstance(): Flowable<T> = filter { it is T }.cast(T::class.java)
 
 fun <T, R> LiveData<T>.mapDistinct(mapper: (T) -> R): LiveData<R> =
         Transformations.distinctUntilChanged(

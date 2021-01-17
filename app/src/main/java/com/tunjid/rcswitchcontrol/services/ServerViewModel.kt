@@ -2,6 +2,7 @@ package com.tunjid.rcswitchcontrol.services
 
 import android.content.Context
 import android.net.nsd.NsdServiceInfo
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import com.jakewharton.rx.replayingShare
@@ -96,7 +97,7 @@ class ServerViewModel @Inject constructor(
         val clientOutputs: Flowable<Output.Client> = registrations
             .map(Output.Server.Registered::socket)
             .switchMap(ServerSocket::clients)
-            .flatMap(protocol::liaison)
+            .flatMap(protocol::outputs)
             .replayingShare()
 
         val clients: Flowable<Set<PrintWriter>> = clientOutputs
@@ -187,11 +188,12 @@ private fun ServerSocket.clients(): Flowable<Socket> =
         .onErrorComplete()
         .hopSchedulers()
 
-private fun CommsProtocol.liaison(socket: Socket): Flowable<Output.Client> =
+private fun CommsProtocol.outputs(socket: Socket): Flowable<Output.Client> =
     Flowable.defer {
         val outWriter = NsdHelper.createPrintWriter(socket)
         val reader = NsdHelper.createBufferedReader(socket)
 
+        Log.i("TEST", "PINGING")
         // Initiate conversation with client
         outWriter.println(processInput(CommsProtocol.pingAction.value).serialize())
 
@@ -202,11 +204,11 @@ private fun CommsProtocol.liaison(socket: Socket): Flowable<Output.Client> =
             Output.Client.Request(port = socket.port, data = output)
         }
             .repeatUntil(socket::isClosed)
+            .doFinally(socket::close)
             .onErrorComplete()
             .startWith(Output.Client.Status.Added(port = socket.port, writer = outWriter))
             .concatWith(Flowable.just(Output.Client.Status.Dropped(port = socket.port, writer = outWriter)))
     }
-        .doFinally(socket::close)
         .onErrorComplete()
         .hopSchedulers()
 

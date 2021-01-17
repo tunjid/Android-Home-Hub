@@ -199,13 +199,13 @@ class ZigBeeProtocol(
                 response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_forming_network)
                 formNetwork()
             }
-            CommsProtocol.pingAction, CommonDeviceActions.refreshDevicesAction -> {
+            CommsProtocol.pingAction -> {
+                response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_ping)
+            }
+            CommonDeviceActions.refreshDevicesAction -> {
                 val savedDevices = dataStore.savedDevices
                 action = CommonDeviceActions.refreshDevicesAction
-                response = ContextProvider.appContext.getString(
-                    if (payloadAction == CommsProtocol.pingAction) R.string.zigbeeprotocol_saved_devices_request
-                    else R.string.zigbeeprotocol_ping
-                )
+                response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_saved_devices_request)
                 data = savedDevices.serializeList()
                 actionProcessor.onNext(Action.AttributeRequest(nodes = savedDevices))
             }

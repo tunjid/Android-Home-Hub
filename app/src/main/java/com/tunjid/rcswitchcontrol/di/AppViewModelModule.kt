@@ -29,6 +29,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.tunjid.fingergestures.di.ViewModelCreators
 import com.tunjid.fingergestures.di.ViewModelFactory
 import com.tunjid.fingergestures.di.ViewModelKey
+import com.tunjid.rcswitchcontrol.client.ClientViewModel
 import com.tunjid.rcswitchcontrol.services.LifecycleViewModelStoreProvider
 import com.tunjid.rcswitchcontrol.services.ServerViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
@@ -77,4 +78,7 @@ abstract class AppViewModelModule {
 
     @Binds @IntoMap @ViewModelKey(ServerViewModel::class)
     abstract fun bindServerViewModel(viewModel: ServerViewModel): ViewModel
+
+    @Binds @IntoMap @ViewModelKey(ClientViewModel::class)
+    abstract fun bindClientViewModel(viewModel: ClientViewModel): ViewModel
 }

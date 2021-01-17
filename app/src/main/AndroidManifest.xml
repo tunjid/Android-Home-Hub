@@ -40,7 +40,9 @@
             android:name="com.google.android.things"
             android:required="false" />
 
-        <activity android:name=".MainActivity">
+        <activity
+            android:name=".MainActivity"
+            android:launchMode="singleTop">
 
             <!-- Launch activity as default from Android Studio -->
             <intent-filter>

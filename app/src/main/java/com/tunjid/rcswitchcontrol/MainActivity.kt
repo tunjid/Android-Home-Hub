@@ -32,19 +32,19 @@ import com.tunjid.androidx.core.components.services.HardServiceConnection
 import com.tunjid.androidx.navigation.Navigator
 import com.tunjid.globalui.GlobalUiDriver
 import com.tunjid.globalui.GlobalUiHost
-import com.tunjid.rcswitchcontrol.databinding.ActivityMainBinding
-import com.tunjid.rcswitchcontrol.di.dagger
+import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.control.ControlFragment
 import com.tunjid.rcswitchcontrol.control.LandscapeControlFragment
-import com.tunjid.rcswitchcontrol.onboarding.StartFragment
+import com.tunjid.rcswitchcontrol.databinding.ActivityMainBinding
+import com.tunjid.rcswitchcontrol.di.dagger
 import com.tunjid.rcswitchcontrol.models.Broadcast
 import com.tunjid.rcswitchcontrol.navigation.AppNavigator
-import com.tunjid.rcswitchcontrol.client.ClientNsdService
+import com.tunjid.rcswitchcontrol.onboarding.StartFragment
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
 
 class MainActivity : AppCompatActivity(),
-    GlobalUiHost,
-    Navigator.Controller {
+        GlobalUiHost,
+        Navigator.Controller {
 
     override val navigator: AppNavigator by lazy { AppNavigator(this) }
     private val binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
@@ -57,8 +57,6 @@ class MainActivity : AppCompatActivity(),
 
         window.statusBarColor = ContextCompat.getColor(this, R.color.transparent)
         if (ServerNsdService.isServer) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-
-//        uiState = if (savedInstanceState == null) UiState.freshState() else savedInstanceState.getParcelable(UI_STATE)!!
 
         val startIntent = intent
 

@@ -1,4 +1,4 @@
-package com.tunjid.rcswitchcontrol.models
+package com.tunjid.rcswitchcontrol.control
 
 import android.content.res.Resources
 import androidx.fragment.app.Fragment
@@ -22,6 +22,9 @@ import com.tunjid.rcswitchcontrol.common.deserializeList
 import com.tunjid.rcswitchcontrol.fragments.DevicesFragment
 import com.tunjid.rcswitchcontrol.fragments.HostFragment
 import com.tunjid.rcswitchcontrol.fragments.RecordFragment
+import com.tunjid.rcswitchcontrol.models.Device
+import com.tunjid.rcswitchcontrol.models.Record
+import com.tunjid.rcswitchcontrol.models.foldAttributes
 import com.tunjid.rcswitchcontrol.utils.Tab
 import io.reactivex.Flowable
 import io.reactivex.rxkotlin.Flowables

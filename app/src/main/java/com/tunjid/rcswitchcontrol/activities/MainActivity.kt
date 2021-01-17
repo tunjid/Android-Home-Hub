@@ -36,13 +36,13 @@ import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.databinding.ActivityMainBinding
 import com.tunjid.rcswitchcontrol.di.dagger
-import com.tunjid.rcswitchcontrol.fragments.ControlFragment
+import com.tunjid.rcswitchcontrol.control.ControlFragment
 import com.tunjid.rcswitchcontrol.fragments.LandscapeControlFragment
 import com.tunjid.rcswitchcontrol.fragments.StartFragment
 import com.tunjid.rcswitchcontrol.models.Broadcast
 import com.tunjid.rcswitchcontrol.navigation.AppNavigator
-import com.tunjid.rcswitchcontrol.services.ClientNsdService
-import com.tunjid.rcswitchcontrol.services.ServerNsdService
+import com.tunjid.rcswitchcontrol.client.ClientNsdService
+import com.tunjid.rcswitchcontrol.server.ServerNsdService
 
 class MainActivity : AppCompatActivity(),
     GlobalUiHost,

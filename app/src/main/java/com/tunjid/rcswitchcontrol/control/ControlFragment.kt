@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.fragments
+package com.tunjid.rcswitchcontrol.control
 
 import android.content.Intent
 import android.os.Bundle
@@ -58,18 +58,12 @@ import com.tunjid.rcswitchcontrol.dialogfragments.GroupDeviceDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.RenameSwitchDialogFragment
 import com.tunjid.rcswitchcontrol.dialogfragments.ZigBeeArgumentDialogFragment
 import com.tunjid.rcswitchcontrol.models.Broadcast
-import com.tunjid.rcswitchcontrol.models.ControlState
 import com.tunjid.rcswitchcontrol.models.Device
-import com.tunjid.rcswitchcontrol.models.Page
-import com.tunjid.rcswitchcontrol.models.Page.HISTORY
-import com.tunjid.rcswitchcontrol.models.ProtocolKey
+import com.tunjid.rcswitchcontrol.control.Page.HISTORY
 import com.tunjid.rcswitchcontrol.models.editName
-import com.tunjid.rcswitchcontrol.models.isConnected
-import com.tunjid.rcswitchcontrol.models.keys
-import com.tunjid.rcswitchcontrol.services.ServerNsdService
+import com.tunjid.rcswitchcontrol.server.ServerNsdService
 import com.tunjid.rcswitchcontrol.utils.FragmentTabAdapter
 import com.tunjid.rcswitchcontrol.utils.attach
-import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
 
 class ControlFragment : Fragment(R.layout.fragment_control), ZigBeeArgumentDialogFragment.ZigBeeArgsListener {
 

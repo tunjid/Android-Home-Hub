@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.viewmodels
+package com.tunjid.rcswitchcontrol.control
 
 import android.content.Context
 import androidx.lifecycle.LiveData
@@ -37,12 +37,9 @@ import com.tunjid.rcswitchcontrol.common.toLiveData
 import com.tunjid.rcswitchcontrol.di.AppBroadcasts
 import com.tunjid.rcswitchcontrol.di.AppContext
 import com.tunjid.rcswitchcontrol.models.Broadcast
-import com.tunjid.rcswitchcontrol.models.ControlState
 import com.tunjid.rcswitchcontrol.models.Device
-import com.tunjid.rcswitchcontrol.models.Page
-import com.tunjid.rcswitchcontrol.models.controlState
-import com.tunjid.rcswitchcontrol.services.ClientNsdService
-import com.tunjid.rcswitchcontrol.services.ServerNsdService
+import com.tunjid.rcswitchcontrol.client.ClientNsdService
+import com.tunjid.rcswitchcontrol.server.ServerNsdService
 import io.reactivex.disposables.CompositeDisposable
 import javax.inject.Inject
 

@@ -45,7 +45,7 @@ import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.di.Dagger
 import com.tunjid.rcswitchcontrol.services.LifecycleViewModelStoreProvider
-import com.tunjid.rcswitchcontrol.services.ServerNsdService
+import com.tunjid.rcswitchcontrol.server.ServerNsdService
 import com.tunjid.rcswitchcontrol.viewmodels.NsdScanViewModel
 
 /**

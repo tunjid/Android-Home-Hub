@@ -30,8 +30,8 @@ import com.tunjid.androidx.core.components.services.HardServiceConnection
 import com.tunjid.rcswitchcontrol.di.AppBroadcaster
 import com.tunjid.rcswitchcontrol.di.AppContext
 import com.tunjid.rcswitchcontrol.models.Broadcast
-import com.tunjid.rcswitchcontrol.services.ClientNsdService
-import com.tunjid.rcswitchcontrol.services.ServerNsdService
+import com.tunjid.rcswitchcontrol.client.ClientNsdService
+import com.tunjid.rcswitchcontrol.server.ServerNsdService
 import io.reactivex.disposables.CompositeDisposable
 import javax.inject.Inject
 

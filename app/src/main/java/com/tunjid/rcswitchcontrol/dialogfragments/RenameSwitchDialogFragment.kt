@@ -33,7 +33,7 @@ import com.rcswitchcontrol.protocols.Name
 import com.rcswitchcontrol.protocols.renamePayload
 import com.tunjid.androidx.core.delegates.fragmentArgs
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
+import com.tunjid.rcswitchcontrol.control.ControlViewModel
 
 @SuppressLint("InflateParams")
 class RenameSwitchDialogFragment : DialogFragment() {

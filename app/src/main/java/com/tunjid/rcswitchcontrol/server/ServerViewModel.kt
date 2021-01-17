@@ -1,4 +1,4 @@
-package com.tunjid.rcswitchcontrol.services
+package com.tunjid.rcswitchcontrol.server
 
 import android.content.Context
 import android.net.nsd.NsdServiceInfo
@@ -8,6 +8,7 @@ import com.jakewharton.rx.replayingShare
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.io.ConsoleWriter
 import com.tunjid.androidx.communications.nsd.NsdHelper
+import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.common.composeOnIo
 import com.tunjid.rcswitchcontrol.common.filterIsInstance
 import com.tunjid.rcswitchcontrol.common.fromBlockingCallable

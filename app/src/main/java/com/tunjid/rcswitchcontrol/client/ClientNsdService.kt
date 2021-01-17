@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.services
+package com.tunjid.rcswitchcontrol.client
 
 import android.app.Notification
 import android.app.PendingIntent
@@ -36,10 +36,6 @@ import com.tunjid.androidx.core.components.services.SelfBindingService
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.activities.MainActivity
-import com.tunjid.rcswitchcontrol.client.ClientViewModel
-import com.tunjid.rcswitchcontrol.client.Input
-import com.tunjid.rcswitchcontrol.client.State
-import com.tunjid.rcswitchcontrol.client.Status
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.di.viewModelFactory
 import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService
@@ -59,7 +55,7 @@ class ClientNsdService : LifecycleService(), SelfBindingService<ClientNsdService
         viewModel.state.apply {
             observe(service, ::onStateChanged)
             mapDistinct(State::serviceName).observe(service) {
-                it?.let(::lastConnectedService::set)
+                it?.let(Companion::lastConnectedService::set)
             }
             mapDistinct(State::isStopped).observe(service) {
                 if (it) stopSelf()
@@ -127,7 +123,7 @@ class ClientNsdService : LifecycleService(), SelfBindingService<ClientNsdService
         const val NOTIFICATION_ID = 2
         const val NSD_SERVICE_INFO_KEY = "current Service key"
 
-        private const val LAST_CONNECTED_SERVICE = "com.tunjid.rcswitchcontrol.services.ClientNsdService.last connected service"
+        private const val LAST_CONNECTED_SERVICE = "com.tunjid.rcswitchcontrol.client.ClientNsdService.last connected service"
 
         var lastConnectedService: String?
             get() = App.preferences.getString(LAST_CONNECTED_SERVICE, null)

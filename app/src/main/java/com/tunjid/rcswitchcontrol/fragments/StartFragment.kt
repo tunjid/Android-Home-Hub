@@ -31,9 +31,10 @@ import com.tunjid.androidx.navigation.activityNavigatorController
 import com.tunjid.globalui.UiState
 import com.tunjid.globalui.uiState
 import com.tunjid.rcswitchcontrol.R
+import com.tunjid.rcswitchcontrol.control.ControlFragment
 import com.tunjid.rcswitchcontrol.databinding.FragmentStartBinding
 import com.tunjid.rcswitchcontrol.navigation.AppNavigator
-import com.tunjid.rcswitchcontrol.services.ServerNsdService
+import com.tunjid.rcswitchcontrol.server.ServerNsdService
 
 class StartFragment : Fragment(R.layout.fragment_start) {
 

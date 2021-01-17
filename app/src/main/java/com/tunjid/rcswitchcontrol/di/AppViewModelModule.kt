@@ -31,8 +31,8 @@ import com.tunjid.fingergestures.di.ViewModelFactory
 import com.tunjid.fingergestures.di.ViewModelKey
 import com.tunjid.rcswitchcontrol.client.ClientViewModel
 import com.tunjid.rcswitchcontrol.services.LifecycleViewModelStoreProvider
-import com.tunjid.rcswitchcontrol.services.ServerViewModel
-import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
+import com.tunjid.rcswitchcontrol.server.ServerViewModel
+import com.tunjid.rcswitchcontrol.control.ControlViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.HostViewModel
 import com.tunjid.rcswitchcontrol.viewmodels.NsdScanViewModel
 import dagger.Binds

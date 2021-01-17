@@ -33,7 +33,6 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
 import com.tunjid.androidx.core.text.scale
 import com.tunjid.androidx.navigation.activityNavigatorController
 import com.tunjid.androidx.recyclerview.listAdapterOf
@@ -49,7 +48,8 @@ import com.tunjid.rcswitchcontrol.databinding.FragmentNsdScanBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderNsdListBinding
 import com.tunjid.rcswitchcontrol.di.viewModelFactory
 import com.tunjid.rcswitchcontrol.navigation.AppNavigator
-import com.tunjid.rcswitchcontrol.services.ClientNsdService
+import com.tunjid.rcswitchcontrol.client.ClientNsdService
+import com.tunjid.rcswitchcontrol.control.ControlFragment
 import com.tunjid.rcswitchcontrol.viewmodels.NSDState
 import com.tunjid.rcswitchcontrol.viewmodels.NsdItem
 import com.tunjid.rcswitchcontrol.viewmodels.NsdScanViewModel

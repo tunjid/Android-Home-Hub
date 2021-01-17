@@ -46,15 +46,15 @@ import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderCommandBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderHistoryBinding
 import com.tunjid.rcswitchcontrol.di.activityViewModelFactory
-import com.tunjid.rcswitchcontrol.models.ControlState
-import com.tunjid.rcswitchcontrol.models.ProtocolKey
+import com.tunjid.rcswitchcontrol.control.ControlState
+import com.tunjid.rcswitchcontrol.control.ProtocolKey
 import com.tunjid.rcswitchcontrol.models.Record
 import com.tunjid.rcswitchcontrol.models.payload
 import com.tunjid.rcswitchcontrol.viewholders.bind
 import com.tunjid.rcswitchcontrol.viewholders.bindCommand
 import com.tunjid.rcswitchcontrol.viewholders.commandViewHolder
 import com.tunjid.rcswitchcontrol.viewholders.historyViewHolder
-import com.tunjid.rcswitchcontrol.viewmodels.ControlViewModel
+import com.tunjid.rcswitchcontrol.control.ControlViewModel
 
 sealed class RecordFragment : Fragment(R.layout.fragment_list) {
 

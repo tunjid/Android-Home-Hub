@@ -70,11 +70,11 @@
         </activity>
 
         <service
-            android:name=".services.ServerNsdService"
+            android:name=".server.ServerNsdService"
             android:enabled="true"
             android:label="@string/server_nsd_service" />
         <service
-            android:name=".services.ClientNsdService"
+            android:name=".client.ClientNsdService"
             android:enabled="true"
             android:label="@string/client_nsd_service" />
 

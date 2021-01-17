@@ -69,17 +69,7 @@ fun controlState(
 ): Flowable<ControlState> = Flowables.combineLatest(
     status,
     payloads
-).scan(ControlState()) { state, (connectionStatus, payload) ->
-    val key = payload.key
-    val isNew = !state.commands.keys.contains(key)
-
-    state.copy(isNew = isNew, connectionStatus = connectionStatus, commandInfo = payload.extractCommandInfo)
-        .reduceCommands(payload)
-        .reduceDeviceName(payload.deviceName)
-        .reduceHistory(payload.extractRecord)
-        .reduceDevices(payload.extractDevices)
-        .reduceZigBeeAttributes(payload.extractDeviceAttributes)
-}
+).scan(ControlState(), ControlState::reduce)
     .subscribeOn(Schedulers.single())
     .replayingShare()
 
@@ -87,6 +77,19 @@ val ControlState.keys
     get() = commands.keys
         .sortedBy(CommsProtocol.Key::value)
         .map(::ProtocolKey)
+
+private fun ControlState.reduce(pair: Pair<Status, Payload>): ControlState {
+    val (connectionStatus, payload) = pair
+    val key = payload.key
+    val isNew = !commands.keys.contains(key)
+
+    return copy(isNew = isNew, connectionStatus = connectionStatus, commandInfo = payload.extractCommandInfo)
+        .reduceCommands(payload)
+        .reduceDeviceName(payload.deviceName)
+        .reduceHistory(payload.extractRecord)
+        .reduceDevices(payload.extractDevices)
+        .reduceZigBeeAttributes(payload.extractDeviceAttributes)
+}
 
 private fun ControlState.reduceDevices(fetched: List<Device>?) = when {
     fetched != null -> copy(devices = (fetched + devices)

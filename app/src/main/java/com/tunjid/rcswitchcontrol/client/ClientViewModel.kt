@@ -10,6 +10,7 @@ import com.tunjid.androidx.communications.nsd.NsdHelper
 import com.tunjid.rcswitchcontrol.common.Mutation
 import com.tunjid.rcswitchcontrol.common.Mutator
 import com.tunjid.rcswitchcontrol.common.filterIsInstance
+import com.tunjid.rcswitchcontrol.common.fromBlockingCallable
 import com.tunjid.rcswitchcontrol.common.onErrorComplete
 import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.common.toLiveData
@@ -20,6 +21,7 @@ import com.tunjid.rcswitchcontrol.services.hopSchedulers
 import io.reactivex.Flowable
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.processors.PublishProcessor
+import io.reactivex.rxkotlin.Flowables
 import io.reactivex.rxkotlin.addTo
 import java.io.PrintWriter
 import java.net.Socket
@@ -151,7 +153,7 @@ private fun NsdServiceInfo.outputs(): Flowable<Output> =
         val outWriter = NsdHelper.createPrintWriter(socket)
         val reader = NsdHelper.createBufferedReader(socket)
 
-        Flowable.fromCallable<Output> {
+        Flowables.fromBlockingCallable<Output> {
             val input = reader.readLine()
             if (input == "Bye.") socket.close()
             Output.Response(data = input)

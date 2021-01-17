@@ -6,16 +6,21 @@ import androidx.lifecycle.LiveDataReactiveStreams
 import androidx.lifecycle.Transformations
 import io.reactivex.Flowable
 import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.annotations.BackpressureKind
+import io.reactivex.annotations.BackpressureSupport
+import io.reactivex.annotations.CheckReturnValue
+import io.reactivex.annotations.SchedulerSupport
 import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.rxkotlin.Flowables
 
 fun <T> Flowable<T>.toLiveData(): LiveData<T> = MainThreadLiveData(this)
 
 fun <T> Flowable<T>.debug(tag: String): Flowable<T> =
-        doOnSubscribe { Log.i(tag, "Subscribed") }
-                .doOnNext { Log.i(tag, "Saw $it") }
-                .doOnCancel { Log.i(tag, "Canceled") }
-                .doOnTerminate { Log.i(tag, "Terminated") }
-                .doOnError { Log.i(tag, "Error", it) }
+    doOnSubscribe { Log.i(tag, "Subscribed") }
+        .doOnNext { Log.i(tag, "Saw $it") }
+        .doOnCancel { Log.i(tag, "Canceled") }
+        .doOnTerminate { Log.i(tag, "Terminated") }
+        .doOnError { Log.i(tag, "Error", it) }
 
 fun <T, R> LiveData<T>.map(mapper: (T) -> R) = Transformations.map(this, mapper)
 
@@ -24,9 +29,9 @@ fun <T> LiveData<T>.distinctUntilChanged() = Transformations.distinctUntilChange
 inline fun <reified T> Flowable<in T>.filterIsInstance(): Flowable<T> = filter { it is T }.cast(T::class.java)
 
 fun <T, R> LiveData<T>.mapDistinct(mapper: (T) -> R): LiveData<R> =
-        Transformations.distinctUntilChanged(
-                Transformations.map(this, mapper)
-        )
+    Transformations.distinctUntilChanged(
+        Transformations.map(this, mapper)
+    )
 
 /**
  * [LiveDataReactiveStreams.fromPublisher] uses [LiveData.postValue] internally which swallows
@@ -49,3 +54,20 @@ private class MainThreadLiveData<T>(val source: Flowable<T>) : LiveData<T>() {
 
 fun <T> Flowable<T>.onErrorComplete(): Flowable<T> =
     onErrorResumeNext(Flowable.empty())
+
+private data class Optional<T>(val item: T?)
+
+@CheckReturnValue
+@Suppress("unused")
+@SchedulerSupport(SchedulerSupport.NONE)
+@BackpressureSupport(BackpressureKind.FULL)
+fun <T> Flowables.fromBlockingCallable(blockingCall: () -> T): Flowable<T> =
+    Flowable.fromCallable {
+        try {
+            Optional(blockingCall())
+        } catch (e: Exception) {
+            Optional(null)
+        }
+    }
+        .filter { it.item != null }
+        .map { it.item!! }

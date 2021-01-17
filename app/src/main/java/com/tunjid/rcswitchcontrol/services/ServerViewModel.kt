@@ -9,6 +9,7 @@ import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.io.ConsoleWriter
 import com.tunjid.androidx.communications.nsd.NsdHelper
 import com.tunjid.rcswitchcontrol.common.filterIsInstance
+import com.tunjid.rcswitchcontrol.common.fromBlockingCallable
 import com.tunjid.rcswitchcontrol.common.onErrorComplete
 import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.common.toLiveData
@@ -172,8 +173,8 @@ private fun Context.registerServer(name: String): Flowable<Output.Server> =
     }
 
 private fun ServerSocket.clients(): Flowable<Socket> =
-    Flowable
-        .fromCallable { accept() }
+    Flowables
+        .fromBlockingCallable { accept() }
         .repeatUntil(::isClosed)
         .doFinally(::close)
         .onErrorComplete()
@@ -187,7 +188,7 @@ private fun CommsProtocol.outputs(socket: Socket): Flowable<Output.Client> =
         // Initiate conversation with client
         outWriter.println(processInput(CommsProtocol.pingAction.value).serialize())
 
-        Flowable.fromCallable<Output.Client> {
+        Flowables.fromBlockingCallable<Output.Client> {
             val input = reader.readLine()
             val output = processInput(input).serialize()
             if (output == "Bye.") socket.close()

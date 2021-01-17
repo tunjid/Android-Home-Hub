@@ -17,7 +17,7 @@ import com.tunjid.rcswitchcontrol.common.toLiveData
 import com.tunjid.rcswitchcontrol.di.AppBroadcaster
 import com.tunjid.rcswitchcontrol.di.AppBroadcasts
 import com.tunjid.rcswitchcontrol.models.Broadcast
-import com.tunjid.rcswitchcontrol.services.hopSchedulers
+import com.tunjid.rcswitchcontrol.common.composeOnIo
 import io.reactivex.Flowable
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.processors.PublishProcessor
@@ -77,7 +77,7 @@ class ClientViewModel @Inject constructor(
 
     init {
         val inputs = processor
-            .hopSchedulers()
+            .composeOnIo()
             .replayingShare()
 
         val outputs = inputs
@@ -166,7 +166,7 @@ private fun NsdServiceInfo.outputs(): Flowable<Output> =
     }
         .onErrorComplete()
         .startWith(Output.Connection.Connecting(serviceName))
-        .hopSchedulers()
+        .composeOnIo()
 
 private fun Output.Connection.mutation(): Mutation<State> =
     Mutation {

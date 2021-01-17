@@ -12,6 +12,7 @@ import io.reactivex.annotations.CheckReturnValue
 import io.reactivex.annotations.SchedulerSupport
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.rxkotlin.Flowables
+import io.reactivex.schedulers.Schedulers
 
 fun <T> Flowable<T>.toLiveData(): LiveData<T> = MainThreadLiveData(this)
 
@@ -71,3 +72,6 @@ fun <T> Flowables.fromBlockingCallable(blockingCall: () -> T): Flowable<T> =
     }
         .filter { it.item != null }
         .map { it.item!! }
+
+fun <T> Flowable<T>.composeOnIo(): Flowable<T> =
+    compose { it.subscribeOn(Schedulers.io()).observeOn(Schedulers.io()) }

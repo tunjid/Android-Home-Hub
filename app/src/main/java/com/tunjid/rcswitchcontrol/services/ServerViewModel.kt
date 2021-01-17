@@ -10,6 +10,7 @@ import com.rcswitchcontrol.protocols.io.ConsoleWriter
 import com.tunjid.androidx.communications.nsd.NsdHelper
 import com.tunjid.rcswitchcontrol.common.filterIsInstance
 import com.tunjid.rcswitchcontrol.common.fromBlockingCallable
+import com.tunjid.rcswitchcontrol.common.composeOnIo
 import com.tunjid.rcswitchcontrol.common.onErrorComplete
 import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.common.toLiveData
@@ -24,7 +25,6 @@ import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.processors.PublishProcessor
 import io.reactivex.rxkotlin.Flowables
 import io.reactivex.rxkotlin.addTo
-import io.reactivex.schedulers.Schedulers
 import java.io.PrintWriter
 import java.net.ServerSocket
 import java.net.Socket
@@ -79,7 +79,8 @@ class ServerViewModel @Inject constructor(
 
     init {
         val inputs = processor
-            .hopSchedulers()
+            .onBackpressureDrop()
+            .composeOnIo()
             .replayingShare()
 
         val serverOutputs: Flowable<Output.Server> = inputs
@@ -116,6 +117,7 @@ class ServerViewModel @Inject constructor(
                 .filterIsInstance<Response>()
                 .map(Response::data)
             )
+            .composeOnIo()
             .replayingShare()
 
         val backingState = Flowables.combineLatest(
@@ -178,7 +180,7 @@ private fun ServerSocket.clients(): Flowable<Socket> =
         .repeatUntil(::isClosed)
         .doFinally(::close)
         .onErrorComplete()
-        .hopSchedulers()
+        .composeOnIo()
 
 private fun CommsProtocol.outputs(socket: Socket): Flowable<Output.Client> =
     Flowable.defer {
@@ -201,7 +203,4 @@ private fun CommsProtocol.outputs(socket: Socket): Flowable<Output.Client> =
             .concatWith(Flowable.just(Output.Client.Status.Dropped(port = socket.port, writer = outWriter)))
     }
         .onErrorComplete()
-        .hopSchedulers()
-
-fun <T> Flowable<T>.hopSchedulers(): Flowable<T> =
-    compose { it.subscribeOn(Schedulers.io()).observeOn(Schedulers.io()) }
+        .composeOnIo()

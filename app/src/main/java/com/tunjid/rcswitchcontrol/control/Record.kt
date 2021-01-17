@@ -22,42 +22,29 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.dialogfragments
+package com.tunjid.rcswitchcontrol.control
 
-import android.annotation.SuppressLint
-import android.app.Dialog
-import android.os.Bundle
-import androidx.fragment.app.DialogFragment
-import com.tunjid.rcswitchcontrol.R
+import com.rcswitchcontrol.protocols.CommsProtocol
+import com.rcswitchcontrol.protocols.models.Payload
+import com.tunjid.androidx.recyclerview.diff.Differentiable
 
+sealed class Record(
+        open val key: CommsProtocol.Key,
+        open val entry: String
+) : Differentiable {
+    override val diffId: String
+        get() = key.value
 
-@SuppressLint("InflateParams")
-class NameServiceDialogFragment : DialogFragment() {
+    data class Command(
+            override val key: CommsProtocol.Key,
+            val command: CommsProtocol.Action
+    ): Record(key = key, entry = command.value)
 
-    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog = editTextDialog { editText, builder ->
-        val nameListener = parentFragment as? ServiceNameListener
-
-        builder
-                .setTitle(R.string.name_nsd_service)
-                .setPositiveButton(R.string.ok) { _, _ ->
-                    nameListener?.onServiceNamed(editText.text.toString())
-                    dismiss()
-                }
-    }
-
-
-    interface ServiceNameListener {
-        fun onServiceNamed(name: String)
-    }
-
-    companion object {
-
-        fun newInstance(): NameServiceDialogFragment {
-
-            val fragment = NameServiceDialogFragment()
-            val args = Bundle()
-            fragment.arguments = args
-            return fragment
-        }
-    }
+    data class Response(
+            override val key: CommsProtocol.Key,
+            override val entry: String,
+    ): Record(key = key, entry = entry)
 }
+
+val Record.Command.payload
+    get() = Payload(key = key, action = command)

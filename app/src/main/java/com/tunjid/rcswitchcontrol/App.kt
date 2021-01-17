@@ -46,7 +46,7 @@ import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.di.Dagger
 import com.tunjid.rcswitchcontrol.services.LifecycleViewModelStoreProvider
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
-import com.tunjid.rcswitchcontrol.viewmodels.NsdScanViewModel
+import com.tunjid.rcswitchcontrol.onboarding.NsdScanViewModel
 
 /**
  * App Singleton.

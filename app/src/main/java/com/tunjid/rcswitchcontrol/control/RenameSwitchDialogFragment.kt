@@ -22,37 +22,38 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.dialogfragments
+package com.tunjid.rcswitchcontrol.control
 
 import android.annotation.SuppressLint
 import android.app.Dialog
 import android.os.Bundle
 import androidx.fragment.app.DialogFragment
+import androidx.fragment.app.activityViewModels
+import com.rcswitchcontrol.protocols.Name
+import com.rcswitchcontrol.protocols.renamePayload
+import com.tunjid.androidx.core.delegates.fragmentArgs
 import com.tunjid.rcswitchcontrol.R
 
-
 @SuppressLint("InflateParams")
-class GroupDeviceDialogFragment : DialogFragment() {
+class RenameSwitchDialogFragment : DialogFragment() {
+
+    private var name by fragmentArgs<Name>()
+    private val viewModel by activityViewModels<ControlViewModel>()
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog = editTextDialog { editText, builder ->
-        val listener = parentFragment as? GroupNameListener
+        editText.setText(name.value)
 
         builder
-                .setTitle(R.string.zigbee_create_group)
-                .setPositiveButton(R.string.zigbee_add_group) { _, _ ->
-                    listener?.onGroupNamed(editText.text)
-                    dismiss()
-                }
-    }
-
-    interface GroupNameListener {
-        fun onGroupNamed(groupName: CharSequence)
+            .setTitle(R.string.rename_switch)
+            .setPositiveButton(R.string.rename) { _, _ ->
+                viewModel.dispatchPayload(name.copy(value = editText.text.toString()).renamePayload)
+                dismiss()
+            }
     }
 
     companion object {
-
-        val newInstance: GroupDeviceDialogFragment
-            get() = GroupDeviceDialogFragment().apply { arguments = Bundle() }
-
+        fun newInstance(name: Name): RenameSwitchDialogFragment = RenameSwitchDialogFragment().apply {
+            this.name = name
+        }
     }
 }

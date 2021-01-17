@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.fragments
+package com.tunjid.rcswitchcontrol.onboarding
 
 import android.os.Bundle
 import android.view.View

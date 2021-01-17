@@ -35,9 +35,9 @@ import com.tunjid.androidx.recyclerview.viewbinding.viewHolderFrom
 import com.tunjid.androidx.view.util.spring
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
+import com.tunjid.rcswitchcontrol.control.Record
 import com.tunjid.rcswitchcontrol.databinding.ViewholderCommandBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderHistoryBinding
-import com.tunjid.rcswitchcontrol.models.Record
 
 
 fun ViewGroup.historyViewHolder() = viewHolderFrom(ViewholderHistoryBinding::inflate).apply {

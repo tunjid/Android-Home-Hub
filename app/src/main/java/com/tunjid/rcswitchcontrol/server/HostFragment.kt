@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.fragments
+package com.tunjid.rcswitchcontrol.server
 
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.content.Intent
@@ -32,11 +32,10 @@ import androidx.fragment.app.Fragment
 import com.tunjid.globalui.uiState
 import com.tunjid.globalui.updatePartial
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.activities.MainActivity
+import com.tunjid.rcswitchcontrol.MainActivity
 import com.tunjid.rcswitchcontrol.databinding.FragmentHostBinding
 import com.tunjid.rcswitchcontrol.di.activityViewModelFactory
-import com.tunjid.rcswitchcontrol.dialogfragments.NameServiceDialogFragment
-import com.tunjid.rcswitchcontrol.viewmodels.HostViewModel
+import com.tunjid.rcswitchcontrol.control.NameServiceDialogFragment
 
 class HostFragment : Fragment(R.layout.fragment_host),
     NameServiceDialogFragment.ServiceNameListener {

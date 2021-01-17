@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.activities
+package com.tunjid.rcswitchcontrol
 
 import android.os.Bundle
 import android.view.WindowManager
@@ -32,13 +32,11 @@ import com.tunjid.androidx.core.components.services.HardServiceConnection
 import com.tunjid.androidx.navigation.Navigator
 import com.tunjid.globalui.GlobalUiDriver
 import com.tunjid.globalui.GlobalUiHost
-import com.tunjid.rcswitchcontrol.App
-import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.databinding.ActivityMainBinding
 import com.tunjid.rcswitchcontrol.di.dagger
 import com.tunjid.rcswitchcontrol.control.ControlFragment
-import com.tunjid.rcswitchcontrol.fragments.LandscapeControlFragment
-import com.tunjid.rcswitchcontrol.fragments.StartFragment
+import com.tunjid.rcswitchcontrol.control.LandscapeControlFragment
+import com.tunjid.rcswitchcontrol.onboarding.StartFragment
 import com.tunjid.rcswitchcontrol.models.Broadcast
 import com.tunjid.rcswitchcontrol.navigation.AppNavigator
 import com.tunjid.rcswitchcontrol.client.ClientNsdService

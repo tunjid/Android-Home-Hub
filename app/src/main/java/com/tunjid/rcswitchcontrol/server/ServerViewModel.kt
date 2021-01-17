@@ -19,7 +19,7 @@ import com.tunjid.rcswitchcontrol.di.AppBroadcaster
 import com.tunjid.rcswitchcontrol.di.AppBroadcasts
 import com.tunjid.rcswitchcontrol.di.AppContext
 import com.tunjid.rcswitchcontrol.models.Broadcast
-import com.tunjid.rcswitchcontrol.nsd.protocols.ProxyProtocol
+import com.tunjid.rcswitchcontrol.protocols.ProxyProtocol
 import io.reactivex.BackpressureStrategy
 import io.reactivex.Flowable
 import io.reactivex.disposables.CompositeDisposable

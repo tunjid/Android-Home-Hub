@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.viewmodels
+package com.tunjid.rcswitchcontrol.server
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
@@ -31,7 +31,6 @@ import com.tunjid.rcswitchcontrol.di.AppBroadcaster
 import com.tunjid.rcswitchcontrol.di.AppContext
 import com.tunjid.rcswitchcontrol.models.Broadcast
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
-import com.tunjid.rcswitchcontrol.server.ServerNsdService
 import io.reactivex.disposables.CompositeDisposable
 import javax.inject.Inject
 

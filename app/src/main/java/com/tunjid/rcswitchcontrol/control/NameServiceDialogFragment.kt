@@ -22,39 +22,42 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.dialogfragments
+package com.tunjid.rcswitchcontrol.control
 
 import android.annotation.SuppressLint
 import android.app.Dialog
 import android.os.Bundle
 import androidx.fragment.app.DialogFragment
-import androidx.fragment.app.activityViewModels
-import com.rcswitchcontrol.protocols.Name
-import com.rcswitchcontrol.protocols.renamePayload
-import com.tunjid.androidx.core.delegates.fragmentArgs
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.control.ControlViewModel
+
 
 @SuppressLint("InflateParams")
-class RenameSwitchDialogFragment : DialogFragment() {
-
-    private var name by fragmentArgs<Name>()
-    private val viewModel by activityViewModels<ControlViewModel>()
+class NameServiceDialogFragment : DialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog = editTextDialog { editText, builder ->
-        editText.setText(name.value)
+        val nameListener = parentFragment as? ServiceNameListener
 
         builder
-            .setTitle(R.string.rename_switch)
-            .setPositiveButton(R.string.rename) { _, _ ->
-                viewModel.dispatchPayload(name.copy(value = editText.text.toString()).renamePayload)
-                dismiss()
-            }
+                .setTitle(R.string.name_nsd_service)
+                .setPositiveButton(R.string.ok) { _, _ ->
+                    nameListener?.onServiceNamed(editText.text.toString())
+                    dismiss()
+                }
+    }
+
+
+    interface ServiceNameListener {
+        fun onServiceNamed(name: String)
     }
 
     companion object {
-        fun newInstance(name: Name): RenameSwitchDialogFragment = RenameSwitchDialogFragment().apply {
-            this.name = name
+
+        fun newInstance(): NameServiceDialogFragment {
+
+            val fragment = NameServiceDialogFragment()
+            val args = Bundle()
+            fragment.arguments = args
+            return fragment
         }
     }
 }

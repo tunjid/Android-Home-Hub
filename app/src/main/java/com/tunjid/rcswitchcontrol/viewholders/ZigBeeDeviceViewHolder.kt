@@ -34,22 +34,23 @@ import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
 import com.rcswitchcontrol.zigbee.models.ZigBeeInput
 import com.rcswitchcontrol.zigbee.models.ZigBeeNode
 import com.tunjid.androidx.recyclerview.viewbinding.BindingViewHolder
+import com.tunjid.androidx.recyclerview.viewbinding.viewHolderDelegate
 import com.tunjid.androidx.recyclerview.viewbinding.viewHolderFrom
 import com.tunjid.rcswitchcontrol.R
+import com.tunjid.rcswitchcontrol.control.Device
 import com.tunjid.rcswitchcontrol.databinding.ViewholderZigbeeDeviceBinding
-import com.tunjid.rcswitchcontrol.dialogfragments.Throttle
-import com.tunjid.rcswitchcontrol.dialogfragments.throttleColorChanges
-import com.tunjid.rcswitchcontrol.models.Device
-import com.tunjid.rcswitchcontrol.models.color
-import com.tunjid.rcswitchcontrol.models.isOn
-import com.tunjid.rcswitchcontrol.models.level
+import com.tunjid.rcswitchcontrol.control.Throttle
+import com.tunjid.rcswitchcontrol.control.color
+import com.tunjid.rcswitchcontrol.control.isOn
+import com.tunjid.rcswitchcontrol.control.level
+import com.tunjid.rcswitchcontrol.control.throttleColorChanges
 
 interface ZigBeeDeviceListener : DeviceLongClickListener {
     fun send(command: ZigBeeCommand)
 }
 
-private var BindingViewHolder<ViewholderZigbeeDeviceBinding>.device by BindingViewHolder.Prop<Device.ZigBee>()
-private var BindingViewHolder<ViewholderZigbeeDeviceBinding>.listener by BindingViewHolder.Prop<ZigBeeDeviceListener>()
+private var BindingViewHolder<ViewholderZigbeeDeviceBinding>.device by viewHolderDelegate<Device.ZigBee>()
+private var BindingViewHolder<ViewholderZigbeeDeviceBinding>.listener by viewHolderDelegate<ZigBeeDeviceListener>()
 private val BindingViewHolder<ViewholderZigbeeDeviceBinding>.diagnosticOptions
     get() = listOf(
             R.string.zigbee_diagnostic_node to ZigBeeInput.Node,

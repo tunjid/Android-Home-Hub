@@ -1,4 +1,4 @@
-package com.tunjid.rcswitchcontrol.models
+package com.tunjid.rcswitchcontrol.control
 
 import androidx.core.graphics.ColorUtils
 import com.rcswitchcontrol.protocols.CommonDeviceActions

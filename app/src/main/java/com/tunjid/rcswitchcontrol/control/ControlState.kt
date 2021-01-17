@@ -19,12 +19,7 @@ import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
 import com.tunjid.rcswitchcontrol.client.Status
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.deserializeList
-import com.tunjid.rcswitchcontrol.fragments.DevicesFragment
-import com.tunjid.rcswitchcontrol.fragments.HostFragment
-import com.tunjid.rcswitchcontrol.fragments.RecordFragment
-import com.tunjid.rcswitchcontrol.models.Device
-import com.tunjid.rcswitchcontrol.models.Record
-import com.tunjid.rcswitchcontrol.models.foldAttributes
+import com.tunjid.rcswitchcontrol.server.HostFragment
 import com.tunjid.rcswitchcontrol.utils.Tab
 import io.reactivex.Flowable
 import io.reactivex.rxkotlin.Flowables

@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.nsd.protocols
+package com.tunjid.rcswitchcontrol.protocols
 
 import android.content.res.Resources
 import com.rcswitchcontrol.protocols.CommsProtocol

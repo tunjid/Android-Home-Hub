@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.dialogfragments
+package com.tunjid.rcswitchcontrol.control
 
 import android.annotation.SuppressLint
 import android.app.Dialog

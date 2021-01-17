@@ -22,29 +22,37 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.models
+package com.tunjid.rcswitchcontrol.control
 
-import com.rcswitchcontrol.protocols.CommsProtocol
-import com.rcswitchcontrol.protocols.models.Payload
-import com.tunjid.androidx.recyclerview.diff.Differentiable
+import android.annotation.SuppressLint
+import android.app.Dialog
+import android.os.Bundle
+import androidx.fragment.app.DialogFragment
+import com.tunjid.rcswitchcontrol.R
 
-sealed class Record(
-        open val key: CommsProtocol.Key,
-        open val entry: String
-) : Differentiable {
-    override val diffId: String
-        get() = key.value
 
-    data class Command(
-            override val key: CommsProtocol.Key,
-            val command: CommsProtocol.Action
-    ): Record(key = key, entry = command.value)
+@SuppressLint("InflateParams")
+class GroupDeviceDialogFragment : DialogFragment() {
 
-    data class Response(
-            override val key: CommsProtocol.Key,
-            override val entry: String,
-    ): Record(key = key, entry = entry)
+    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog = editTextDialog { editText, builder ->
+        val listener = parentFragment as? GroupNameListener
+
+        builder
+                .setTitle(R.string.zigbee_create_group)
+                .setPositiveButton(R.string.zigbee_add_group) { _, _ ->
+                    listener?.onGroupNamed(editText.text)
+                    dismiss()
+                }
+    }
+
+    interface GroupNameListener {
+        fun onGroupNamed(groupName: CharSequence)
+    }
+
+    companion object {
+
+        val newInstance: GroupDeviceDialogFragment
+            get() = GroupDeviceDialogFragment().apply { arguments = Bundle() }
+
+    }
 }
-
-val Record.Command.payload
-    get() = Payload(key = key, action = command)

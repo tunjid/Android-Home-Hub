@@ -1,4 +1,4 @@
-package com.tunjid.rcswitchcontrol.fragments
+package com.tunjid.rcswitchcontrol.control
 
 import android.content.Context
 import android.content.res.ColorStateList
@@ -26,10 +26,8 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentControlLandscapeBinding
 import com.tunjid.rcswitchcontrol.di.activityViewModelFactory
-import com.tunjid.rcswitchcontrol.control.ProtocolKey
-import com.tunjid.rcswitchcontrol.control.keys
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
-import com.tunjid.rcswitchcontrol.control.ControlViewModel
+import com.tunjid.rcswitchcontrol.server.HostFragment
 
 class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape), Navigator.TagProvider {
 

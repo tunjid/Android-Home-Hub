@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.viewmodels
+package com.tunjid.rcswitchcontrol.onboarding
 
 import android.content.Context
 import android.content.Intent

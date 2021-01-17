@@ -40,7 +40,7 @@
             android:name="com.google.android.things"
             android:required="false" />
 
-        <activity android:name=".activities.MainActivity">
+        <activity android:name=".MainActivity">
 
             <!-- Launch activity as default from Android Studio -->
             <intent-filter>
@@ -91,7 +91,7 @@
             </intent-filter>
         </receiver>
         <receiver
-            android:name=".nsd.protocols.USBDeviceReceiver"
+            android:name="com.tunjid.rcswitchcontrol.protocols.USBDeviceReceiver"
             android:enabled="true"
             android:exported="true" />
     </application>

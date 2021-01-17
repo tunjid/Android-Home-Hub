@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.fragments
+package com.tunjid.rcswitchcontrol.control
 
 import android.os.Bundle
 import android.util.Log
@@ -55,12 +55,6 @@ import com.tunjid.rcswitchcontrol.databinding.ViewholderPaddingBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderRemoteSwitchBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderZigbeeDeviceBinding
 import com.tunjid.rcswitchcontrol.di.activityViewModelFactory
-import com.tunjid.rcswitchcontrol.dialogfragments.GroupDeviceDialogFragment
-import com.tunjid.rcswitchcontrol.control.ControlState
-import com.tunjid.rcswitchcontrol.models.Device
-import com.tunjid.rcswitchcontrol.models.deletePayload
-import com.tunjid.rcswitchcontrol.models.togglePayload
-import com.tunjid.rcswitchcontrol.models.trifecta
 import com.tunjid.rcswitchcontrol.navigation.AppNavigator
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
@@ -69,7 +63,6 @@ import com.tunjid.rcswitchcontrol.viewholders.bind
 import com.tunjid.rcswitchcontrol.viewholders.performLongClick
 import com.tunjid.rcswitchcontrol.viewholders.rfDeviceDeviceViewHolder
 import com.tunjid.rcswitchcontrol.viewholders.zigbeeDeviceViewHolder
-import com.tunjid.rcswitchcontrol.control.ControlViewModel
 
 class DevicesFragment : Fragment(R.layout.fragment_list),
     DeviceAdapterListener,

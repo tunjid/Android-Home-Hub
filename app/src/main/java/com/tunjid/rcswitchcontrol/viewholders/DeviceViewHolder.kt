@@ -27,7 +27,7 @@ package com.tunjid.rcswitchcontrol.viewholders
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import com.tunjid.androidx.recyclerview.viewbinding.BindingViewHolder
-import com.tunjid.rcswitchcontrol.models.Device
+import com.tunjid.rcswitchcontrol.control.Device
 
 interface DeviceLongClickListener {
     fun onClicked(device: Device)

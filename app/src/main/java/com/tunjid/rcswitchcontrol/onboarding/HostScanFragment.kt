@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.fragments
+package com.tunjid.rcswitchcontrol.onboarding
 
 
 import android.content.Intent
@@ -50,9 +50,6 @@ import com.tunjid.rcswitchcontrol.di.viewModelFactory
 import com.tunjid.rcswitchcontrol.navigation.AppNavigator
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.control.ControlFragment
-import com.tunjid.rcswitchcontrol.viewmodels.NSDState
-import com.tunjid.rcswitchcontrol.viewmodels.NsdItem
-import com.tunjid.rcswitchcontrol.viewmodels.NsdScanViewModel
 
 /**
  * A [androidx.fragment.app.Fragment] listing supported NSD servers

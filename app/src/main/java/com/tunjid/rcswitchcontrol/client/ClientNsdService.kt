@@ -35,7 +35,7 @@ import com.tunjid.androidx.core.components.services.SelfBinder
 import com.tunjid.androidx.core.components.services.SelfBindingService
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.activities.MainActivity
+import com.tunjid.rcswitchcontrol.MainActivity
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.di.viewModelFactory
 import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService

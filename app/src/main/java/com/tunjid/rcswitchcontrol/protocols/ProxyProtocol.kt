@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.nsd.protocols
+package com.tunjid.rcswitchcontrol.protocols
 
 import android.app.PendingIntent
 import android.app.PendingIntent.FLAG_CANCEL_CURRENT
@@ -33,7 +33,6 @@ import android.content.IntentFilter
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.Handler
-import android.util.Log
 import androidx.core.content.getSystemService
 import androidx.core.os.postDelayed
 import com.hoho.android.usbserial.driver.CdcAcmSerialDriver

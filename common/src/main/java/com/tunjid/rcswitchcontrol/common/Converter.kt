@@ -40,7 +40,7 @@ fun <T : Any> List<T>.serializeList(): String = converter.toJson(this).replace("
 fun <T : Any> String.deserialize(kClass: KClass<T>): T = try {
     converter.fromJson(this, kClass.java)
 }catch (exception: Exception) {
-    Log.i("TEST", "Error deserializing ${kClass.java.name}", exception)
+    Log.i("TEST", "Error deserializing ${kClass.java.name}\nvalue:$this\n", exception)
     throw exception
 }
 

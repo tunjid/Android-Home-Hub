@@ -2,7 +2,6 @@ package com.tunjid.rcswitchcontrol.services
 
 import android.content.Context
 import android.net.nsd.NsdServiceInfo
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import com.jakewharton.rx.replayingShare
@@ -46,11 +45,6 @@ data class State(
 
 private data class Response(val data: String) : Input()
 
-private data class Once<T>(private val item: T) {
-    private var gotten = false
-    fun get(): T? = if (gotten) null else item.also { gotten = true }
-}
-
 private sealed class Output {
     sealed class Server(val status: Status) : Output() {
         data class Initialized(val helper: NsdHelper) : Server(Status.Initialized)
@@ -83,7 +77,11 @@ class ServerViewModel @Inject constructor(
     })
 
     init {
-        val serverOutputs: Flowable<Output.Server> = processor
+        val inputs = processor
+            .hopSchedulers()
+            .replayingShare()
+
+        val serverOutputs: Flowable<Output.Server> = inputs
             .filterIsInstance<Input.Restart>()
             .startWith(Input.Restart)
             .switchMap { context.registerServer(ServerNsdService.serviceName) }
@@ -110,14 +108,14 @@ class ServerViewModel @Inject constructor(
             }
             .replayingShare()
 
-        val writes: Flowable<Once<String>> = clientOutputs
+        val writes: Flowable<String> = clientOutputs
             .filterIsInstance<Output.Client.Request>()
             .map(Output.Client.Request::data)
-            .mergeWith(processor
+            .mergeWith(inputs
                 .filterIsInstance<Response>()
                 .map(Response::data)
             )
-            .map(::Once)
+            .replayingShare()
 
         val backingState = Flowables.combineLatest(
             clients.map(Set<PrintWriter>::size),
@@ -131,15 +129,9 @@ class ServerViewModel @Inject constructor(
         state = backingState.toLiveData()
 
         // Kick off
-        Flowables.combineLatest(
-            clients,
-            writes
-        )
-            .subscribe { (writers, write) ->
-                write.get()?.let { data ->
-                    writers.forEach { it.println(data) }
-                }
-            }
+        writes
+            .withLatestFrom(clients, ::Pair)
+            .subscribe { (data, writers) -> writers.forEach { it.println(data) } }
             .addTo(disposable)
 
         registrations
@@ -147,7 +139,6 @@ class ServerViewModel @Inject constructor(
                 ServerNsdService.isServer = true
                 ServerNsdService.serviceName = registration.service.serviceName
                 ClientNsdService.lastConnectedService = registration.service.serviceName
-
                 broadcaster(Broadcast.ClientNsd.StartDiscovery())
             }
             .addTo(disposable)
@@ -193,7 +184,6 @@ private fun CommsProtocol.outputs(socket: Socket): Flowable<Output.Client> =
         val outWriter = NsdHelper.createPrintWriter(socket)
         val reader = NsdHelper.createBufferedReader(socket)
 
-        Log.i("TEST", "PINGING")
         // Initiate conversation with client
         outWriter.println(processInput(CommsProtocol.pingAction.value).serialize())
 

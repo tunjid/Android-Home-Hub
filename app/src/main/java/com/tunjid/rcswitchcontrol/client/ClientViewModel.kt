@@ -16,7 +16,6 @@ import com.tunjid.rcswitchcontrol.common.toLiveData
 import com.tunjid.rcswitchcontrol.di.AppBroadcaster
 import com.tunjid.rcswitchcontrol.di.AppBroadcasts
 import com.tunjid.rcswitchcontrol.models.Broadcast
-import com.tunjid.rcswitchcontrol.models.Status
 import com.tunjid.rcswitchcontrol.services.hopSchedulers
 import io.reactivex.Flowable
 import io.reactivex.disposables.CompositeDisposable
@@ -33,6 +32,12 @@ data class State(
     val isStopped: Boolean = false
 )
 
+sealed class Status {
+    data class Connected(val serviceName: String) : Status()
+    data class Connecting(val serviceName: String? = null) : Status()
+    object Disconnected : Status()
+}
+
 sealed class Input {
     data class Connect(val service: NsdServiceInfo) : Input()
     data class Send(val payload: Payload) : Input()
@@ -41,8 +46,8 @@ sealed class Input {
 
 private sealed class Output {
     sealed class Connection(val status: Status) : Output() {
-        data class Connected(val serviceName: String, val writer: PrintWriter) : Connection(status = Status.Connected)
-        data class Connecting(val serviceName: String) : Connection(status = Status.Connecting)
+        data class Connected(val serviceName: String, val writer: PrintWriter) : Connection(status = Status.Connected(serviceName))
+        data class Connecting(val serviceName: String) : Connection(status = Status.Connecting(serviceName))
         object Disconnected : Connection(status = Status.Disconnected)
     }
 

@@ -49,6 +49,7 @@ import com.tunjid.globalui.uiState
 import com.tunjid.globalui.updatePartial
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.activities.MainActivity
+import com.tunjid.rcswitchcontrol.client.Status
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentControlBinding
 import com.tunjid.rcswitchcontrol.di.activityViewModelFactory
@@ -63,6 +64,7 @@ import com.tunjid.rcswitchcontrol.models.Page
 import com.tunjid.rcswitchcontrol.models.Page.HISTORY
 import com.tunjid.rcswitchcontrol.models.ProtocolKey
 import com.tunjid.rcswitchcontrol.models.editName
+import com.tunjid.rcswitchcontrol.models.isConnected
 import com.tunjid.rcswitchcontrol.models.keys
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
 import com.tunjid.rcswitchcontrol.utils.FragmentTabAdapter
@@ -150,9 +152,9 @@ class ControlFragment : Fragment(R.layout.fragment_control), ZigBeeArgumentDialo
             mapDistinct(ControlState::commandInfo).observe(viewLifecycleOwner) {
                 if (it != null) ZigBeeArgumentDialogFragment.newInstance(it).show(childFragmentManager, "info")
             }
-            mapDistinct(ControlState::connectionState).observe(viewLifecycleOwner) { text ->
+            mapDistinct(ControlState::connectionStatus).observe(viewLifecycleOwner) { status ->
                 ::uiState.updatePartial { copy(toolbarInvalidated = true) }
-                viewBinding.connectionStatus.text = resources.getString(R.string.connection_state, text)
+                viewBinding.connectionStatus.text = resources.getString(R.string.connection_state, status.text)
             }
         }
     }
@@ -163,8 +165,8 @@ class ControlFragment : Fragment(R.layout.fragment_control), ZigBeeArgumentDialo
     }
 
     private fun onToolbarRefreshed(menu: Menu) {
-        menu.findItem(R.id.menu_ping)?.isVisible = viewModel.isConnected
-        menu.findItem(R.id.menu_connect)?.isVisible = !viewModel.isConnected
+        menu.findItem(R.id.menu_ping)?.isVisible = viewModel.state.value.isConnected
+        menu.findItem(R.id.menu_connect)?.isVisible = !viewModel.state.value.isConnected
         menu.findItem(R.id.menu_forget)?.isVisible = !ServerNsdService.isServer
 
         menu.findItem(R.id.menu_rename_device)?.isVisible = viewModel.withSelectedDevices { it.size == 1 }
@@ -191,6 +193,16 @@ class ControlFragment : Fragment(R.layout.fragment_control), ZigBeeArgumentDialo
             else -> Unit
         }
     }
+
+    private val Status.text: String
+        get() = when (this) {
+            is Status.Connected -> getString(R.string.connected_to, serviceName)
+            is Status.Connecting -> when (serviceName) {
+                null -> getString(R.string.connecting)
+                else -> getString(R.string.connecting_to, serviceName)
+            }
+            Status.Disconnected -> getString(R.string.disconnected)
+        }
 
     override fun onArgsEntered(command: ZigBeeCommand) = viewModel.dispatchPayload(command.payload)
 

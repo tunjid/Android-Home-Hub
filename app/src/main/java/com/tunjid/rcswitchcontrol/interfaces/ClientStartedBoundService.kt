@@ -43,8 +43,6 @@ import com.tunjid.rcswitchcontrol.common.ContextProvider
 
 interface ClientStartedBoundService {
 
-    val isConnected: Boolean
-
     fun initialize(intent: Intent?)
 
     fun onAppBackground()

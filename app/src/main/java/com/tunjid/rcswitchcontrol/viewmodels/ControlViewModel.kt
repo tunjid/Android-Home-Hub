@@ -30,7 +30,7 @@ import androidx.lifecycle.ViewModel
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.core.components.services.HardServiceConnection
-import com.tunjid.rcswitchcontrol.R
+import com.tunjid.rcswitchcontrol.client.Status
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.filterIsInstance
 import com.tunjid.rcswitchcontrol.common.toLiveData
@@ -40,7 +40,6 @@ import com.tunjid.rcswitchcontrol.models.Broadcast
 import com.tunjid.rcswitchcontrol.models.ControlState
 import com.tunjid.rcswitchcontrol.models.Device
 import com.tunjid.rcswitchcontrol.models.Page
-import com.tunjid.rcswitchcontrol.models.Status
 import com.tunjid.rcswitchcontrol.models.controlState
 import com.tunjid.rcswitchcontrol.services.ClientNsdService
 import com.tunjid.rcswitchcontrol.services.ServerNsdService
@@ -64,9 +63,6 @@ class ControlViewModel @Inject constructor(
     val isBound: Boolean
         get() = nsdConnection.boundService != null
 
-    val isConnected: Boolean
-        get() = nsdConnection.boundService?.isConnected == true
-
     val state: LiveData<ControlState>
 
     init {
@@ -74,10 +70,9 @@ class ControlViewModel @Inject constructor(
             .map(Broadcast.ClientNsd.ConnectionStatus::status)
             .mergeWith(
                 broadcasts.filterIsInstance<Broadcast.ClientNsd.StartDiscovery>()
-                    .map { Status.Connecting }
+                    .map { Status.Connecting() }
             )
-            .map(::getConnectionText)
-            .startWith(getConnectionText(Status.Disconnected))
+            .startWith(Status.Disconnected)
 
         val serverResponses = broadcasts
             .filterIsInstance<Broadcast.ClientNsd.ServerResponse>()
@@ -106,7 +101,7 @@ class ControlViewModel @Inject constructor(
     }
 
     fun dispatchPayload(payload: Payload) {
-        if (isConnected) nsdConnection.boundService?.sendMessage(payload)
+        nsdConnection.boundService?.sendMessage(payload)
     }
 
     fun onBackground() = nsdConnection.boundService?.onAppBackground()
@@ -135,21 +130,4 @@ class ControlViewModel @Inject constructor(
         key = CommsProtocol.key,
         action = CommsProtocol.pingAction
     ))
-
-    private fun getConnectionText(status: Status): String = when (status) {
-        Status.Connected -> {
-            pingServer()
-            when (val boundService = nsdConnection.boundService) {
-                null -> context.getString(R.string.connected)
-                else -> context.getString(R.string.connected_to, boundService.serviceName)
-            }
-        }
-        Status.Connecting -> {
-            when (val boundService = nsdConnection.boundService) {
-                null -> context.getString(R.string.connecting)
-                else -> context.getString(R.string.connecting_to, boundService.serviceName)
-            }
-        }
-        Status.Disconnected -> context.getString(R.string.disconnected)
-    }
 }

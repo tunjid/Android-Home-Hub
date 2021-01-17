@@ -36,13 +36,13 @@ import com.tunjid.androidx.core.components.services.SelfBindingService
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.activities.MainActivity
+import com.tunjid.rcswitchcontrol.client.ClientViewModel
 import com.tunjid.rcswitchcontrol.client.Input
 import com.tunjid.rcswitchcontrol.client.State
-import com.tunjid.rcswitchcontrol.client.ClientViewModel
+import com.tunjid.rcswitchcontrol.client.Status
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.di.viewModelFactory
 import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService
-import com.tunjid.rcswitchcontrol.models.Status
 import java.util.*
 
 class ClientNsdService : LifecycleService(), SelfBindingService<ClientNsdService>, ClientStartedBoundService {
@@ -51,12 +51,6 @@ class ClientNsdService : LifecycleService(), SelfBindingService<ClientNsdService
 
     private val binder = NsdClientBinder()
 
-    override val isConnected: Boolean
-        get() = viewModel.state.value?.status == Status.Connected
-
-    val serviceName: String?
-        get() = viewModel.state.value?.serviceName
-
     override fun onCreate() {
         super.onCreate()
         addChannel(R.string.switch_service, R.string.switch_service_description)
@@ -64,7 +58,7 @@ class ClientNsdService : LifecycleService(), SelfBindingService<ClientNsdService
         val service = this
         viewModel.state.apply {
             observe(service, ::onStateChanged)
-            mapDistinct { it.serviceName }.observe(service) {
+            mapDistinct(State::serviceName).observe(service) {
                 it?.let(::lastConnectedService::set)
             }
             mapDistinct(State::isStopped).observe(service) {
@@ -86,7 +80,7 @@ class ClientNsdService : LifecycleService(), SelfBindingService<ClientNsdService
     }
 
     private fun onStateChanged(state: State) {
-        val connected = state.status == Status.Connected
+        val connected = state.status is Status.Connected
 
         if (state.inBackground && connected && state.serviceName != null) startForeground(
             NOTIFICATION_ID,
@@ -122,7 +116,7 @@ class ClientNsdService : LifecycleService(), SelfBindingService<ClientNsdService
                 },
                 PendingIntent.FLAG_CANCEL_CURRENT
             ))
-         .build()
+            .build()
 
     private inner class NsdClientBinder : SelfBinder<ClientNsdService>() {
         override val service: ClientNsdService

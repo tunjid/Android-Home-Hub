@@ -2,10 +2,7 @@ package com.tunjid.rcswitchcontrol.models
 
 import android.hardware.usb.UsbDevice
 import android.net.nsd.NsdServiceInfo
-
-enum class Status {
-    Connected, Connecting, Disconnected
-}
+import com.tunjid.rcswitchcontrol.client.Status
 
 sealed class Broadcast {
     sealed class ClientNsd : Broadcast() {

@@ -1,6 +1,5 @@
 package com.tunjid.rcswitchcontrol.models
 
-import android.content.Context
 import android.content.res.Resources
 import androidx.fragment.app.Fragment
 import com.jakewharton.rx.replayingShare
@@ -17,6 +16,7 @@ import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 import com.tunjid.rcswitchcontrol.a433mhz.protocols.BLERFProtocol
 import com.tunjid.rcswitchcontrol.a433mhz.protocols.SerialRFProtocol
 import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
+import com.tunjid.rcswitchcontrol.client.Status
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.deserializeList
 import com.tunjid.rcswitchcontrol.fragments.DevicesFragment
@@ -56,24 +56,26 @@ enum class Page : Tab {
 
 data class ControlState(
     val isNew: Boolean = false,
-    val connectionState: String = "",
+    val connectionStatus: Status = Status.Disconnected,
     val commandInfo: ZigBeeCommandInfo? = null,
     val history: List<Record> = listOf(),
     val commands: Map<CommsProtocol.Key, List<Record.Command>> = mapOf(),
     val devices: List<Device> = listOf()
 )
 
+val ControlState?.isConnected get() = this?.connectionStatus is Status.Connected
+
 fun controlState(
-    status: Flowable<String>,
+    status: Flowable<Status>,
     payloads: Flowable<Payload>
-) = Flowables.combineLatest(
+): Flowable<ControlState> = Flowables.combineLatest(
     status,
     payloads
-).scan(ControlState()) { state, (connectionState, payload) ->
+).scan(ControlState()) { state, (connectionStatus, payload) ->
     val key = payload.key
     val isNew = !state.commands.keys.contains(key)
 
-    state.copy(isNew = isNew, connectionState = connectionState, commandInfo = payload.extractCommandInfo)
+    state.copy(isNew = isNew, connectionStatus = connectionStatus, commandInfo = payload.extractCommandInfo)
         .reduceCommands(payload)
         .reduceDeviceName(payload.deviceName)
         .reduceHistory(payload.extractRecord)

@@ -26,7 +26,6 @@ package com.tunjid.rcswitchcontrol.server
 
 import android.content.Intent
 import android.util.Log
-import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.tunjid.androidx.core.components.services.SelfBinder
@@ -35,7 +34,7 @@ import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.di.viewModelFactory
-import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService
+import com.tunjid.rcswitchcontrol.utils.notificationBuilder
 
 /**
  * Service hosting a [CommsProtocol] on network service discovery
@@ -60,7 +59,7 @@ class ServerNsdService : LifecycleService(), SelfBindingService<ServerNsdService
         Status.Initialized -> Unit
         Status.Registered -> startForeground(
             NOTIFICATION_ID,
-            NotificationCompat.Builder(this, ClientStartedBoundService.NOTIFICATION_TYPE)
+            notificationBuilder()
                 .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle(getText(R.string.started_server_service))
                 .build()

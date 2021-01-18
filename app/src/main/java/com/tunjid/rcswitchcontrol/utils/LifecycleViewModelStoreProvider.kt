@@ -1,4 +1,4 @@
-package com.tunjid.rcswitchcontrol.services
+package com.tunjid.rcswitchcontrol.utils
 
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver

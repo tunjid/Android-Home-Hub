@@ -28,20 +28,20 @@ import android.app.Notification
 import android.app.PendingIntent
 import android.content.Intent
 import android.net.nsd.NsdServiceInfo
-import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
 import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.core.components.services.SelfBinder
 import com.tunjid.androidx.core.components.services.SelfBindingService
 import com.tunjid.rcswitchcontrol.App
-import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.MainActivity
+import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.di.viewModelFactory
-import com.tunjid.rcswitchcontrol.interfaces.ClientStartedBoundService
+import com.tunjid.rcswitchcontrol.utils.addNotificationChannel
+import com.tunjid.rcswitchcontrol.utils.notificationBuilder
 import java.util.*
 
-class ClientNsdService : LifecycleService(), SelfBindingService<ClientNsdService>, ClientStartedBoundService {
+class ClientNsdService : LifecycleService(), SelfBindingService<ClientNsdService> {
 
     private val viewModel by viewModelFactory<ClientViewModel>()
 
@@ -49,7 +49,7 @@ class ClientNsdService : LifecycleService(), SelfBindingService<ClientNsdService
 
     override fun onCreate() {
         super.onCreate()
-        addChannel(R.string.switch_service, R.string.switch_service_description)
+        addNotificationChannel(R.string.switch_service, R.string.switch_service_description)
 
         val service = this
         viewModel.state.apply {
@@ -84,21 +84,21 @@ class ClientNsdService : LifecycleService(), SelfBindingService<ClientNsdService
         ) else stopForeground(true)
     }
 
-    override fun initialize(intent: Intent?) {
+    private fun initialize(intent: Intent?) {
         intent
             ?.getParcelableExtra<NsdServiceInfo>(NSD_SERVICE_INFO_KEY)
             ?.let(Input::Connect)
             ?.let(viewModel::accept)
     }
 
-    override fun onAppBackground() = viewModel.accept(Input.ContextChanged(inBackground = true))
+    fun onAppBackground() = viewModel.accept(Input.ContextChanged(inBackground = true))
 
-    override fun onAppForeGround() = viewModel.accept(Input.ContextChanged(inBackground = false))
+    fun onAppForeGround() = viewModel.accept(Input.ContextChanged(inBackground = false))
 
     fun sendMessage(payload: Payload) = viewModel.accept(Input.Send(payload))
 
     private fun connectedNotification(serviceName: String): Notification =
-        NotificationCompat.Builder(this, ClientStartedBoundService.NOTIFICATION_TYPE)
+        notificationBuilder()
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(getText(R.string.connected))
             .setContentText(getText(R.string.connected_to_server))

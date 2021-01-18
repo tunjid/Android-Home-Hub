@@ -30,7 +30,7 @@ import com.tunjid.fingergestures.di.ViewModelCreators
 import com.tunjid.fingergestures.di.ViewModelFactory
 import com.tunjid.fingergestures.di.ViewModelKey
 import com.tunjid.rcswitchcontrol.client.ClientViewModel
-import com.tunjid.rcswitchcontrol.services.LifecycleViewModelStoreProvider
+import com.tunjid.rcswitchcontrol.utils.LifecycleViewModelStoreProvider
 import com.tunjid.rcswitchcontrol.server.ServerViewModel
 import com.tunjid.rcswitchcontrol.control.ControlViewModel
 import com.tunjid.rcswitchcontrol.server.HostViewModel

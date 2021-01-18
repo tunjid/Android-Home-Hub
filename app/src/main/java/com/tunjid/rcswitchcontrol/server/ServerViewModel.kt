@@ -2,6 +2,7 @@ package com.tunjid.rcswitchcontrol.server
 
 import android.content.Context
 import android.net.nsd.NsdServiceInfo
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import com.jakewharton.rx.replayingShare
@@ -196,7 +197,8 @@ private fun CachingProtocol.outputs(socket: Socket): Flowable<Output.Client> =
         val reader = NsdHelper.createBufferedReader(socket)
 
         // Initiate conversation with client
-        // outWriter.println(cache.payload.serialize())
+        Log.i("TEST", "CACHE: $cache")
+        outWriter.println(cache.payload.serialize())
         outWriter.println(processInput(CommsProtocol.pingAction.value).serialize())
 
         Flowables.fromBlockingCallable<Output.Client> {

@@ -1,6 +1,7 @@
 package com.tunjid.rcswitchcontrol.control
 
 import android.content.res.Resources
+import android.util.Log
 import androidx.fragment.app.Fragment
 import com.jakewharton.rx.replayingShare
 import com.rcswitchcontrol.protocols.CommonDeviceActions
@@ -62,7 +63,7 @@ data class ControlState(
     val history: List<Record> = listOf(),
     val commands: Map<CommsProtocol.Key, List<Record.Command>> = mapOf(),
     val devices: List<Device> = listOf()
-):  Writable
+) : Writable
 
 val ControlState?.isConnected get() = this?.connectionStatus is Status.Connected
 
@@ -89,8 +90,10 @@ class ControlStateCache {
         )
 
     fun add(input: String) {
-        cache = cache.reduce(Status.Disconnected() to input.deserialize(Payload::class))
+        cache = cache.reduce(Status.Disconnected() to input.deserialize())
     }
+
+    override fun toString(): String = "ControlStateCache:$cache"
 }
 
 val ControlState.keys
@@ -155,13 +158,16 @@ private fun ControlState.reduceDeviceName(name: Name?) = when (name) {
 
 private val Payload.cache: ControlState?
     get() = when (action) {
-        cacheAction -> data?.deserialize(ControlState::class)
+        cacheAction -> {
+            Log.i("TEST", "WHERE IS IT: $data")
+            data?.deserialize()
+        }
         else -> null
     }
 
 private val Payload.deviceName: Name?
     get() = when (action) {
-        CommonDeviceActions.nameChangedAction -> data?.deserialize(Name::class)
+        CommonDeviceActions.nameChangedAction -> data?.deserialize()
         else -> null
     }
 
@@ -172,7 +178,7 @@ private val Payload.extractRecord: Record.Response?
     }
 
 private val Payload.extractCommandInfo: ZigBeeCommandInfo?
-    get() = if (key == ZigBeeProtocol.key && action == ZigBeeProtocol.commandInfoAction) data?.deserialize(ZigBeeCommandInfo::class)
+    get() = if (key == ZigBeeProtocol.key && action == ZigBeeProtocol.commandInfoAction) data?.deserialize()
     else null
 
 private val Payload.extractDevices: List<Device>?
@@ -182,12 +188,12 @@ private val Payload.extractDevices: List<Device>?
             BLERFProtocol.key, SerialRFProtocol.key -> when (action) {
                 ClientBleService.transmitterAction,
                 CommonDeviceActions.deleteAction,
-                CommonDeviceActions.renameAction -> serialized.deserializeList(RfSwitch::class)
+                CommonDeviceActions.renameAction -> serialized.deserializeList<RfSwitch>()
                     .map(Device::RF)
                 else -> null
             }
             ZigBeeProtocol.key -> when (action) {
-                CommonDeviceActions.refreshDevicesAction -> serialized.deserializeList(ZigBeeNode::class)
+                CommonDeviceActions.refreshDevicesAction -> serialized.deserializeList<ZigBeeNode>()
                     .map(Device::ZigBee)
                 else -> null
             }
@@ -198,7 +204,7 @@ private val Payload.extractDevices: List<Device>?
 private val Payload.extractDeviceAttributes: List<ZigBeeAttribute>?
     get() = when (key) {
         ZigBeeProtocol.key -> when (action) {
-            in ZigBeeProtocol.attributeCarryingActions -> data?.deserializeList(ZigBeeAttribute::class)
+            in ZigBeeProtocol.attributeCarryingActions -> data?.deserializeList()
             else -> null
         }
         else -> null

@@ -36,7 +36,7 @@ class RfSwitchDataStore {
     val savedSwitches: MutableList<RfSwitch>
         get() = serializedSavedSwitches.let {
             if (it.isEmpty()) mutableListOf()
-            else it.deserializeList(RfSwitch::class).toMutableList()
+            else it.deserializeList<RfSwitch>().toMutableList()
         }
 
     val serializedSavedSwitches: String

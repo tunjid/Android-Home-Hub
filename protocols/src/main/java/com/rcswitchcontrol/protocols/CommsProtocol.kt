@@ -51,7 +51,7 @@ interface CommsProtocol : Closeable {
     fun processInput(input: String?): Payload = processInput(when (input) {
         null, pingAction.value -> Payload(key = key, action = pingAction)
         resetAction.value -> Payload(key = key, action = resetAction)
-        else -> input.deserialize(Payload::class)
+        else -> input.deserialize()
     })
 
     fun pushOut(payload: Payload) = printWriter.println(payload.serialize())

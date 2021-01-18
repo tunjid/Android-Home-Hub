@@ -39,6 +39,7 @@ import com.tunjid.rcswitchcontrol.di.AppContext
 import com.tunjid.rcswitchcontrol.models.Broadcast
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
+import io.reactivex.Flowable
 import io.reactivex.disposables.CompositeDisposable
 import javax.inject.Inject
 
@@ -62,15 +63,16 @@ class ControlViewModel @Inject constructor(
     val state: LiveData<ControlState>
 
     init {
-        val connectionStatuses = broadcasts.filterIsInstance<Broadcast.ClientNsd.ConnectionStatus>()
+        val connectionStatuses: Flowable<Status> = broadcasts
+            .filterIsInstance<Broadcast.ClientNsd.ConnectionStatus>()
             .map(Broadcast.ClientNsd.ConnectionStatus::status)
             .startWith(Status.Disconnected())
 
-        val serverResponses = broadcasts
+        val serverResponses: Flowable<Payload> = broadcasts
             .filterIsInstance<Broadcast.ClientNsd.ServerResponse>()
             .map(Broadcast.ClientNsd.ServerResponse::data)
             .filter(String::isNotBlank)
-            .map { it.deserialize(Payload::class) }
+            .map(String::deserialize)
 
         val stateObservable = controlState(
             connectionStatuses,

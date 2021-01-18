@@ -24,9 +24,6 @@
 
 package com.tunjid.rcswitchcontrol.common
 
-import android.util.Log
-import kotlin.reflect.KClass
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -39,20 +36,6 @@ inline fun <reified T : Writable> T.serialize(): String = converter.encodeToStri
 
 inline fun <reified T : Writable> List<T>.serializeList(): String = converter.encodeToString(this).replace("\n", "").trim()
 
-inline fun <reified T : Writable> String.deserialize(kClass: KClass<T>): T = try {
-    converter.decodeFromString(this)
-} catch (exception: Exception) {
-    Log.i("TEST", "Error deserializing ${kClass.java.name}\nvalue:$this\n", exception)
-    throw exception
-}
+inline fun <reified T : Writable> String.deserialize(): T = converter.decodeFromString(this)
 
-inline fun <reified T : Any> T.serialize(serializer: KSerializer<T>): String = converter.encodeToString(serializer,this).replace("\n", "").trim()
-
-inline fun <reified T : Any> String.deserialize(serializer: KSerializer<T>): T = try {
-    converter.decodeFromString(serializer,this)
-} catch (exception: Exception) {
-    Log.i("TEST", "Error deserializing ${T::class.java.name}\nvalue:$this\n", exception)
-    throw exception
-}
-
-inline fun <reified T : Writable> String.deserializeList(kClass: KClass<T>): List<T> = converter.decodeFromString(this)
+inline fun <reified T : Writable> String.deserializeList(): List<T> = converter.decodeFromString(this)

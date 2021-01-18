@@ -102,7 +102,7 @@ class SerialRFProtocol constructor(
 
             renameAction -> output.apply {
                 val switches = switchStore.savedSwitches
-                val name = payload.data?.deserialize(Name::class)
+                val name = payload.data?.deserialize<Name>()
 
                 val position = switches.map(RfSwitch::id).indexOf(name?.id)
                 val hasSwitch = position > -1
@@ -127,7 +127,7 @@ class SerialRFProtocol constructor(
 
             deleteAction -> output.apply {
                 val switches = switchStore.savedSwitches
-                val rcSwitch = payload.data?.deserialize(RfSwitch::class)
+                val rcSwitch = payload.data?.deserialize<RfSwitch>()
                 val removed = switches.filterNot { it.bytes.contentEquals(rcSwitch?.bytes) }
 
                 val response = if (rcSwitch == null || switches.size == removed.size)

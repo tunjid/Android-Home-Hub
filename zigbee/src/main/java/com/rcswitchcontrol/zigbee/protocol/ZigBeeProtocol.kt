@@ -107,7 +107,7 @@ class ZigBeeProtocol(
     private val responseStream = ConsoleStream { post(it) }
     private val payloadStream = ConsoleStream {
         it.takeIf(String::isNotBlank)
-            ?.deserialize(Payload::class)
+            ?.deserialize<Payload>()
             ?.let(Action::PayloadOutput)
             ?.let(actionProcessor::onNext)
     }
@@ -209,7 +209,7 @@ class ZigBeeProtocol(
                 data = savedDevices.serializeList()
                 actionProcessor.onNext(Action.AttributeRequest(nodes = savedDevices))
             }
-            CommonDeviceActions.renameAction -> when (val newName = payload.data?.deserialize(Name::class)) {
+            CommonDeviceActions.renameAction -> when (val newName = payload.data?.deserialize<Name>()) {
                 null -> Unit
                 else -> ReactivePreference(
                     reactivePreferences = deviceNames,
@@ -220,7 +220,7 @@ class ZigBeeProtocol(
             in availableCommands.keys -> {
                 val mapper = availableCommands.getValue(payloadAction)
                 val consoleCommand = mapper.consoleCommand
-                val command = payload.data?.deserialize(ZigBeeCommand::class)
+                val command = payload.data?.deserialize<ZigBeeCommand>()
                 val needsCommandArgs: Boolean = (command == null || command.isInvalid) && consoleCommand.syntax.isNotEmpty()
 
                 when {

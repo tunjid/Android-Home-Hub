@@ -44,6 +44,8 @@ class ServerNsdService : LifecycleService(), SelfBindingService<ServerNsdService
     private val binder = Binder()
     private val viewModel by viewModelFactory<ServerViewModel>()
 
+    val state by lazy { viewModel.state }
+
     override fun onCreate() {
         super.onCreate()
         val service = this

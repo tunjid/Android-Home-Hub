@@ -2,13 +2,14 @@ package com.tunjid.rcswitchcontrol.server
 
 import android.content.Context
 import android.net.nsd.NsdServiceInfo
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import com.jakewharton.rx.replayingShare
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.io.ConsoleWriter
 import com.tunjid.androidx.communications.nsd.NsdHelper
+import com.tunjid.androidx.recyclerview.diff.Differentiable
+import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.common.composeOnIo
 import com.tunjid.rcswitchcontrol.common.filterIsInstance
@@ -41,10 +42,25 @@ sealed class Input {
     object Restart : Input()
 }
 
+data class HostItem(
+    val id: Int,
+    val text: CharSequence
+) : Differentiable {
+    override val diffId: String get() = id.toString()
+}
+
 data class State(
+    val serviceName: String = "",
     val numClients: Int = 0,
     val numWrites: Long = 0L,
     val status: Status = Status.Initialized
+)
+
+fun Context.items(state: State) = listOf(
+    HostItem(R.string.server_info, getString(R.string.server_info, state.serviceName, state.numClients)),
+    HostItem(R.string.rename_server, getString(R.string.rename_server)),
+    HostItem(R.string.restart_server, getString(R.string.restart_server)),
+    HostItem(R.string.stop_server, getString(R.string.stop_server))
 )
 
 private data class Response(val data: String) : Input()
@@ -129,8 +145,13 @@ class ServerViewModel @Inject constructor(
             .replayingShare()
 
         val backingState = Flowables.combineLatest(
-            clients.map(Set<PrintWriter>::size),
-            writes.scan(0) { oldCount, _ -> oldCount + 1 },
+            registrations
+                .map(Output.Server.Registered::service)
+                .map(NsdServiceInfo::getServiceName),
+            clients
+                .map(Set<PrintWriter>::size),
+            writes
+                .scan(0) { oldCount, _ -> oldCount + 1 },
             serverOutputs.map(Output.Server::status)
                 .concatWith(Flowable.just(Status.Stopped)),
             ::State
@@ -200,7 +221,6 @@ private fun CachingProtocol.outputs(socket: Socket): Flowable<Output.Client> =
         val reader = NsdHelper.createBufferedReader(socket)
 
         // Initiate conversation with client
-        Log.i("TEST", "CACHE: $cache")
         outWriter.println(cache.payload.serialize())
         outWriter.println(processInput(CommsProtocol.pingAction.value).serialize())
 

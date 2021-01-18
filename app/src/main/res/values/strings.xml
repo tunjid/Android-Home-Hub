@@ -49,6 +49,7 @@
     <string name="device_name_address">%1$s\n%2$s</string>
 
     <!-- Host Fragment -->
+    <string name="server_info">Name: %1$s\n\nConnections: %2$d</string>
     <string name="rename_server">Rename</string>
     <string name="restart_server">Restart</string>
     <string name="stop_server">Stop</string>

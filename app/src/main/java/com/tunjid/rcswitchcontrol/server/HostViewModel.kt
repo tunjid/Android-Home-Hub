@@ -25,13 +25,14 @@
 package com.tunjid.rcswitchcontrol.server
 
 import android.content.Context
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.ViewModel
 import com.tunjid.androidx.core.components.services.HardServiceConnection
+import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.di.AppBroadcaster
 import com.tunjid.rcswitchcontrol.di.AppContext
 import com.tunjid.rcswitchcontrol.models.Broadcast
-import com.tunjid.rcswitchcontrol.client.ClientNsdService
-import io.reactivex.disposables.CompositeDisposable
 import javax.inject.Inject
 
 class HostViewModel @Inject constructor(
@@ -39,9 +40,12 @@ class HostViewModel @Inject constructor(
     private val broadcaster: AppBroadcaster
 ) : ViewModel() {
 
-    private val disposable: CompositeDisposable = CompositeDisposable()
+    private val proxyState = MediatorLiveData<State>()
+    private val serverConnection = HardServiceConnection(context, ServerNsdService::class.java) { server ->
+        proxyState.addSource(server.state, proxyState::setValue)
+    }
 
-    private val serverConnection = HardServiceConnection(context, ServerNsdService::class.java)
+    val state: LiveData<State> = proxyState
 
     init {
         serverConnection.bind()
@@ -49,7 +53,9 @@ class HostViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        disposable.clear()
+        serverConnection.boundService
+            ?.state
+            ?.let(proxyState::removeSource)
         serverConnection.unbindService()
     }
 

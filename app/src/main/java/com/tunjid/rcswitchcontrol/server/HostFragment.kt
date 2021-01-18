@@ -29,15 +29,22 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import androidx.fragment.app.Fragment
+import com.tunjid.androidx.recyclerview.gridLayoutManager
+import com.tunjid.androidx.recyclerview.listAdapterOf
+import com.tunjid.androidx.recyclerview.viewbinding.BindingViewHolder
+import com.tunjid.androidx.recyclerview.viewbinding.viewHolderDelegate
+import com.tunjid.androidx.recyclerview.viewbinding.viewHolderFrom
 import com.tunjid.globalui.uiState
 import com.tunjid.globalui.updatePartial
-import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.MainActivity
-import com.tunjid.rcswitchcontrol.databinding.FragmentHostBinding
-import com.tunjid.rcswitchcontrol.di.activityViewModelFactory
+import com.tunjid.rcswitchcontrol.R
+import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.control.NameServiceDialogFragment
+import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
+import com.tunjid.rcswitchcontrol.databinding.ViewholderHostCardBinding
+import com.tunjid.rcswitchcontrol.di.activityViewModelFactory
 
-class HostFragment : Fragment(R.layout.fragment_host),
+class HostFragment : Fragment(R.layout.fragment_list),
     NameServiceDialogFragment.ServiceNameListener {
 
     private val viewModel by activityViewModelFactory<HostViewModel>()
@@ -45,17 +52,40 @@ class HostFragment : Fragment(R.layout.fragment_host),
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        FragmentHostBinding.bind(view).apply {
-            renameServer.setOnClickListener { NameServiceDialogFragment.newInstance().show(childFragmentManager, "") }
-            restartServer.setOnClickListener { viewModel.restartServer() }
-            stopServer.setOnClickListener {
-                viewModel.stop()
-                startActivity(Intent(requireActivity(), MainActivity::class.java)
-                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                requireActivity().finish()
-            }
+        FragmentListBinding.bind(view).list.apply {
+            val listAdapter = listAdapterOf(
+                initialItems = viewModel.state.value?.let(view.context::items) ?: listOf(),
+                viewHolderCreator = { parent, _ ->
+                    parent.viewHolderFrom(ViewholderHostCardBinding::inflate).apply {
+                        binding.root.setOnClickListener { onItemClicked(item) }
+                    }
+                },
+                viewHolderBinder = { holder, item, _ ->
+                    holder.item = item
+                    holder.binding.serverInfo.text = item.text
+                }
+            )
+
+            layoutManager = gridLayoutManager(2)
+            adapter = listAdapter
+
+            viewModel.state
+                .mapDistinct(context::items)
+                .observe(viewLifecycleOwner, listAdapter::submitList)
         }
+    }
+
+    private fun onItemClicked(item: HostItem) = when (item.id) {
+        R.string.rename_server -> NameServiceDialogFragment.newInstance().show(childFragmentManager, "")
+        R.string.restart_server -> viewModel.restartServer()
+        R.string.stop_server -> {
+            viewModel.stop()
+            startActivity(Intent(requireActivity(), MainActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            requireActivity().finish()
+        }
+        else -> Unit
     }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
@@ -77,3 +107,5 @@ class HostFragment : Fragment(R.layout.fragment_host),
         fun newInstance(): HostFragment = HostFragment().apply { arguments = Bundle() }
     }
 }
+
+private var BindingViewHolder<ViewholderHostCardBinding>.item by viewHolderDelegate<HostItem>()

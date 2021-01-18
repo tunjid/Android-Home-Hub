@@ -31,7 +31,6 @@ import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import androidx.fragment.app.Fragment
-import com.tunjid.androidx.core.content.colorAt
 import com.tunjid.androidx.recyclerview.gridLayoutManager
 import com.tunjid.androidx.recyclerview.listAdapterOf
 import com.tunjid.androidx.recyclerview.viewbinding.BindingViewHolder
@@ -109,7 +108,6 @@ class HostFragment : Fragment(R.layout.fragment_list),
     override fun onServiceNamed(name: String) = viewModel.nameServer(name)
 
     companion object {
-
         fun newInstance(): HostFragment = HostFragment().apply { arguments = Bundle() }
     }
 }

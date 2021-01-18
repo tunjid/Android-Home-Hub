@@ -143,7 +143,10 @@ class ServerViewModel @Inject constructor(
         writes
             .withLatestFrom(clients, ::Pair)
             .composeOnIo()
-            .subscribe { (data, writers) -> writers.forEach { it.println(data) } }
+            .subscribe { (data, writers) ->
+                protocol.cache.add(data)
+                writers.forEach { it.println(data) }
+            }
             .addTo(disposable)
 
         registrations

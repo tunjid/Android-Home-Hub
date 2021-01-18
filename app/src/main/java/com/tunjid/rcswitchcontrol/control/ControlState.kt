@@ -1,7 +1,6 @@
 package com.tunjid.rcswitchcontrol.control
 
 import android.content.res.Resources
-import android.util.Log
 import androidx.fragment.app.Fragment
 import com.jakewharton.rx.replayingShare
 import com.rcswitchcontrol.protocols.CommonDeviceActions
@@ -158,10 +157,7 @@ private fun ControlState.reduceDeviceName(name: Name?) = when (name) {
 
 private val Payload.cache: ControlState?
     get() = when (action) {
-        cacheAction -> {
-            Log.i("TEST", "WHERE IS IT: $data")
-            data?.deserialize()
-        }
+        cacheAction -> data?.deserialize()
         else -> null
     }
 

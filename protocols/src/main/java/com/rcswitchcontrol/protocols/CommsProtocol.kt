@@ -26,6 +26,7 @@ package com.rcswitchcontrol.protocols
 
 import android.os.Parcelable
 import com.rcswitchcontrol.protocols.models.Payload
+import com.tunjid.rcswitchcontrol.common.Writable
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.serialize
 import java.io.Closeable
@@ -56,9 +57,11 @@ interface CommsProtocol : Closeable {
     fun pushOut(payload: Payload) = printWriter.println(payload.serialize())
 
     @Parcelize
-    data class Key(val value: String): Parcelable
+    @kotlinx.serialization.Serializable
+    data class Key(val value: String): Parcelable, Writable
 
-    data class Action(val value: String)
+    @kotlinx.serialization.Serializable
+    data class Action(val value: String): Writable
 
     companion object {
         val key get() = Key(CommsProtocol::class.java.name)
@@ -71,11 +74,12 @@ interface CommsProtocol : Closeable {
 val String.asAction get() = CommsProtocol.Action(this)
 
 @Parcelize
+@kotlinx.serialization.Serializable
 data class Name(
     val id: String,
     val key: CommsProtocol.Key,
     val value: String
-): Parcelable
+): Parcelable, Writable
 
 val Name.renamePayload get() = Payload(
     key = key,

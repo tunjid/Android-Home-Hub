@@ -8,6 +8,7 @@ import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.communications.nsd.NsdHelper
 import com.tunjid.rcswitchcontrol.common.Mutation
 import com.tunjid.rcswitchcontrol.common.Mutator
+import com.tunjid.rcswitchcontrol.common.Writable
 import com.tunjid.rcswitchcontrol.common.composeOnIo
 import com.tunjid.rcswitchcontrol.common.filterIsInstance
 import com.tunjid.rcswitchcontrol.common.fromBlockingCallable
@@ -33,9 +34,13 @@ data class State(
     val isStopped: Boolean = false
 )
 
-sealed class Status {
+@kotlinx.serialization.Serializable
+sealed class Status: Writable {
+    @kotlinx.serialization.Serializable
     data class Connected(val serviceName: String) : Status()
+    @kotlinx.serialization.Serializable
     data class Connecting(val serviceName: String? = null) : Status()
+    @kotlinx.serialization.Serializable
     data class Disconnected(val at: Long = System.currentTimeMillis()) : Status()
 }
 

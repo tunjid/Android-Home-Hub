@@ -27,22 +27,25 @@ package com.tunjid.rcswitchcontrol.control
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.recyclerview.diff.Differentiable
+import com.tunjid.rcswitchcontrol.common.Writable
 
-sealed class Record : Differentiable {
+@kotlinx.serialization.Serializable
+sealed class Record : Differentiable, Writable {
     abstract val key: CommsProtocol.Key
     abstract val entry: String
 
     override val diffId: String
         get() = key.value
 
+    @kotlinx.serialization.Serializable
     data class Command(
         override val key: CommsProtocol.Key,
         val command: CommsProtocol.Action
     ) : Record() {
-        override val entry: String
-            get() = command.value
+        override val entry: String = command.value
     }
 
+    @kotlinx.serialization.Serializable
     data class Response(
         override val key: CommsProtocol.Key,
         override val entry: String,

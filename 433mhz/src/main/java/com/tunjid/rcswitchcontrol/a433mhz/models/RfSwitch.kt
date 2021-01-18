@@ -28,6 +28,7 @@ import android.util.Base64
 import androidx.annotation.StringDef
 import com.rcswitchcontrol.protocols.models.Peripheral
 import com.tunjid.rcswitchcontrol.a433mhz.protocols.SerialRFProtocol
+import com.tunjid.rcswitchcontrol.common.Writable
 
 /**
  * A model representing an RF switch
@@ -36,6 +37,7 @@ import com.tunjid.rcswitchcontrol.a433mhz.protocols.SerialRFProtocol
  * Created by tj.dahunsi on 3/11/17.
  */
 
+@kotlinx.serialization.Serializable
 data class RfSwitch(
     val name: String,
     val bitLength: Byte = 0,
@@ -43,12 +45,11 @@ data class RfSwitch(
     val pulseLength: ByteArray = ByteArray(4),
     val onCode: ByteArray = ByteArray(4),
     val offCode: ByteArray = ByteArray(4)
-) : Peripheral {
+) : Peripheral, Writable {
 
-    override val id: String get() = name
+    override val id: String = name
 
-    override val key
-        get() = SerialRFProtocol.key
+    override val key = SerialRFProtocol.key
 
     override val diffId
         get() = bytes.contentToString()

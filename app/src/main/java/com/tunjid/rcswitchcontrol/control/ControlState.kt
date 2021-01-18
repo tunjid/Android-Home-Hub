@@ -17,6 +17,7 @@ import com.tunjid.rcswitchcontrol.a433mhz.protocols.BLERFProtocol
 import com.tunjid.rcswitchcontrol.a433mhz.protocols.SerialRFProtocol
 import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
 import com.tunjid.rcswitchcontrol.client.Status
+import com.tunjid.rcswitchcontrol.common.Writable
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.deserializeList
 import com.tunjid.rcswitchcontrol.common.serialize
@@ -53,6 +54,7 @@ enum class Page : Tab {
     }
 }
 
+@kotlinx.serialization.Serializable
 data class ControlState(
     val isNew: Boolean = false,
     val connectionStatus: Status = Status.Disconnected(),
@@ -60,7 +62,7 @@ data class ControlState(
     val history: List<Record> = listOf(),
     val commands: Map<CommsProtocol.Key, List<Record.Command>> = mapOf(),
     val devices: List<Device> = listOf()
-)
+):  Writable
 
 val ControlState?.isConnected get() = this?.connectionStatus is Status.Connected
 

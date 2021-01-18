@@ -26,47 +26,48 @@ package com.rcswitchcontrol.zigbee.commands
 
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.zigbee.R
+import com.rcswitchcontrol.zigbee.models.Value
 import com.rcswitchcontrol.zigbee.models.ZigBeeAttribute
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
 import com.rcswitchcontrol.zigbee.utilities.addressOf
 import com.rcswitchcontrol.zigbee.utilities.expect
 import com.rcswitchcontrol.zigbee.utilities.trifecta
 import com.tunjid.rcswitchcontrol.common.ContextProvider
-import com.tunjid.rcswitchcontrol.common.serialize
+import com.tunjid.rcswitchcontrol.common.serializeList
 import com.zsmartsystems.zigbee.zcl.clusters.ZclOnOffCluster
 
 /**
  * Switches a device on.
  */
 class OnCommand : PayloadPublishingCommand by AbsZigBeeCommand(
-        args = "DEVICEID/DEVICELABEL/GROUPID",
-        commandString = ContextProvider.appContext.getString(R.string.zigbeeprotocol_on),
-        descriptionString = "Switches device on.",
-        processor = { action: CommsProtocol.Action, args: Array<out String> ->
-            args.expect(2)
+    args = "DEVICEID/DEVICELABEL/GROUPID",
+    commandString = ContextProvider.appContext.getString(R.string.zigbeeprotocol_on),
+    descriptionString = "Switches device on.",
+    processor = { action: CommsProtocol.Action, args: Array<out String> ->
+        args.expect(2)
 
-            val (node, endpoint, cluster) = trifecta<ZclOnOffCluster>(
-                    lookUpId = args[1],
-                    clusterId = ZclOnOffCluster.CLUSTER_ID
+        val (node, endpoint, cluster) = trifecta<ZclOnOffCluster>(
+            lookUpId = args[1],
+            clusterId = ZclOnOffCluster.CLUSTER_ID
+        )
+        val result = cluster.onCommand().get()
+
+        when (result.isSuccess) {
+            true -> ZigBeeProtocol.zigBeePayload(
+                action = action,
+                data = listOf(ZigBeeAttribute(
+                    nodeAddress = node.addressOf(endpoint),
+                    attributeId = ZclOnOffCluster.ATTR_ONOFF,
+                    endpointId = endpoint.endpointId,
+                    clusterId = cluster.clusterId,
+                    type = Boolean::class.java.simpleName,
+                    value = Value.Boolean(true)
+                ))
+                    .serializeList()
             )
-            val result = cluster.onCommand().get()
-
-            when (result.isSuccess) {
-                true -> ZigBeeProtocol.zigBeePayload(
-                        action = action,
-                        data = listOf(ZigBeeAttribute(
-                                nodeAddress = node.addressOf(endpoint),
-                                attributeId = ZclOnOffCluster.ATTR_ONOFF,
-                                endpointId = endpoint.endpointId,
-                                clusterId = cluster.clusterId,
-                                type = Boolean::class.java.simpleName,
-                                value = true
-                        ))
-                                .serialize()
-                )
-                else -> ZigBeeProtocol.zigBeePayload(
-                        response = "Error turning on device:\n$result"
-                )
-            }
+            else -> ZigBeeProtocol.zigBeePayload(
+                response = "Error turning on device:\n$result"
+            )
         }
+    }
 )

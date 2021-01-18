@@ -1,5 +1,6 @@
 package com.rcswitchcontrol.zigbee.utilities
 
+import com.rcswitchcontrol.zigbee.models.Value
 import com.rcswitchcontrol.zigbee.models.ZigBeeAttribute
 import com.zsmartsystems.zigbee.CommandResult
 import com.zsmartsystems.zigbee.IeeeAddress
@@ -60,7 +61,12 @@ fun ZclCluster.pullAttributes(nodeAddress: String, attributeIds: List<Int>): Lis
                                 endpointId = zigBeeAddress.endpoint,
                                 clusterId = clusterId,
                                 type = it.attributeDataType.dataClass.simpleName,
-                                value = it.attributeValue
+                                value = when(val value = it.attributeValue) {
+                                    is Int -> Value.Int(value)
+                                    is Float -> Value.Float(value)
+                                    is Boolean -> Value.Boolean(value)
+                                    else -> throw IllegalArgumentException("Unknown value type")
+                                }
                         )
                     }
         }

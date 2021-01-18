@@ -26,30 +26,41 @@ package com.rcswitchcontrol.zigbee.models
 
 import android.os.Parcel
 import android.os.Parcelable
+import com.tunjid.rcswitchcontrol.common.Writable
 
+@kotlinx.serialization.Serializable
 class ZigBeeCommandInfo(
-        val command: String,
-        private val description: String,
-        private val syntax: String,
-        private val help: String
-) : Parcelable {
-
+    val command: String,
+    private val description: String,
+    private val syntax: String,
+    private val help: String,
     val entries: List<Entry>
+) : Parcelable, Writable {
 
-    init {
+    constructor(
+        command: String,
+        description: String,
+        syntax: String,
+        help: String,
+    ) : this(
+        command = command,
+        description = description,
+        syntax = syntax,
+        help = help,
         entries = syntax.removePrefix(command)
-                .split(" ")
-                .toMutableList()
-                .apply { if (contains(command)) remove(command) }
-                .filter { it.isNotBlank() }
-                .map { Entry(it, "") }
-    }
+            .split(" ")
+            .toMutableList()
+            .apply { if (contains(command)) remove(command) }
+            .filter { it.isNotBlank() }
+            .map { Entry(it, "") }
+    )
 
     constructor(parcel: Parcel) : this(
-            parcel.readString()!!,
-            parcel.readString()!!,
-            parcel.readString()!!,
-            parcel.readString()!!)
+        parcel.readString()!!,
+        parcel.readString()!!,
+        parcel.readString()!!,
+        parcel.readString()!!
+    )
 
     fun toArgs(): ZigBeeCommand {
         val args = entries.map { it.value }.filter(String::isNotBlank).toMutableList()
@@ -67,7 +78,8 @@ class ZigBeeCommandInfo(
 
     override fun describeContents(): Int = 0
 
-    class Entry(var key: String, var value: String)
+    @kotlinx.serialization.Serializable
+    class Entry(var key: String, var value: String) : Writable
 
     companion object CREATOR : Parcelable.Creator<ZigBeeCommandInfo> {
 

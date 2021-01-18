@@ -32,6 +32,8 @@ dependencies {
     implementation parent.ext.zigBeeSerial
     implementation parent.ext.zigBeeDongle
 
+    implementation parent.ext.gson
+
     implementation project(':common')
     implementation project(':protocols')
 }

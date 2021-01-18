@@ -25,13 +25,14 @@
 package com.rcswitchcontrol.zigbee.persistence
 
 import android.content.Context
+import com.google.gson.Gson
 import com.rcswitchcontrol.zigbee.models.device
 import com.tunjid.rcswitchcontrol.common.ContextProvider
-import com.tunjid.rcswitchcontrol.common.deserialize
-import com.tunjid.rcswitchcontrol.common.serialize
 import com.zsmartsystems.zigbee.IeeeAddress
 import com.zsmartsystems.zigbee.database.ZigBeeNetworkDataStore
 import com.zsmartsystems.zigbee.database.ZigBeeNodeDao
+
+private val gson = Gson()
 
 class ZigBeeDataStore(private val networkId: String) : ZigBeeNetworkDataStore {
 
@@ -40,21 +41,21 @@ class ZigBeeDataStore(private val networkId: String) : ZigBeeNetworkDataStore {
 
     val savedDevices
         get() = readNetworkNodes()
-                .map(::readNode)
-                .mapNotNull(ZigBeeNodeDao::device)
+            .map(::readNode)
+            .mapNotNull(ZigBeeNodeDao::device)
 
     override fun removeNode(address: IeeeAddress) =
-            preferences(networkId).edit().remove(address.toString()).apply()
+        preferences(networkId).edit().remove(address.toString()).apply()
 
     override fun readNetworkNodes(): MutableSet<IeeeAddress> =
-            preferences(networkId).all.keys.map { IeeeAddress(it.substring(0, 16)) }.toMutableSet()
+        preferences(networkId).all.keys.map { IeeeAddress(it.substring(0, 16)) }.toMutableSet()
 
     override fun readNode(address: IeeeAddress): ZigBeeNodeDao =
-            preferences(networkId).getString(address.toString(), "")!!.deserialize(ZigBeeNodeDao::class)
+        gson.fromJson(preferences(networkId).getString(address.toString(), "")!!, ZigBeeNodeDao::class.java)
 
-    override fun writeNode(node: ZigBeeNodeDao) =
-            preferences(networkId).edit().putString(node.ieeeAddress.toString(), node.serialize()).apply()
+    override fun writeNode(node: ZigBeeNodeDao) {
+        preferences(networkId).edit().putString(node.ieeeAddress.toString(), gson.toJson(node)).apply()
+    }
 
     private fun preferences(key: String) = ContextProvider.appContext.getSharedPreferences(key, Context.MODE_PRIVATE)
-
 }

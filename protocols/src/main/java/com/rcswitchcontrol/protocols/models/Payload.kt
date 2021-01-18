@@ -25,8 +25,8 @@
 package com.rcswitchcontrol.protocols.models
 
 import com.rcswitchcontrol.protocols.CommsProtocol
-import java.io.Serializable
-import java.util.*
+import com.tunjid.rcswitchcontrol.common.Writable
+import java.util.LinkedHashSet
 
 /**
  * Payload class
@@ -35,14 +35,14 @@ import java.util.*
  * Created by tj.dahunsi on 2/11/17.
  */
 
+@kotlinx.serialization.Serializable
 data class Payload(
-        val key: CommsProtocol.Key,
-        var data: String? = null,
-        var action: CommsProtocol.Action? = null,
-        var response: String? = null
-) : Serializable {
+    val key: CommsProtocol.Key,
+    var data: String? = null,
+    var action: CommsProtocol.Action? = null,
+    var response: String? = null
+) : Writable {
     val commands = LinkedHashSet<CommsProtocol.Action>()
 
     fun addCommand(command: CommsProtocol.Action) = commands.add(command)
-
 }

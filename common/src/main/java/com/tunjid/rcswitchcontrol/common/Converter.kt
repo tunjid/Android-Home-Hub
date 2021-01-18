@@ -25,21 +25,34 @@
 package com.tunjid.rcswitchcontrol.common
 
 import android.util.Log
-import com.google.gson.GsonBuilder
-import com.google.gson.reflect.TypeToken
 import kotlin.reflect.KClass
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
-private val converter = GsonBuilder().create()
+interface Writable
 
-fun <T : Any> T.serialize(): String = converter.toJson(this).replace("\n", "").trim()
+val converter: Json = Json { isLenient = true }
 
-fun <T : Any> List<T>.serializeList(): String = converter.toJson(this).replace("\n", "").trim()
+inline fun <reified T : Writable> T.serialize(): String = converter.encodeToString(this).replace("\n", "").trim()
 
-fun <T : Any> String.deserialize(kClass: KClass<T>): T = try {
-    converter.fromJson(this, kClass.java)
+inline fun <reified T : Writable> List<T>.serializeList(): String = converter.encodeToString(this).replace("\n", "").trim()
+
+inline fun <reified T : Writable> String.deserialize(kClass: KClass<T>): T = try {
+    converter.decodeFromString(this)
 } catch (exception: Exception) {
     Log.i("TEST", "Error deserializing ${kClass.java.name}\nvalue:$this\n", exception)
     throw exception
 }
 
-fun <T : Any> String.deserializeList(kClass: KClass<T>): List<T> = converter.fromJson(this, TypeToken.getParameterized(List::class.java, kClass.java).type)
+inline fun <reified T : Any> T.serialize(serializer: KSerializer<T>): String = converter.encodeToString(serializer,this).replace("\n", "").trim()
+
+inline fun <reified T : Any> String.deserialize(serializer: KSerializer<T>): T = try {
+    converter.decodeFromString(serializer,this)
+} catch (exception: Exception) {
+    Log.i("TEST", "Error deserializing ${T::class.java.name}\nvalue:$this\n", exception)
+    throw exception
+}
+
+inline fun <reified T : Writable> String.deserializeList(kClass: KClass<T>): List<T> = converter.decodeFromString(this)

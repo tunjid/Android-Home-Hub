@@ -32,6 +32,7 @@ import com.rcswitchcontrol.zigbee.utilities.getEndpoint
 import com.rcswitchcontrol.zigbee.utilities.pullAttributes
 import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.common.serialize
+import com.tunjid.rcswitchcontrol.common.serializeList
 import com.zsmartsystems.zigbee.zcl.ZclCluster
 
 
@@ -55,7 +56,7 @@ class ReadDeviceAttributesCommand : PayloadPublishingCommand by AbsZigBeeCommand
                             .drop(3)
                             .filterNot { it.contains("=") }
                             .mapNotNull(String::toIntOrNull))
-                            .serialize()
+                            .serializeList()
             )
         }
 )

@@ -31,13 +31,15 @@ import com.rcswitchcontrol.protocols.asAction
 import com.rcswitchcontrol.zigbee.protocol.NamedCommand
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol.Companion.zigBeePayload
+import com.tunjid.rcswitchcontrol.common.Writable
 import com.tunjid.rcswitchcontrol.common.serialize
 import com.zsmartsystems.zigbee.zcl.protocol.ZclClusterType
 
+@kotlinx.serialization.Serializable
 data class ZigBeeCommand(
         val name: String,
         val args: List<String>
-) {
+): Writable {
     // Cannot be derived, it need to be serialized
     val key: String = ZigBeeProtocol::class.java.name
 

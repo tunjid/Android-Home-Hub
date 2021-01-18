@@ -28,56 +28,63 @@ import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Peripheral
 import com.rcswitchcontrol.zigbee.R
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
+import com.tunjid.rcswitchcontrol.common.Writable
 import com.zsmartsystems.zigbee.database.ZclAttributeDao
 import com.zsmartsystems.zigbee.database.ZclClusterDao
 import com.zsmartsystems.zigbee.database.ZigBeeNodeDao
 import com.zsmartsystems.zigbee.zcl.protocol.ZclClusterType
 
+@kotlinx.serialization.Serializable
 data class ZigBeeNode internal constructor(
-        override val id: String,
-        override val key: CommsProtocol.Key = ZigBeeProtocol.key,
-        @Transient // This is not serialized, it's chunky
-        internal val node: ZigBeeNodeDao
-) : Peripheral {
+    override val id: String,
+    override val key: CommsProtocol.Key = ZigBeeProtocol.key,
+    internal val ieeeAddress: String,
+    internal val networkAdress: String,
+    internal val endpointClusterMap: Map<Int, Set<Int>>,
+    internal val clusterAttributeMap: Map<Int, Set<Int>>,
+) : Peripheral, Writable {
+
+    internal constructor(
+        id: String,
+        node: ZigBeeNodeDao = ZigBeeNodeDao()
+    ): this(
+        id = id,
+        key = ZigBeeProtocol.key,
+        ieeeAddress = node.ieeeAddress.toString(),
+        networkAdress = node.networkAddress.toString(),
+        endpointClusterMap = node.endpoints
+            .map { it.endpointId to it.inputClusters.map(ZclClusterDao::getClusterId).toSet() }
+            .toMap(),
+        clusterAttributeMap = node.endpoints
+            .map { endpoint -> endpoint.inputClusters.map { it.clusterId to it.attributes.values.map(ZclAttributeDao::getId).toSet() } }
+            .flatten()
+            .toMap(),
+    )
 
     enum class Feature(
-            val nameRes: Int,
-            internal val clusterType: ZclClusterType,
-            internal val descriptors: List<ZigBeeAttribute.Descriptor>
+        val nameRes: Int,
+        internal val clusterType: ZclClusterType,
+        internal val descriptors: List<ZigBeeAttribute.Descriptor>
     ) {
         OnOff(
-                nameRes = R.string.zigbee_feature_on_off,
-                clusterType = ZclClusterType.ON_OFF,
-                descriptors = listOf(ZigBeeAttribute.Descriptor.OnOff)
+            nameRes = R.string.zigbee_feature_on_off,
+            clusterType = ZclClusterType.ON_OFF,
+            descriptors = listOf(ZigBeeAttribute.Descriptor.OnOff)
         ),
         Level(
-                nameRes = R.string.zigbee_feature_level,
-                clusterType = ZclClusterType.LEVEL_CONTROL,
-                descriptors = listOf(ZigBeeAttribute.Descriptor.Level)
+            nameRes = R.string.zigbee_feature_level,
+            clusterType = ZclClusterType.LEVEL_CONTROL,
+            descriptors = listOf(ZigBeeAttribute.Descriptor.Level)
         ),
         Color(
-                nameRes = R.string.zigbee_feature_color,
-                clusterType = ZclClusterType.COLOR_CONTROL,
-                descriptors = listOf(ZigBeeAttribute.Descriptor.CieX, ZigBeeAttribute.Descriptor.CieY)
+            nameRes = R.string.zigbee_feature_color,
+            clusterType = ZclClusterType.COLOR_CONTROL,
+            descriptors = listOf(ZigBeeAttribute.Descriptor.CieX, ZigBeeAttribute.Descriptor.CieY)
         ),
     }
 
     override val diffId
         get() = ieeeAddress
-
-    // ******** WIRE SERIALIZED ******** //
-    internal val ieeeAddress: String = node.ieeeAddress.toString()
-    internal val networkAdress: String = node.networkAddress.toString()
-
-    internal val endpointClusterMap: Map<Int, Set<Int>> = node.endpoints
-            .map { it.endpointId to it.inputClusters.map(ZclClusterDao::getClusterId).toSet() }
-            .toMap()
-
-    internal val clusterAttributeMap: Map<Int, Set<Int>> = node.endpoints
-            .map { endpoint -> endpoint.inputClusters.map { it.clusterId to it.attributes.values.map(ZclAttributeDao::getId).toSet() } }
-            .flatten()
-            .toMap()
-    // ******** WIRE SERIALIZED ******** //
 
     val supportedFeatures
         get() = Feature.values().filter(::supports)
@@ -89,9 +96,9 @@ data class ZigBeeNode internal constructor(
     private fun supports(clusterType: ZclClusterType) = address(clusterType).split("/").getOrNull(1) != "null"
 
     private fun endpointId(clusterType: ZclClusterType) = endpointClusterMap
-            .entries
-            .firstOrNull { it.value.contains(clusterType.id) }
-            ?.key
+        .entries
+        .firstOrNull { it.value.contains(clusterType.id) }
+        ?.key
 
     fun command(input: ZigBeeInput<*>): ZigBeeCommand = input.commandFor(this)
 
@@ -127,12 +134,12 @@ data class ZigBeeNode internal constructor(
 //}
 
 internal fun ZigBeeNodeDao.device(): ZigBeeNode = ZigBeeNode(
-        id = ieeeAddress.toString(),
-        node = this
+    id = ieeeAddress.toString(),
+    node = this
 )
 
 fun ZigBeeNode.owns(attribute: ZigBeeAttribute) =
-        attribute.nodeAddress == ZclClusterType.values()
-                .firstOrNull { it.id == attribute.clusterId }
-                ?.let(this::address)
-                && endpointClusterMap.keys.contains(attribute.endpointId)
+    attribute.nodeAddress == ZclClusterType.values()
+        .firstOrNull { it.id == attribute.clusterId }
+        ?.let(this::address)
+        && endpointClusterMap.keys.contains(attribute.endpointId)

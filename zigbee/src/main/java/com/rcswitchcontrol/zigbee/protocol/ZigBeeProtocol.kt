@@ -241,6 +241,12 @@ class ZigBeeProtocol(
     }
 
     private fun start() {
+        if (!dataStore.hasNoDevices) actionProcessor.onNext(Action.PayloadOutput(payload = zigBeePayload(
+            action = CommonDeviceActions.refreshDevicesAction,
+            response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_saved_devices_request),
+            data = dataStore.savedDevices.serializeList()
+        )))
+
         val resetNetwork = dataStore.hasNoDevices
         val transportOptions = TransportConfig()
 

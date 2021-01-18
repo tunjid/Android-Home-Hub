@@ -33,6 +33,7 @@ import android.content.IntentFilter
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.Handler
+import android.os.Looper
 import androidx.core.content.getSystemService
 import androidx.core.os.postDelayed
 import com.hoho.android.usbserial.driver.CdcAcmSerialDriver
@@ -89,6 +90,13 @@ class ProxyProtocol(
         KnockKnockProtocol.key to KnockKnockProtocol(printWriter)
     )
 
+    private val lazyPeripherals by lazy {
+        with(Handler(Looper.getMainLooper())) {
+            postDelayed(PERMISSION_REQUEST_DELAY) { attach(rfPeripheral) }
+            postDelayed(PERMISSION_REQUEST_DELAY * 2) { attach(zigBeePeripheral) }
+        }
+    }
+
     init {
         ContextProvider.appContext.registerReceiver(USBDeviceReceiver(), IntentFilter(ACTION_USB_PERMISSION))
         context.dagger.appComponent.broadcasts()
@@ -96,11 +104,6 @@ class ProxyProtocol(
             .map(Broadcast.USB.Connected::device)
             .subscribe(::onUsbPermissionGranted, Throwable::printStackTrace)
             .addTo(disposable)
-
-        Handler().apply {
-            postDelayed(PERMISSION_REQUEST_DELAY) { attach(rfPeripheral) }
-            postDelayed(PERMISSION_REQUEST_DELAY * 2) { attach(zigBeePeripheral) }
-        }
     }
 
     override fun processInput(payload: Payload): Payload {
@@ -118,6 +121,7 @@ class ProxyProtocol(
     }
 
     private fun pingAll(): Payload {
+        lazyPeripherals
         protocolMap.values.forEach { pushOut(it.processInput(CommsProtocol.pingAction.value)) }
         return Payload(CommsProtocol.key).apply { addCommand(CommsProtocol.pingAction) }
     }

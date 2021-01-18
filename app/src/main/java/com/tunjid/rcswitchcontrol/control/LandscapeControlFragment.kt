@@ -5,7 +5,6 @@ import android.content.res.ColorStateList
 import android.os.Bundle
 import android.view.View
 import androidx.core.os.bundleOf
-import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.flexbox.AlignItems
@@ -18,7 +17,6 @@ import com.tunjid.androidx.core.delegates.viewLifecycle
 import com.tunjid.androidx.navigation.Navigator
 import com.tunjid.androidx.navigation.childStackNavigationController
 import com.tunjid.androidx.recyclerview.listAdapterOf
-import com.tunjid.androidx.view.util.spring
 import com.tunjid.globalui.InsetFlags
 import com.tunjid.globalui.UiState
 import com.tunjid.globalui.uiState
@@ -26,8 +24,10 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentControlLandscapeBinding
 import com.tunjid.rcswitchcontrol.di.activityViewModelFactory
-import com.tunjid.rcswitchcontrol.server.ServerNsdService
 import com.tunjid.rcswitchcontrol.server.HostFragment
+import com.tunjid.rcswitchcontrol.server.ServerNsdService
+import com.tunjid.rcswitchcontrol.utils.item
+import com.tunjid.rcswitchcontrol.utils.makeAccessibleForTV
 
 class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape), Navigator.TagProvider {
 
@@ -70,7 +70,7 @@ class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape), 
         }
     }
 
-    private fun onHeaderHighlighted(key: Any) = when (key) {
+    private fun onHeaderHighlighted(key: Any?) = when (key) {
         host -> HostFragment.newInstance()
         devices -> DevicesFragment.newInstance()
         is ProtocolKey -> RecordFragment.commandInstance(ProtocolKey(key.key))
@@ -83,28 +83,20 @@ class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape), 
     }
 }
 
-class HeaderViewHolder(context: Context, onFocused: (Any) -> Unit) : RecyclerView.ViewHolder(MaterialButton(context)) {
+class HeaderViewHolder(context: Context, onFocused: (Any?) -> Unit) : RecyclerView.ViewHolder(MaterialButton(context)) {
 
     val text = itemView as MaterialButton
-    var key: Any? = null
 
     init {
         text.apply {
-            isFocusable = true
-            isFocusableInTouchMode = true
             cornerRadius = context.resources.getDimensionPixelSize(R.dimen.quadruple_margin)
             backgroundTintList = ColorStateList.valueOf(context.colorAt(R.color.app_background))
-            setOnFocusChangeListener { _, hasFocus ->
-                spring(SpringAnimation.SCALE_Y).animateToFinalPosition(if (hasFocus) 1.1F else 1F)
-                spring(SpringAnimation.SCALE_X).animateToFinalPosition(if (hasFocus) 1.1F else 1F)
-                val frozen = key
-                if (hasFocus && frozen != null) onFocused(frozen)
-            }
+            makeAccessibleForTV(stroked = false, onFocused)
         }
     }
 
     fun bind(key: Any) {
-        this.key = key
+        itemView.item = key
         text.text = when (key) {
             is ProtocolKey -> key.title
             is String -> key

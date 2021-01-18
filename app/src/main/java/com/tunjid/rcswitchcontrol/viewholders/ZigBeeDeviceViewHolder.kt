@@ -38,12 +38,13 @@ import com.tunjid.androidx.recyclerview.viewbinding.viewHolderDelegate
 import com.tunjid.androidx.recyclerview.viewbinding.viewHolderFrom
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.control.Device
-import com.tunjid.rcswitchcontrol.databinding.ViewholderZigbeeDeviceBinding
 import com.tunjid.rcswitchcontrol.control.Throttle
 import com.tunjid.rcswitchcontrol.control.color
 import com.tunjid.rcswitchcontrol.control.isOn
 import com.tunjid.rcswitchcontrol.control.level
 import com.tunjid.rcswitchcontrol.control.throttleColorChanges
+import com.tunjid.rcswitchcontrol.databinding.ViewholderZigbeeDeviceBinding
+import com.tunjid.rcswitchcontrol.utils.makeAccessibleForTV
 
 interface ZigBeeDeviceListener : DeviceLongClickListener {
     fun send(command: ZigBeeCommand)
@@ -53,17 +54,17 @@ private var BindingViewHolder<ViewholderZigbeeDeviceBinding>.device by viewHolde
 private var BindingViewHolder<ViewholderZigbeeDeviceBinding>.listener by viewHolderDelegate<ZigBeeDeviceListener>()
 private val BindingViewHolder<ViewholderZigbeeDeviceBinding>.diagnosticOptions
     get() = listOf(
-            R.string.zigbee_diagnostic_node to ZigBeeInput.Node,
-            R.string.zigbee_diagnostic_rediscover to ZigBeeInput.Rediscover
+        R.string.zigbee_diagnostic_node to ZigBeeInput.Node,
+        R.string.zigbee_diagnostic_rediscover to ZigBeeInput.Rediscover
     )
-            .plus(device.node.supportedFeatures.map { it.nameRes to ZigBeeInput.Read(it) })
-            .map {
-                val context = itemView.context
-                when (it.second) {
-                    is ZigBeeInput.Read -> context.getString(R.string.zigbee_diagnostic_read_attribute, context.getString(it.first))
-                    else -> context.getString(it.first)
-                } to device.node.command(it.second)
-            }
+        .plus(device.node.supportedFeatures.map { it.nameRes to ZigBeeInput.Read(it) })
+        .map {
+            val context = itemView.context
+            when (it.second) {
+                is ZigBeeInput.Read -> context.getString(R.string.zigbee_diagnostic_read_attribute, context.getString(it.first))
+                else -> context.getString(it.first)
+            } to device.node.command(it.second)
+        }
 
 fun BindingViewHolder<ViewholderZigbeeDeviceBinding>.bind(device: Device.ZigBee) {
     this.device = device
@@ -71,53 +72,60 @@ fun BindingViewHolder<ViewholderZigbeeDeviceBinding>.bind(device: Device.ZigBee)
 
     binding.apply {
         switchName.text = device.name
-        toggle.isEnabled = device.isOn != null
         toggle.isVisible = device.node.supports(ZigBeeNode.Feature.OnOff)
         leveler.isVisible = device.node.supports(ZigBeeNode.Feature.Level)
         colorPicker.isVisible = device.node.supports(ZigBeeNode.Feature.Color)
 
-        device.isOn?.let(toggle::setChecked)
+        device.isOn.let(toggle::setChecked)
         device.level?.let(leveler::setValue)
         device.color?.let(ColorStateList::valueOf)?.let(colorPicker::setIconTint)
     }
 }
 
 fun ViewGroup.zigbeeDeviceViewHolder(
-        listener: ZigBeeDeviceListener
+    listener: ZigBeeDeviceListener
 ) = viewHolderFrom(ViewholderZigbeeDeviceBinding::inflate).apply binding@{
     this.listener = listener
     val throttle = Throttle { listener.send(device.node.command(ZigBeeInput.Level(level = it / 100F))) }
 
     binding.apply {
+        cardView.makeAccessibleForTV(stroked = true)
         itemView.setOnClickListener { listener.onClicked(device) }
         itemView.setOnLongClickListener {
             device.highlightViewHolder(this@binding, listener::onLongClicked)
             true
         }
 
+        toggle.makeAccessibleForTV()
         toggle.setOnClickListener { listener.send(device.node.command(ZigBeeInput.Toggle(isOn = toggle.isChecked))) }
+
+        leveler.makeAccessibleForTV()
         leveler.addOnChangeListener { _, value, fromUser -> if (fromUser) throttle.run(value.toInt()) }
+
+        zigbeeIcon.makeAccessibleForTV(stroked = true)
         zigbeeIcon.setOnClickListener {
             MaterialAlertDialogBuilder(context)
-                    .setTitle(R.string.zigbee_diagnostic_title)
-                    .setItems(diagnosticOptions.map { it.first }.toTypedArray()) { _, index ->
-                        listener.send(diagnosticOptions[index].second)
-                    }
-                    .show()
+                .setTitle(R.string.zigbee_diagnostic_title)
+                .setItems(diagnosticOptions.map { it.first }.toTypedArray()) { _, index ->
+                    listener.send(diagnosticOptions[index].second)
+                }
+                .show()
         }
+
+        colorPicker.makeAccessibleForTV(stroked = true)
         colorPicker.setOnClickListener {
             ColorPickerDialogBuilder
-                    .with(context)
-                    .setTitle(R.string.color_picker_choose)
-                    .wheelType(ColorPickerView.WHEEL_TYPE.CIRCLE)
-                    .showLightnessSlider(true)
-                    .showAlphaSlider(false)
-                    .density(12)
-                    .throttleColorChanges { rgb ->
-                        listener.send(device.node.command(ZigBeeInput.Color(rgb)))
-                    }
-                    .build()
-                    .show()
+                .with(context)
+                .setTitle(R.string.color_picker_choose)
+                .wheelType(ColorPickerView.WHEEL_TYPE.CIRCLE)
+                .showLightnessSlider(true)
+                .showAlphaSlider(false)
+                .density(12)
+                .throttleColorChanges { rgb ->
+                    listener.send(device.node.command(ZigBeeInput.Color(rgb)))
+                }
+                .build()
+                .show()
         }
     }
 }

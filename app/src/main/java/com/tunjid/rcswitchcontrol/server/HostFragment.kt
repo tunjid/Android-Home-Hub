@@ -26,9 +26,12 @@ package com.tunjid.rcswitchcontrol.server
 
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.content.Intent
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import androidx.fragment.app.Fragment
+import com.tunjid.androidx.core.content.colorAt
 import com.tunjid.androidx.recyclerview.gridLayoutManager
 import com.tunjid.androidx.recyclerview.listAdapterOf
 import com.tunjid.androidx.recyclerview.viewbinding.BindingViewHolder
@@ -43,6 +46,7 @@ import com.tunjid.rcswitchcontrol.control.NameServiceDialogFragment
 import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderHostCardBinding
 import com.tunjid.rcswitchcontrol.di.activityViewModelFactory
+import com.tunjid.rcswitchcontrol.utils.makeAccessibleForTV
 
 class HostFragment : Fragment(R.layout.fragment_list),
     NameServiceDialogFragment.ServiceNameListener {
@@ -57,12 +61,14 @@ class HostFragment : Fragment(R.layout.fragment_list),
                 initialItems = viewModel.state.value?.let(view.context::items) ?: listOf(),
                 viewHolderCreator = { parent, _ ->
                     parent.viewHolderFrom(ViewholderHostCardBinding::inflate).apply {
+                        binding.button.strokeColor = ColorStateList.valueOf(Color.WHITE)
+                        binding.button.makeAccessibleForTV(stroked = true)
                         binding.root.setOnClickListener { onItemClicked(item) }
                     }
                 },
                 viewHolderBinder = { holder, item, _ ->
                     holder.item = item
-                    holder.binding.serverInfo.text = item.text
+                    holder.binding.button.text = item.text
                 }
             )
 

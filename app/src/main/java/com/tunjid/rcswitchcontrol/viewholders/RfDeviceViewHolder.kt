@@ -30,6 +30,7 @@ import com.tunjid.androidx.recyclerview.viewbinding.viewHolderDelegate
 import com.tunjid.androidx.recyclerview.viewbinding.viewHolderFrom
 import com.tunjid.rcswitchcontrol.control.Device
 import com.tunjid.rcswitchcontrol.databinding.ViewholderRemoteSwitchBinding
+import com.tunjid.rcswitchcontrol.utils.makeAccessibleForTV
 
 interface RfDeviceListener : DeviceLongClickListener
 
@@ -48,11 +49,15 @@ fun ViewGroup.rfDeviceDeviceViewHolder(
     this.listener = listener
 
     binding.apply {
+        cardView.makeAccessibleForTV(stroked = true)
         itemView.setOnClickListener { listener.onClicked(device) }
         itemView.setOnLongClickListener {
             device.highlightViewHolder(this@binding, listener::onLongClicked)
             true
         }
+
+        offSwitch.makeAccessibleForTV(stroked = true)
+        onSwitch.makeAccessibleForTV(stroked = true)
 
         offSwitch.setOnClickListener { listener.onSwitchToggled(device, false) }
         onSwitch.setOnClickListener { listener.onSwitchToggled(device, true) }

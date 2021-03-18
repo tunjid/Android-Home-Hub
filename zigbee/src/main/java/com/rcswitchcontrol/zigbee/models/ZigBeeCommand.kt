@@ -82,9 +82,15 @@ sealed class ZigBeeInput<InputT>(
             namedCommand = NamedCommand.Custom.DeviceAttributes
     )
 
+    data class Join(val duration: Byte?) : ZigBeeInput<Byte?>(
+        input = duration,
+        namedCommand = NamedCommand.Derived.NetworkJoin
+    )
+
     internal fun commandFor(zigBeeNode: ZigBeeNode): ZigBeeCommand = when (this) {
         is Rediscover -> listOf(zigBeeNode.ieeeAddress)
         is Node -> listOf(zigBeeNode.networkAdress)
+        is Join -> listOf(duration?.toString() ?: "disable")
         is Toggle -> listOf(zigBeeNode.address(ZclClusterType.ON_OFF))
         is Level -> listOf(zigBeeNode.address(ZclClusterType.LEVEL_CONTROL), level.toString())
         is Color -> listOf(zigBeeNode.address(ZclClusterType.COLOR_CONTROL), rgb.red.toString(), rgb.green.toString(), rgb.blue.toString())

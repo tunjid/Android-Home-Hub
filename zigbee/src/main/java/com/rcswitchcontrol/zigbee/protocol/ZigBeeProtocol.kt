@@ -113,7 +113,7 @@ class ZigBeeProtocol(
     }
 
     private val dongle: ZigBeeDongleTiCc2531 = ZigBeeDongleTiCc2531(AndroidZigBeeSerialPort(driver, BAUD_RATE))
-    private val dataStore = ZigBeeDataStore("46")
+    private val dataStore = ZigBeeDataStore("47")
     private val deviceNames = ReactivePreferences(context.getSharedPreferences("device names", Context.MODE_PRIVATE))
     private val networkManager: ZigBeeNetworkManager = ZigBeeNetworkManager(dongle)
 

@@ -106,6 +106,9 @@ val Device.ZigBee.color
             }
         }
 
+val Device.ZigBee.isCoordinator
+    get() = node.kind == ZigBeeNode.Kind.Coordinator
+
 fun Device.ZigBee.describe(descriptor: ZigBeeAttribute.Descriptor) =
     attributes.firstOrNull(descriptor::matches)
 

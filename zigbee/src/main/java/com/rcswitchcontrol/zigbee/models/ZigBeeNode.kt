@@ -33,11 +33,13 @@ import com.zsmartsystems.zigbee.database.ZclAttributeDao
 import com.zsmartsystems.zigbee.database.ZclClusterDao
 import com.zsmartsystems.zigbee.database.ZigBeeNodeDao
 import com.zsmartsystems.zigbee.zcl.protocol.ZclClusterType
+import com.zsmartsystems.zigbee.zdo.field.NodeDescriptor
 
 @kotlinx.serialization.Serializable
 data class ZigBeeNode internal constructor(
     override val id: String,
     override val key: CommsProtocol.Key = ZigBeeProtocol.key,
+    val kind: Kind,
     internal val ieeeAddress: String,
     internal val networkAdress: String,
     internal val endpointClusterMap: Map<Int, Set<Int>>,
@@ -50,6 +52,13 @@ data class ZigBeeNode internal constructor(
     ): this(
         id = id,
         key = ZigBeeProtocol.key,
+        kind = when(node.nodeDescriptor?.logicalType) {
+            NodeDescriptor.LogicalType.COORDINATOR -> Kind.Coordinator
+            NodeDescriptor.LogicalType.ROUTER -> Kind.Router
+            NodeDescriptor.LogicalType.END_DEVICE,
+            NodeDescriptor.LogicalType.UNKNOWN,
+            null -> Kind.Unknown
+        },
         ieeeAddress = node.ieeeAddress.toString(),
         networkAdress = node.networkAddress.toString(),
         endpointClusterMap = node.endpoints
@@ -81,6 +90,12 @@ data class ZigBeeNode internal constructor(
             clusterType = ZclClusterType.COLOR_CONTROL,
             descriptors = listOf(ZigBeeAttribute.Descriptor.CieX, ZigBeeAttribute.Descriptor.CieY)
         ),
+    }
+
+    enum class Kind {
+        Coordinator,
+        Router,
+        Unknown;
     }
 
     override val diffId

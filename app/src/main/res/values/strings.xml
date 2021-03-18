@@ -86,6 +86,8 @@
     <string name="zigbee_diagnostic_read_attribute">Read %1$s</string>
     <string name="zigbee_diagnostic_node">Node</string>
     <string name="zigbee_diagnostic_rediscover">Rediscover</string>
+    <string name="zigbee_diagnostic_enable_join">Enable Join (60s)</string>
+    <string name="zigbee_diagnostic_disable_join">Disable Join</string>
     <string name="zigbee_diagnostic_refresh">Refresh</string>
 
     <!-- ZigBee Command Arguments -->

@@ -40,6 +40,7 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.control.Device
 import com.tunjid.rcswitchcontrol.control.Throttle
 import com.tunjid.rcswitchcontrol.control.color
+import com.tunjid.rcswitchcontrol.control.isCoordinator
 import com.tunjid.rcswitchcontrol.control.isOn
 import com.tunjid.rcswitchcontrol.control.level
 import com.tunjid.rcswitchcontrol.control.throttleColorChanges
@@ -53,9 +54,13 @@ interface ZigBeeDeviceListener : DeviceLongClickListener {
 private var BindingViewHolder<ViewholderZigbeeDeviceBinding>.device by viewHolderDelegate<Device.ZigBee>()
 private var BindingViewHolder<ViewholderZigbeeDeviceBinding>.listener by viewHolderDelegate<ZigBeeDeviceListener>()
 private val BindingViewHolder<ViewholderZigbeeDeviceBinding>.diagnosticOptions
-    get() = listOf(
+    get() = listOfNotNull(
         R.string.zigbee_diagnostic_node to ZigBeeInput.Node,
-        R.string.zigbee_diagnostic_rediscover to ZigBeeInput.Rediscover
+        R.string.zigbee_diagnostic_rediscover to ZigBeeInput.Rediscover,
+        (R.string.zigbee_diagnostic_enable_join to ZigBeeInput.Join(duration = 60))
+            .takeIf { device.isCoordinator },
+        (R.string.zigbee_diagnostic_disable_join to ZigBeeInput.Join(duration = null))
+            .takeIf { device.isCoordinator },
     )
         .plus(device.node.supportedFeatures.map { it.nameRes to ZigBeeInput.Read(it) })
         .map {

@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory
 class AndroidZigBeeSerialPort(
         private val driver: UsbSerialDriver,
         private val baudRate: Int
-) : ZigBeePort, SerialInputOutputManager.Listener {
+) : ZigBeePort {
 
 
     private var end = 0
@@ -58,6 +58,32 @@ class AndroidZigBeeSerialPort(
     private val bufferSynchronisationObject = Any()
 
     private lateinit var serialInputOutputManager: SerialInputOutputManager
+
+    private val serialListener = object : SerialInputOutputManager.Listener {
+        override fun onRunError(e: java.lang.Exception?) = e?.printStackTrace() ?: Unit
+
+        override fun onNewData(data: ByteArray?) {
+            try {
+                data ?: return
+
+                synchronized(bufferSynchronisationObject) {
+                    val intBuffer = data.map { if (it < 0) 256 + it else it.toInt() }
+
+                    for (recv in intBuffer) {
+                        buffer[end++] = recv
+                        if (end >= maxLength) end = 0
+                    }
+                }
+
+                synchronized(lock) {
+                    lock.notify()
+                }
+
+            } catch (e: SerialPortException) {
+                logger.error("Error while handling serial event.", e)
+            }
+        }
+    }
 
     override fun open(): Boolean = open(baudRate)
 
@@ -106,7 +132,7 @@ class AndroidZigBeeSerialPort(
             port.open(connection)
             port.setParameters(baudRate, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE)
 
-            serialInputOutputManager = SerialInputOutputManager(port, this)
+            serialInputOutputManager = SerialInputOutputManager(port, serialListener)
 
             serialThread = HandlerThread("serialThread").apply { start() }
             serialHandler = serialThread?.let { Handler(it.looper) }
@@ -177,30 +203,6 @@ class AndroidZigBeeSerialPort(
         }
 
         return -1
-    }
-
-    override fun onRunError(e: java.lang.Exception?) = e?.printStackTrace() ?: Unit
-
-    override fun onNewData(data: ByteArray?) {
-        try {
-            data ?: return
-
-            synchronized(bufferSynchronisationObject) {
-                val intBuffer = data.map { if (it < 0) 256 + it else it.toInt() }
-
-                for (recv in intBuffer) {
-                    buffer[end++] = recv
-                    if (end >= maxLength) end = 0
-                }
-            }
-
-            synchronized(lock) {
-                lock.notify()
-            }
-
-        } catch (e: SerialPortException) {
-            logger.error("Error while handling serial event.", e)
-        }
     }
 
     override fun purgeRxBuffer() = synchronized(bufferSynchronisationObject) {

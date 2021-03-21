@@ -179,7 +179,7 @@ private val Payload.extractCommandInfo: ZigBeeCommandInfo?
 
 private val Payload.extractDevices: List<Device>?
     get() = when (val serialized = data) {
-        null -> null
+        null, "" -> null
         else -> when (key) {
             BLERFProtocol.key, SerialRFProtocol.key -> when (action) {
                 ClientBleService.transmitterAction,

@@ -2,6 +2,7 @@ package com.rcswitchcontrol.zigbee.protocol
 
 import com.rcswitchcontrol.protocols.CommonDeviceActions
 import com.rcswitchcontrol.zigbee.R
+import com.rcswitchcontrol.zigbee.persistence.ZigBeeDataStore
 import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.common.serializeList
 import com.zsmartsystems.zigbee.ExtendedPanId
@@ -28,12 +29,14 @@ import io.reactivex.processors.PublishProcessor
 
 internal fun initialize(
     action: Action.Input.Start
-): InitializationStatus {
+): Action.Input.InitializationStatus {
     val inputs = PublishProcessor.create<Action.Input>()
     val outputs = PublishProcessor.create<Action.Output>()
     val synchronousOutputs = mutableListOf<Action.Output>()
 
-    val (_, _, dongle, dataStore, networkManager) = action
+    val (_, _, dongle, dataStoreName) = action
+    val networkManager = ZigBeeNetworkManager(dongle)
+    val dataStore = ZigBeeDataStore(dataStoreName)
 
     if (!dataStore.hasNoDevices) synchronousOutputs.add(Action.Output.PayloadOutput(payload = ZigBeeProtocol.zigBeePayload(
         action = CommonDeviceActions.refreshDevicesAction,
@@ -72,7 +75,7 @@ internal fun initialize(
     // Initialise the network
     val initResponse = networkManager.initialize()
 
-    if (initResponse != ZigBeeStatus.SUCCESS) return InitializationStatus.Error
+    if (initResponse != ZigBeeStatus.SUCCESS) return Action.Input.InitializationStatus.Error
 
     synchronousOutputs.add(Action.Output.Log("PAN ID          = " + networkManager.zigBeePanId))
     synchronousOutputs.add(Action.Output.Log("Extended PAN ID = " + networkManager.zigBeeExtendedPanId))
@@ -141,8 +144,10 @@ internal fun initialize(
     dongle.setLedMode(1, false)
     dongle.setLedMode(2, false)
 
-    return InitializationStatus.Initialized(
+    return Action.Input.InitializationStatus.Initialized(
         startAction = action,
+        dataStore = dataStore,
+        networkManager = networkManager,
         inputs = inputs,
         outputs = Flowable.defer {
             Flowable.fromIterable(synchronousOutputs)

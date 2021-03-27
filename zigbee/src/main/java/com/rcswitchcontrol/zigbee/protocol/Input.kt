@@ -24,7 +24,7 @@ internal fun ZigBeeProtocol.processInputs(inputs: Flowable<Action.Input>): Flowa
     val sharedScheduler = Schedulers.from(CommsProtocol.sharedPool)
 
     val start = inputs
-        .filterIsInstance<Action.Input.Start>()
+        .filterIsInstance<Action.Input.InitializationStatus.Initialized>()
         .replayingShare()
 
     return Flowable.merge(listOf(
@@ -36,7 +36,7 @@ internal fun ZigBeeProtocol.processInputs(inputs: Flowable<Action.Input>): Flowa
 
 private fun handleCommandInputs(
     actions: Flowable<Action.Input>,
-    start: Flowable<Action.Input.Start>,
+    start: Flowable<Action.Input.InitializationStatus.Initialized>,
     payloadStream: ConsoleStream,
     responseStream: ConsoleStream,
     sharedScheduler: Scheduler
@@ -74,7 +74,7 @@ private fun handleAttributeRequests(
 
 private fun handleNodeAdds(
     actions: Flowable<Action.Input>,
-    start: Flowable<Action.Input.Start>
+    start: Flowable<Action.Input.InitializationStatus.Initialized>
 ): Flowable<Action.Output.PayloadOutput> = actions
     .filterIsInstance<Action.Input.NodeChange.Added>()
     .map(Action.Input.NodeChange.Added::node)
@@ -83,7 +83,7 @@ private fun handleNodeAdds(
     .flatMap { (node, state) ->
         val id = node.ieeeAddress.toString()
         ReactivePreference(
-            reactivePreferences = state.deviceNames,
+            reactivePreferences = state.startAction.deviceNames,
             key = id,
             default = id
         )

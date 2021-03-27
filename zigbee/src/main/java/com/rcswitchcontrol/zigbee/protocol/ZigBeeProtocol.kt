@@ -58,16 +58,6 @@ import java.util.concurrent.TimeUnit
 
 private typealias Node = com.rcswitchcontrol.zigbee.models.ZigBeeNode
 
-internal sealed class InitializationStatus {
-    data class Initialized(
-        val startAction: Action.Input.Start,
-        val inputs: PublishProcessor<Action.Input>,
-        val outputs: Flowable<Action.Output>,
-    ) : InitializationStatus()
-
-    object Error : InitializationStatus()
-}
-
 internal sealed class Action {
     sealed class Input : Action() {
 
@@ -75,9 +65,20 @@ internal sealed class Action {
             val driver: UsbSerialDriver,
             val deviceNames: ReactivePreferences,
             val dongle: ZigBeeDongleTiCc2531,
-            val dataStore: ZigBeeDataStore,
-            val networkManager: ZigBeeNetworkManager = ZigBeeNetworkManager(dongle),
+            val dataStoreName: String
         ) : Input()
+
+        internal sealed class InitializationStatus : Input() {
+            data class Initialized(
+                val startAction: Start,
+                val dataStore: ZigBeeDataStore,
+                val networkManager: ZigBeeNetworkManager,
+                val inputs: PublishProcessor<Input>,
+                val outputs: Flowable<Output>,
+            ) : InitializationStatus()
+
+            object Error : InitializationStatus()
+        }
 
         sealed class NodeChange : Input() {
             data class Added(val node: ZigBeeNode) : NodeChange()
@@ -122,17 +123,17 @@ class ZigBeeProtocol(
             ?.let(payloadOutputProcessor::onNext)
     }
 
-    private val initializationStatus: InitializationStatus = initialize(Action.Input.Start(
+    private val initializationStatus: Action.Input.InitializationStatus = initialize(Action.Input.Start(
         driver = driver,
         deviceNames = ReactivePreferences(context.getSharedPreferences("device names", Context.MODE_PRIVATE)),
         dongle = ZigBeeDongleTiCc2531(AndroidZigBeeSerialPort(driver, BAUD_RATE)),
-        dataStore = ZigBeeDataStore("47"),
+        dataStoreName = "47",
     ))
 
     init {
         when (val status = initializationStatus) {
-            InitializationStatus.Error -> Unit
-            is InitializationStatus.Initialized -> {
+            Action.Input.InitializationStatus.Error -> Unit
+            is Action.Input.InitializationStatus.Initialized -> {
                 processInputs(status.inputs)
                     .mergeWith(status.outputs)
                     .subscribe { output ->
@@ -157,14 +158,14 @@ class ZigBeeProtocol(
                     .subscribe(this::pushOut)
                     .addTo(disposable)
 
-                status.inputs.onNext(status.startAction)
+                status.inputs.onNext(status)
             }
         }
     }
 
     override fun processInput(payload: Payload): Payload = when (val status = initializationStatus) {
-        InitializationStatus.Error -> zigBeePayload(response = "Initialization failed, protocol unavailable")
-        is InitializationStatus.Initialized -> zigBeePayload().apply {
+        Action.Input.InitializationStatus.Error -> zigBeePayload(response = "Initialization failed, protocol unavailable")
+        is Action.Input.InitializationStatus.Initialized -> zigBeePayload().apply {
             addCommand(CommsProtocol.resetAction)
 
             when (val payloadAction = payload.action) {
@@ -178,7 +179,7 @@ class ZigBeeProtocol(
                     response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_ping)
                 }
                 CommonDeviceActions.refreshDevicesAction -> {
-                    val savedDevices = status.startAction.dataStore.savedDevices
+                    val savedDevices = status.dataStore.savedDevices
                     action = CommonDeviceActions.refreshDevicesAction
                     response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_saved_devices_request)
                     data = savedDevices.serializeList()
@@ -219,8 +220,8 @@ class ZigBeeProtocol(
     override fun close() {
         disposable.clear()
         when (val status = initializationStatus) {
-            is InitializationStatus.Initialized -> status.startAction.networkManager.shutdown()
-            InitializationStatus.Error -> Unit
+            is Action.Input.InitializationStatus.Initialized -> status.networkManager.shutdown()
+            Action.Input.InitializationStatus.Error -> Unit
         }
     }
 

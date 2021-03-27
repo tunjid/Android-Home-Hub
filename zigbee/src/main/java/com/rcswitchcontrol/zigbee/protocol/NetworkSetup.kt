@@ -3,6 +3,7 @@ package com.rcswitchcontrol.zigbee.protocol
 import com.rcswitchcontrol.protocols.CommonDeviceActions
 import com.rcswitchcontrol.zigbee.R
 import com.rcswitchcontrol.zigbee.persistence.ZigBeeDataStore
+import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol.Companion.MESH_UPDATE_PERIOD
 import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.common.serializeList
 import com.zsmartsystems.zigbee.ExtendedPanId
@@ -100,7 +101,10 @@ internal fun initialize(
         addExtension(ZigBeeIasCieExtension())
         addExtension(ZigBeeOtaUpgradeExtension())
         addExtension(ZigBeeBasicServerExtension())
-        addExtension(ZigBeeDiscoveryExtension())
+        addExtension(ZigBeeDiscoveryExtension().apply {
+            updatePeriod = MESH_UPDATE_PERIOD
+//            setUpdateOnChange(false)
+        })
     }
 
     networkManager.addSupportedCluster(ZclIasZoneCluster.CLUSTER_ID)

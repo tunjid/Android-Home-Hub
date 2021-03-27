@@ -31,6 +31,7 @@ import android.view.MenuItem
 import android.view.View
 import androidx.core.view.doOnLayout
 import androidx.core.view.updateLayoutParams
+import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -85,11 +86,12 @@ class ControlFragment : Fragment(R.layout.fragment_control), ZigBeeArgumentDialo
         val offset = requireContext().resources.getDimensionPixelSize(R.dimen.triple_and_half_margin)
 
         val calculateTranslation: (slideOffset: Float) -> Float = calculate@{ slideOffset ->
-            if (slideOffset == 0F) return@calculate -bottomSheetBehavior.peekHeight.toFloat()
-
-            val multiplier = if (slideOffset < 0) slideOffset else slideOffset
-            val height = if (slideOffset < 0) bottomSheetBehavior.peekHeight else viewBinding.bottomSheet.height - offset
-            (-height * multiplier) - bottomSheetBehavior.peekHeight
+            val peekHeight = bottomSheetBehavior.peekHeight.toFloat()
+            when (slideOffset) {
+                in Float.MIN_VALUE..0F -> (peekHeight * -slideOffset)
+                0F -> peekHeight
+                else -> peekHeight + ((viewBinding.bottomSheet.height - peekHeight) * slideOffset)
+            }
         }
 
         val onPageSelected: (position: Int) -> Unit = {
@@ -123,7 +125,7 @@ class ControlFragment : Fragment(R.layout.fragment_control), ZigBeeArgumentDialo
             bottomSheetBehavior.expandedOffset = offset
             bottomSheetBehavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
                 override fun onSlide(bottomSheet: View, slideOffset: Float) {
-                    viewBinding.mainPager.translationY = calculateTranslation(slideOffset)
+                    viewBinding.mainPager.updatePadding(bottom = calculateTranslation(slideOffset).toInt())
                 }
 
                 override fun onStateChanged(bottomSheet: View, newState: Int) {

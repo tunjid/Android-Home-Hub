@@ -60,9 +60,7 @@ private typealias Node = com.rcswitchcontrol.zigbee.models.ZigBeeNode
 
 internal sealed class InitializationStatus {
     data class Initialized(
-        val deviceNames: ReactivePreferences,
-        val dataStore: ZigBeeDataStore,
-        val networkManager: ZigBeeNetworkManager,
+        val startAction: Action.Input.Start,
         val inputs: PublishProcessor<Action.Input>,
         val outputs: Flowable<Action.Output>,
     ) : InitializationStatus()
@@ -132,11 +130,11 @@ class ZigBeeProtocol(
     ))
 
     init {
-        when (initializationStatus) {
+        when (val status = initializationStatus) {
             InitializationStatus.Error -> Unit
             is InitializationStatus.Initialized -> {
-                processInputs(initializationStatus.inputs)
-                    .mergeWith(initializationStatus.outputs)
+                processInputs(status.inputs)
+                    .mergeWith(status.outputs)
                     .subscribe { output ->
                         when (output) {
                             is Action.Output.PayloadReprocess -> processInput(output.payload)
@@ -158,6 +156,8 @@ class ZigBeeProtocol(
                     .observeOn(sharedScheduler)
                     .subscribe(this::pushOut)
                     .addTo(disposable)
+
+                status.inputs.onNext(status.startAction)
             }
         }
     }
@@ -178,7 +178,7 @@ class ZigBeeProtocol(
                     response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_ping)
                 }
                 CommonDeviceActions.refreshDevicesAction -> {
-                    val savedDevices = status.dataStore.savedDevices
+                    val savedDevices = status.startAction.dataStore.savedDevices
                     action = CommonDeviceActions.refreshDevicesAction
                     response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_saved_devices_request)
                     data = savedDevices.serializeList()
@@ -187,7 +187,7 @@ class ZigBeeProtocol(
                 CommonDeviceActions.renameAction -> when (val newName = payload.data?.deserialize<Name>()) {
                     null -> Unit
                     else -> ReactivePreference(
-                        reactivePreferences = status.deviceNames,
+                        reactivePreferences = status.startAction.deviceNames,
                         key = newName.id,
                         default = newName.id
                     ).value = newName.value
@@ -219,7 +219,7 @@ class ZigBeeProtocol(
     override fun close() {
         disposable.clear()
         when (val status = initializationStatus) {
-            is InitializationStatus.Initialized -> status.networkManager.shutdown()
+            is InitializationStatus.Initialized -> status.startAction.networkManager.shutdown()
             InitializationStatus.Error -> Unit
         }
     }

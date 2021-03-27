@@ -33,7 +33,7 @@ internal fun initialize(
     val outputs = PublishProcessor.create<Action.Output>()
     val synchronousOutputs = mutableListOf<Action.Output>()
 
-    val (_, deviceNames, dongle, dataStore, networkManager) = action
+    val (_, _, dongle, dataStore, networkManager) = action
 
     if (!dataStore.hasNoDevices) synchronousOutputs.add(Action.Output.PayloadOutput(payload = ZigBeeProtocol.zigBeePayload(
         action = CommonDeviceActions.refreshDevicesAction,
@@ -142,9 +142,7 @@ internal fun initialize(
     dongle.setLedMode(2, false)
 
     return InitializationStatus.Initialized(
-        deviceNames = deviceNames,
-        dataStore = dataStore,
-        networkManager = networkManager,
+        startAction = action,
         inputs = inputs,
         outputs = Flowable.defer {
             Flowable.fromIterable(synchronousOutputs)

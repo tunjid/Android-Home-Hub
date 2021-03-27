@@ -81,14 +81,6 @@ internal fun initialize(
     synchronousOutputs.add(Action.Output.Log("Extended PAN ID = " + networkManager.zigBeeExtendedPanId))
     synchronousOutputs.add(Action.Output.Log("Channel         = " + networkManager.zigBeeChannel))
 
-    networkManager.apply {
-        addExtension(ZigBeeIasCieExtension())
-        addExtension(ZigBeeOtaUpgradeExtension())
-        addExtension(ZigBeeBasicServerExtension())
-        addExtension(ZigBeeDiscoveryExtension())
-        addExtension(LazyDiscoveryExtension())
-    }
-
     if (resetNetwork) synchronousOutputs.add(networkManager.reset())
 
 //        networkManager.setDefaultProfileId(ZigBeeProfileType.ZIGBEE_HOME_AUTOMATION.key)
@@ -103,6 +95,13 @@ internal fun initialize(
     }
 
     dongle.updateTransportConfig(transportOptions)
+
+    networkManager.apply {
+        addExtension(ZigBeeIasCieExtension())
+        addExtension(ZigBeeOtaUpgradeExtension())
+        addExtension(ZigBeeBasicServerExtension())
+        addExtension(ZigBeeDiscoveryExtension())
+    }
 
     networkManager.addSupportedCluster(ZclIasZoneCluster.CLUSTER_ID)
 

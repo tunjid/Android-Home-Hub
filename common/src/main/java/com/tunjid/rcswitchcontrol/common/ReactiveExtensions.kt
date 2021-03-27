@@ -11,8 +11,11 @@ import io.reactivex.annotations.BackpressureSupport
 import io.reactivex.annotations.CheckReturnValue
 import io.reactivex.annotations.SchedulerSupport
 import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.disposables.Disposable
 import io.reactivex.rxkotlin.Flowables
 import io.reactivex.schedulers.Schedulers
+import kotlin.properties.ReadOnlyProperty
+import kotlin.reflect.KProperty
 
 fun <T> Flowable<T>.toLiveData(): LiveData<T> = MainThreadLiveData(this)
 
@@ -60,6 +63,20 @@ fun <T> Flowable<T>.onErrorComplete(): Flowable<T> =
     }
 
 private data class Optional<T>(val item: T?)
+
+fun <T> Flowable<T>.asProperty(
+    default: T,
+    disposableHandler: (Disposable) -> Unit
+) = object : ReadOnlyProperty<Any?, T> {
+
+    private var mostRecent: T? = null
+
+    init {
+        disposableHandler(this@asProperty.subscribe(::mostRecent::set))
+    }
+
+    override fun getValue(thisRef: Any?, property: KProperty<*>): T = mostRecent ?: default
+}
 
 @CheckReturnValue
 @Suppress("unused")

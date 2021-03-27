@@ -59,15 +59,21 @@ internal fun initialize(
 
         addNetworkNodeListener(object : ZigBeeNetworkNodeListener {
             override fun nodeAdded(node: ZigBeeNode) {
-                outputs.onNext(Action.Output.Log("Node added $node"))
                 inputs.onNext(Action.Input.NodeChange.Added(node))
+                Action.Output.Log("Node added $node").let {
+                    synchronousOutputs.add(it)
+                    outputs.onNext(it)
+                }
             }
 
             override fun nodeUpdated(node: ZigBeeNode) = outputs.onNext(Action.Output.Log("Node updated $node"))
 
             override fun nodeRemoved(node: ZigBeeNode) {
-                outputs.onNext(Action.Output.Log("Node removed $node"))
                 inputs.onNext(Action.Input.NodeChange.Removed(node))
+                Action.Output.Log("Node removed $node").let {
+                    synchronousOutputs.add(it)
+                    outputs.onNext(it)
+                }
             }
         })
 

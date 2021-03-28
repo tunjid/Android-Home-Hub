@@ -1,6 +1,5 @@
 package com.rcswitchcontrol.zigbee.protocol
 
-import android.util.Log
 import com.jakewharton.rx.replayingShare
 import com.rcswitchcontrol.protocols.CommonDeviceActions
 import com.rcswitchcontrol.protocols.CommsProtocol
@@ -75,7 +74,7 @@ private fun handleAttributeRequests(
 private fun handleNodeAdds(
     actions: Flowable<Action.Input>,
     start: Flowable<Action.Input.InitializationStatus.Initialized>
-): Flowable<Action.Output.PayloadOutput> = actions
+): Flowable<Action.Output> = actions
     .filterIsInstance<Action.Input.NodeChange.Added>()
     .map(Action.Input.NodeChange.Added::node)
     .distinct(ZigBeeNode::getIeeeAddress)
@@ -88,13 +87,14 @@ private fun handleNodeAdds(
             default = id
         )
             .monitor
-            .map { deviceName ->
-                zigBeePayload(
-                    data = Name(id = id, key = ZigBeeProtocol.key, value = deviceName).serialize(),
-                    action = CommonDeviceActions.nameChangedAction
+            .concatMap { deviceName ->
+                Flowable.just(
+                    Action.Output.Log("Device name changed. id: ${node.ieeeAddress}; new name: $deviceName"),
+                    Action.Output.PayloadOutput(zigBeePayload(
+                        data = Name(id = id, key = ZigBeeProtocol.key, value = deviceName).serialize(),
+                        action = CommonDeviceActions.nameChangedAction
+                    ))
                 )
             }
             .takeUntil(actions.filterIsInstance<Action.Input.NodeChange.Removed>())
-            .doOnNext { Log.i("TEST", "Device name changed. id: ${node.ieeeAddress}; new name: $it") }
     }
-    .map(Action.Output::PayloadOutput)

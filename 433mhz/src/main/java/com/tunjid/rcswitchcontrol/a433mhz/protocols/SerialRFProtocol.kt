@@ -26,13 +26,8 @@ package com.tunjid.rcswitchcontrol.a433mhz.protocols
 
 
 import android.hardware.usb.UsbDevice
-import android.hardware.usb.UsbManager
 import android.util.Base64
 import android.util.Log
-import androidx.core.content.getSystemService
-import com.hoho.android.usbserial.driver.CdcAcmSerialDriver
-import com.hoho.android.usbserial.driver.UsbSerialPort
-import com.hoho.android.usbserial.util.SerialInputOutputManager
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.Name
 import com.rcswitchcontrol.protocols.models.Payload
@@ -44,6 +39,8 @@ import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
 import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.common.SerialInfo
 import com.tunjid.rcswitchcontrol.common.deserialize
+import com.tunjid.rcswitchcontrol.common.serial.Mik3yUsbSerialPort
+import com.tunjid.rcswitchcontrol.common.serial.ProxyUsbSerialPort
 import java.io.PrintWriter
 
 /**
@@ -63,29 +60,14 @@ class SerialRFProtocol constructor(
     private val switchStore = RfSwitchDataStore()
     private val switchCreator = RfSwitch.SwitchCreator()
 
-    private val port: UsbSerialPort
-    private val serialInputOutputManager: SerialInputOutputManager
+    private val port: ProxyUsbSerialPort = Mik3yUsbSerialPort(ContextProvider.appContext)
 
     init {
-        val manager = ContextProvider.appContext.getSystemService<UsbManager>()
-        val connection = manager?.openDevice(usbDevice)
-        val driver = CdcAcmSerialDriver(usbDevice)
-
-        port = driver.ports[0]
-        port.open(connection)
-        port.setParameters(serialInfo.baudRate, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE)
-        serialInputOutputManager = SerialInputOutputManager(port, object : SerialInputOutputManager.Listener {
-            override fun onRunError(e: Exception) = e.printStackTrace()
-
-            override fun onNewData(rawData: ByteArray) = onSerialRead(rawData)
-        })
-
-        CommsProtocol.sharedPool.submit(serialInputOutputManager)
+        port.open(serialInfo, usbDevice, ::onSerialRead)
     }
 
     override fun close() {
         port.close()
-        serialInputOutputManager.stop()
     }
 
     override fun processInput(payload: Payload): Payload {
@@ -102,7 +84,7 @@ class SerialRFProtocol constructor(
                 addRefreshAndSniff()
             }
 
-            sniffAction -> CommsProtocol.sharedPool.submit { port.write(byteArrayOf(SNIFF_FLAG), SERIAL_TIMEOUT) }
+            sniffAction -> CommsProtocol.sharedPool.submit { port.write(byteArrayOf(SNIFF_FLAG)) }
 
             renameAction -> output.apply {
                 val switches = switchStore.savedSwitches
@@ -153,7 +135,7 @@ class SerialRFProtocol constructor(
                 addRefreshAndSniff()
 
                 val transmission = Base64.decode(payload.data, Base64.DEFAULT)
-                CommsProtocol.sharedPool.submit { port.write(transmission, SERIAL_TIMEOUT) }
+                CommsProtocol.sharedPool.submit { port.write(transmission) }
             }
         }
 
@@ -222,8 +204,6 @@ class SerialRFProtocol constructor(
     }
 
     companion object {
-        const val SERIAL_TIMEOUT = 99999
-
         const val NOTIFICATION = 1
         const val SNIFF_PAYLOAD = 10
 

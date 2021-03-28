@@ -17,4 +17,7 @@ dependencies {
     implementation parent.ext.rxKotlin
     implementation parent.ext.rxAndroid
     implementation rxReplayingShare
+
+    implementation parent.ext.usbSerialA
+    implementation parent.ext.usbSerialB
 }

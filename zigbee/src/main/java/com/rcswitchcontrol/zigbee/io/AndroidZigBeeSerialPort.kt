@@ -25,15 +25,10 @@
 package com.rcswitchcontrol.zigbee.io
 
 import android.hardware.usb.UsbDevice
-import android.hardware.usb.UsbManager
-import android.os.Handler
-import android.os.HandlerThread
-import androidx.core.content.getSystemService
-import com.hoho.android.usbserial.driver.CdcAcmSerialDriver
-import com.hoho.android.usbserial.driver.UsbSerialPort
-import com.hoho.android.usbserial.util.SerialInputOutputManager
 import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.common.SerialInfo
+import com.tunjid.rcswitchcontrol.common.serial.FelHR85UsbSerialPort
+import com.tunjid.rcswitchcontrol.common.serial.ProxyUsbSerialPort
 import com.zsmartsystems.zigbee.serial.ZigBeeSerialPort
 import com.zsmartsystems.zigbee.transport.ZigBeePort
 import jssc.SerialPortException
@@ -45,45 +40,34 @@ class AndroidZigBeeSerialPort(
     private val usbDevice: UsbDevice
 ) : ZigBeePort {
 
-
     private var end = 0
     private var start = 0
     private val maxLength = 512
 
     private val buffer = IntArray(512)
 
-    private var serialPort: UsbSerialPort? = null
-    private var serialThread: HandlerThread? = null
-    private var serialHandler: Handler? = null
+    private var serialPort: ProxyUsbSerialPort? = null
 
     private val lock = Object()
     private val bufferSynchronisationObject = Any()
 
-    private lateinit var serialInputOutputManager: SerialInputOutputManager
+    private val onDataRead = { data: ByteArray ->
+        try {
+            synchronized(bufferSynchronisationObject) {
+                val intBuffer = data.map { if (it < 0) 256 + it else it.toInt() }
 
-    private val serialListener = object : SerialInputOutputManager.Listener {
-        override fun onRunError(e: java.lang.Exception?) = e?.printStackTrace() ?: Unit
-
-        override fun onNewData(data: ByteArray?) {
-            try {
-                data ?: return
-
-                synchronized(bufferSynchronisationObject) {
-                    val intBuffer = data.map { if (it < 0) 256 + it else it.toInt() }
-
-                    for (recv in intBuffer) {
-                        buffer[end++] = recv
-                        if (end >= maxLength) end = 0
-                    }
+                for (recv in intBuffer) {
+                    buffer[end++] = recv
+                    if (end >= maxLength) end = 0
                 }
-
-                synchronized(lock) {
-                    lock.notify()
-                }
-
-            } catch (e: SerialPortException) {
-                logger.error("Error while handling serial event.", e)
             }
+
+            synchronized(lock) {
+                lock.notify()
+            }
+
+        } catch (e: SerialPortException) {
+            logger.error("Error while handling serial event.", e)
         }
     }
 
@@ -109,61 +93,24 @@ class AndroidZigBeeSerialPort(
         }
     }
 
-    /**
-     * Opens serial port.
-     *
-     * @param driver the USB serial driver
-     * @param baudRate the baud rate
-     * @param flowControl the flow control option
-     */
     private fun openSerialPort(device: UsbDevice, baudRate: Int, flowControl: ZigBeePort.FlowControl?) {
         if (serialPort != null) throw RuntimeException("Serial port already open.")
 
-        val driver = CdcAcmSerialDriver(device)
-        logger.debug("Opening port {} at {} baud with {}.", driver.ports[0].portNumber, baudRate, flowControl)
+        println("Attempting to open. baudRate: $baudRate, flowControl: $flowControl")
+        val port = FelHR85UsbSerialPort(ContextProvider.appContext)
+        serialPort = port
 
-        val manager = ContextProvider.appContext.getSystemService<UsbManager>()
-
-        val connection = manager?.openDevice(device)
-            ?: // You probably need to call UsbManager.requestPermission(driver.getDevice(), ..)
-            return
-
-        serialPort = driver.ports[0]
-        val port = serialPort!!
-
-        try {
-            port.open(connection)
-            port.setParameters(baudRate, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE)
-
-            serialInputOutputManager = SerialInputOutputManager(port, serialListener)
-
-            serialThread = HandlerThread("serialThread").apply { start() }
-            serialHandler = serialThread?.let { Handler(it.looper) }
-
-            serialHandler?.post(serialInputOutputManager)
-
-        } catch (e: SerialPortException) {
-            logger.error("Error opening serial port.", e)
-            throw RuntimeException("Failed to open serial port: $driver", e)
-        }
-
+        port.open(serialInfo, device, onDataRead)
     }
 
     override fun close() = try {
-        serialPort?.apply {
+        serialPort?.let {
             synchronized(lock) {
-                close()
-                serialInputOutputManager.stop()
-
+                it.close()
                 serialPort = null
                 lock.notify()
             }
-
-            logger.info("Serial port '$driver' closed.")
-        }
-        serialThread?.quitSafely()
-        serialThread = null
-        serialHandler = null
+        } ?: Unit
     } catch (e: Exception) {
         logger.warn("Error closing serial port: '$serialInfo'", e)
     }
@@ -171,7 +118,7 @@ class AndroidZigBeeSerialPort(
     override fun write(value: Int) {
         serialPort?.apply {
             try {
-                this.write(byteArrayOf(value.toByte()), 9999999)
+                this.write(byteArrayOf(value.toByte()))
             } catch (e: SerialPortException) {
                 e.printStackTrace()
             }

@@ -25,8 +25,6 @@ dependencies {
     implementation parent.ext.rxAndroid
     implementation parent.ext.rxReplayingShare
 
-    implementation parent.ext.usbSerialA
-
     implementation parent.ext.zigBeeCore
     implementation parent.ext.zigBeeConsole
     implementation parent.ext.zigBeeSerial

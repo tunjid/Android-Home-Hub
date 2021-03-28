@@ -35,7 +35,7 @@ internal fun initialize(
     val outputs = PublishProcessor.create<Action.Output>()
     val synchronousOutputs = mutableListOf<Action.Output>()
 
-    val (_, _, dongle, dataStoreName) = action
+    val (_, dongle, dataStoreName) = action
     val networkManager = ZigBeeNetworkManager(dongle)
     val dataStore = ZigBeeDataStore(dataStoreName)
 
@@ -80,6 +80,7 @@ internal fun initialize(
         addCommandListener {}
     }
     // Initialise the network
+
     val initResponse = networkManager.initialize()
 
     if (initResponse != ZigBeeStatus.SUCCESS) return Action.Input.InitializationStatus.Error

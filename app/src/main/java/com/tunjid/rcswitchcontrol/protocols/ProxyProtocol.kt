@@ -36,10 +36,6 @@ import android.os.Handler
 import android.os.Looper
 import androidx.core.content.getSystemService
 import androidx.core.os.postDelayed
-import com.hoho.android.usbserial.driver.CdcAcmSerialDriver
-import com.hoho.android.usbserial.driver.ProbeTable
-import com.hoho.android.usbserial.driver.UsbSerialDriver
-import com.hoho.android.usbserial.driver.UsbSerialProber
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
@@ -47,7 +43,9 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.a433mhz.protocols.BLERFProtocol
 import com.tunjid.rcswitchcontrol.a433mhz.protocols.SerialRFProtocol
 import com.tunjid.rcswitchcontrol.common.ContextProvider
+import com.tunjid.rcswitchcontrol.common.SerialInfo
 import com.tunjid.rcswitchcontrol.common.filterIsInstance
+import com.tunjid.rcswitchcontrol.common.findUsbDevice
 import com.tunjid.rcswitchcontrol.di.dagger
 import com.tunjid.rcswitchcontrol.models.Broadcast
 import io.reactivex.disposables.CompositeDisposable
@@ -70,19 +68,22 @@ class ProxyProtocol(
     private val disposable = CompositeDisposable()
 
     private val rfPeripheral = UsbPeripheral(
-        SerialRFProtocol.ARDUINO_VENDOR_ID,
-        SerialRFProtocol.ARDUINO_PRODUCT_ID,
-        RF_REQUEST_CODE,
-        SerialRFProtocol.key,
-        protocolFunction = { SerialRFProtocol(it, printWriter) }
+        requestCode = RF_REQUEST_CODE,
+        serialInfo = SerialRFProtocol.ArduinoSerialInfo,
+        key = SerialRFProtocol.key,
+        protocolFunction = { info, device -> SerialRFProtocol(info, device, printWriter) }
     )
 
     private val zigBeePeripheral = UsbPeripheral(
-        ZigBeeProtocol.TI_VENDOR_ID,
-        ZigBeeProtocol.CC2531_PRODUCT_ID,
-        ZIG_BEE_REQUEST_CODE,
-        ZigBeeProtocol.key,
-        protocolFunction = { ZigBeeProtocol(context = context, driver = it, printWriter = printWriter) }
+        requestCode = ZIG_BEE_REQUEST_CODE,
+        serialInfo = ZigBeeProtocol.CC2531SerialInfo,
+        key = ZigBeeProtocol.key,
+        protocolFunction = { info, device -> ZigBeeProtocol(
+            context = context,
+            serialInfo = info,
+            usbDevice = device,
+            printWriter = printWriter
+        ) }
     )
 
     private val protocolMap = mutableMapOf(
@@ -127,12 +128,12 @@ class ProxyProtocol(
     }
 
     private fun attach(usbPeripheral: UsbPeripheral) = with(usbPeripheral) {
-        val driver = findUsbDriver(this)
-        if (driver != null) protocolMap[key] = protocolFunction(driver)
+        val device = findUsbDevice(this)
+        if (device != null) protocolMap[key] = protocolFunction(usbPeripheral.serialInfo, device)
     }
 
     private fun onUsbPermissionGranted(device: UsbDevice) {
-        for (thing in listOf(rfPeripheral, zigBeePeripheral)) if (device.vendorId == thing.vendorId && protocolMap[thing.key] == null) {
+        for (thing in listOf(rfPeripheral, zigBeePeripheral)) if (device.vendorId == thing.serialInfo.vendorId && protocolMap[thing.key] == null) {
             attach(thing)
             protocolMap[thing.key]
                 ?.processInput(CommsProtocol.pingAction.value)
@@ -140,21 +141,13 @@ class ProxyProtocol(
         }
     }
 
-    private fun findUsbDriver(usbPeripheral: UsbPeripheral): UsbSerialDriver? = usbPeripheral.run {
+    private fun findUsbDevice(usbPeripheral: UsbPeripheral): UsbDevice? = usbPeripheral.run {
         val app = ContextProvider.appContext
         val manager = app.getSystemService<UsbManager>() ?: return@run null
 
-        val dongleLookup = ProbeTable().apply { addProduct(vendorId, productId, CdcAcmSerialDriver::class.java) }
+        val device = app.findUsbDevice(usbPeripheral.serialInfo) ?: return@run null
 
-        val drivers = UsbSerialProber(dongleLookup).findAllDrivers(manager)
-        if (drivers.isEmpty()) return null
-
-        val devices = manager.deviceList.values.filter { it.vendorId == vendorId && it.productId == productId }
-        if (devices.isEmpty()) return null
-
-        val device = devices[0]
-
-        if (manager.hasPermission(device)) return drivers[0]
+        if (manager.hasPermission(device)) return device
 
         val pending = PendingIntent.getBroadcast(app, requestCode, Intent(ACTION_USB_PERMISSION), FLAG_CANCEL_CURRENT)
         manager.requestPermission(device, pending)
@@ -187,11 +180,10 @@ class USBDeviceReceiver : BroadcastReceiver() {
 }
 
 class UsbPeripheral(
-    val vendorId: Int,
-    val productId: Int,
     val requestCode: Int,
+    val serialInfo: SerialInfo,
     val key: CommsProtocol.Key,
-    val protocolFunction: (driver: UsbSerialDriver) -> CommsProtocol
+    val protocolFunction: (info: SerialInfo, device: UsbDevice) -> CommsProtocol
 )
 
 private const val RF_REQUEST_CODE = 1

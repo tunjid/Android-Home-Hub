@@ -25,7 +25,7 @@
 package com.rcswitchcontrol.zigbee.protocol
 
 import android.content.Context
-import com.hoho.android.usbserial.driver.UsbSerialDriver
+import android.hardware.usb.UsbDevice
 import com.rcswitchcontrol.protocols.CommonDeviceActions
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.Name
@@ -41,6 +41,7 @@ import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol.Companion.zigBeePayloa
 import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.common.ReactivePreference
 import com.tunjid.rcswitchcontrol.common.ReactivePreferences
+import com.tunjid.rcswitchcontrol.common.SerialInfo
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.common.serializeList
@@ -62,7 +63,6 @@ internal sealed class Action {
     sealed class Input : Action() {
 
         data class Start(
-            val driver: UsbSerialDriver,
             val deviceNames: ReactivePreferences,
             val dongle: ZigBeeDongleTiCc2531,
             val dataStoreName: String
@@ -106,7 +106,8 @@ private val Action.Output.Log.payload get() = zigBeePayload(response = message)
 @Suppress("PrivatePropertyName")
 class ZigBeeProtocol(
     context: Context,
-    driver: UsbSerialDriver,
+    serialInfo: SerialInfo,
+    usbDevice: UsbDevice,
     override val printWriter: PrintWriter
 ) : CommsProtocol {
 
@@ -124,9 +125,8 @@ class ZigBeeProtocol(
     }
 
     private val initializationStatus: Action.Input.InitializationStatus = initialize(Action.Input.Start(
-        driver = driver,
         deviceNames = ReactivePreferences(context.getSharedPreferences("device names", Context.MODE_PRIVATE)),
-        dongle = ZigBeeDongleTiCc2531(AndroidZigBeeSerialPort(driver, BAUD_RATE)),
+        dongle = ZigBeeDongleTiCc2531(AndroidZigBeeSerialPort(serialInfo, usbDevice)),
         dataStoreName = "47",
     ))
 
@@ -226,11 +226,14 @@ class ZigBeeProtocol(
     }
 
     companion object {
-        const val TI_VENDOR_ID = 0x0451
-        const val CC2531_PRODUCT_ID = 0x16a8
-        const val BAUD_RATE = 115200
         const val MESH_UPDATE_PERIOD = 60
         const val OUTPUT_BUFFER_RATE = 100L
+
+        val CC2531SerialInfo = SerialInfo(
+            vendorId = 0x0451,
+            productId = 0x16a8,
+            baudRate = 115200
+        )
 
         val key = CommsProtocol.Key(ZigBeeProtocol::class.java.name)
 

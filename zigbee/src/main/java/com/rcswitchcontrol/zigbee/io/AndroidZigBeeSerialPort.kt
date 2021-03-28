@@ -24,14 +24,16 @@
 
 package com.rcswitchcontrol.zigbee.io
 
+import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.Handler
 import android.os.HandlerThread
 import androidx.core.content.getSystemService
-import com.hoho.android.usbserial.driver.UsbSerialDriver
+import com.hoho.android.usbserial.driver.CdcAcmSerialDriver
 import com.hoho.android.usbserial.driver.UsbSerialPort
 import com.hoho.android.usbserial.util.SerialInputOutputManager
 import com.tunjid.rcswitchcontrol.common.ContextProvider
+import com.tunjid.rcswitchcontrol.common.SerialInfo
 import com.zsmartsystems.zigbee.serial.ZigBeeSerialPort
 import com.zsmartsystems.zigbee.transport.ZigBeePort
 import jssc.SerialPortException
@@ -39,8 +41,8 @@ import org.slf4j.LoggerFactory
 
 
 class AndroidZigBeeSerialPort(
-        private val driver: UsbSerialDriver,
-        private val baudRate: Int
+    private val serialInfo: SerialInfo,
+    private val usbDevice: UsbDevice
 ) : ZigBeePort {
 
 
@@ -85,11 +87,11 @@ class AndroidZigBeeSerialPort(
         }
     }
 
-    override fun open(): Boolean = open(baudRate)
+    override fun open(): Boolean = open(serialInfo.baudRate)
 
     override fun open(baudRate: Int): Boolean {
         return try {
-            openSerialPort(driver, baudRate, null)
+            openSerialPort(usbDevice, baudRate, null)
             true
         } catch (e: Exception) {
             logger.warn("Unable to open serial port: " + e.message)
@@ -99,7 +101,7 @@ class AndroidZigBeeSerialPort(
 
     override fun open(baudRate: Int, flowControl: ZigBeePort.FlowControl): Boolean {
         return try {
-            openSerialPort(driver, baudRate, flowControl)
+            openSerialPort(usbDevice, baudRate, flowControl)
             true
         } catch (e: Exception) {
             logger.warn("Unable to open serial port: " + e.message)
@@ -114,16 +116,17 @@ class AndroidZigBeeSerialPort(
      * @param baudRate the baud rate
      * @param flowControl the flow control option
      */
-    private fun openSerialPort(driver: UsbSerialDriver, baudRate: Int, flowControl: ZigBeePort.FlowControl?) {
+    private fun openSerialPort(device: UsbDevice, baudRate: Int, flowControl: ZigBeePort.FlowControl?) {
         if (serialPort != null) throw RuntimeException("Serial port already open.")
 
+        val driver = CdcAcmSerialDriver(device)
         logger.debug("Opening port {} at {} baud with {}.", driver.ports[0].portNumber, baudRate, flowControl)
 
         val manager = ContextProvider.appContext.getSystemService<UsbManager>()
 
-        val connection = manager?.openDevice(driver.device)
-                ?: // You probably need to call UsbManager.requestPermission(driver.getDevice(), ..)
-                return
+        val connection = manager?.openDevice(device)
+            ?: // You probably need to call UsbManager.requestPermission(driver.getDevice(), ..)
+            return
 
         serialPort = driver.ports[0]
         val port = serialPort!!
@@ -162,7 +165,7 @@ class AndroidZigBeeSerialPort(
         serialThread = null
         serialHandler = null
     } catch (e: Exception) {
-        logger.warn("Error closing serial port: '$driver'", e)
+        logger.warn("Error closing serial port: '$serialInfo'", e)
     }
 
     override fun write(value: Int) {

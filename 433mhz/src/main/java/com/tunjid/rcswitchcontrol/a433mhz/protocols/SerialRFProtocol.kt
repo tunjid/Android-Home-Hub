@@ -25,11 +25,12 @@
 package com.tunjid.rcswitchcontrol.a433mhz.protocols
 
 
+import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.util.Base64
 import android.util.Log
 import androidx.core.content.getSystemService
-import com.hoho.android.usbserial.driver.UsbSerialDriver
+import com.hoho.android.usbserial.driver.CdcAcmSerialDriver
 import com.hoho.android.usbserial.driver.UsbSerialPort
 import com.hoho.android.usbserial.util.SerialInputOutputManager
 import com.rcswitchcontrol.protocols.CommsProtocol
@@ -41,6 +42,7 @@ import com.tunjid.rcswitchcontrol.a433mhz.models.bytes
 import com.tunjid.rcswitchcontrol.a433mhz.persistence.RfSwitchDataStore
 import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
 import com.tunjid.rcswitchcontrol.common.ContextProvider
+import com.tunjid.rcswitchcontrol.common.SerialInfo
 import com.tunjid.rcswitchcontrol.common.deserialize
 import java.io.PrintWriter
 
@@ -53,9 +55,10 @@ import java.io.PrintWriter
 
 @Suppress("PrivatePropertyName")
 class SerialRFProtocol constructor(
-        driver: UsbSerialDriver,
-       override val printWriter: PrintWriter
-) : CommsProtocol, RFProtocolActions by SharedRFProtocolActions{
+    serialInfo: SerialInfo,
+    usbDevice: UsbDevice,
+    override val printWriter: PrintWriter
+) : CommsProtocol, RFProtocolActions by SharedRFProtocolActions {
 
     private val switchStore = RfSwitchDataStore()
     private val switchCreator = RfSwitch.SwitchCreator()
@@ -65,11 +68,12 @@ class SerialRFProtocol constructor(
 
     init {
         val manager = ContextProvider.appContext.getSystemService<UsbManager>()
-        val connection = manager?.openDevice(driver.device)
+        val connection = manager?.openDevice(usbDevice)
+        val driver = CdcAcmSerialDriver(usbDevice)
 
         port = driver.ports[0]
         port.open(connection)
-        port.setParameters(BAUD_RATE, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE)
+        port.setParameters(serialInfo.baudRate, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE)
         serialInputOutputManager = SerialInputOutputManager(port, object : SerialInputOutputManager.Listener {
             override fun onRunError(e: Exception) = e.printStackTrace()
 
@@ -92,8 +96,8 @@ class SerialRFProtocol constructor(
                 action = ClientBleService.transmitterAction
                 data = switchStore.serializedSavedSwitches
                 response = (ContextProvider.appContext.getString(
-                        if (receivedAction == CommsProtocol.pingAction) R.string.blercprotocol_ping_response
-                        else R.string.blercprotocol_refresh_response
+                    if (receivedAction == CommsProtocol.pingAction) R.string.blercprotocol_ping_response
+                    else R.string.blercprotocol_refresh_response
                 ))
                 addRefreshAndSniff()
             }
@@ -196,8 +200,8 @@ class SerialRFProtocol constructor(
                         val containsSwitch = switches.map(RfSwitch::bytes).contains(rcSwitch.bytes)
 
                         it.response = ContextProvider.appContext.getString(
-                                if (containsSwitch) R.string.scanblercprotocol_sniff_already_exists_response
-                                else R.string.blercprotocol_sniff_off_response
+                            if (containsSwitch) R.string.scanblercprotocol_sniff_already_exists_response
+                            else R.string.blercprotocol_sniff_off_response
                         )
 
                         if (!containsSwitch) {
@@ -218,10 +222,6 @@ class SerialRFProtocol constructor(
     }
 
     companion object {
-        const val ARDUINO_VENDOR_ID = 0x2341
-        const val ARDUINO_PRODUCT_ID = 0x0010
-
-        const val BAUD_RATE = 115200
         const val SERIAL_TIMEOUT = 99999
 
         const val NOTIFICATION = 1
@@ -231,17 +231,23 @@ class SerialRFProtocol constructor(
         const val SNIFF_FLAG: Byte = 'R'.toByte()
         const val TRANSMIT_FLAG: Byte = 'T'.toByte()
 
+        val ArduinoSerialInfo = SerialInfo(
+            vendorId = 0x2341,
+            productId = 0x0010,
+            baudRate = 115200
+        )
+
         val key = CommsProtocol.Key(SerialRFProtocol::class.java.name)
 
         internal fun serialRfPayload(
-                data: String? = null,
-                action: CommsProtocol.Action? = null,
-                response: String? = null
+            data: String? = null,
+            action: CommsProtocol.Action? = null,
+            response: String? = null
         ) = Payload(
-                key = key,
-                data = data,
-                action = action,
-                response = response
+            key = key,
+            data = data,
+            action = action,
+            response = response
         )
     }
 }

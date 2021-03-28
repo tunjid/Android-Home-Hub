@@ -18,7 +18,7 @@ dependencies {
     implementation parent.ext.rxJava
     implementation parent.ext.rxAndroid
 
-    implementation parent.ext.usbSerial
+    implementation parent.ext.usbSerialA
 
     implementation project(':common')
     implementation project(':protocols')

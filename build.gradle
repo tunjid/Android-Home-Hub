@@ -68,7 +68,8 @@ buildscript {
         coroutines = 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2'
         coroutinesAndroid = 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.4.2'
 
-        usbSerial = 'com.github.mik3y:usb-serial-for-android:3.3.0'
+        usbSerialA = 'com.github.mik3y:usb-serial-for-android:3.3.1'
+        usbSerialB = 'com.github.felHR85:UsbSerial:6.1.0'
 
         tunjiAndroidxCommunications = 'com.tunjid.androidx:communications:1.0.0'
         tunjiAndroidxRecyclerView = 'com.tunjid.androidx:recyclerview:1.2.0-alpha01'

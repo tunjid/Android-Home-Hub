@@ -86,7 +86,6 @@ dependencies {
     implementation parent.ext.rxAndroid
     implementation parent.ext.rxReplayingShare
 
-    implementation parent.ext.usbSerial
     implementation 'com.squareup.picasso:picasso:2.71828'
     implementation 'com.github.QuadFlask:colorpicker:0.0.15'
 

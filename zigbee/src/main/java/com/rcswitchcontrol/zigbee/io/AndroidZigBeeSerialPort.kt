@@ -59,6 +59,10 @@ class AndroidZigBeeSerialPort(
                 for (recv in intBuffer) {
                     buffer[end++] = recv
                     if (end >= maxLength) end = 0
+                    if (end == start) {
+                        println("Serial buffer overrun.")
+                        if (++start == maxLength) start = 0
+                    }
                 }
             }
 

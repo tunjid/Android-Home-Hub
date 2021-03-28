@@ -25,15 +25,12 @@
 package com.rcswitchcontrol.zigbee.io
 
 import android.hardware.usb.UsbDevice
+import android.util.Log
 import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.common.SerialInfo
 import com.tunjid.rcswitchcontrol.common.serial.FelHR85UsbSerialPort
 import com.tunjid.rcswitchcontrol.common.serial.ProxyUsbSerialPort
-import com.zsmartsystems.zigbee.serial.ZigBeeSerialPort
 import com.zsmartsystems.zigbee.transport.ZigBeePort
-import jssc.SerialPortException
-import org.slf4j.LoggerFactory
-
 
 class AndroidZigBeeSerialPort(
     private val serialInfo: SerialInfo,
@@ -44,33 +41,31 @@ class AndroidZigBeeSerialPort(
     private var start = 0
     private val maxLength = 512
 
-    private val buffer = IntArray(512)
+    private val readBuffer = IntArray(512)
+    private val writeBuffer = byteArrayOf(0)
 
     private var serialPort: ProxyUsbSerialPort? = null
 
     private val lock = Object()
     private val bufferSynchronisationObject = Any()
 
-    private val onDataRead = { data: ByteArray ->
-        try {
-            if (data.isNotEmpty()) synchronized(bufferSynchronisationObject) {
-                for (byte in data) {
-                    val int = if (byte < 0) 256 + byte else byte.toInt()
-                    buffer[end++] = int
-                    if (end >= maxLength) end = 0
-                    if (end == start) {
-                        println("Serial buffer overrun.")
-                        if (++start == maxLength) start = 0
-                    }
+    private val onDataRead = dataRead@{ data: ByteArray ->
+        if (data.isEmpty()) return@dataRead println("No ZigBee serial data to read")
+
+        synchronized(bufferSynchronisationObject) {
+            for (byte in data) {
+                val int = if (byte < 0) 256 + byte else byte.toInt()
+                readBuffer[end++] = int
+                if (end >= maxLength) end = 0
+                if (end == start) {
+                    println("ZigBee serial buffer overrun.")
+                    if (++start == maxLength) start = 0
                 }
             }
+        }
 
-            synchronized(lock) {
-                lock.notify()
-            }
-
-        } catch (e: SerialPortException) {
-            logger.error("Error while handling serial event.", e)
+        synchronized(lock) {
+            lock.notify()
         }
     }
 
@@ -81,7 +76,7 @@ class AndroidZigBeeSerialPort(
             openSerialPort(usbDevice, baudRate, null)
             true
         } catch (e: Exception) {
-            logger.warn("Unable to open serial port: " + e.message)
+            Log.e(Tag, "Unable to open serial port: ", e)
             false
         }
     }
@@ -91,7 +86,7 @@ class AndroidZigBeeSerialPort(
             openSerialPort(usbDevice, baudRate, flowControl)
             true
         } catch (e: Exception) {
-            logger.warn("Unable to open serial port: " + e.message)
+            Log.e(Tag, "Unable to open serial port: ", e)
             false
         }
     }
@@ -106,28 +101,19 @@ class AndroidZigBeeSerialPort(
         port.open(serialInfo, device, onDataRead)
     }
 
-    override fun close() = try {
-        serialPort?.let {
-            synchronized(lock) {
-                it.close()
-                serialPort = null
-                lock.notify()
-            }
-        } ?: Unit
-    } catch (e: Exception) {
-        logger.warn("Error closing serial port: '$serialInfo'", e)
-    }
-
-    override fun write(value: Int) {
-        serialPort?.apply {
-            try {
-                this.write(byteArrayOf(value.toByte()))
-            } catch (e: SerialPortException) {
-                e.printStackTrace()
-            }
+    override fun close() = serialPort?.let {
+        synchronized(lock) {
+            it.close()
+            serialPort = null
+            lock.notify()
         }
+    } ?: println("Close attempt on dead port")
 
-    }
+
+    override fun write(value: Int) = serialPort?.let {
+        writeBuffer[0] = value.toByte()
+        it.write(writeBuffer)
+    } ?: println("Write attempt on dead port")
 
     override fun read(): Int = read(9999999)
 
@@ -138,7 +124,7 @@ class AndroidZigBeeSerialPort(
             while (System.currentTimeMillis() < endTime) {
                 synchronized(bufferSynchronisationObject) {
                     if (start != end) {
-                        val value = buffer[start++]
+                        val value = readBuffer[start++]
                         if (start >= maxLength) start = 0
 
                         return value
@@ -146,6 +132,7 @@ class AndroidZigBeeSerialPort(
                 }
 
                 synchronized(lock) {
+                    if (serialPort == null) println("Read attempt on dead port")
                     if (serialPort == null) return -1
                     lock.wait(endTime - System.currentTimeMillis())
                 }
@@ -167,6 +154,6 @@ class AndroidZigBeeSerialPort(
         /**
          * The logger.
          */
-        private val logger = LoggerFactory.getLogger(ZigBeeSerialPort::class.java)
+        private const val Tag = "ZigBeeSerialPort"
     }
 }

@@ -160,7 +160,8 @@ internal fun initialize(
         networkManager = networkManager,
         inputs = inputs,
         outputs = Flowable.defer {
-            Flowable.fromIterable(synchronousOutputs)
+            Flowable
+                .fromIterable(synchronousOutputs)
                 .mergeWith(outputs)
         }
     )

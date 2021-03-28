@@ -226,7 +226,7 @@ class ZigBeeProtocol(
     }
 
     companion object {
-        const val MESH_UPDATE_PERIOD = 60
+        const val MESH_UPDATE_PERIOD = 20
         const val OUTPUT_BUFFER_RATE = 100L
 
         val CC2531SerialInfo = SerialInfo(

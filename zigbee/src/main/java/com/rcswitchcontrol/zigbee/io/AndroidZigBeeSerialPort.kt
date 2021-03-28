@@ -53,7 +53,7 @@ class AndroidZigBeeSerialPort(
 
     private val onDataRead = { data: ByteArray ->
         try {
-            synchronized(bufferSynchronisationObject) {
+            if (data.isNotEmpty()) synchronized(bufferSynchronisationObject) {
                 for (byte in data) {
                     val int = if (byte < 0) 256 + byte else byte.toInt()
                     buffer[end++] = int

@@ -54,10 +54,9 @@ class AndroidZigBeeSerialPort(
     private val onDataRead = { data: ByteArray ->
         try {
             synchronized(bufferSynchronisationObject) {
-                val intBuffer = data.map { if (it < 0) 256 + it else it.toInt() }
-
-                for (recv in intBuffer) {
-                    buffer[end++] = recv
+                for (byte in data) {
+                    val int = if (byte < 0) 256 + byte else byte.toInt()
+                    buffer[end++] = int
                     if (end >= maxLength) end = 0
                     if (end == start) {
                         println("Serial buffer overrun.")

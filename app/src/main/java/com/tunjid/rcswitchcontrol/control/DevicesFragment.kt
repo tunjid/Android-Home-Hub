@@ -125,7 +125,7 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
                         .map(Triple<Pair<String, Any?>, Pair<String, Any?>, Pair<String, Any?>>::toString)
                 }
                 .observe(viewLifecycleOwner) {
-                    Log.i("TEST", "Trifecta: \n ${it.joinToString(separator = "\n")}")
+//                    Log.i("TEST", "Trifecta: \n ${it.joinToString(separator = "\n")}")
                 }
 
         }

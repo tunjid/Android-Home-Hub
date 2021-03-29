@@ -34,6 +34,7 @@ internal fun initialize(
     val inputs = PublishProcessor.create<Action.Input>()
     val outputs = PublishProcessor.create<Action.Output>()
     val synchronousOutputs = mutableListOf<Action.Output>()
+    val onOutput = if (outputs.hasSubscribers()) outputs::onNext else synchronousOutputs::add
 
     val (_, dongle, dataStoreName) = action
     val networkManager = ZigBeeNetworkManager(dongle)
@@ -53,27 +54,20 @@ internal fun initialize(
         setSerializer(DefaultSerializer::class.java, DefaultDeserializer::class.java)
 
         addNetworkStateListener { state ->
-            synchronousOutputs.add(Action.Output.Log("ZigBee network state updated to $state"))
-            outputs.onNext(Action.Output.Log("ZigBee network state updated to $state"))
+            onOutput(Action.Output.Log("ZigBee network state updated to $state"))
         }
 
         addNetworkNodeListener(object : ZigBeeNetworkNodeListener {
             override fun nodeAdded(node: ZigBeeNode) {
                 inputs.onNext(Action.Input.NodeChange.Added(node))
-                Action.Output.Log("Node added $node").let {
-                    synchronousOutputs.add(it)
-                    outputs.onNext(it)
-                }
+                onOutput(Action.Output.Log("Node added $node"))
             }
 
             override fun nodeUpdated(node: ZigBeeNode) = outputs.onNext(Action.Output.Log("Node updated $node"))
 
             override fun nodeRemoved(node: ZigBeeNode) {
                 inputs.onNext(Action.Input.NodeChange.Removed(node))
-                Action.Output.Log("Node removed $node").let {
-                    synchronousOutputs.add(it)
-                    outputs.onNext(it)
-                }
+                onOutput(Action.Output.Log("Node removed $node"))
             }
         })
 
@@ -161,7 +155,7 @@ internal fun initialize(
         inputs = inputs,
         outputs = Flowable.defer {
             Flowable
-                .fromIterable(synchronousOutputs)
+                .fromIterable(synchronousOutputs.toList())
                 .mergeWith(outputs)
         }
     )

@@ -28,7 +28,8 @@ dependencies {
     implementation parent.ext.zigBeeCore
     implementation parent.ext.zigBeeConsole
     implementation parent.ext.zigBeeSerial
-    implementation parent.ext.zigBeeDongle
+    implementation parent.ext.zigBeeDongleCC2531
+    implementation parent.ext.zigBeeDongleEmber
 
     implementation parent.ext.gson
 

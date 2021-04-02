@@ -81,7 +81,8 @@ buildscript {
         zigBeeCore = 'com.zsmartsystems.zigbee:com.zsmartsystems.zigbee:1.2.2'
         zigBeeConsole = 'com.zsmartsystems.zigbee:com.zsmartsystems.zigbee.console:1.2.2'
         zigBeeSerial = 'com.zsmartsystems.zigbee:com.zsmartsystems.zigbee.serial:1.2.2'
-        zigBeeDongle = 'com.zsmartsystems.zigbee:com.zsmartsystems.zigbee.dongle.cc2531:1.2.2'
+        zigBeeDongleCC2531 = 'com.zsmartsystems.zigbee:com.zsmartsystems.zigbee.dongle.cc2531:1.2.2'
+        zigBeeDongleEmber = 'com.zsmartsystems.zigbee:com.zsmartsystems.zigbee.dongle.ember:1.2.2'
 
         junit = 'junit:junit:4.12'
         androidJunit = 'androidx.test.ext:junit:1.1.1'

@@ -25,7 +25,6 @@
 package com.rcswitchcontrol.zigbee.protocol
 
 import android.content.Context
-import android.hardware.usb.UsbDevice
 import com.rcswitchcontrol.protocols.CommonDeviceActions
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.Name
@@ -33,7 +32,6 @@ import com.rcswitchcontrol.protocols.asAction
 import com.rcswitchcontrol.protocols.io.ConsoleStream
 import com.rcswitchcontrol.protocols.models.Payload
 import com.rcswitchcontrol.zigbee.R
-import com.rcswitchcontrol.zigbee.io.AndroidZigBeeSerialPort
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommandInfo
 import com.rcswitchcontrol.zigbee.persistence.ZigBeeDataStore
@@ -41,14 +39,12 @@ import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol.Companion.zigBeePayloa
 import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.common.ReactivePreference
 import com.tunjid.rcswitchcontrol.common.ReactivePreferences
-import com.tunjid.rcswitchcontrol.common.SerialInfo
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.common.serializeList
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager
 import com.zsmartsystems.zigbee.ZigBeeNode
 import com.zsmartsystems.zigbee.console.ZigBeeConsoleCommand
-import com.zsmartsystems.zigbee.dongle.cc2531.ZigBeeDongleTiCc2531
 import io.reactivex.Flowable
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.processors.PublishProcessor
@@ -69,6 +65,8 @@ internal sealed class Action {
         ) : Input()
 
         internal sealed class InitializationStatus : Input() {
+            object UnInitialized : InitializationStatus()
+
             data class Initialized(
                 val startAction: Start,
                 val dataStore: ZigBeeDataStore,
@@ -123,15 +121,27 @@ class ZigBeeProtocol(
             ?.let(payloadOutputProcessor::onNext)
     }
 
-    private val initializationStatus: Action.Input.InitializationStatus = initialize(Action.Input.Start(
-        deviceNames = ReactivePreferences(context.getSharedPreferences("device names", Context.MODE_PRIVATE)),
-        dongle = dongle,
-        dataStoreName = "47",
-    ))
+    internal val sharedScheduler = Schedulers.from(CommsProtocol.sharedPool)
+
+    private var initializationStatus: Action.Input.InitializationStatus = Action.Input.InitializationStatus.UnInitialized
 
     init {
-        when (val status = initializationStatus) {
+        initialize(Action.Input.Start(
+            deviceNames = ReactivePreferences(context.getSharedPreferences("device names", Context.MODE_PRIVATE)),
+            dongle = dongle,
+            dataStoreName = "47",
+        ))
+            .subscribeOn(sharedScheduler)
+            .observeOn(sharedScheduler)
+            .subscribe(::onInitialize)
+            .addTo(disposable)
+    }
+
+    private fun onInitialize(status: Action.Input.InitializationStatus) {
+        initializationStatus = status
+        when (status) {
             Action.Input.InitializationStatus.Error -> Unit
+            Action.Input.InitializationStatus.UnInitialized -> throw IllegalArgumentException("Initialize call must not return Uninitialized status")
             is Action.Input.InitializationStatus.Initialized -> {
                 processInputs(status.inputs)
                     .mergeWith(status.outputs)
@@ -163,7 +173,8 @@ class ZigBeeProtocol(
     }
 
     override fun processInput(payload: Payload): Payload = when (val status = initializationStatus) {
-        Action.Input.InitializationStatus.Error -> zigBeePayload(response = "Initialization failed, protocol unavailable")
+        Action.Input.InitializationStatus.UnInitialized -> zigBeePayload(response = "ZigBee protocol is still initializing")
+        Action.Input.InitializationStatus.Error -> zigBeePayload(response = "ZigBee protocol initialization failed; unavailable")
         is Action.Input.InitializationStatus.Initialized -> zigBeePayload().apply {
             addCommand(CommsProtocol.resetAction)
 

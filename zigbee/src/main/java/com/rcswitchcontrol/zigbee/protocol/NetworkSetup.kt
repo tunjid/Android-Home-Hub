@@ -25,12 +25,13 @@ import com.zsmartsystems.zigbee.transport.TransportConfigOption
 import com.zsmartsystems.zigbee.transport.TrustCentreJoinMode
 import com.zsmartsystems.zigbee.zcl.clusters.ZclIasZoneCluster
 import io.reactivex.Flowable
+import io.reactivex.Single
 import io.reactivex.processors.PublishProcessor
 
 
 internal fun initialize(
     action: Action.Input.Start
-): Action.Input.InitializationStatus {
+): Single<Action.Input.InitializationStatus> = Single.fromCallable {
     val inputs = PublishProcessor.create<Action.Input>()
     val outputs = PublishProcessor.create<Action.Output>()
     val synchronousOutputs = mutableListOf<Action.Output>()
@@ -78,7 +79,7 @@ internal fun initialize(
 
     val initResponse = networkManager.initialize()
 
-    if (initResponse != ZigBeeStatus.SUCCESS) return Action.Input.InitializationStatus.Error
+    if (initResponse != ZigBeeStatus.SUCCESS) return@fromCallable Action.Input.InitializationStatus.Error
 
     synchronousOutputs.add(Action.Output.Log("PAN ID          = " + networkManager.zigBeePanId))
     synchronousOutputs.add(Action.Output.Log("Extended PAN ID = " + networkManager.zigBeeExtendedPanId))
@@ -147,7 +148,7 @@ internal fun initialize(
 
     dongleBackend.postSetup()
 
-    return Action.Input.InitializationStatus.Initialized(
+    return@fromCallable Action.Input.InitializationStatus.Initialized(
         startAction = action,
         dataStore = dataStore,
         networkManager = networkManager,

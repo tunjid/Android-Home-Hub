@@ -20,8 +20,6 @@ import io.reactivex.Scheduler
 import io.reactivex.schedulers.Schedulers
 
 internal fun ZigBeeProtocol.processInputs(inputs: Flowable<Action.Input>): Flowable<Action.Output> {
-    val sharedScheduler = Schedulers.from(CommsProtocol.sharedPool)
-
     val start = inputs
         .filterIsInstance<Action.Input.InitializationStatus.Initialized>()
         .replayingShare()

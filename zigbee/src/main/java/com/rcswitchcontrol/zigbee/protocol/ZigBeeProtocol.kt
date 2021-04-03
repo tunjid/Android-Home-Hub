@@ -236,7 +236,7 @@ class ZigBeeProtocol(
     }
 
     companion object {
-        const val MESH_UPDATE_PERIOD = 20
+        const val MESH_UPDATE_PERIOD = 60
         const val OUTPUT_BUFFER_RATE = 100L
 
         val key = CommsProtocol.Key(ZigBeeProtocol::class.java.name)

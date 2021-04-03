@@ -37,7 +37,9 @@ internal fun initialize(
     val onOutput = if (outputs.hasSubscribers()) outputs::onNext else synchronousOutputs::add
 
     val (_, dongle, dataStoreName) = action
-    val networkManager = ZigBeeNetworkManager(dongle)
+    val transportOptions = TransportConfig()
+    val dongleBackend = dongle.createBackend(transportOptions)
+    val networkManager = ZigBeeNetworkManager(dongleBackend)
     val dataStore = ZigBeeDataStore(dataStoreName)
 
     if (!dataStore.hasNoDevices) synchronousOutputs.add(Action.Output.PayloadOutput(payload = ZigBeeProtocol.zigBeePayload(
@@ -47,7 +49,6 @@ internal fun initialize(
     )))
 
     val resetNetwork = dataStore.hasNoDevices
-    val transportOptions = TransportConfig()
 
     networkManager.apply {
         setNetworkDataStore(dataStore)
@@ -88,7 +89,6 @@ internal fun initialize(
 //        networkManager.setDefaultProfileId(ZigBeeProfileType.ZIGBEE_HOME_AUTOMATION.key)
 
     transportOptions.apply {
-        addOption(TransportConfigOption.RADIO_TX_POWER, 3)
         addOption(TransportConfigOption.DEVICE_TYPE, DeviceType.COORDINATOR)
         addOption(TransportConfigOption.TRUST_CENTRE_JOIN_MODE, TrustCentreJoinMode.TC_JOIN_SECURE)
         addOption(TransportConfigOption.TRUST_CENTRE_LINK_KEY, ZigBeeKey(intArrayOf(
@@ -96,7 +96,7 @@ internal fun initialize(
         )))
     }
 
-    dongle.updateTransportConfig(transportOptions)
+    dongleBackend.updateTransportConfig(transportOptions)
 
     networkManager.apply {
         addExtension(ZigBeeIasCieExtension())
@@ -145,8 +145,7 @@ internal fun initialize(
         else "ZigBee console starting up ... [OK]"
     ))
 
-    dongle.setLedMode(1, false)
-    dongle.setLedMode(2, false)
+    dongleBackend.postSetup()
 
     return Action.Input.InitializationStatus.Initialized(
         startAction = action,

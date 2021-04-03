@@ -38,6 +38,7 @@ import androidx.core.content.getSystemService
 import androidx.core.os.postDelayed
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
+import com.rcswitchcontrol.zigbee.protocol.Dongle
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.a433mhz.protocols.BLERFProtocol
@@ -67,23 +68,37 @@ class ProxyProtocol(
 
     private val disposable = CompositeDisposable()
 
-    private val rfPeripheral = UsbPeripheral(
-        requestCode = RF_REQUEST_CODE,
-        serialInfo = SerialRFProtocol.ArduinoSerialInfo,
-        key = SerialRFProtocol.key,
-        protocolFunction = { info, device -> SerialRFProtocol(info, device, printWriter) }
-    )
-
-    private val zigBeePeripheral = UsbPeripheral(
-        requestCode = ZIG_BEE_REQUEST_CODE,
-        serialInfo = ZigBeeProtocol.CC2531SerialInfo,
-        key = ZigBeeProtocol.key,
-        protocolFunction = { info, device -> ZigBeeProtocol(
-            context = context,
-            serialInfo = info,
-            usbDevice = device,
-            printWriter = printWriter
-        ) }
+    private val plausiblePeripherals = listOf(
+        UsbPeripheral(
+            requestCode = RF_REQUEST_CODE,
+            serialInfo = SerialRFProtocol.ArduinoSerialInfo,
+            key = SerialRFProtocol.key,
+            protocolFunction = { info, device -> SerialRFProtocol(info, device, printWriter) }
+        ),
+        UsbPeripheral(
+            requestCode = ZIG_BEE_REQUEST_CODE,
+            serialInfo = Dongle.Companion.cc2531SerialInfo,
+            key = ZigBeeProtocol.key,
+            protocolFunction = { _, device ->
+                ZigBeeProtocol(
+                    context = context,
+                    dongle = Dongle.CC2531(device),
+                    printWriter = printWriter
+                )
+            }
+        ),
+        UsbPeripheral(
+            requestCode = ZIG_BEE_REQUEST_CODE,
+            serialInfo = Dongle.Companion.emberThunderBoard2SerialInfo,
+            key = ZigBeeProtocol.key,
+            protocolFunction = { _, device ->
+                ZigBeeProtocol(
+                    context = context,
+                    dongle = Dongle.SiLabsThunderBoard2(device),
+                    printWriter = printWriter
+                )
+            }
+        ),
     )
 
     private val protocolMap = mutableMapOf(
@@ -93,8 +108,9 @@ class ProxyProtocol(
 
     private val lazyPeripherals by lazy {
         with(Handler(Looper.getMainLooper())) {
-            postDelayed(PERMISSION_REQUEST_DELAY) { attach(rfPeripheral) }
-            postDelayed(PERMISSION_REQUEST_DELAY * 2) { attach(zigBeePeripheral) }
+            plausiblePeripherals.forEachIndexed { index, usbPeripheral ->
+                postDelayed(PERMISSION_REQUEST_DELAY * (index + 1)) { attach(usbPeripheral) }
+            }
         }
     }
 
@@ -133,7 +149,7 @@ class ProxyProtocol(
     }
 
     private fun onUsbPermissionGranted(device: UsbDevice) {
-        for (thing in listOf(rfPeripheral, zigBeePeripheral)) if (device.vendorId == thing.serialInfo.vendorId && protocolMap[thing.key] == null) {
+        for (thing in plausiblePeripherals) if (device.vendorId == thing.serialInfo.vendorId && protocolMap[thing.key] == null) {
             attach(thing)
             protocolMap[thing.key]
                 ?.processInput(CommsProtocol.pingAction.value)

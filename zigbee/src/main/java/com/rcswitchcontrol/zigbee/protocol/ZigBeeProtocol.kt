@@ -64,7 +64,7 @@ internal sealed class Action {
 
         data class Start(
             val deviceNames: ReactivePreferences,
-            val dongle: ZigBeeDongleTiCc2531,
+            val dongle: Dongle,
             val dataStoreName: String
         ) : Input()
 
@@ -106,8 +106,7 @@ private val Action.Output.Log.payload get() = zigBeePayload(response = message)
 @Suppress("PrivatePropertyName")
 class ZigBeeProtocol(
     context: Context,
-    serialInfo: SerialInfo,
-    usbDevice: UsbDevice,
+    dongle: Dongle,
     override val printWriter: PrintWriter
 ) : CommsProtocol {
 
@@ -126,7 +125,7 @@ class ZigBeeProtocol(
 
     private val initializationStatus: Action.Input.InitializationStatus = initialize(Action.Input.Start(
         deviceNames = ReactivePreferences(context.getSharedPreferences("device names", Context.MODE_PRIVATE)),
-        dongle = ZigBeeDongleTiCc2531(AndroidZigBeeSerialPort(serialInfo, usbDevice)),
+        dongle = dongle,
         dataStoreName = "47",
     ))
 
@@ -228,12 +227,6 @@ class ZigBeeProtocol(
     companion object {
         const val MESH_UPDATE_PERIOD = 20
         const val OUTPUT_BUFFER_RATE = 100L
-
-        val CC2531SerialInfo = SerialInfo(
-            vendorId = 0x0451,
-            productId = 0x16a8,
-            baudRate = 115200
-        )
 
         val key = CommsProtocol.Key(ZigBeeProtocol::class.java.name)
 

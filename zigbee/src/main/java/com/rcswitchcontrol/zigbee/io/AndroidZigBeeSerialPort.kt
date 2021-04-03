@@ -115,7 +115,7 @@ class AndroidZigBeeSerialPort(
         it.write(writeBuffer)
     } ?: println("Write attempt on dead port")
 
-    override fun read(): Int = read(9999999)
+    override fun read(): Int = read(10000)
 
     override fun read(timeout: Int): Int {
         val endTime = System.currentTimeMillis() + timeout

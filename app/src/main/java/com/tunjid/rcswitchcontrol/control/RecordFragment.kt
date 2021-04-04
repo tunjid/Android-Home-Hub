@@ -41,6 +41,8 @@ import com.tunjid.globalui.liveUiState
 import com.tunjid.globalui.uiState
 import com.tunjid.globalui.updatePartial
 import com.tunjid.rcswitchcontrol.R
+import com.tunjid.rcswitchcontrol.client.ClientState
+import com.tunjid.rcswitchcontrol.client.ProtocolKey
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderCommandBinding
@@ -96,7 +98,7 @@ sealed class RecordFragment : Fragment(R.layout.fragment_list) {
             adapter = listAdapter
 
             viewModel.state.apply {
-                if (key == null) mapDistinct(ControlState::history).observe(viewLifecycleOwner) { history ->
+                if (key == null) mapDistinct(ClientState::history).observe(viewLifecycleOwner) { history ->
                     listAdapter.submitList(history)
                     if (history.isNotEmpty()) smoothScrollToPosition(history.lastIndex)
                 }

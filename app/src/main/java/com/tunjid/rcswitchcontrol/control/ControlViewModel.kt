@@ -30,8 +30,12 @@ import androidx.lifecycle.ViewModel
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.core.components.services.HardServiceConnection
+import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
+import com.tunjid.rcswitchcontrol.client.ClientState
+import com.tunjid.rcswitchcontrol.client.Page
 import com.tunjid.rcswitchcontrol.client.Status
+import com.tunjid.rcswitchcontrol.client.clientState
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.filterIsInstance
 import com.tunjid.rcswitchcontrol.common.toLiveData
@@ -61,7 +65,7 @@ class ControlViewModel @Inject constructor(
     val isBound: Boolean
         get() = nsdConnection.boundService != null
 
-    val state: LiveData<ControlState>
+    val state: LiveData<ClientState>
 
     init {
         val connectionStatuses: Flowable<Status> = broadcasts
@@ -75,7 +79,7 @@ class ControlViewModel @Inject constructor(
             .filter(String::isNotBlank)
             .map(String::deserialize)
 
-        val stateObservable = controlState(
+        val stateObservable = clientState(
             connectionStatuses,
             serverResponses,
         )
@@ -124,8 +128,8 @@ class ControlViewModel @Inject constructor(
         action = CommsProtocol.pingAction
     ))
 
-    fun load(load: ControlLoad) = when (load) {
-        is ControlLoad.NewClient -> {
+    fun load(load: ClientLoad) = when (load) {
+        is ClientLoad.NewClient -> {
             nsdConnection.start {
                 putExtra(ClientNsdService.NSD_SERVICE_INFO_KEY, load.info)
             }
@@ -134,11 +138,11 @@ class ControlViewModel @Inject constructor(
             }
             Unit
         }
-        is ControlLoad.ExistingClient -> {
+        is ClientLoad.ExistingClient -> {
             nsdConnection.bind()
             context.dagger.appComponent.broadcaster(Broadcast.ClientNsd.StartDiscovery())
         }
-        ControlLoad.StartServer -> {
+        ClientLoad.StartServer -> {
             nsdConnection.bind()
             HardServiceConnection(context, ServerNsdService::class.java).start()
             context.dagger.appComponent.broadcaster(Broadcast.ClientNsd.StartDiscovery())

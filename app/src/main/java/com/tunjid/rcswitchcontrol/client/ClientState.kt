@@ -1,4 +1,4 @@
-package com.tunjid.rcswitchcontrol.control
+package com.tunjid.rcswitchcontrol.client
 
 import android.content.res.Resources
 import android.net.nsd.NsdServiceInfo
@@ -18,11 +18,15 @@ import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 import com.tunjid.rcswitchcontrol.a433mhz.protocols.BLERFProtocol
 import com.tunjid.rcswitchcontrol.a433mhz.protocols.SerialRFProtocol
 import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
-import com.tunjid.rcswitchcontrol.client.Status
 import com.tunjid.rcswitchcontrol.common.Writable
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.deserializeList
 import com.tunjid.rcswitchcontrol.common.serialize
+import com.tunjid.rcswitchcontrol.control.Device
+import com.tunjid.rcswitchcontrol.control.DevicesFragment
+import com.tunjid.rcswitchcontrol.control.Record
+import com.tunjid.rcswitchcontrol.control.RecordFragment
+import com.tunjid.rcswitchcontrol.control.foldAttributes
 import com.tunjid.rcswitchcontrol.server.HostFragment
 import com.tunjid.rcswitchcontrol.utils.Tab
 import io.reactivex.Flowable
@@ -57,19 +61,19 @@ enum class Page : Tab {
     }
 }
 
-sealed class ControlLoad : Parcelable {
+sealed class ClientLoad : Parcelable {
     @Parcelize
-    data class NewClient(val info: NsdServiceInfo) : ControlLoad()
+    data class NewClient(val info: NsdServiceInfo) : ClientLoad()
 
     @Parcelize
-    data class ExistingClient(val serviceName: String) : ControlLoad()
+    data class ExistingClient(val serviceName: String) : ClientLoad()
 
     @Parcelize
-    object StartServer : ControlLoad()
+    object StartServer : ClientLoad()
 }
 
 @kotlinx.serialization.Serializable
-data class ControlState(
+data class ClientState(
     val isNew: Boolean = false,
     val connectionStatus: Status = Status.Disconnected(),
     val commandInfo: ZigBeeCommandInfo? = null,
@@ -78,28 +82,28 @@ data class ControlState(
     val devices: List<Device> = listOf()
 ) : Writable
 
-val ControlState?.isConnected get() = this?.connectionStatus is Status.Connected
+val ClientState?.isConnected get() = this?.connectionStatus is Status.Connected
 
 private val cacheAction = CommsProtocol.Action("controlStateCache")
 
-fun controlState(
+fun clientState(
     status: Flowable<Status>,
     payloads: Flowable<Payload>
-): Flowable<ControlState> = Flowables.combineLatest(
+): Flowable<ClientState> = Flowables.combineLatest(
     status,
     payloads
-).scan(ControlState(), ControlState::reduce)
+).scan(ClientState(), ClientState::reduce)
     .subscribeOn(Schedulers.single())
     .replayingShare()
 
-class ControlStateCache {
-    private var cache = ControlState()
+class ClientStateCache {
+    private var cache = ClientState()
 
     val payload
         get() = Payload(
             key = CommsProtocol.key,
             action = cacheAction,
-            data = ControlState(devices = cache.devices).serialize()
+            data = ClientState(devices = cache.devices).serialize()
         )
 
     fun add(input: String) {
@@ -109,12 +113,12 @@ class ControlStateCache {
     override fun toString(): String = "ControlStateCache:$cache"
 }
 
-val ControlState.keys
+val ClientState.keys
     get() = commands.keys
         .sortedBy(CommsProtocol.Key::value)
         .map(::ProtocolKey)
 
-private fun ControlState.reduce(pair: Pair<Status, Payload>): ControlState {
+private fun ClientState.reduce(pair: Pair<Status, Payload>): ClientState {
     val (connectionStatus, payload) = pair
     val key = payload.key
     val isNew = !commands.keys.contains(key)
@@ -127,14 +131,14 @@ private fun ControlState.reduce(pair: Pair<Status, Payload>): ControlState {
         .reduceZigBeeAttributes(payload.extractDeviceAttributes)
 }
 
-private fun ControlState.reduceDevices(fetched: List<Device>?) = when {
+private fun ClientState.reduceDevices(fetched: List<Device>?) = when {
     fetched != null -> copy(devices = (fetched + devices)
         .distinctBy(Device::diffId)
         .sortedBy(Device::name))
     else -> this
 }
 
-private fun ControlState.reduceZigBeeAttributes(fetched: List<ZigBeeAttribute>?) = when (fetched) {
+private fun ClientState.reduceZigBeeAttributes(fetched: List<ZigBeeAttribute>?) = when (fetched) {
     null -> this
     else -> copy(devices = devices
         .filterIsInstance<Device.ZigBee>()
@@ -144,18 +148,18 @@ private fun ControlState.reduceZigBeeAttributes(fetched: List<ZigBeeAttribute>?)
     )
 }
 
-private fun ControlState.reduceHistory(record: Record?) = when {
+private fun ClientState.reduceHistory(record: Record?) = when {
     record != null -> copy(history = (history + record).takeLast(500))
     else -> this
 }
 
-private fun ControlState.reduceCommands(payload: Payload) = copy(
+private fun ClientState.reduceCommands(payload: Payload) = copy(
     commands = HashMap(commands).apply {
         this[payload.key] = payload.commands.map { Record.Command(key = payload.key, command = it) }
     }
 )
 
-private fun ControlState.reduceDeviceName(name: Name?) = when (name) {
+private fun ClientState.reduceDeviceName(name: Name?) = when (name) {
     null -> this
     else -> copy(devices = listOfNotNull(devices.firstOrNull { it.id == name.id }.let {
         when (it) {
@@ -169,7 +173,7 @@ private fun ControlState.reduceDeviceName(name: Name?) = when (name) {
     )
 }
 
-private val Payload.cache: ControlState?
+private val Payload.cache: ClientState?
     get() = when (action) {
         cacheAction -> data?.deserialize()
         else -> null

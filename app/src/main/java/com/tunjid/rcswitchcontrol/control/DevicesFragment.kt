@@ -25,7 +25,6 @@
 package com.tunjid.rcswitchcontrol.control
 
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.updatePadding
@@ -49,6 +48,7 @@ import com.tunjid.globalui.liveUiState
 import com.tunjid.globalui.uiState
 import com.tunjid.globalui.updatePartial
 import com.tunjid.rcswitchcontrol.R
+import com.tunjid.rcswitchcontrol.client.ClientState
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderPaddingBinding
@@ -115,10 +115,10 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
                 itemViewSwipeSupplier = { true }
             )
 
-            viewModel.state.mapDistinct(ControlState::devices).observe(viewLifecycleOwner, listAdapter::submitList)
+            viewModel.state.mapDistinct(ClientState::devices).observe(viewLifecycleOwner, listAdapter::submitList)
 
             viewModel.state
-                .mapDistinct(ControlState::devices)
+                .mapDistinct(ClientState::devices)
                 .mapDistinct {
                     it.filterIsInstance<Device.ZigBee>()
                         .map(Device.ZigBee::trifecta)

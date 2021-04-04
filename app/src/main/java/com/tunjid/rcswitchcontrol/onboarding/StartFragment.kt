@@ -32,7 +32,7 @@ import com.tunjid.globalui.UiState
 import com.tunjid.globalui.uiState
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.control.ControlFragment
-import com.tunjid.rcswitchcontrol.control.ControlLoad
+import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.databinding.FragmentStartBinding
 import com.tunjid.rcswitchcontrol.navigation.AppNavigator
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
@@ -53,7 +53,7 @@ class StartFragment : Fragment(R.layout.fragment_start) {
             when (v.id) {
                 R.id.server -> {
                     ServerNsdService.isServer = true
-                    navigator.push(ControlFragment.newInstance(ControlLoad.StartServer))
+                    navigator.push(ControlFragment.newInstance(ClientLoad.StartServer))
                 }
                 R.id.client -> navigator.push(HostScanFragment.newInstance())
             }

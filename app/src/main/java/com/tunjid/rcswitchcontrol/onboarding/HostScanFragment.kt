@@ -48,7 +48,7 @@ import com.tunjid.rcswitchcontrol.databinding.ViewholderNsdListBinding
 import com.tunjid.rcswitchcontrol.di.viewModelFactory
 import com.tunjid.rcswitchcontrol.navigation.AppNavigator
 import com.tunjid.rcswitchcontrol.control.ControlFragment
-import com.tunjid.rcswitchcontrol.control.ControlLoad
+import com.tunjid.rcswitchcontrol.client.ClientLoad
 
 /**
  * A [androidx.fragment.app.Fragment] listing supported NSD servers
@@ -120,7 +120,7 @@ class HostScanFragment : Fragment(R.layout.fragment_nsd_scan) {
     }
 
     private fun onServiceClicked(serviceInfo: NsdServiceInfo) {
-        navigator.push(ControlFragment.newInstance(ControlLoad.NewClient(serviceInfo)))
+        navigator.push(ControlFragment.newInstance(ClientLoad.NewClient(serviceInfo)))
     }
 
     private fun scanDevices(enable: Boolean) {

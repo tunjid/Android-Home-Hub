@@ -17,7 +17,7 @@ import com.tunjid.rcswitchcontrol.common.fromBlockingCallable
 import com.tunjid.rcswitchcontrol.common.onErrorComplete
 import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.common.toLiveData
-import com.tunjid.rcswitchcontrol.control.ControlStateCache
+import com.tunjid.rcswitchcontrol.client.ClientStateCache
 import com.tunjid.rcswitchcontrol.di.AppBroadcaster
 import com.tunjid.rcswitchcontrol.di.AppBroadcasts
 import com.tunjid.rcswitchcontrol.di.AppContext
@@ -84,7 +84,7 @@ private sealed class Output {
 
 private class CachingProtocol(
     protocol: CommsProtocol,
-    val cache: ControlStateCache = ControlStateCache()
+    val cache: ClientStateCache = ClientStateCache()
 ) : CommsProtocol by protocol
 
 class ServerViewModel @Inject constructor(

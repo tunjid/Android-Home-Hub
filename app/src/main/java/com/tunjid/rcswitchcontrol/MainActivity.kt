@@ -34,7 +34,7 @@ import com.tunjid.globalui.GlobalUiDriver
 import com.tunjid.globalui.GlobalUiHost
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.control.ControlFragment
-import com.tunjid.rcswitchcontrol.control.ControlLoad
+import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.control.LandscapeControlFragment
 import com.tunjid.rcswitchcontrol.databinding.ActivityMainBinding
 import com.tunjid.rcswitchcontrol.navigation.AppNavigator
@@ -61,12 +61,12 @@ class MainActivity : AppCompatActivity(),
 
         val isSavedInstance = savedInstanceState != null
         val controlLoad = when (ServerNsdService.isServer || App.isAndroidThings) {
-            true -> ControlLoad.StartServer
+            true -> ClientLoad.StartServer
             false -> when (startIntent.hasExtra(ClientNsdService.NSD_SERVICE_INFO_KEY)) {
                 true -> startIntent.getParcelableExtra<NsdServiceInfo>(ClientNsdService.NSD_SERVICE_INFO_KEY)
-                    ?.let(ControlLoad::NewClient)
+                    ?.let(ClientLoad::NewClient)
                 false -> ClientNsdService.lastConnectedService
-                    ?.let(ControlLoad::ExistingClient)
+                    ?.let(ClientLoad::ExistingClient)
             }
         }
 

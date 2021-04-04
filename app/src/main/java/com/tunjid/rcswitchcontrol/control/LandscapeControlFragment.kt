@@ -21,6 +21,9 @@ import com.tunjid.globalui.InsetFlags
 import com.tunjid.globalui.UiState
 import com.tunjid.globalui.uiState
 import com.tunjid.rcswitchcontrol.R
+import com.tunjid.rcswitchcontrol.client.ClientLoad
+import com.tunjid.rcswitchcontrol.client.ProtocolKey
+import com.tunjid.rcswitchcontrol.client.keys
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentControlLandscapeBinding
 import com.tunjid.rcswitchcontrol.di.activityViewModelFactory
@@ -35,7 +38,7 @@ class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape), 
 
     private val viewBinding by viewLifecycle(FragmentControlLandscapeBinding::bind)
     private val viewModel by activityViewModelFactory<ControlViewModel>()
-    private var load by fragmentArgs<ControlLoad>()
+    private var load by fragmentArgs<ClientLoad>()
 
     private val host by lazy { requireActivity().getString(R.string.host) }
 
@@ -84,7 +87,7 @@ class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape), 
     }?.let { innerNavigator.push(it); Unit } ?: Unit
 
     companion object {
-        fun newInstance(load: ControlLoad): LandscapeControlFragment =
+        fun newInstance(load: ClientLoad): LandscapeControlFragment =
             LandscapeControlFragment().apply { this.load = load }
     }
 }

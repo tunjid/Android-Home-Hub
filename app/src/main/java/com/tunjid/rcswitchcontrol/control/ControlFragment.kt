@@ -51,9 +51,15 @@ import com.tunjid.globalui.uiState
 import com.tunjid.globalui.updatePartial
 import com.tunjid.rcswitchcontrol.MainActivity
 import com.tunjid.rcswitchcontrol.R
+import com.tunjid.rcswitchcontrol.client.ClientLoad
+import com.tunjid.rcswitchcontrol.client.ClientState
+import com.tunjid.rcswitchcontrol.client.Page
 import com.tunjid.rcswitchcontrol.client.Status
 import com.tunjid.rcswitchcontrol.common.mapDistinct
-import com.tunjid.rcswitchcontrol.control.Page.HISTORY
+import com.tunjid.rcswitchcontrol.client.Page.HISTORY
+import com.tunjid.rcswitchcontrol.client.ProtocolKey
+import com.tunjid.rcswitchcontrol.client.isConnected
+import com.tunjid.rcswitchcontrol.client.keys
 import com.tunjid.rcswitchcontrol.databinding.FragmentControlBinding
 import com.tunjid.rcswitchcontrol.di.activityViewModelFactory
 import com.tunjid.rcswitchcontrol.di.dagger
@@ -66,7 +72,7 @@ class ControlFragment : Fragment(R.layout.fragment_control), ZigBeeArgumentDialo
 
     private val viewBinding by viewLifecycle(FragmentControlBinding::bind)
     private val viewModel by activityViewModelFactory<ControlViewModel>()
-    private var load by fragmentArgs<ControlLoad>()
+    private var load by fragmentArgs<ClientLoad>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -143,14 +149,14 @@ class ControlFragment : Fragment(R.layout.fragment_control), ZigBeeArgumentDialo
         }
 
         viewModel.state.apply {
-            mapDistinct(ControlState::keys).observe(viewLifecycleOwner, commandAdapter::submitList)
-            mapDistinct(ControlState::isNew).observe(viewLifecycleOwner) { isNew ->
+            mapDistinct(ClientState::keys).observe(viewLifecycleOwner, commandAdapter::submitList)
+            mapDistinct(ClientState::isNew).observe(viewLifecycleOwner) { isNew ->
                 if (isNew) viewBinding.commandsPager.adapter?.notifyDataSetChanged()
             }
-            mapDistinct(ControlState::commandInfo).observe(viewLifecycleOwner) {
+            mapDistinct(ClientState::commandInfo).observe(viewLifecycleOwner) {
                 if (it != null) ZigBeeArgumentDialogFragment.newInstance(it).show(childFragmentManager, "info")
             }
-            mapDistinct(ControlState::connectionStatus).observe(viewLifecycleOwner) { status ->
+            mapDistinct(ClientState::connectionStatus).observe(viewLifecycleOwner) { status ->
                 ::uiState.updatePartial { copy(toolbarInvalidated = true) }
                 viewBinding.connectionStatus.text = resources.getString(R.string.connection_state, status.text)
             }
@@ -205,6 +211,6 @@ class ControlFragment : Fragment(R.layout.fragment_control), ZigBeeArgumentDialo
     override fun onArgsEntered(command: ZigBeeCommand) = viewModel.dispatchPayload(command.payload)
 
     companion object {
-        fun newInstance(load: ControlLoad) = ControlFragment().apply { this.load = load }
+        fun newInstance(load: ClientLoad) = ControlFragment().apply { this.load = load }
     }
 }

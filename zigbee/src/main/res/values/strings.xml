@@ -5,7 +5,6 @@
     <string name="zigbeeprotocol_unavailable">No supported ZigBee drivers found</string>
     <string name="zigbeeprotocol_enter_args">Requesting arguments for %1$s</string>
     <string name="zigbeeprotocol_executing">Executing %1$s</string>
-    <string name="zigbeeprotocol_forming_network">Forming network</string>
     <string name="zigbeeprotocol_saved_devices_request">Requesting saved Devices</string>
 
     <string name="zigbeeprotocol_nodes">Nodes</string>

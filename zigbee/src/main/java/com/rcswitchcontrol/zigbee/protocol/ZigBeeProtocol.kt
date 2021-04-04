@@ -180,10 +180,6 @@ class ZigBeeProtocol(
             when (val payloadAction = payload.action) {
                 null -> response = "Unrecognized command $payloadAction"
 //                CommsProtocol.resetAction -> reset()
-                formNetworkAction -> {
-                    response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_forming_network)
-//                    formNetwork()
-                }
                 CommsProtocol.pingAction -> {
                     response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_ping)
                 }
@@ -239,8 +235,6 @@ class ZigBeeProtocol(
         const val OUTPUT_BUFFER_RATE = 100L
 
         val key = CommsProtocol.Key(ZigBeeProtocol::class.java.name)
-
-        internal val formNetworkAction get() = CommsProtocol.Action(ContextProvider.appContext.getString(R.string.zigbeeprotocol_formnet))
 
         val commandInfoAction: CommsProtocol.Action get() = "ZigBeeCommandInfo".asAction
         val attributeCarryingActions: List<CommsProtocol.Action>

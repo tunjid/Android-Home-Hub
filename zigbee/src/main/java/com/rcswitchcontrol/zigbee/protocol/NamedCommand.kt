@@ -36,7 +36,6 @@ internal sealed class NamedCommand(open val consoleCommand: ZigBeeConsoleCommand
         object MembershipView : Custom(MembershipViewCommand())
         object MembershipList : Custom(MembershipListCommand())
         object Rediscover : Custom(RediscoverCommand())
-        object NetworkStart : Custom(StartupCommand())
         object DeviceAttributes : Custom(ReadDeviceAttributesCommand())
 
         data class Help(val commandMap: Map<String, ZigBeeConsoleCommand>) : Custom(HelpCommand(commandMap))
@@ -138,7 +137,6 @@ private val NamedCommand.keyedPair
 
 internal fun Payload.appendZigBeeCommands() = apply {
     addCommand(CommsProtocol.resetAction)
-    addCommand(ZigBeeProtocol.formNetworkAction)
     addCommand(CommonDeviceActions.refreshDevicesAction)
     ZigBeeProtocol.availableCommands.keys.forEach(::addCommand)
 }

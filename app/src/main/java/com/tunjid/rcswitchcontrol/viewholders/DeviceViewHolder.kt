@@ -24,53 +24,34 @@
 
 package com.tunjid.rcswitchcontrol.viewholders
 
-import android.animation.AnimatorSet
-import android.animation.ObjectAnimator
+import androidx.dynamicanimation.animation.SpringAnimation
 import com.tunjid.androidx.recyclerview.viewbinding.BindingViewHolder
+import com.tunjid.androidx.view.util.spring
 import com.tunjid.rcswitchcontrol.control.Device
 
 interface DeviceLongClickListener {
     fun onClicked(device: Device)
 
-    fun onLongClicked(device: Device): Boolean
+    fun onLongClicked(device: Device)
 
     fun onSwitchToggled(device: Device, isOn: Boolean)
-
-    fun isSelected(device: Device): Boolean
 }
 
 interface DeviceAdapterListener :
-        DeviceLongClickListener,
-        RfDeviceListener,
-        ZigBeeDeviceListener
+    DeviceLongClickListener,
+    RfDeviceListener,
+    ZigBeeDeviceListener
 
-fun Device.highlightViewHolder(holder: BindingViewHolder<*>, selectionFunction: (Device) -> Boolean) {
-    val isSelected = selectionFunction.invoke(this)
-    holder.scale(isSelected)
-}
-
-fun Device.performLongClick(holder: BindingViewHolder<*>, listener: DeviceLongClickListener): Boolean {
-    highlightViewHolder(holder, listener::onLongClicked)
-    return true
+fun BindingViewHolder<*>.highlight(device: Device) {
+    scale(device.isSelected)
 }
 
 private fun BindingViewHolder<*>.scale(isSelected: Boolean) {
     val end = if (isSelected) FOUR_FIFTH_SCALE else FULL_SCALE
 
-    val set = AnimatorSet()
-    val scaleDownX = animateProperty(SCALE_X_PROPERTY, itemView.scaleX, end)
-    val scaleDownY = animateProperty(SCALE_Y_PROPERTY, itemView.scaleY, end)
-
-    set.playTogether(scaleDownX, scaleDownY)
-    set.start()
-}
-
-private fun BindingViewHolder<*>.animateProperty(property: String, start: Float, end: Float): ObjectAnimator {
-    return ObjectAnimator.ofFloat(itemView, property, start, end).setDuration(DURATION.toLong())
+    itemView.spring(SpringAnimation.SCALE_X).animateToFinalPosition(end)
+    itemView.spring(SpringAnimation.SCALE_Y).animateToFinalPosition(end)
 }
 
 private const val FULL_SCALE = 1f
 private const val FOUR_FIFTH_SCALE = 0.8f
-private const val DURATION = 200
-private const val SCALE_X_PROPERTY = "scaleX"
-private const val SCALE_Y_PROPERTY = "scaleY"

@@ -60,7 +60,6 @@ import com.tunjid.rcswitchcontrol.utils.DeletionHandler
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
 import com.tunjid.rcswitchcontrol.viewholders.DeviceAdapterListener
 import com.tunjid.rcswitchcontrol.viewholders.bind
-import com.tunjid.rcswitchcontrol.viewholders.performLongClick
 import com.tunjid.rcswitchcontrol.viewholders.rfDeviceDeviceViewHolder
 import com.tunjid.rcswitchcontrol.viewholders.zigbeeDeviceViewHolder
 
@@ -145,16 +144,12 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
         )
     }
 
-    override fun isSelected(device: Device): Boolean = currentDevices.map(Device::diffId).contains(device.diffId)
-
     override fun onClicked(device: Device) {
-        if (currentDevices.isNotEmpty()) longClickDevice(device)
+        if (currentDevices.isNotEmpty()) onLongClicked(device)
     }
 
-    override fun onLongClicked(device: Device): Boolean {
-        val hadDevice = currentDevices.map(Device::diffId).contains(device.diffId)
+    override fun onLongClicked(device: Device) {
         viewModel.accept(Input.Sync.Select(device))
-        return !hadDevice
     }
 
     override fun onSwitchToggled(device: Device, isOn: Boolean) = when (device) {
@@ -179,11 +174,6 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
     private fun swipeDirection(holder: BindingViewHolder<*>): Int =
         if (isDeleting || holder.binding is ViewholderZigbeeDeviceBinding) 0
         else makeMovementFlags(0, ItemTouchHelper.LEFT)
-
-    private fun longClickDevice(device: Device) {
-        viewBinding.list.viewHolderForItemId<BindingViewHolder<*>>(device.hashCode().toLong())
-            ?.let { device.performLongClick(holder = it, this) }
-    }
 
     private fun onDelete(viewHolder: RecyclerView.ViewHolder) {
         if (isDeleting) return

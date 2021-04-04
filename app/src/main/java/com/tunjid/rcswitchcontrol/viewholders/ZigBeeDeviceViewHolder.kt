@@ -73,7 +73,7 @@ private val BindingViewHolder<ViewholderZigbeeDeviceBinding>.diagnosticOptions
 
 fun BindingViewHolder<ViewholderZigbeeDeviceBinding>.bind(device: Device.ZigBee) {
     this.device = device
-    device.highlightViewHolder(this, listener::isSelected)
+    highlight(device)
 
     binding.apply {
         switchName.text = device.name
@@ -97,7 +97,7 @@ fun ViewGroup.zigbeeDeviceViewHolder(
         cardView.makeAccessibleForTV(stroked = true)
         itemView.setOnClickListener { listener.onClicked(device) }
         itemView.setOnLongClickListener {
-            device.highlightViewHolder(this@binding, listener::onLongClicked)
+            listener.onLongClicked(device)
             true
         }
 

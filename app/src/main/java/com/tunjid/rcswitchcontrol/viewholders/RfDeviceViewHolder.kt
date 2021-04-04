@@ -40,7 +40,7 @@ var BindingViewHolder<ViewholderRemoteSwitchBinding>.listener by viewHolderDeleg
 fun BindingViewHolder<ViewholderRemoteSwitchBinding>.bind(device: Device.RF) {
     this.device = device
     binding.switchName.text = device.name
-    device.highlightViewHolder(this, listener::isSelected)
+    highlight(device)
 }
 
 fun ViewGroup.rfDeviceDeviceViewHolder(
@@ -52,7 +52,7 @@ fun ViewGroup.rfDeviceDeviceViewHolder(
         cardView.makeAccessibleForTV(stroked = true)
         itemView.setOnClickListener { listener.onClicked(device) }
         itemView.setOnLongClickListener {
-            device.highlightViewHolder(this@binding, listener::onLongClicked)
+            listener.onLongClicked(device)
             true
         }
 

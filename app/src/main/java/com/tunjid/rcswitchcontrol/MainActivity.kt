@@ -24,27 +24,26 @@
 
 package com.tunjid.rcswitchcontrol
 
+import android.net.nsd.NsdServiceInfo
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import com.tunjid.androidx.core.components.services.HardServiceConnection
 import com.tunjid.androidx.navigation.Navigator
 import com.tunjid.globalui.GlobalUiDriver
 import com.tunjid.globalui.GlobalUiHost
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.control.ControlFragment
+import com.tunjid.rcswitchcontrol.control.ControlLoad
 import com.tunjid.rcswitchcontrol.control.LandscapeControlFragment
 import com.tunjid.rcswitchcontrol.databinding.ActivityMainBinding
-import com.tunjid.rcswitchcontrol.di.dagger
-import com.tunjid.rcswitchcontrol.models.Broadcast
 import com.tunjid.rcswitchcontrol.navigation.AppNavigator
 import com.tunjid.rcswitchcontrol.onboarding.StartFragment
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
 
 class MainActivity : AppCompatActivity(),
-        GlobalUiHost,
-        Navigator.Controller {
+    GlobalUiHost,
+    Navigator.Controller {
 
     override val navigator: AppNavigator by lazy { AppNavigator(this) }
     private val binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
@@ -61,17 +60,22 @@ class MainActivity : AppCompatActivity(),
         val startIntent = intent
 
         val isSavedInstance = savedInstanceState != null
-        val isNsdServer = ServerNsdService.isServer
-        val isNsdClient = startIntent.hasExtra(ClientNsdService.NSD_SERVICE_INFO_KEY) || ClientNsdService.lastConnectedService != null
+        val controlLoad = when (ServerNsdService.isServer || App.isAndroidThings) {
+            true -> ControlLoad.StartServer
+            false -> when (startIntent.hasExtra(ClientNsdService.NSD_SERVICE_INFO_KEY)) {
+                true -> startIntent.getParcelableExtra<NsdServiceInfo>(ClientNsdService.NSD_SERVICE_INFO_KEY)
+                    ?.let(ControlLoad::NewClient)
+                false -> ClientNsdService.lastConnectedService
+                    ?.let(ControlLoad::ExistingClient)
+            }
+        }
 
-        if (isNsdServer) HardServiceConnection(applicationContext, ServerNsdService::class.java).start()
-        if (isNsdClient) dagger.appComponent.broadcaster(Broadcast.ClientNsd.StartDiscovery())
-
-        if (!isSavedInstance) navigator.push(when {
-            App.isAndroidThings || isNsdClient || isNsdServer ->
-                if (App.isLandscape) LandscapeControlFragment.newInstance()
-                else ControlFragment.newInstance()
-            else -> StartFragment.newInstance()
+        if (!isSavedInstance) navigator.push(when (controlLoad) {
+            null -> StartFragment.newInstance()
+            else -> when(App.isLandscape ) {
+                true -> LandscapeControlFragment.newInstance(controlLoad)
+                false -> ControlFragment.newInstance(controlLoad)
+            }
         })
     }
 }

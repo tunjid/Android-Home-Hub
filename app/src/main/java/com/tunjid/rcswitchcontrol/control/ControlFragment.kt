@@ -42,6 +42,7 @@ import com.google.android.material.bottomsheet.setupForBottomSheet
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
 import com.rcswitchcontrol.zigbee.models.payload
 import com.tunjid.androidx.core.content.colorAt
+import com.tunjid.androidx.core.delegates.fragmentArgs
 import com.tunjid.androidx.core.delegates.viewLifecycle
 import com.tunjid.globalui.InsetFlags
 import com.tunjid.globalui.UiState
@@ -65,6 +66,12 @@ class ControlFragment : Fragment(R.layout.fragment_control), ZigBeeArgumentDialo
 
     private val viewBinding by viewLifecycle(FragmentControlBinding::bind)
     private val viewModel by activityViewModelFactory<ControlViewModel>()
+    private var load by fragmentArgs<ControlLoad>()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        viewModel.load(load)
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -198,6 +205,6 @@ class ControlFragment : Fragment(R.layout.fragment_control), ZigBeeArgumentDialo
     override fun onArgsEntered(command: ZigBeeCommand) = viewModel.dispatchPayload(command.payload)
 
     companion object {
-        fun newInstance() = ControlFragment().apply { arguments = Bundle() }
+        fun newInstance(load: ControlLoad) = ControlFragment().apply { this.load = load }
     }
 }

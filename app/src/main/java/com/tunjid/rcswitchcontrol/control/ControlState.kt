@@ -1,6 +1,8 @@
 package com.tunjid.rcswitchcontrol.control
 
 import android.content.res.Resources
+import android.net.nsd.NsdServiceInfo
+import android.os.Parcelable
 import androidx.fragment.app.Fragment
 import com.jakewharton.rx.replayingShare
 import com.rcswitchcontrol.protocols.CommonDeviceActions
@@ -26,6 +28,7 @@ import com.tunjid.rcswitchcontrol.utils.Tab
 import io.reactivex.Flowable
 import io.reactivex.rxkotlin.Flowables
 import io.reactivex.schedulers.Schedulers
+import kotlinx.parcelize.Parcelize
 import java.util.HashMap
 import java.util.Locale
 
@@ -52,6 +55,17 @@ enum class Page : Tab {
         HISTORY -> res.getString(R.string.history)
         DEVICES -> res.getString(R.string.devices)
     }
+}
+
+sealed class ControlLoad : Parcelable {
+    @Parcelize
+    data class NewClient(val info: NsdServiceInfo) : ControlLoad()
+
+    @Parcelize
+    data class ExistingClient(val serviceName: String) : ControlLoad()
+
+    @Parcelize
+    object StartServer : ControlLoad()
 }
 
 @kotlinx.serialization.Serializable

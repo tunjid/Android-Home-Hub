@@ -30,14 +30,15 @@ import androidx.lifecycle.ViewModel
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.core.components.services.HardServiceConnection
+import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.client.Status
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.filterIsInstance
 import com.tunjid.rcswitchcontrol.common.toLiveData
 import com.tunjid.rcswitchcontrol.di.AppBroadcasts
 import com.tunjid.rcswitchcontrol.di.AppContext
+import com.tunjid.rcswitchcontrol.di.dagger
 import com.tunjid.rcswitchcontrol.models.Broadcast
-import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
 import io.reactivex.Flowable
 import io.reactivex.disposables.CompositeDisposable
@@ -82,8 +83,6 @@ class ControlViewModel @Inject constructor(
 
         state = stateObservable.toLiveData()
 
-        nsdConnection.bind()
-
         // Keep the connection alive
         disposable.add(stateObservable.subscribe())
     }
@@ -124,4 +123,25 @@ class ControlViewModel @Inject constructor(
         key = CommsProtocol.key,
         action = CommsProtocol.pingAction
     ))
+
+    fun load(load: ControlLoad) = when (load) {
+        is ControlLoad.NewClient -> {
+            nsdConnection.start {
+                putExtra(ClientNsdService.NSD_SERVICE_INFO_KEY, load.info)
+            }
+            nsdConnection.bind {
+                putExtra(ClientNsdService.NSD_SERVICE_INFO_KEY, load.info)
+            }
+            Unit
+        }
+        is ControlLoad.ExistingClient -> {
+            nsdConnection.bind()
+            context.dagger.appComponent.broadcaster(Broadcast.ClientNsd.StartDiscovery())
+        }
+        ControlLoad.StartServer -> {
+            nsdConnection.bind()
+            HardServiceConnection(context, ServerNsdService::class.java).start()
+            context.dagger.appComponent.broadcaster(Broadcast.ClientNsd.StartDiscovery())
+        }
+    }
 }

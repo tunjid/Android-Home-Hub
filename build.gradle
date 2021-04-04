@@ -72,11 +72,11 @@ buildscript {
         usbSerialB = 'com.github.felHR85:UsbSerial:6.1.0'
 
         tunjiAndroidxCommunications = 'com.tunjid.androidx:communications:1.0.0'
-        tunjiAndroidxRecyclerView = 'com.tunjid.androidx:recyclerview:1.2.0-alpha01'
-        tunjiAndroidxNavigation = 'com.tunjid.androidx:navigation:1.2.0-beta06'
+        tunjiAndroidxRecyclerView = 'com.tunjid.androidx:recyclerview:1.2.0'
+        tunjiAndroidxNavigation = 'com.tunjid.androidx:navigation:1.2.0'
         tunjiAndroidxMaterial = 'com.tunjid.androidx:material:1.0.2'
-        tunjiAndroidxCore = 'com.tunjid.androidx:core:1.3.0-alpha01'
-        tunjiAndroidxView = 'com.tunjid.androidx:view:1.2.0-alpha01'
+        tunjiAndroidxCore = 'com.tunjid.androidx:core:1.3.0'
+        tunjiAndroidxView = 'com.tunjid.androidx:view:1.2.0'
 
         zigBeeCore = 'com.zsmartsystems.zigbee:com.zsmartsystems.zigbee:1.2.2'
         zigBeeConsole = 'com.zsmartsystems.zigbee:com.zsmartsystems.zigbee.console:1.2.2'

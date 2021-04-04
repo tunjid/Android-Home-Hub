@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.res.ColorStateList
 import android.os.Bundle
 import android.view.View
-import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.flexbox.AlignItems
@@ -13,6 +12,7 @@ import com.google.android.flexbox.FlexboxLayoutManager
 import com.google.android.flexbox.JustifyContent
 import com.google.android.material.button.MaterialButton
 import com.tunjid.androidx.core.content.colorAt
+import com.tunjid.androidx.core.delegates.fragmentArgs
 import com.tunjid.androidx.core.delegates.viewLifecycle
 import com.tunjid.androidx.navigation.Navigator
 import com.tunjid.androidx.navigation.childStackNavigationController
@@ -35,12 +35,18 @@ class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape), 
 
     private val viewBinding by viewLifecycle(FragmentControlLandscapeBinding::bind)
     private val viewModel by activityViewModelFactory<ControlViewModel>()
+    private var load by fragmentArgs<ControlLoad>()
 
     private val host by lazy { requireActivity().getString(R.string.host) }
 
     private val devices by lazy { requireActivity().getString(R.string.devices) }
 
     override val stableTag: String = "ControlHeaders"
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        viewModel.load(load)
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -78,8 +84,8 @@ class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape), 
     }?.let { innerNavigator.push(it); Unit } ?: Unit
 
     companion object {
-        fun newInstance(): LandscapeControlFragment =
-            LandscapeControlFragment().apply { arguments = bundleOf() }
+        fun newInstance(load: ControlLoad): LandscapeControlFragment =
+            LandscapeControlFragment().apply { this.load = load }
     }
 }
 

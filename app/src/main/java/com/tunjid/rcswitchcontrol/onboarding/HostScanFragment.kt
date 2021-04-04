@@ -25,7 +25,6 @@
 package com.tunjid.rcswitchcontrol.onboarding
 
 
-import android.content.Intent
 import android.net.nsd.NsdServiceInfo
 import android.os.Bundle
 import android.text.SpannableStringBuilder
@@ -48,8 +47,8 @@ import com.tunjid.rcswitchcontrol.databinding.FragmentNsdScanBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderNsdListBinding
 import com.tunjid.rcswitchcontrol.di.viewModelFactory
 import com.tunjid.rcswitchcontrol.navigation.AppNavigator
-import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.control.ControlFragment
+import com.tunjid.rcswitchcontrol.control.ControlLoad
 
 /**
  * A [androidx.fragment.app.Fragment] listing supported NSD servers
@@ -121,11 +120,7 @@ class HostScanFragment : Fragment(R.layout.fragment_nsd_scan) {
     }
 
     private fun onServiceClicked(serviceInfo: NsdServiceInfo) {
-        val intent = Intent(context, ClientNsdService::class.java)
-        intent.putExtra(ClientNsdService.NSD_SERVICE_INFO_KEY, serviceInfo)
-        requireContext().startService(intent)
-
-        navigator.push(ControlFragment.newInstance())
+        navigator.push(ControlFragment.newInstance(ControlLoad.NewClient(serviceInfo)))
     }
 
     private fun scanDevices(enable: Boolean) {

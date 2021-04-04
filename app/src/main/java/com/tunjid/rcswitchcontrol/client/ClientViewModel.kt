@@ -37,11 +37,11 @@ data class State(
 @kotlinx.serialization.Serializable
 sealed class Status: Writable {
     @kotlinx.serialization.Serializable
-    data class Connected(val serviceName: String) : Status()
+    data class Connected(val serviceName: String, val epoch: Long = System.currentTimeMillis()) : Status()
     @kotlinx.serialization.Serializable
-    data class Connecting(val serviceName: String? = null) : Status()
+    data class Connecting(val serviceName: String? = null, val epoch: Long = System.currentTimeMillis()) : Status()
     @kotlinx.serialization.Serializable
-    data class Disconnected(val at: Long = System.currentTimeMillis()) : Status()
+    data class Disconnected(val epoch: Long = System.currentTimeMillis()) : Status()
 }
 
 sealed class Input {

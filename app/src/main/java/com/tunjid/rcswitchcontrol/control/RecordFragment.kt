@@ -97,7 +97,7 @@ sealed class RecordFragment : Fragment(R.layout.fragment_list) {
             }
             adapter = listAdapter
 
-            viewModel.state.apply {
+            viewModel.state.mapDistinct(ControlState::clientState).apply {
                 if (key == null) mapDistinct(ClientState::history).observe(viewLifecycleOwner) { history ->
                     listAdapter.submitList(history)
                     if (history.isNotEmpty()) smoothScrollToPosition(history.lastIndex)
@@ -109,7 +109,7 @@ sealed class RecordFragment : Fragment(R.layout.fragment_list) {
         }
     }
 
-    private fun initialItems(): List<Record> = viewModel.state.value?.let {
+    private fun initialItems(): List<Record> = viewModel.state.value?.clientState?.let {
         if (key == null) it.history else it.commands[key]
     } ?: listOf()
 
@@ -120,7 +120,7 @@ sealed class RecordFragment : Fragment(R.layout.fragment_list) {
     }
 
     private fun onRecordClicked(record: Record) = when (record) {
-        is Record.Command -> viewModel.dispatchPayload(record.payload)
+        is Record.Command -> viewModel.accept(Input.Async.ServerCommand(record.payload))
         is Record.Response -> Unit
     }
 

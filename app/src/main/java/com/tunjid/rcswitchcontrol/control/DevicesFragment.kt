@@ -73,16 +73,15 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
     private val viewModel by activityViewModelFactory<ControlViewModel>()
     private val navigator by activityNavigatorController<AppNavigator>()
 
+    private val currentDevices get() = viewModel.state.value?.selectedDevices ?: listOf()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         addOnBackPressedCallback {
-            isEnabled = viewModel.withSelectedDevices(Set<Device>::isEmpty)
+            isEnabled = currentDevices.isEmpty()
 
             if (!isEnabled) activity?.onBackPressed()
-            else {
-                viewModel.clearSelections()
-                refreshUi()
-            }
+            else viewModel.accept(Input.Sync.ClearSelections)
         }
     }
 
@@ -94,7 +93,7 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
                 updatePadding(bottom = it)
             }
             val listAdapter = listAdapterOf(
-                initialItems = viewModel.state.value?.devices ?: listOf(),
+                initialItems = currentDevices,
                 viewHolderCreator = ::createViewHolder,
                 viewTypeFunction = ::getDeviceViewType,
                 viewHolderBinder = { holder, device, _ ->
@@ -115,19 +114,21 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
                 itemViewSwipeSupplier = { true }
             )
 
-            viewModel.state.mapDistinct(ClientState::devices).observe(viewLifecycleOwner, listAdapter::submitList)
-
             viewModel.state
-                .mapDistinct(ClientState::devices)
-                .mapDistinct {
-                    it.filterIsInstance<Device.ZigBee>()
-                        .map(Device.ZigBee::trifecta)
-                        .map(Triple<Pair<String, Any?>, Pair<String, Any?>, Pair<String, Any?>>::toString)
-                }
-                .observe(viewLifecycleOwner) {
-//                    Log.i("TEST", "Trifecta: \n ${it.joinToString(separator = "\n")}")
-                }
+                .mapDistinct(ControlState::clientState)
+                .mapDistinct(ClientState::devices).apply {
+                    observe(viewLifecycleOwner, listAdapter::submitList)
+                    observe(viewLifecycleOwner) { refreshUi() }
 
+                    mapDistinct {
+                        it.filterIsInstance<Device.ZigBee>()
+                            .map(Device.ZigBee::trifecta)
+                            .map(Triple<Pair<String, Any?>, Pair<String, Any?>, Pair<String, Any?>>::toString)
+                    }
+                        .observe(viewLifecycleOwner) {
+//                    Log.i("TEST", "Trifecta: \n ${it.joinToString(separator = "\n")}")
+                        }
+                }
         }
     }
 
@@ -137,31 +138,34 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
     }
 
     private fun refreshUi() = ::uiState.updatePartial {
+        val selected = viewModel.state.value?.selectedDevices
         copy(
-            altToolbarTitle = getString(R.string.devices_selected, viewModel.numSelections()),
-            altToolbarShows = viewModel.withSelectedDevices { it.isNotEmpty() }
+            altToolbarTitle = getString(R.string.devices_selected, currentDevices.size),
+            altToolbarShows = !selected.isNullOrEmpty()
         )
     }
 
-    override fun isSelected(device: Device): Boolean = viewModel.withSelectedDevices { it.map(Device::diffId).contains(device.diffId) }
+    override fun isSelected(device: Device): Boolean = currentDevices.map(Device::diffId).contains(device.diffId)
 
     override fun onClicked(device: Device) {
-        if (viewModel.withSelectedDevices { it.isNotEmpty() }) longClickDevice(device)
+        if (currentDevices.isNotEmpty()) longClickDevice(device)
     }
 
-    override fun onLongClicked(device: Device): Boolean = viewModel.select(device).apply { refreshUi() }
+    override fun onLongClicked(device: Device): Boolean {
+        val hadDevice = currentDevices.map(Device::diffId).contains(device.diffId)
+        viewModel.accept(Input.Sync.Select(device))
+        return !hadDevice
+    }
 
     override fun onSwitchToggled(device: Device, isOn: Boolean) = when (device) {
-        is Device.RF -> viewModel.dispatchPayload(device.togglePayload(isOn))
+        is Device.RF -> viewModel.accept(Input.Async.ServerCommand(device.togglePayload(isOn)))
         else -> Unit
     }
 
-    override fun send(command: ZigBeeCommand) = viewModel.dispatchPayload(command.payload)
+    override fun send(command: ZigBeeCommand) = viewModel.accept(Input.Async.ServerCommand(command.payload))
 
-    override fun onGroupNamed(groupName: CharSequence) = viewModel.run {
-        withSelectedDevices {}
-        clearSelections()
-        refreshUi()
+    override fun onGroupNamed(groupName: CharSequence) {
+        viewModel.accept(Input.Sync.ClearSelections)
     }
 
     private fun getDeviceViewType(device: Device) = device::class.hashCode()
@@ -189,10 +193,10 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
 
         val position = viewHolder.adapterPosition
 
-        val devices = viewModel.state.value?.devices ?: listOf()
+        val devices = currentDevices
         val deletionHandler = DeletionHandler<Device>(position) { self ->
             if (self.hasItems() && self.peek() is Device.RF) self.pop().also { device ->
-                viewModel.dispatchPayload((device as Device.RF).deletePayload)
+                viewModel.accept(Input.Async.ServerCommand((device as Device.RF).deletePayload))
             }
             isDeleting = false
         }

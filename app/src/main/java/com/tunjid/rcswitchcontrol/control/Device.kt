@@ -21,11 +21,13 @@ import com.tunjid.rcswitchcontrol.common.serialize
 @kotlinx.serialization.Serializable
 sealed class Device : Peripheral, Writable {
     abstract val name: String
+    abstract val isSelected: Boolean
 
     @kotlinx.serialization.Serializable
     data class ZigBee(
         val node: ZigBeeNode,
         val givenName: String,
+        override val isSelected: Boolean = false,
         val attributes: List<ZigBeeAttribute> = listOf(),
     ) : Device(), Peripheral by node {
         constructor(node: ZigBeeNode) : this(node = node, givenName = node.id)
@@ -36,7 +38,8 @@ sealed class Device : Peripheral, Writable {
 
     @kotlinx.serialization.Serializable
     data class RF(
-        val switch: RfSwitch
+        val switch: RfSwitch,
+        override val isSelected: Boolean = false,
     ) : Device(), Peripheral by switch {
         override val name: String = switch.id
         override fun areContentsTheSame(other: Differentiable): Boolean = this == other

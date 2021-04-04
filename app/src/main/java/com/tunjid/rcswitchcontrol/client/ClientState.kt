@@ -13,7 +13,6 @@ import com.rcswitchcontrol.zigbee.models.ZigBeeAttribute
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommandInfo
 import com.rcswitchcontrol.zigbee.models.ZigBeeNode
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
-import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 import com.tunjid.rcswitchcontrol.a433mhz.protocols.BLERFProtocol
 import com.tunjid.rcswitchcontrol.a433mhz.protocols.SerialRFProtocol
@@ -23,11 +22,9 @@ import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.deserializeList
 import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.control.Device
-import com.tunjid.rcswitchcontrol.control.DevicesFragment
 import com.tunjid.rcswitchcontrol.control.Record
 import com.tunjid.rcswitchcontrol.control.RecordFragment
 import com.tunjid.rcswitchcontrol.control.foldAttributes
-import com.tunjid.rcswitchcontrol.server.HostFragment
 import com.tunjid.rcswitchcontrol.utils.Tab
 import io.reactivex.Flowable
 import io.reactivex.rxkotlin.Flowables
@@ -42,23 +39,6 @@ data class ProtocolKey(val key: CommsProtocol.Key) : Tab {
     override fun title(res: Resources) = title
 
     override fun createFragment(): Fragment = RecordFragment.commandInstance(this)
-}
-
-enum class Page : Tab {
-
-    HOST, HISTORY, DEVICES;
-
-    override fun createFragment(): Fragment = when (this) {
-        HOST -> HostFragment.newInstance()
-        HISTORY -> RecordFragment.historyInstance()
-        DEVICES -> DevicesFragment.newInstance()
-    }
-
-    override fun title(res: Resources): CharSequence = when (this) {
-        HOST -> res.getString(R.string.host)
-        HISTORY -> res.getString(R.string.history)
-        DEVICES -> res.getString(R.string.devices)
-    }
 }
 
 sealed class ClientLoad : Parcelable {

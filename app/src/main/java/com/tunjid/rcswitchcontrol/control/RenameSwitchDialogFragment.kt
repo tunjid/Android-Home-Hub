@@ -46,7 +46,7 @@ class RenameSwitchDialogFragment : DialogFragment() {
         builder
             .setTitle(R.string.rename_switch)
             .setPositiveButton(R.string.rename) { _, _ ->
-                viewModel.dispatchPayload(name.copy(value = editText.text.toString()).renamePayload)
+                viewModel.accept(Input.Async.ServerCommand(name.copy(value = editText.text.toString()).renamePayload))
                 dismiss()
             }
     }

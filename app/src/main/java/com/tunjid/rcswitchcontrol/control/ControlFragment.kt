@@ -53,13 +53,12 @@ import com.tunjid.rcswitchcontrol.MainActivity
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.client.ClientState
-import com.tunjid.rcswitchcontrol.client.Page
-import com.tunjid.rcswitchcontrol.client.Status
-import com.tunjid.rcswitchcontrol.common.mapDistinct
-import com.tunjid.rcswitchcontrol.client.Page.HISTORY
 import com.tunjid.rcswitchcontrol.client.ProtocolKey
+import com.tunjid.rcswitchcontrol.client.Status
 import com.tunjid.rcswitchcontrol.client.isConnected
 import com.tunjid.rcswitchcontrol.client.keys
+import com.tunjid.rcswitchcontrol.common.mapDistinct
+import com.tunjid.rcswitchcontrol.control.Page.HISTORY
 import com.tunjid.rcswitchcontrol.databinding.FragmentControlBinding
 import com.tunjid.rcswitchcontrol.di.activityViewModelFactory
 import com.tunjid.rcswitchcontrol.di.dagger
@@ -76,7 +75,7 @@ class ControlFragment : Fragment(R.layout.fragment_control), ZigBeeArgumentDialo
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        viewModel.load(load)
+        viewModel.accept(Input.Async.Load(load))
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -148,7 +147,7 @@ class ControlFragment : Fragment(R.layout.fragment_control), ZigBeeArgumentDialo
             onPageSelected(viewBinding.mainPager.currentItem)
         }
 
-        viewModel.state.apply {
+        viewModel.state.mapDistinct(ControlState::clientState).apply {
             mapDistinct(ClientState::keys).observe(viewLifecycleOwner, commandAdapter::submitList)
             mapDistinct(ClientState::isNew).observe(viewLifecycleOwner) { isNew ->
                 if (isNew) viewBinding.commandsPager.adapter?.notifyDataSetChanged()
@@ -161,28 +160,32 @@ class ControlFragment : Fragment(R.layout.fragment_control), ZigBeeArgumentDialo
                 viewBinding.connectionStatus.text = resources.getString(R.string.connection_state, status.text)
             }
         }
+        viewModel.state.mapDistinct(ControlState::selectedDevices).observe(viewLifecycleOwner) {
+            ::uiState.updatePartial { copy(toolbarInvalidated = true) }
+        }
     }
 
     override fun onStop() {
         super.onStop()
-        viewModel.onBackground()
+        viewModel.accept(Input.Async.AppBackgrounded)
     }
 
     private fun onToolbarRefreshed(menu: Menu) {
-        menu.findItem(R.id.menu_ping)?.isVisible = viewModel.state.value.isConnected
-        menu.findItem(R.id.menu_connect)?.isVisible = !viewModel.state.value.isConnected
+        val state = viewModel.state.value
+        menu.findItem(R.id.menu_ping)?.isVisible = viewModel.state.value?.clientState.isConnected
+        menu.findItem(R.id.menu_connect)?.isVisible = !viewModel.state.value?.clientState.isConnected
         menu.findItem(R.id.menu_forget)?.isVisible = !ServerNsdService.isServer
 
-        menu.findItem(R.id.menu_rename_device)?.isVisible = viewModel.withSelectedDevices { it.size == 1 }
-        menu.findItem(R.id.menu_create_group)?.isVisible = viewModel.withSelectedDevices { it.find { device -> device is Device.RF } == null }
+        menu.findItem(R.id.menu_rename_device)?.isVisible = state != null && state.selectedDevices.size == 1
+        menu.findItem(R.id.menu_create_group)?.isVisible = state != null && state.selectedDevices.find { device -> device is Device.RF } == null
     }
 
     private fun onToolbarMenuItemSelected(item: MenuItem) {
         if (viewModel.isBound) when (item.itemId) {
-            R.id.menu_ping -> viewModel.pingServer().let { true }
+            R.id.menu_ping -> viewModel.accept(Input.Async.PingServer).let { true }
             R.id.menu_connect -> dagger.appComponent.broadcaster(Broadcast.ClientNsd.StartDiscovery())
             R.id.menu_forget -> requireActivity().let {
-                viewModel.forgetService()
+                viewModel.accept(Input.Async.ForgetServer)
 
                 startActivity(Intent(it, MainActivity::class.java)
                     .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
@@ -190,9 +193,12 @@ class ControlFragment : Fragment(R.layout.fragment_control), ZigBeeArgumentDialo
 
                 it.finish()
             }
-            R.id.menu_rename_device -> RenameSwitchDialogFragment.newInstance(
-                viewModel.withSelectedDevices { it.first().editName }
-            ).show(childFragmentManager, item.itemId.toString()).let { true }
+            R.id.menu_rename_device -> viewModel.state.value
+                ?.selectedDevices
+                ?.firstOrNull()
+                ?.editName
+                ?.let(RenameSwitchDialogFragment.Companion::newInstance)
+                ?.show(childFragmentManager, item.itemId.toString()).let { true }
             R.id.menu_create_group -> GroupDeviceDialogFragment.newInstance.show(childFragmentManager, item.itemId.toString())
             else -> Unit
         }
@@ -208,7 +214,7 @@ class ControlFragment : Fragment(R.layout.fragment_control), ZigBeeArgumentDialo
             is Status.Disconnected -> getString(R.string.disconnected)
         }
 
-    override fun onArgsEntered(command: ZigBeeCommand) = viewModel.dispatchPayload(command.payload)
+    override fun onArgsEntered(command: ZigBeeCommand) = viewModel.accept(Input.Async.ServerCommand(command.payload))
 
     companion object {
         fun newInstance(load: ClientLoad) = ControlFragment().apply { this.load = load }

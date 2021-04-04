@@ -48,7 +48,7 @@ class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape), 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        viewModel.load(load)
+        viewModel.accept(Input.Async.Load(load))
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -61,7 +61,7 @@ class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape), 
                 else -> listOf(devices)
             }
             val listAdapter = listAdapterOf(
-                initialItems = persistentItems + (viewModel.state.value?.keys ?: listOf()),
+                initialItems = persistentItems + (viewModel.state.value?.clientState?.keys ?: listOf()),
                 viewHolderCreator = { parent, _ ->
                     HeaderViewHolder(parent.context, ::onHeaderHighlighted)
                 },
@@ -75,7 +75,10 @@ class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape), 
             }
             adapter = listAdapter
 
-            viewModel.state.mapDistinct { persistentItems + it.keys }.observe(viewLifecycleOwner, listAdapter::submitList)
+            viewModel.state
+                .mapDistinct(ControlState::clientState)
+                .mapDistinct { persistentItems + it.keys }
+                .observe(viewLifecycleOwner, listAdapter::submitList)
         }
     }
 

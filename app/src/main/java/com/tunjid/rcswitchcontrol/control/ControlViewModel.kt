@@ -32,10 +32,10 @@ import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.core.components.services.HardServiceConnection
 import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
-import com.tunjid.rcswitchcontrol.client.ClientState
-import com.tunjid.rcswitchcontrol.client.Page
 import com.tunjid.rcswitchcontrol.client.Status
 import com.tunjid.rcswitchcontrol.client.clientState
+import com.tunjid.rcswitchcontrol.common.Mutation
+import com.tunjid.rcswitchcontrol.common.Mutator
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.filterIsInstance
 import com.tunjid.rcswitchcontrol.common.toLiveData
@@ -46,6 +46,8 @@ import com.tunjid.rcswitchcontrol.models.Broadcast
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
 import io.reactivex.Flowable
 import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.processors.PublishProcessor
+import io.reactivex.rxkotlin.addTo
 import javax.inject.Inject
 
 class ControlViewModel @Inject constructor(
@@ -54,9 +56,9 @@ class ControlViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val disposable: CompositeDisposable = CompositeDisposable()
-    private val nsdConnection = HardServiceConnection(context, ClientNsdService::class.java) { pingServer() }
+    private val actions = PublishProcessor.create<Input>()
 
-    private val selectedDevices = mutableMapOf<String, Device>()
+    private val nsdConnection = HardServiceConnection(context, ClientNsdService::class.java) { accept(Input.Async.PingServer) }
 
     val pages: List<Page> = mutableListOf(Page.HISTORY, Page.DEVICES).apply {
         if (ServerNsdService.isServer) add(0, Page.HOST)
@@ -65,7 +67,7 @@ class ControlViewModel @Inject constructor(
     val isBound: Boolean
         get() = nsdConnection.boundService != null
 
-    val state: LiveData<ClientState>
+    val state: LiveData<ControlState>
 
     init {
         val connectionStatuses: Flowable<Status> = broadcasts
@@ -79,16 +81,32 @@ class ControlViewModel @Inject constructor(
             .filter(String::isNotBlank)
             .map(String::deserialize)
 
-        val stateObservable = clientState(
+        val clientStateObservable = clientState(
             connectionStatuses,
             serverResponses,
         )
+            .map { Mutation<ControlState> { copy(clientState = it) } }
             .doOnSubscribe { nsdConnection.boundService?.onAppForeGround() }
+
+        val actionMutations = actions
+            .filterIsInstance<Input.Sync>()
+            .map(::onSyncInput)
+
+        val stateObservable = clientStateObservable
+            .mergeWith(actionMutations)
+            .scan(ControlState(), Mutator::mutate)
+            .map { updateSelections(it) }
 
         state = stateObservable.toLiveData()
 
         // Keep the connection alive
         disposable.add(stateObservable.subscribe())
+
+        actions
+            .filterIsInstance<Input.Async>()
+            .map(::onAsyncInput)
+            .subscribe()
+            .addTo(disposable)
     }
 
     override fun onCleared() {
@@ -97,55 +115,66 @@ class ControlViewModel @Inject constructor(
         super.onCleared()
     }
 
-    fun dispatchPayload(payload: Payload) {
-        nsdConnection.boundService?.sendMessage(payload)
-    }
+    fun accept(input: Input) = actions.onNext(input)
 
-    fun onBackground() = nsdConnection.boundService?.onAppBackground()
+    private fun updateSelections(state: ControlState): ControlState {
+        val selectedIds = state.selectedDevices.map(Device::diffId)
+        return state.copy(clientState = state.clientState.copy(devices = state.clientState.devices.map {
+            when (it) {
+                is Device.RF -> it.copy(isSelected = selectedIds.contains(it.diffId))
+                is Device.ZigBee -> it.copy(isSelected = selectedIds.contains(it.diffId))
 
-    fun forgetService() {
-        // Don't call unbind, when the hosting activity is finished,
-        // onDestroy will be called and the connection unbound
-        nsdConnection.boundService?.stopSelf()
-
-        ClientNsdService.lastConnectedService = null
-    }
-
-    fun select(device: Device): Boolean {
-        val contains = selectedDevices.keys.contains(device.diffId)
-        if (contains) selectedDevices.remove(device.diffId) else selectedDevices[device.diffId] = device
-        return !contains
-    }
-
-    fun numSelections() = selectedDevices.size
-
-    fun clearSelections() = selectedDevices.clear()
-
-    fun <T> withSelectedDevices(function: (Set<Device>) -> T): T = function.invoke(selectedDevices.values.toSet())
-
-    fun pingServer() = dispatchPayload(Payload(
-        key = CommsProtocol.key,
-        action = CommsProtocol.pingAction
-    ))
-
-    fun load(load: ClientLoad) = when (load) {
-        is ClientLoad.NewClient -> {
-            nsdConnection.start {
-                putExtra(ClientNsdService.NSD_SERVICE_INFO_KEY, load.info)
             }
-            nsdConnection.bind {
-                putExtra(ClientNsdService.NSD_SERVICE_INFO_KEY, load.info)
+        }))
+    }
+
+    private fun onSyncInput(action: Input.Sync) = when (action) {
+        is Input.Sync.Select -> Mutation {
+            val filtered = selectedDevices.filterNot { it.diffId == action.device.diffId }
+            copy(selectedDevices = when (filtered.size != selectedDevices.size) {
+                true -> filtered
+                false -> selectedDevices + action.device
+            })
+        }
+        Input.Sync.ClearSelections -> Mutation<ControlState> {
+            copy(selectedDevices = listOf())
+        }
+    }
+
+    private fun onAsyncInput(action: Input.Async): Unit = when (action) {
+        is Input.Async.Load -> when (val load = action.load) {
+            is ClientLoad.NewClient -> {
+                nsdConnection.start {
+                    putExtra(ClientNsdService.NSD_SERVICE_INFO_KEY, load.info)
+                }
+                nsdConnection.bind {
+                    putExtra(ClientNsdService.NSD_SERVICE_INFO_KEY, load.info)
+                }
+                Unit
             }
-            Unit
+            is ClientLoad.ExistingClient -> {
+                nsdConnection.bind()
+                context.dagger.appComponent.broadcaster(Broadcast.ClientNsd.StartDiscovery())
+            }
+            ClientLoad.StartServer -> {
+                nsdConnection.bind()
+                HardServiceConnection(context, ServerNsdService::class.java).start()
+                context.dagger.appComponent.broadcaster(Broadcast.ClientNsd.StartDiscovery())
+            }
         }
-        is ClientLoad.ExistingClient -> {
-            nsdConnection.bind()
-            context.dagger.appComponent.broadcaster(Broadcast.ClientNsd.StartDiscovery())
+        Input.Async.ForgetServer -> {
+            // Don't call unbind, when the hosting activity is finished,
+            // onDestroy will be called and the connection unbound
+            nsdConnection.boundService?.stopSelf()
+
+            ClientNsdService.lastConnectedService = null
         }
-        ClientLoad.StartServer -> {
-            nsdConnection.bind()
-            HardServiceConnection(context, ServerNsdService::class.java).start()
-            context.dagger.appComponent.broadcaster(Broadcast.ClientNsd.StartDiscovery())
-        }
+        is Input.Async.ServerCommand -> nsdConnection.boundService
+            ?.sendMessage(action.payload) ?: Unit
+        Input.Async.PingServer -> onAsyncInput(Input.Async.ServerCommand(Payload(
+            key = CommsProtocol.key,
+            action = CommsProtocol.pingAction
+        )))
+        Input.Async.AppBackgrounded -> nsdConnection.boundService?.onAppBackground() ?: Unit
     }
 }

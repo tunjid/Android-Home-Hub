@@ -143,18 +143,6 @@ class ZigBeeProtocol(
             Action.Input.InitializationStatus.Error -> Unit
             Action.Input.InitializationStatus.UnInitialized -> throw IllegalArgumentException("Initialize call must not return Uninitialized status")
             is Action.Input.InitializationStatus.Initialized -> {
-                processInputs(status.inputs)
-                    .mergeWith(status.outputs)
-                    .subscribe { output ->
-                        when (output) {
-                            is Action.Output.PayloadReprocess -> processInput(output.payload)
-                            is Action.Output.PayloadOutput -> payloadOutputProcessor.onNext(output.payload)
-                            is Action.Output.Log -> payloadOutputProcessor.onNext(output.payload).also { println(output) }
-                        }
-                    }
-                    .addTo(disposable)
-
-                val sharedScheduler = Schedulers.from(CommsProtocol.sharedPool)
 
                 payloadOutputProcessor
                     .onBackpressureBuffer()
@@ -165,6 +153,17 @@ class ZigBeeProtocol(
                     .subscribeOn(sharedScheduler)
                     .observeOn(sharedScheduler)
                     .subscribe(this::pushOut)
+                    .addTo(disposable)
+
+                status.outputs
+                    .mergeWith(processInputs(status.inputs))
+                    .subscribe { output ->
+                        when (output) {
+                            is Action.Output.PayloadReprocess -> processInput(output.payload)
+                            is Action.Output.PayloadOutput -> payloadOutputProcessor.onNext(output.payload)
+                            is Action.Output.Log -> payloadOutputProcessor.onNext(output.payload).also { println(output) }
+                        }
+                    }
                     .addTo(disposable)
 
                 status.inputs.onNext(status)

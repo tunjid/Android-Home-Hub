@@ -100,7 +100,7 @@ class ControlFragment : Fragment(R.layout.fragment_control), ZigBeeArgumentDialo
         val calculateTranslation: (slideOffset: Float) -> Float = calculate@{ slideOffset ->
             val peekHeight = bottomSheetBehavior.peekHeight.toFloat()
             when (slideOffset) {
-                in Float.MIN_VALUE..0F -> (peekHeight * -slideOffset)
+                in -1F..0F -> peekHeight + (peekHeight * slideOffset)
                 0F -> peekHeight
                 else -> peekHeight + ((viewBinding.bottomSheet.height - peekHeight) * slideOffset)
             }

@@ -31,13 +31,13 @@ import android.net.nsd.NsdServiceInfo
 import androidx.lifecycle.ViewModel
 import com.jakewharton.rx.replayingShare
 import com.tunjid.androidx.communications.nsd.NsdHelper
-import com.tunjid.androidx.recyclerview.diff.Differentiable
+import com.tunjid.androidx.recyclerview.diff.Diffable
+import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.common.filterIsInstance
 import com.tunjid.rcswitchcontrol.common.toLiveData
 import com.tunjid.rcswitchcontrol.di.AppBroadcasts
 import com.tunjid.rcswitchcontrol.di.AppContext
 import com.tunjid.rcswitchcontrol.models.Broadcast
-import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import io.reactivex.BackpressureStrategy
 import io.reactivex.Flowable
 import io.reactivex.disposables.CompositeDisposable
@@ -55,7 +55,7 @@ data class NSDState(
 
 data class NsdItem(
     val info: NsdServiceInfo
-) : Differentiable {
+) : Diffable {
     override val diffId: String
         get() = info.host.hostAddress
 }

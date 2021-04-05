@@ -12,7 +12,7 @@ import com.rcswitchcontrol.zigbee.models.distinctId
 import com.rcswitchcontrol.zigbee.models.matches
 import com.rcswitchcontrol.zigbee.models.number
 import com.rcswitchcontrol.zigbee.models.owns
-import com.tunjid.androidx.recyclerview.diff.Differentiable
+import com.tunjid.androidx.recyclerview.diff.Diffable
 import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
 import com.tunjid.rcswitchcontrol.common.Writable
@@ -33,7 +33,7 @@ sealed class Device : Peripheral, Writable {
         constructor(node: ZigBeeNode) : this(node = node, givenName = node.id)
 
         override val name: String = givenName
-        override fun areContentsTheSame(other: Differentiable): Boolean = this == other
+        override fun areContentsTheSame(other: Diffable): Boolean = this == other
     }
 
     @kotlinx.serialization.Serializable
@@ -42,7 +42,7 @@ sealed class Device : Peripheral, Writable {
         override val isSelected: Boolean = false,
     ) : Device(), Peripheral by switch {
         override val name: String = switch.id
-        override fun areContentsTheSame(other: Differentiable): Boolean = this == other
+        override fun areContentsTheSame(other: Diffable): Boolean = this == other
     }
 }
 

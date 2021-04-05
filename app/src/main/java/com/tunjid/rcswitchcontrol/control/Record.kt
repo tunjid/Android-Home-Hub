@@ -26,11 +26,11 @@ package com.tunjid.rcswitchcontrol.control
 
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
-import com.tunjid.androidx.recyclerview.diff.Differentiable
+import com.tunjid.androidx.recyclerview.diff.Diffable
 import com.tunjid.rcswitchcontrol.common.Writable
 
 @kotlinx.serialization.Serializable
-sealed class Record : Differentiable, Writable {
+sealed class Record : Diffable, Writable {
     abstract val key: CommsProtocol.Key
     abstract val entry: String
 

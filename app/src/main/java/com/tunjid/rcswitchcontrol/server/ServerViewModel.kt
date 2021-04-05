@@ -8,16 +8,16 @@ import com.jakewharton.rx.replayingShare
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.io.ConsoleWriter
 import com.tunjid.androidx.communications.nsd.NsdHelper
-import com.tunjid.androidx.recyclerview.diff.Differentiable
+import com.tunjid.androidx.recyclerview.diff.Diffable
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
+import com.tunjid.rcswitchcontrol.client.ClientStateCache
 import com.tunjid.rcswitchcontrol.common.composeOnIo
 import com.tunjid.rcswitchcontrol.common.filterIsInstance
 import com.tunjid.rcswitchcontrol.common.fromBlockingCallable
 import com.tunjid.rcswitchcontrol.common.onErrorComplete
 import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.common.toLiveData
-import com.tunjid.rcswitchcontrol.client.ClientStateCache
 import com.tunjid.rcswitchcontrol.di.AppBroadcaster
 import com.tunjid.rcswitchcontrol.di.AppBroadcasts
 import com.tunjid.rcswitchcontrol.di.AppContext
@@ -45,7 +45,7 @@ sealed class Input {
 data class HostItem(
     val id: Int,
     val text: CharSequence
-) : Differentiable {
+) : Diffable {
     override val diffId: String get() = id.toString()
 }
 

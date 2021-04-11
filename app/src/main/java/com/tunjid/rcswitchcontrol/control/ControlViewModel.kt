@@ -25,8 +25,10 @@
 package com.tunjid.rcswitchcontrol.control
 
 import android.content.Context
+import androidx.fragment.app.Fragment
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelStoreOwner
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.core.components.services.HardServiceConnection
@@ -51,6 +53,12 @@ import io.reactivex.processors.PublishProcessor
 import io.reactivex.rxkotlin.addTo
 import javax.inject.Inject
 
+interface RootController: ViewModelStoreOwner
+
+val Fragment.rootController : ViewModelStoreOwner get() = generateSequence(this, Fragment::getParentFragment)
+    .filterIsInstance<RootController>()
+    .firstOrNull() ?: this
+
 class ControlViewModel @Inject constructor(
     @AppContext private val context: Context,
     broadcasts: AppBroadcasts
@@ -59,7 +67,9 @@ class ControlViewModel @Inject constructor(
     private val disposable: CompositeDisposable = CompositeDisposable()
     private val actions = PublishProcessor.create<Input>()
 
-    private val nsdConnection = HardServiceConnection(context, ClientNsdService::class.java) { accept(Input.Async.PingServer) }
+    private val nsdConnection = HardServiceConnection(context, ClientNsdService::class.java) {
+        accept(Input.Async.PingServer)
+    }
 
     val pages: List<Page> = mutableListOf(Page.HISTORY, Page.DEVICES).apply {
         if (ServerNsdService.isServer) add(0, Page.HOST)

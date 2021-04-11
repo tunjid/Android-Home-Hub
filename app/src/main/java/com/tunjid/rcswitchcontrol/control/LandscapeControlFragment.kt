@@ -26,18 +26,20 @@ import com.tunjid.rcswitchcontrol.client.ProtocolKey
 import com.tunjid.rcswitchcontrol.client.keys
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentControlLandscapeBinding
-import com.tunjid.rcswitchcontrol.di.activityViewModelFactory
+import com.tunjid.rcswitchcontrol.di.viewModelFactory
 import com.tunjid.rcswitchcontrol.server.HostFragment
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
 import com.tunjid.rcswitchcontrol.utils.item
 import com.tunjid.rcswitchcontrol.utils.makeAccessibleForTV
 
-class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape), Navigator.TagProvider {
+class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape),
+    RootController,
+    Navigator.TagProvider {
 
     private val innerNavigator by childStackNavigationController(R.id.child_fragment_container)
 
     private val viewBinding by viewLifecycle(FragmentControlLandscapeBinding::bind)
-    private val viewModel by activityViewModelFactory<ControlViewModel>()
+    private val viewModel by viewModelFactory<ControlViewModel>(this::rootController)
     private var load by fragmentArgs<ClientLoad>()
 
     private val host by lazy { requireActivity().getString(R.string.host) }
@@ -61,7 +63,8 @@ class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape), 
                 else -> listOf(devices)
             }
             val listAdapter = listAdapterOf(
-                initialItems = persistentItems + (viewModel.state.value?.clientState?.keys ?: listOf()),
+                initialItems = persistentItems + (viewModel.state.value?.clientState?.keys
+                    ?: listOf()),
                 viewHolderCreator = { parent, _ ->
                     HeaderViewHolder(parent.context, ::onHeaderHighlighted)
                 },

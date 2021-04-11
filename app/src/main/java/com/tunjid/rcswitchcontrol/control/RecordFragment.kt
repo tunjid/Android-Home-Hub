@@ -47,7 +47,7 @@ import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderCommandBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderHistoryBinding
-import com.tunjid.rcswitchcontrol.di.activityViewModelFactory
+import com.tunjid.rcswitchcontrol.di.viewModelFactory
 import com.tunjid.rcswitchcontrol.viewholders.bind
 import com.tunjid.rcswitchcontrol.viewholders.bindCommand
 import com.tunjid.rcswitchcontrol.viewholders.commandViewHolder
@@ -59,7 +59,7 @@ sealed class RecordFragment : Fragment(R.layout.fragment_list) {
     class CommandsFragment : RecordFragment()
 
     internal var key: CommsProtocol.Key? by fragmentArgs()
-    private val viewModel by activityViewModelFactory<ControlViewModel>()
+    private val viewModel by viewModelFactory<ControlViewModel>(::rootController)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)

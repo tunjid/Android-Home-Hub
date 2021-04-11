@@ -42,15 +42,16 @@ import com.tunjid.rcswitchcontrol.MainActivity
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.control.NameServiceDialogFragment
+import com.tunjid.rcswitchcontrol.control.rootController
 import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderHostCardBinding
-import com.tunjid.rcswitchcontrol.di.activityViewModelFactory
+import com.tunjid.rcswitchcontrol.di.viewModelFactory
 import com.tunjid.rcswitchcontrol.utils.makeAccessibleForTV
 
 class HostFragment : Fragment(R.layout.fragment_list),
     NameServiceDialogFragment.ServiceNameListener {
 
-    private val viewModel by activityViewModelFactory<HostViewModel>()
+    private val viewModel by viewModelFactory<HostViewModel>(this::rootController)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)

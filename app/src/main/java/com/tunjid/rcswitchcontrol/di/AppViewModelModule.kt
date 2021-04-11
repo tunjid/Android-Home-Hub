@@ -26,6 +26,7 @@ import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelLazy
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStoreOwner
 import com.tunjid.fingergestures.di.ViewModelCreators
 import com.tunjid.fingergestures.di.ViewModelFactory
 import com.tunjid.fingergestures.di.ViewModelKey
@@ -41,8 +42,9 @@ import dagger.multibindings.IntoMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
-inline fun <reified VM : ViewModel> Fragment.viewModelFactory() =
-    viewModels<VM> { dagger.viewModelFactory }
+inline fun <reified VM : ViewModel> Fragment.viewModelFactory(
+    noinline ownerProducer: () -> ViewModelStoreOwner = { this }
+) = viewModels<VM>(ownerProducer = ownerProducer) { dagger.viewModelFactory }
 
 inline fun <reified VM : ViewModel> Fragment.activityViewModelFactory() =
     activityViewModels<VM> { dagger.viewModelFactory }

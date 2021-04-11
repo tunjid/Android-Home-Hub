@@ -60,17 +60,19 @@ import com.tunjid.rcswitchcontrol.client.keys
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.control.Page.HISTORY
 import com.tunjid.rcswitchcontrol.databinding.FragmentControlBinding
-import com.tunjid.rcswitchcontrol.di.activityViewModelFactory
 import com.tunjid.rcswitchcontrol.di.dagger
+import com.tunjid.rcswitchcontrol.di.viewModelFactory
 import com.tunjid.rcswitchcontrol.models.Broadcast
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
 import com.tunjid.rcswitchcontrol.utils.FragmentTabAdapter
 import com.tunjid.rcswitchcontrol.utils.attach
 
-class ControlFragment : Fragment(R.layout.fragment_control), ZigBeeArgumentDialogFragment.ZigBeeArgsListener {
+class ControlFragment : Fragment(R.layout.fragment_control),
+    RootController,
+    ZigBeeArgumentDialogFragment.ZigBeeArgsListener {
 
     private val viewBinding by viewLifecycle(FragmentControlBinding::bind)
-    private val viewModel by activityViewModelFactory<ControlViewModel>()
+    private val viewModel by viewModelFactory<ControlViewModel>(this::rootController)
     private var load by fragmentArgs<ClientLoad>()
 
     override fun onCreate(savedInstanceState: Bundle?) {

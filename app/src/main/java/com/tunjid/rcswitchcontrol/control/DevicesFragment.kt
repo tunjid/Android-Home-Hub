@@ -54,7 +54,7 @@ import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderPaddingBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderRemoteSwitchBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderZigbeeDeviceBinding
-import com.tunjid.rcswitchcontrol.di.activityViewModelFactory
+import com.tunjid.rcswitchcontrol.di.viewModelFactory
 import com.tunjid.rcswitchcontrol.navigation.AppNavigator
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
@@ -69,7 +69,7 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
 
     private var isDeleting: Boolean = false
     private val viewBinding by viewLifecycle(FragmentListBinding::bind)
-    private val viewModel by activityViewModelFactory<ControlViewModel>()
+    private val viewModel by viewModelFactory<ControlViewModel>(this::rootController)
     private val navigator by activityNavigatorController<AppNavigator>()
 
     private val currentDevices get() = viewModel.state.value?.selectedDevices ?: listOf()

@@ -32,6 +32,7 @@ import androidx.lifecycle.LifecycleService
 import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.core.components.services.SelfBinder
 import com.tunjid.androidx.core.components.services.SelfBindingService
+import com.tunjid.androidx.core.delegates.intentExtras
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.MainActivity
 import com.tunjid.rcswitchcontrol.R
@@ -40,6 +41,9 @@ import com.tunjid.rcswitchcontrol.di.viewModelFactory
 import com.tunjid.rcswitchcontrol.utils.addNotificationChannel
 import com.tunjid.rcswitchcontrol.utils.notificationBuilder
 import java.util.*
+
+var Intent.nsdServiceInfo by intentExtras<NsdServiceInfo?>()
+var Intent.nsdServiceName by intentExtras<String?>()
 
 class ClientNsdService : LifecycleService(), SelfBindingService<ClientNsdService> {
 
@@ -86,7 +90,7 @@ class ClientNsdService : LifecycleService(), SelfBindingService<ClientNsdService
 
     private fun initialize(intent: Intent?) {
         intent
-            ?.getParcelableExtra<NsdServiceInfo>(NSD_SERVICE_INFO_KEY)
+            ?.nsdServiceInfo
             ?.let(Input::Connect)
             ?.let(viewModel::accept)
     }
@@ -108,7 +112,7 @@ class ClientNsdService : LifecycleService(), SelfBindingService<ClientNsdService
                 Intent(this, MainActivity::class.java).apply {
                     addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    putExtra(NSD_SERVICE_INFO_KEY, serviceName)
+                    nsdServiceName = serviceName
                 },
                 PendingIntent.FLAG_CANCEL_CURRENT
             ))
@@ -121,7 +125,6 @@ class ClientNsdService : LifecycleService(), SelfBindingService<ClientNsdService
 
     companion object {
         const val NOTIFICATION_ID = 2
-        const val NSD_SERVICE_INFO_KEY = "current Service key"
 
         private const val LAST_CONNECTED_SERVICE = "com.tunjid.rcswitchcontrol.client.ClientNsdService.last connected service"
 

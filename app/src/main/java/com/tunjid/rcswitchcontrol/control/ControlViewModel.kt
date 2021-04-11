@@ -34,6 +34,7 @@ import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.client.Status
 import com.tunjid.rcswitchcontrol.client.clientState
+import com.tunjid.rcswitchcontrol.client.nsdServiceInfo
 import com.tunjid.rcswitchcontrol.common.Mutation
 import com.tunjid.rcswitchcontrol.common.Mutator
 import com.tunjid.rcswitchcontrol.common.deserialize
@@ -144,12 +145,8 @@ class ControlViewModel @Inject constructor(
     private fun onAsyncInput(action: Input.Async): Unit = when (action) {
         is Input.Async.Load -> when (val load = action.load) {
             is ClientLoad.NewClient -> {
-                nsdConnection.start {
-                    putExtra(ClientNsdService.NSD_SERVICE_INFO_KEY, load.info)
-                }
-                nsdConnection.bind {
-                    putExtra(ClientNsdService.NSD_SERVICE_INFO_KEY, load.info)
-                }
+                nsdConnection.start { nsdServiceInfo = load.info }
+                nsdConnection.bind { nsdServiceInfo = load.info }
                 Unit
             }
             is ClientLoad.ExistingClient -> {

@@ -24,7 +24,6 @@
 
 package com.tunjid.rcswitchcontrol
 
-import android.net.nsd.NsdServiceInfo
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
@@ -32,9 +31,11 @@ import androidx.core.content.ContextCompat
 import com.tunjid.androidx.navigation.Navigator
 import com.tunjid.globalui.GlobalUiDriver
 import com.tunjid.globalui.GlobalUiHost
-import com.tunjid.rcswitchcontrol.client.ClientNsdService
-import com.tunjid.rcswitchcontrol.control.ControlFragment
 import com.tunjid.rcswitchcontrol.client.ClientLoad
+import com.tunjid.rcswitchcontrol.client.ClientNsdService
+import com.tunjid.rcswitchcontrol.client.nsdServiceInfo
+import com.tunjid.rcswitchcontrol.client.nsdServiceName
+import com.tunjid.rcswitchcontrol.control.ControlFragment
 import com.tunjid.rcswitchcontrol.control.LandscapeControlFragment
 import com.tunjid.rcswitchcontrol.databinding.ActivityMainBinding
 import com.tunjid.rcswitchcontrol.navigation.AppNavigator
@@ -62,17 +63,16 @@ class MainActivity : AppCompatActivity(),
         val isSavedInstance = savedInstanceState != null
         val controlLoad = when (ServerNsdService.isServer || App.isAndroidThings) {
             true -> ClientLoad.StartServer
-            false -> when (startIntent.hasExtra(ClientNsdService.NSD_SERVICE_INFO_KEY)) {
-                true -> startIntent.getParcelableExtra<NsdServiceInfo>(ClientNsdService.NSD_SERVICE_INFO_KEY)
-                    ?.let(ClientLoad::NewClient)
-                false -> ClientNsdService.lastConnectedService
+            false -> when (val info = startIntent.nsdServiceInfo) {
+                null -> (startIntent.nsdServiceName ?: ClientNsdService.lastConnectedService)
                     ?.let(ClientLoad::ExistingClient)
+                else -> info.let(ClientLoad::NewClient)
             }
         }
 
         if (!isSavedInstance) navigator.push(when (controlLoad) {
             null -> StartFragment.newInstance()
-            else -> when(App.isLandscape ) {
+            else -> when (App.isLandscape) {
                 true -> LandscapeControlFragment.newInstance(controlLoad)
                 false -> ControlFragment.newInstance(controlLoad)
             }

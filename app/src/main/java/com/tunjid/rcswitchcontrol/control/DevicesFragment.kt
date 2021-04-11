@@ -29,6 +29,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ItemTouchHelper.Callback.makeMovementFlags
 import androidx.recyclerview.widget.RecyclerView
@@ -103,8 +104,12 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
                 itemIdFunction = { it.hashCode().toLong() }
             )
 
-            layoutManager = gridLayoutManager(spanCount = SpanCountCalculator.spanCount)
             adapter = listAdapter
+            layoutManager = gridLayoutManager(spanCount = SpanCountCalculator.spanCount)
+            itemAnimator = DefaultItemAnimator().apply {
+                changeDuration = 0L
+                supportsChangeAnimations = false
+            }
 
             setSwipeDragOptions(
                 swipeConsumer = { viewHolder: RecyclerView.ViewHolder, _ -> onDelete(viewHolder) },

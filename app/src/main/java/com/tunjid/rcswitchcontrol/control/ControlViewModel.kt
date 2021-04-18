@@ -34,6 +34,7 @@ import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.core.components.services.HardServiceConnection
 import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
+import com.tunjid.rcswitchcontrol.client.State
 import com.tunjid.rcswitchcontrol.client.Status
 import com.tunjid.rcswitchcontrol.client.clientState
 import com.tunjid.rcswitchcontrol.client.nsdServiceInfo
@@ -68,7 +69,7 @@ class ControlViewModel @Inject constructor(
     private val actions = PublishProcessor.create<Input>()
 
     private val nsdConnection = HardServiceConnection(context, ClientNsdService::class.java) {
-        accept(Input.Async.PingServer)
+        accept(Input.Async.ClientServiceBound(it.state))
     }
 
     val pages: List<Page> = mutableListOf(Page.HISTORY, Page.DEVICES).apply {
@@ -84,6 +85,11 @@ class ControlViewModel @Inject constructor(
         val connectionStatuses: Flowable<Status> = broadcasts
             .filterIsInstance<Broadcast.ClientNsd.ConnectionStatus>()
             .map(Broadcast.ClientNsd.ConnectionStatus::status)
+            .mergeWith(
+                actions.filterIsInstance<Input.Async.ClientServiceBound>()
+                    .switchMap(Input.Async.ClientServiceBound::clientServiceState)
+                    .map(State::status)
+            )
             .startWith(Status.Disconnected())
 
         val serverResponses: Flowable<Payload> = broadcasts
@@ -178,6 +184,7 @@ class ControlViewModel @Inject constructor(
         }
         is Input.Async.ServerCommand -> nsdConnection.boundService
             ?.sendMessage(action.payload) ?: Unit
+        is Input.Async.ClientServiceBound,
         Input.Async.PingServer -> onAsyncInput(Input.Async.ServerCommand(Payload(
             key = CommsProtocol.key,
             action = CommsProtocol.pingAction

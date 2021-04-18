@@ -29,6 +29,7 @@ import android.app.PendingIntent
 import android.content.Intent
 import android.net.nsd.NsdServiceInfo
 import androidx.lifecycle.LifecycleService
+import androidx.lifecycle.toPublisher
 import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.core.components.services.SelfBinder
 import com.tunjid.androidx.core.components.services.SelfBindingService
@@ -40,12 +41,15 @@ import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.di.viewModelFactory
 import com.tunjid.rcswitchcontrol.utils.addNotificationChannel
 import com.tunjid.rcswitchcontrol.utils.notificationBuilder
+import io.reactivex.Flowable
 import java.util.*
 
 var Intent.nsdServiceInfo by intentExtras<NsdServiceInfo?>()
 var Intent.nsdServiceName by intentExtras<String?>()
 
 class ClientNsdService : LifecycleService(), SelfBindingService<ClientNsdService> {
+
+    val state: Flowable<State> by lazy { Flowable.fromPublisher(viewModel.state.toPublisher(lifecycle = this)) }
 
     private val viewModel by viewModelFactory<ClientViewModel>()
 

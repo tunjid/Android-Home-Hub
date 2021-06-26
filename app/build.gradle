@@ -73,7 +73,7 @@ dependencies {
     implementation 'androidx.leanback:leanback:1.0.0'
     implementation 'androidx.cardview:cardview:1.0.0'
     implementation 'androidx.transition:transition:1.4.0'
-    implementation 'androidx.recyclerview:recyclerview:1.1.0'
+    implementation 'androidx.recyclerview:recyclerview:1.2.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
 
     implementation parent.ext.lifecycleRuntimeKtx

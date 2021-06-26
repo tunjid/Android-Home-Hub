@@ -25,6 +25,7 @@
 package com.tunjid.rcswitchcontrol.viewholders
 
 import android.content.res.ColorStateList
+import android.graphics.Color
 import android.view.ViewGroup
 import androidx.core.view.isVisible
 import com.flask.colorpicker.ColorPickerView
@@ -125,10 +126,16 @@ fun ViewGroup.zigbeeDeviceViewHolder(
                 .wheelType(ColorPickerView.WHEEL_TYPE.CIRCLE)
                 .showLightnessSlider(true)
                 .showAlphaSlider(false)
+                .initialColor(device.color ?: Color.WHITE)
+                .showColorEdit(true)
                 .density(12)
                 .throttleColorChanges { rgb ->
                     listener.send(device.node.command(ZigBeeInput.Color(rgb)))
                 }
+                .setPositiveButton("ok") {_, rgb, _ ->
+                    listener.send(device.node.command(ZigBeeInput.Color(rgb)))
+                }
+                .setNegativeButton("cancel") {_, _ -> }
                 .build()
                 .show()
         }

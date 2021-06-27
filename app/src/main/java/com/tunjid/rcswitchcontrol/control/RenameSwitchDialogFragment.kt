@@ -28,7 +28,6 @@ import android.annotation.SuppressLint
 import android.app.Dialog
 import android.os.Bundle
 import androidx.fragment.app.DialogFragment
-import androidx.fragment.app.activityViewModels
 import com.rcswitchcontrol.protocols.Name
 import com.rcswitchcontrol.protocols.renamePayload
 import com.tunjid.androidx.core.delegates.fragmentArgs

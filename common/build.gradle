@@ -18,6 +18,9 @@ dependencies {
     implementation parent.ext.rxAndroid
     implementation rxReplayingShare
 
+    implementation coroutines
+    implementation ktor
+
     implementation parent.ext.usbSerialA
     implementation parent.ext.usbSerialB
 }

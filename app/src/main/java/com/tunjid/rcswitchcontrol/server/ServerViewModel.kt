@@ -4,7 +4,8 @@ import android.content.Context
 import android.net.nsd.NsdServiceInfo
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
-import com.jakewharton.rx.replayingShare
+import androidx.lifecycle.asLiveData
+import androidx.lifecycle.viewModelScope
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.io.ConsoleWriter
 import com.tunjid.androidx.communications.nsd.NsdHelper
@@ -12,26 +13,21 @@ import com.tunjid.androidx.recyclerview.diff.Diffable
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.client.ClientStateCache
-import com.tunjid.rcswitchcontrol.common.composeOnIo
-import com.tunjid.rcswitchcontrol.common.filterIsInstance
-import com.tunjid.rcswitchcontrol.common.fromBlockingCallable
-import com.tunjid.rcswitchcontrol.common.onErrorComplete
-import com.tunjid.rcswitchcontrol.common.serialize
-import com.tunjid.rcswitchcontrol.common.toLiveData
+import com.tunjid.rcswitchcontrol.common.*
 import com.tunjid.rcswitchcontrol.di.AppBroadcaster
 import com.tunjid.rcswitchcontrol.di.AppBroadcasts
 import com.tunjid.rcswitchcontrol.di.AppContext
 import com.tunjid.rcswitchcontrol.models.Broadcast
 import com.tunjid.rcswitchcontrol.protocols.ProxyProtocol
-import io.reactivex.BackpressureStrategy
-import io.reactivex.Flowable
-import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.processors.PublishProcessor
-import io.reactivex.rxkotlin.Flowables
-import io.reactivex.rxkotlin.addTo
-import java.io.PrintWriter
-import java.net.ServerSocket
-import java.net.Socket
+import io.ktor.network.selector.*
+import io.ktor.network.sockets.*
+import io.ktor.util.network.*
+import io.ktor.utils.io.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.reactive.asFlow
 import javax.inject.Inject
 
 enum class Status {
@@ -74,8 +70,8 @@ private sealed class Output {
 
     sealed class Client : Output() {
         sealed class Status : Client() {
-            data class Added(val port: Int, val writer: PrintWriter) : Status()
-            data class Dropped(val port: Int, val writer: PrintWriter) : Status()
+            data class Added(val port: Int, val writer: WritableSocketConnection) : Status()
+            data class Dropped(val port: Int, val writer: WritableSocketConnection) : Status()
         }
 
         data class Request(val port: Int, val data: String) : Client()
@@ -95,146 +91,145 @@ class ServerViewModel @Inject constructor(
 
     val state: LiveData<State>
 
-    private val disposable = CompositeDisposable()
-    private val processor = PublishProcessor.create<Input>()
+    private val inputs = MutableSharedFlow<Input>(
+        replay = 1,
+        extraBufferCapacity = 5,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+
     private val protocol = CachingProtocol(ProxyProtocol(
         context = context,
-        printWriter = ConsoleWriter { processor.onNext(Response(it)) }
+        printWriter = ConsoleWriter { inputs.tryEmit(Response(it)) }
     ))
 
     init {
-        val inputs = processor
-            .onBackpressureDrop()
-            .composeOnIo()
-            .replayingShare()
-
-        val serverOutputs: Flowable<Output.Server> = inputs
+        val serverOutputs: Flow<Output.Server> = inputs
             .filterIsInstance<Input.Restart>()
-            .startWith(Input.Restart)
-            .switchMap { context.registerServer(ServerNsdService.serviceName) }
-            .replayingShare()
-            .takeUntil(broadcasts.filterIsInstance<Broadcast.ServerNsd.Stop>())
+            .onStart { emit(Input.Restart) }
+            .flatMapLatest { context.registerServer(ServerNsdService.serviceName) }
+            .shareIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(), replay = 1)
+            .takeUntil(broadcasts.asFlow().filterIsInstance<Broadcast.ServerNsd.Stop>())
 
-        val registrations: Flowable<Output.Server.Registered> = serverOutputs
+        val registrations: Flow<Output.Server.Registered> = serverOutputs
             .filterIsInstance<Output.Server.Registered>()
-            .replayingShare()
+            .shareIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(), replay = 1)
 
-        val clientOutputs: Flowable<Output.Client> = registrations
-            .map(Output.Server.Registered::socket)
-            .switchMap(ServerSocket::clients)
-            .flatMap(protocol::outputs)
-            .replayingShare()
+        val clientOutputs: Flow<Output.Client> = registrations
+            .map(Output.Server.Registered::socket.asSuspend)
+            .flatMapLatest(ServerSocket::clients)
+            .flatMapMerge(concurrency = Int.MAX_VALUE, transform = protocol::outputs)
+            .flowOn(Dispatchers.IO)
+            .shareIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(), replay = 1)
 
-        val clients: Flowable<Set<PrintWriter>> = clientOutputs
+        val clients: Flow<Set<WritableSocketConnection>> = clientOutputs
             .filterIsInstance<Output.Client.Status>()
-            .scan(setOf<PrintWriter>()) { set, status ->
+            .scan(setOf<WritableSocketConnection>()) { set, status ->
                 when (status) {
                     is Output.Client.Status.Added -> set + status.writer
                     is Output.Client.Status.Dropped -> set - status.writer
                 }
             }
-            .replayingShare()
+            .shareIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(), replay = 1)
 
-        val writes: Flowable<String> = clientOutputs
-            .filterIsInstance<Output.Client.Request>()
-            .map(Output.Client.Request::data)
-            .mergeWith(inputs
+        val writes: Flow<String> = merge(
+            clientOutputs
+                .filterIsInstance<Output.Client.Request>()
+                .map(Output.Client.Request::data.asSuspend),
+            inputs
                 .filterIsInstance<Response>()
-                .map(Response::data)
-            )
-            .replayingShare()
+                .map(Response::data.asSuspend)
+        )
+            .shareIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(), replay = 1)
 
-        val backingState = Flowables.combineLatest(
+        val backingState = combine(
             registrations
-                .map(Output.Server.Registered::service)
+                .map(Output.Server.Registered::service.asSuspend)
                 .map(NsdServiceInfo::getServiceName),
             clients
-                .map(Set<PrintWriter>::size),
+                .map(Set<WritableSocketConnection>::size.asSuspend),
             writes
                 .scan(0) { oldCount, _ -> oldCount + 1 },
-            serverOutputs.map(Output.Server::status)
-                .concatWith(Flowable.just(Status.Stopped)),
+            serverOutputs.map(Output.Server::status.asSuspend)
+                .onStart { emit(Status.Stopped) },
             ::State
         )
-            .replayingShare()
+            .shareIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(), replay = 1)
 
-        state = backingState.toLiveData()
+        state = backingState.asLiveData()
 
         // Kick off
         writes
             .withLatestFrom(clients, ::Pair)
-            .composeOnIo()
-            .subscribe { (data, writers) ->
+            .flowOn(Dispatchers.IO)
+            .onEach { (data, writers) ->
                 protocol.cache.add(data)
-                writers.forEach { it.println(data) }
+                writers.forEach { it.write(data) }
             }
-            .addTo(disposable)
+            .flowOn(Dispatchers.IO)
+            .launchIn(viewModelScope)
 
         registrations
-            .subscribe { registration ->
+            .onEach { registration ->
                 ServerNsdService.isServer = true
                 ServerNsdService.serviceName = registration.service.serviceName
                 ClientNsdService.lastConnectedService = registration.service.serviceName
                 broadcaster(Broadcast.ClientNsd.StartDiscovery())
             }
-            .addTo(disposable)
+            .launchIn(viewModelScope)
     }
 
-    override fun onCleared() {
-        super.onCleared()
-        disposable.clear()
+    fun accept(input: Input) {
+        inputs.tryEmit(input)
     }
-
-    fun accept(input: Input) = processor.onNext(input)
 }
 
-private fun Context.registerServer(name: String): Flowable<Output.Server> =
-    Flowables.create(BackpressureStrategy.BUFFER) { emitter ->
-        val serverSocket = ServerSocket(0)
-        NsdHelper.getBuilder(this)
+private fun Context.registerServer(name: String): Flow<Output.Server> =
+    callbackFlow {
+        val socketBuilder = aSocket(ActorSelectorManager(Dispatchers.IO)).tcp()
+        val serverSocket = socketBuilder.bind()
+        val nsdHelper = NsdHelper.getBuilder(this@registerServer)
             .setRegisterSuccessConsumer { service ->
-                emitter.onNext(Output.Server.Registered(service, serverSocket))
+                channel.trySend(Output.Server.Registered(service, serverSocket))
             }
             .setRegisterErrorConsumer { service, error ->
-                emitter.onNext(Output.Server.Error(service, error))
-                emitter.onComplete()
+                channel.trySend(Output.Server.Error(service, error))
+                channel.close()
             }
             .build()
-            .let { nsdHelper ->
-                emitter.setCancellable(nsdHelper::tearDown)
-                emitter.onNext(Output.Server.Initialized(nsdHelper))
-                nsdHelper.registerService(serverSocket.localPort, name)
+            .also { nsdHelper ->
+                channel.trySend(Output.Server.Initialized(nsdHelper))
+                nsdHelper.registerService(serverSocket.localAddress.port, name)
             }
+
+        awaitClose { nsdHelper.tearDown() }
     }
 
-private fun ServerSocket.clients(): Flowable<Socket> =
-    Flowables
-        .fromBlockingCallable { accept() }
-        .repeatUntil(::isClosed)
-        .doFinally(::close)
-        .onErrorComplete()
-        .composeOnIo()
+private fun ServerSocket.clients(): Flow<Socket> =
+    flow {
+        while (!isClosed) emit(accept())
+    }
+        .onCompletion { if (!isClosed) dispose() }
+        .catch { it.printStackTrace() }
 
-private fun CachingProtocol.outputs(socket: Socket): Flowable<Output.Client> =
-    Flowable.defer {
-        val outWriter = NsdHelper.createPrintWriter(socket)
-        val reader = NsdHelper.createBufferedReader(socket)
+private suspend fun CachingProtocol.outputs(socket: Socket): Flow<Output.Client> {
+    val connection = readWriteSocketConnection(socket = socket, side = Side.Server)
+    val port = connection.port
 
-        // Initiate conversation with client
-        outWriter.println(cache.payload.serialize())
-        outWriter.println(processInput(CommsProtocol.pingAction.value).serialize())
+    // Initiate conversation with client
+    connection.write(cache.payload.serialize())
+    connection.write(processInput(CommsProtocol.pingAction.value).serialize())
 
-        Flowables.fromBlockingCallable<Output.Client> {
-            val input = reader.readLine()
+    return flow<Output.Client> {
+        while (connection.canRead && connection.canWrite) {
+            val input = connection.read()
             val output = processInput(input).serialize()
-            if (input == null || output == "Bye.") socket.close()
-            Output.Client.Request(port = socket.port, data = output)
+
+            emit(Output.Client.Request(port = port, data = output))
+            if (input == null || output == "Bye.") connection.dispose()
         }
-            .repeatUntil(socket::isClosed)
-            .doFinally(socket::close)
-            .onErrorComplete()
-            .startWith(Output.Client.Status.Added(port = socket.port, writer = outWriter))
-            .concatWith(Flowable.just(Output.Client.Status.Dropped(port = socket.port, writer = outWriter)))
     }
-        .onErrorComplete()
-        .composeOnIo()
+        .onCompletion { if (connection.isConnected) connection.dispose() }
+        .catch { it.printStackTrace() }
+        .onStart { emit(Output.Client.Status.Added(port = port, writer = connection)) }
+        .onCompletion { emit(Output.Client.Status.Dropped(port = port, writer = connection)) }
+}

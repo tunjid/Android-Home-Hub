@@ -96,7 +96,7 @@ class ControlViewModel @Inject constructor(
             .filterIsInstance<Broadcast.ClientNsd.ServerResponse>()
             .map(Broadcast.ClientNsd.ServerResponse::data)
             .filter(String::isNotBlank)
-            .map { it.deserialize() }
+            .map { it.deserialize<Payload>() }
 
         val clientStateObservable = clientState(
             connectionStatuses,

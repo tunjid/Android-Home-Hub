@@ -136,7 +136,7 @@ class ClientViewModel @Inject constructor(
     }
 
     fun accept(input: Input) {
-        println("Emit $input ${inputs.tryEmit(input)}")
+        inputs.tryEmit(input)
     }
 }
 

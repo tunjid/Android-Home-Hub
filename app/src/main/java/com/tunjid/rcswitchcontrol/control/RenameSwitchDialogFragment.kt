@@ -33,12 +33,13 @@ import com.rcswitchcontrol.protocols.Name
 import com.rcswitchcontrol.protocols.renamePayload
 import com.tunjid.androidx.core.delegates.fragmentArgs
 import com.tunjid.rcswitchcontrol.R
+import com.tunjid.rcswitchcontrol.di.viewModelFactory
 
 @SuppressLint("InflateParams")
 class RenameSwitchDialogFragment : DialogFragment() {
 
     private var name by fragmentArgs<Name>()
-    private val viewModel by activityViewModels<ControlViewModel>()
+    private val viewModel by viewModelFactory<ControlViewModel>(this::rootController)
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog = editTextDialog { editText, builder ->
         editText.setText(name.value)

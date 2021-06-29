@@ -19,11 +19,8 @@ dependencies {
 
     implementation parent.ext.tunjiAndroidxRecyclerView
 
-    implementation parent.ext.rxJava
-    implementation parent.ext.rxRelay
-    implementation parent.ext.rxKotlin
-    implementation parent.ext.rxAndroid
-    implementation parent.ext.rxReplayingShare
+    implementation parent.ext.coroutines
+    implementation parent.ext.coroutinesReactive
 
     implementation parent.ext.zigBeeCore
     implementation parent.ext.zigBeeConsole

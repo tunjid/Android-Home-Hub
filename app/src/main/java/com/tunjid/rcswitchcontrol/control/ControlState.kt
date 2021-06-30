@@ -8,7 +8,7 @@ import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.client.ClientState
 import com.tunjid.rcswitchcontrol.server.HostFragment
 import com.tunjid.rcswitchcontrol.utils.Tab
-import io.reactivex.Flowable
+import kotlinx.coroutines.flow.Flow
 
 typealias ClientServiceState = com.tunjid.rcswitchcontrol.client.State
 
@@ -21,7 +21,7 @@ sealed class Input {
     sealed class Async: Input() {
         data class Load(val load: ClientLoad) : Async()
         data class ServerCommand(val payload: Payload) : Async()
-        data class ClientServiceBound(val clientServiceState: Flowable<ClientServiceState>) : Async()
+        data class ClientServiceBound(val clientServiceState: Flow<ClientServiceState>) : Async()
         object ForgetServer : Async()
         object PingServer : Async()
         object AppBackgrounded : Async()

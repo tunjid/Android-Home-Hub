@@ -60,14 +60,7 @@ buildscript {
 
         gson = 'com.google.code.gson:gson:2.8.5'
 
-        rxJava = 'io.reactivex.rxjava2:rxjava:2.2.10'
-        rxKotlin = 'io.reactivex.rxjava2:rxkotlin:2.4.0'
-        rxAndroid = 'io.reactivex.rxjava2:rxandroid:2.1.1'
-        rxRelay = 'com.jakewharton.rxrelay2:rxrelay:2.0.0'
-        rxReplayingShare = 'com.jakewharton.rx2:replaying-share-kotlin:2.0.0'
-
         coroutines = 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.0'
-        coroutinesReactive = 'org.jetbrains.kotlinx:kotlinx-coroutines-reactive:1.5.0'
         coroutinesAndroid = 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.0'
 
         ktor = 'io.ktor:ktor-client-core:1.6.0'

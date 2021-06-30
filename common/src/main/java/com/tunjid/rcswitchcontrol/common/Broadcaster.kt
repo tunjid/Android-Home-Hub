@@ -26,27 +26,28 @@ package com.tunjid.rcswitchcontrol.common
 
 import android.content.Intent
 import android.util.Log
-import io.reactivex.Flowable
-import io.reactivex.processors.PublishProcessor
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.onEach
 
 class Broadcaster private constructor() {
 
-    private val processor: PublishProcessor<Intent> = PublishProcessor.create()
+    private val processor = MutableSharedFlow<Intent>(
+        replay = 1,
+        extraBufferCapacity = 5,
+    )
 
     companion object {
-
-        private val TAG = "Broadcaster"
+        private const val TAG = "Broadcaster"
         val instance: Broadcaster by lazy { Broadcaster() }
 
+        fun listen(vararg filters: String): Flow<Intent> = instance.processor
+            .onEach { intent -> Log.i(TAG, "Received data for: " + intent.action) }
+            .filter { intent -> filters.contains(intent.action) }
 
-        fun listen(vararg filters: String): Flowable<Intent> = listen(listOf(*filters))
-
-        fun listen(filters: List<String>): Flowable<Intent> {
-            return instance.processor
-                    .doOnNext { intent -> Log.i(TAG, "Received data for: " + intent.action) }
-                    .filter { intent -> filters.contains(intent.action) }
+        fun push(intent: Intent) {
+            instance.processor.tryEmit(intent)
         }
-
-        fun push(intent: Intent) = instance.processor.onNext(intent)
     }
 }

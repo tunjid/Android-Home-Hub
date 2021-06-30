@@ -16,7 +16,6 @@ import io.ktor.utils.io.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.reactive.asFlow
 import javax.inject.Inject
 
 data class State(
@@ -63,7 +62,7 @@ private suspend fun Write.print() = writer?.write(data) ?: Unit
 
 class ClientViewModel @Inject constructor(
     broadcaster: AppBroadcaster,
-    broadcasts: AppBroadcasts,
+    broadcasts: @JvmSuppressWildcards AppBroadcasts,
 ) : ViewModel() {
 
     val state: LiveData<State>
@@ -87,7 +86,6 @@ class ClientViewModel @Inject constructor(
 
         val backingState = merge(
             broadcasts
-                .asFlow()
                 .filterIsInstance<Broadcast.ClientNsd.Stop>()
                 .map { Mutation { copy(isStopped = true) } },
             connections

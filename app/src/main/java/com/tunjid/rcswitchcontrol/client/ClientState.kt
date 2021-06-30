@@ -4,7 +4,6 @@ import android.content.res.Resources
 import android.net.nsd.NsdServiceInfo
 import android.os.Parcelable
 import androidx.fragment.app.Fragment
-import com.jakewharton.rx.replayingShare
 import com.rcswitchcontrol.protocols.CommonDeviceActions
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.Name
@@ -26,12 +25,16 @@ import com.tunjid.rcswitchcontrol.control.Record
 import com.tunjid.rcswitchcontrol.control.RecordFragment
 import com.tunjid.rcswitchcontrol.control.foldAttributes
 import com.tunjid.rcswitchcontrol.utils.Tab
-import io.reactivex.Flowable
-import io.reactivex.rxkotlin.Flowables
-import io.reactivex.schedulers.Schedulers
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.parcelize.Parcelize
-import java.util.HashMap
-import java.util.Locale
+import java.util.*
 
 data class ProtocolKey(val key: CommsProtocol.Key) : Tab {
     val title get() = key.value.split(".").last().toUpperCase(Locale.US).removeSuffix("PROTOCOL")
@@ -66,15 +69,16 @@ val ClientState?.isConnected get() = this?.connectionStatus is Status.Connected
 
 private val cacheAction = CommsProtocol.Action("controlStateCache")
 
-fun clientState(
-    status: Flowable<Status>,
-    payloads: Flowable<Payload>
-): Flowable<ClientState> = Flowables.combineLatest(
+fun CoroutineScope.clientState(
+    status: Flow<Status>,
+    payloads: Flow<Payload>
+): Flow<ClientState> = combine(
     status,
-    payloads
+    payloads,
+    ::Pair,
 ).scan(ClientState(), ClientState::reduce)
-    .subscribeOn(Schedulers.single())
-    .replayingShare()
+    .flowOn(Dispatchers.IO)
+    .shareIn(scope = this, started = SharingStarted.WhileSubscribed(), replay = 1)
 
 class ClientStateCache {
     private var cache = ClientState()
@@ -103,7 +107,11 @@ private fun ClientState.reduce(pair: Pair<Status, Payload>): ClientState {
     val key = payload.key
     val isNew = !commands.keys.contains(key)
 
-    return payload.cache ?: copy(isNew = isNew, connectionStatus = connectionStatus, commandInfo = payload.extractCommandInfo)
+    return payload.cache ?: copy(
+        isNew = isNew,
+        connectionStatus = connectionStatus,
+        commandInfo = payload.extractCommandInfo
+    )
         .reduceCommands(payload)
         .reduceDeviceName(payload.deviceName)
         .reduceHistory(payload.extractRecord)
@@ -112,9 +120,11 @@ private fun ClientState.reduce(pair: Pair<Status, Payload>): ClientState {
 }
 
 private fun ClientState.reduceDevices(fetched: List<Device>?) = when {
-    fetched != null -> copy(devices = (fetched + devices)
-        .distinctBy(Device::diffId)
-        .sortedBy(Device::name))
+    fetched != null -> copy(
+        devices = (fetched + devices)
+            .distinctBy(Device::diffId)
+            .sortedBy(Device::name)
+    )
     else -> this
 }
 
@@ -141,15 +151,16 @@ private fun ClientState.reduceCommands(payload: Payload) = copy(
 
 private fun ClientState.reduceDeviceName(name: Name?) = when (name) {
     null -> this
-    else -> copy(devices = listOfNotNull(devices.firstOrNull { it.id == name.id }.let {
-        when (it) {
-            is Device.RF -> it.copy(switch = it.switch.copy(name = name.value))
-            is Device.ZigBee -> it.copy(givenName = name.value)
-            else -> it
-        }
-    })
-        .plus(devices)
-        .distinctBy(Device::diffId)
+    else -> copy(
+        devices = listOfNotNull(devices.firstOrNull { it.id == name.id }.let {
+            when (it) {
+                is Device.RF -> it.copy(switch = it.switch.copy(name = name.value))
+                is Device.ZigBee -> it.copy(givenName = name.value)
+                else -> it
+            }
+        })
+            .plus(devices)
+            .distinctBy(Device::diffId)
     )
 }
 

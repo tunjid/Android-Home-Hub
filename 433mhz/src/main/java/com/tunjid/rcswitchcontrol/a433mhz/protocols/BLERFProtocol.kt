@@ -57,7 +57,6 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.reactive.asFlow
 import java.io.PrintWriter
 import java.util.*
 
@@ -113,7 +112,6 @@ class BLERFProtocol constructor(override val printWriter: PrintWriter) : CommsPr
             ClientBleService.controlAction.value,
             ClientBleService.snifferAction.value,
             ClientBleService.DATA_AVAILABLE_UNKNOWN)
-            .asFlow()
             .onEach(this::onBleIntentReceived)
             .catch { it.printStackTrace() }
             .launchIn(scope)

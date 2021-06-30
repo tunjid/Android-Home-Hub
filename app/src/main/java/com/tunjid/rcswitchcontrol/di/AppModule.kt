@@ -18,19 +18,25 @@
 package com.tunjid.rcswitchcontrol.di
 
 import android.content.Context
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.ProcessLifecycleOwner
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.models.Broadcast
 import dagger.Module
 import dagger.Provides
-import io.reactivex.Flowable
-import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.processors.PublishProcessor
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import javax.inject.Qualifier
 import javax.inject.Singleton
 
 typealias AppBroadcaster = (@JvmSuppressWildcards Broadcast) -> Unit
-typealias AppBroadcasts = Flowable<Broadcast>
-typealias AppDisposable = CompositeDisposable
+typealias AppBroadcasts = Flow<Broadcast>
+typealias AppScope = CoroutineScope
 
 @Qualifier
 annotation class AppContext
@@ -38,8 +44,17 @@ annotation class AppContext
 @Module
 class AppModule(private val app: App) {
 
-    private val appDisposable = CompositeDisposable()
-    private val broadcaster = PublishProcessor.create<Broadcast>()
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val broadcaster = MutableSharedFlow<Broadcast>(
+        replay = 1,
+        extraBufferCapacity = 5,
+    )
+
+    init {
+        ProcessLifecycleOwner.get().lifecycle.addObserver(LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_DESTROY) appScope.cancel()
+        })
+    }
 
     @Provides
     @Singleton
@@ -51,13 +66,13 @@ class AppModule(private val app: App) {
 
     @Provides
     @Singleton
-    fun provideAppBroadcasts(): AppBroadcasts = broadcaster.share()
+    fun provideAppBroadcasts(): AppBroadcasts = broadcaster
 
     @Provides
     @Singleton
-    fun provideAppBroadcaster(): AppBroadcaster = broadcaster::onNext
+    fun provideAppBroadcaster(): AppBroadcaster = { broadcaster.tryEmit(it) }
 
     @Provides
     @Singleton
-    fun provideAppCompositeDisposable(): AppDisposable = appDisposable
+    fun provideAppScope(): AppScope = appScope
 }

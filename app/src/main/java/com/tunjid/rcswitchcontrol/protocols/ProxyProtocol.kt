@@ -57,7 +57,6 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.reactive.asFlow
 import java.io.IOException
 import java.io.PrintWriter
 
@@ -124,7 +123,6 @@ class ProxyProtocol(
     init {
         ContextProvider.appContext.registerReceiver(USBDeviceReceiver(), IntentFilter(ACTION_USB_PERMISSION))
         context.dagger.appComponent.broadcasts()
-            .asFlow()
             .filterIsInstance<Broadcast.USB.Connected>()
             .map(Broadcast.USB.Connected::device.asSuspend)
             .onEach(::onUsbPermissionGranted)

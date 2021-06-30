@@ -29,6 +29,8 @@ import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.rcswitchcontrol.common.Writable
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.serialize
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.asCoroutineDispatcher
 import java.io.Closeable
 import java.io.PrintWriter
 import java.util.concurrent.ExecutorService
@@ -43,18 +45,19 @@ import kotlinx.parcelize.Parcelize
  */
 
 interface CommsProtocol : Closeable {
+    val scope: CoroutineScope
 
     val printWriter: PrintWriter
 
-    fun processInput(payload: Payload): Payload
+    suspend fun processInput(payload: Payload): Payload
 
-    fun processInput(input: String?): Payload = processInput(when (input) {
+    suspend fun processInput(input: String?): Payload = processInput(when (input) {
         null, pingAction.value -> Payload(key = key, action = pingAction)
         resetAction.value -> Payload(key = key, action = resetAction)
         else -> input.deserialize()
     })
 
-    fun pushOut(payload: Payload) = printWriter.println(payload.serialize())
+    suspend fun pushOut(payload: Payload) = printWriter.println(payload.serialize())
 
     @Parcelize
     @kotlinx.serialization.Serializable
@@ -68,6 +71,7 @@ interface CommsProtocol : Closeable {
         val pingAction get() = Action("Ping")
         val resetAction get() = Action("Reset")
         val sharedPool: ExecutorService = Executors.newFixedThreadPool(5)
+        val sharedDispatcher = sharedPool.asCoroutineDispatcher()
     }
 }
 

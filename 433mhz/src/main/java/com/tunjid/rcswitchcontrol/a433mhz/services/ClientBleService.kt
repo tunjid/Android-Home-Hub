@@ -41,7 +41,13 @@ import com.tunjid.androidx.core.components.services.SelfBindingService
 import com.tunjid.rcswitchcontrol.a433mhz.R
 import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch.Companion.SWITCH_PREFS
 import com.tunjid.rcswitchcontrol.common.Broadcaster
-import io.reactivex.disposables.CompositeDisposable
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import java.util.*
 
 /**
@@ -54,7 +60,7 @@ class ClientBleService : Service(), SelfBindingService<ClientBleService> {
         get() = connectionState == gattConnectedAction.value
 
     private val binder = Binder()
-    private val disposable = CompositeDisposable()
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     var connectionState = gattDisconnectedAction.value
         private set
@@ -157,11 +163,13 @@ class ClientBleService : Service(), SelfBindingService<ClientBleService> {
     override fun onCreate() {
         super.onCreate()
 
-        disposable.add(Broadcaster.listen(transmitterAction.value).subscribe({ intent ->
+        Broadcaster.listen(transmitterAction.value).onEach { intent ->
             val data = intent.getStringExtra(DATA_AVAILABLE_TRANSMITTER)
             val transmission = Base64.decode(data, Base64.DEFAULT)
             writeCharacteristicArray(C_HANDLE_TRANSMITTER, transmission)
-        }, Throwable::printStackTrace))
+        }
+            .catch { it.printStackTrace() }
+            .launchIn(scope)
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
@@ -208,8 +216,8 @@ class ClientBleService : Service(), SelfBindingService<ClientBleService> {
     }
 
     override fun onDestroy() {
+        scope.cancel()
         super.onDestroy()
-        disposable.clear()
         close()
     }
 
@@ -232,7 +240,10 @@ class ClientBleService : Service(), SelfBindingService<ClientBleService> {
             showToast(this, R.string.ble_service_reconnecting)
 
             when (bluetoothGatt?.connect()) {
-                true -> broadcastUpdate({ connectionState = gattConnectingAction.value; connectionState }())
+                true -> {
+                    connectionState = gattConnectingAction.value
+                    broadcastUpdate(connectionState)
+                }
                 else -> showToast(this, R.string.ble_service_failed_to_connect)
             }
         } else {

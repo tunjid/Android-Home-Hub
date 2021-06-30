@@ -27,7 +27,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.reactive.asFlow
 import javax.inject.Inject
 
 enum class Status {
@@ -86,7 +85,7 @@ private class CachingProtocol(
 class ServerViewModel @Inject constructor(
     @AppContext context: Context,
     broadcaster: AppBroadcaster,
-    broadcasts: AppBroadcasts
+    broadcasts: @JvmSuppressWildcards AppBroadcasts
 ) : ViewModel() {
 
     val state: LiveData<State>
@@ -108,7 +107,7 @@ class ServerViewModel @Inject constructor(
             .onStart { emit(Input.Restart) }
             .flatMapLatest { context.registerServer(ServerNsdService.serviceName) }
             .shareIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(), replay = 1)
-            .takeUntil(broadcasts.asFlow().filterIsInstance<Broadcast.ServerNsd.Stop>())
+            .takeUntil(broadcasts.filterIsInstance<Broadcast.ServerNsd.Stop>())
 
         val registrations: Flow<Output.Server.Registered> = serverOutputs
             .filterIsInstance<Output.Server.Registered>()

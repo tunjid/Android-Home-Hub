@@ -15,8 +15,7 @@ dependencies {
     implementation parent.ext.tunjiAndroidxRecyclerView
     implementation parent.ext.tunjiAndroidxCore
 
-    implementation parent.ext.rxJava
-    implementation parent.ext.rxAndroid
+    implementation parent.ext.coroutines
 
     implementation project(':common')
     implementation project(':protocols')

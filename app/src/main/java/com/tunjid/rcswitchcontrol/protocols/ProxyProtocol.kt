@@ -45,12 +45,18 @@ import com.tunjid.rcswitchcontrol.a433mhz.protocols.BLERFProtocol
 import com.tunjid.rcswitchcontrol.a433mhz.protocols.SerialRFProtocol
 import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.common.SerialInfo
-import com.tunjid.rcswitchcontrol.common.filterIsInstance
+import com.tunjid.rcswitchcontrol.common.asSuspend
 import com.tunjid.rcswitchcontrol.common.findUsbDevice
 import com.tunjid.rcswitchcontrol.di.dagger
 import com.tunjid.rcswitchcontrol.models.Broadcast
-import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.rxkotlin.addTo
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import java.io.IOException
 import java.io.PrintWriter
 
@@ -66,7 +72,7 @@ class ProxyProtocol(
     override val printWriter: PrintWriter
 ) : CommsProtocol {
 
-    private val disposable = CompositeDisposable()
+    override val scope = CoroutineScope(SupervisorJob() + CommsProtocol.sharedDispatcher)
 
     private val plausiblePeripherals = listOf(
         UsbPeripheral(
@@ -118,12 +124,13 @@ class ProxyProtocol(
         ContextProvider.appContext.registerReceiver(USBDeviceReceiver(), IntentFilter(ACTION_USB_PERMISSION))
         context.dagger.appComponent.broadcasts()
             .filterIsInstance<Broadcast.USB.Connected>()
-            .map(Broadcast.USB.Connected::device)
-            .subscribe(::onUsbPermissionGranted, Throwable::printStackTrace)
-            .addTo(disposable)
+            .map(Broadcast.USB.Connected::device.asSuspend)
+            .onEach(::onUsbPermissionGranted)
+            .catch { it.printStackTrace() }
+            .launchIn(scope)
     }
 
-    override fun processInput(payload: Payload): Payload {
+    override suspend fun processInput(payload: Payload): Payload {
         val action = payload.action
         val protocol = protocolMap[payload.key]
 
@@ -137,7 +144,7 @@ class ProxyProtocol(
         }
     }
 
-    private fun pingAll(): Payload {
+    private suspend fun pingAll(): Payload {
         lazyPeripherals
         protocolMap.values.forEach { pushOut(it.processInput(CommsProtocol.pingAction.value)) }
         return Payload(CommsProtocol.key).apply { addCommand(CommsProtocol.pingAction) }
@@ -148,12 +155,12 @@ class ProxyProtocol(
         if (device != null) protocolMap[key] = protocolFunction(usbPeripheral.serialInfo, device)
     }
 
-    private fun onUsbPermissionGranted(device: UsbDevice) {
+    private suspend fun onUsbPermissionGranted(device: UsbDevice) {
         for (thing in plausiblePeripherals) if (device.vendorId == thing.serialInfo.vendorId && protocolMap[thing.key] == null) {
             attach(thing)
             protocolMap[thing.key]
                 ?.processInput(CommsProtocol.pingAction.value)
-                ?.let(::pushOut)
+                ?.let { pushOut(it) }
         }
     }
 
@@ -172,7 +179,7 @@ class ProxyProtocol(
 
     @Throws(IOException::class)
     override fun close() {
-        disposable.clear()
+        scope.cancel()
         protocolMap.values.forEach {
             try {
                 it.close()

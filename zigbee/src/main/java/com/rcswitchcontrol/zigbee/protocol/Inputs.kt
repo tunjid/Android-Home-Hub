@@ -1,8 +1,7 @@
 package com.rcswitchcontrol.zigbee.protocol
 
-import com.jakewharton.rx.replayingShare
 import com.rcswitchcontrol.protocols.CommonDeviceActions
-import com.rcswitchcontrol.protocols.CommsProtocol
+import com.rcswitchcontrol.protocols.CommsProtocol.Companion.sharedDispatcher
 import com.rcswitchcontrol.protocols.Name
 import com.rcswitchcontrol.protocols.io.ConsoleStream
 import com.rcswitchcontrol.zigbee.commands.PayloadPublishingCommand
@@ -11,73 +10,73 @@ import com.rcswitchcontrol.zigbee.models.ZigBeeInput
 import com.rcswitchcontrol.zigbee.models.payload
 import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol.Companion.zigBeePayload
 import com.tunjid.rcswitchcontrol.common.ReactivePreference
-import com.tunjid.rcswitchcontrol.common.filterIsInstance
+import com.tunjid.rcswitchcontrol.common.asSuspend
+import com.tunjid.rcswitchcontrol.common.distinctBy
 import com.tunjid.rcswitchcontrol.common.serialize
+import com.tunjid.rcswitchcontrol.common.takeUntil
+import com.tunjid.rcswitchcontrol.common.withLatestFrom
 import com.zsmartsystems.zigbee.ZigBeeNode
-import io.reactivex.Completable
-import io.reactivex.Flowable
-import io.reactivex.Scheduler
-import io.reactivex.schedulers.Schedulers
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 
-internal fun ZigBeeProtocol.processInputs(inputs: Flowable<Action.Input>): Flowable<Action.Output> {
+internal fun ZigBeeProtocol.processInputs(inputs: Flow<Action.Input>): Flow<Action.Output> {
     val start = inputs
         .filterIsInstance<Action.Input.InitializationStatus.Initialized>()
-        .replayingShare()
+        .shareIn(scope = scope, started = SharingStarted.WhileSubscribed())
 
-    return Flowable.merge(listOf(
-        handleCommandInputs(inputs, start, payloadStream, responseStream, sharedScheduler),
+    return merge(
+        handleCommandInputs(inputs, start, payloadStream, responseStream, sharedDispatcher),
         handleAttributeRequests(inputs),
         handleNodeAdds(inputs, start),
-    ))
+    )
 }
 
-private fun handleCommandInputs(
-    actions: Flowable<Action.Input>,
-    start: Flowable<Action.Input.InitializationStatus.Initialized>,
+private fun ZigBeeProtocol.handleCommandInputs(
+    actions: Flow<Action.Input>,
+    start: Flow<Action.Input.InitializationStatus.Initialized>,
     payloadStream: ConsoleStream,
     responseStream: ConsoleStream,
-    sharedScheduler: Scheduler
-): Flowable<Action.Output> = actions
+    sharedScheduler: CoroutineDispatcher
+): Flow<Action.Output> = actions
     .filterIsInstance<Action.Input.CommandInput>()
-    .onBackpressureBuffer()
     .withLatestFrom(start, ::Pair)
-    .concatMapCompletable { (input, state) ->
+    .map { (input, state) ->
         val (consoleCommand, args) = input
-        Completable.fromCallable {
+        scope.launch(sharedScheduler) {
             consoleCommand.process(
                 state.networkManager,
                 args.toTypedArray(),
                 if (consoleCommand is PayloadPublishingCommand) payloadStream else responseStream
             )
         }
-            .onErrorComplete()
-            .subscribeOn(sharedScheduler)
     }
-    .toFlowable()
+    .flowOn(sharedScheduler)
+    .filterIsInstance()
 
 private fun handleAttributeRequests(
-    actions: Flowable<Action.Input>,
-): Flowable<Action.Output.PayloadReprocess> = actions
+    actions: Flow<Action.Input>,
+): Flow<Action.Output.PayloadReprocess> = actions
     .filterIsInstance<Action.Input.AttributeRequest>()
-    .concatMap { Flowable.fromIterable(it.nodes) }
-    .concatMap { node ->
-        Flowable.fromIterable(node.supportedFeatures
+    .flatMapConcat { it.nodes.asFlow() }
+    .flatMapConcat { node ->
+        node.supportedFeatures
             .map { ZigBeeInput.Read(it) }
             .map { it.commandFor(node) }
             .map(ZigBeeCommand::payload)
-        )
+            .asFlow()
     }
     .map(Action.Output::PayloadReprocess)
 
 private fun handleNodeAdds(
-    actions: Flowable<Action.Input>,
-    start: Flowable<Action.Input.InitializationStatus.Initialized>
-): Flowable<Action.Output> = actions
+    actions: Flow<Action.Input>,
+    start: Flow<Action.Input.InitializationStatus.Initialized>
+): Flow<Action.Output> = actions
     .filterIsInstance<Action.Input.NodeChange.Added>()
-    .map(Action.Input.NodeChange.Added::node)
-    .distinct(ZigBeeNode::getIeeeAddress)
+    .map(Action.Input.NodeChange.Added::node.asSuspend)
+    .distinctBy(ZigBeeNode::getIeeeAddress)
     .withLatestFrom(start, ::Pair)
-    .flatMap { (node, state) ->
+    .flatMapMerge(concurrency = Int.MAX_VALUE) { (node, state) ->
         val id = node.ieeeAddress.toString()
         ReactivePreference(
             reactivePreferences = state.startAction.deviceNames,
@@ -85,14 +84,14 @@ private fun handleNodeAdds(
             default = id
         )
             .monitor
-            .concatMap { deviceName ->
-                Flowable.just(
+            .flatMapConcat { deviceName ->
+                listOf(
                     Action.Output.Log("Device name changed. id: ${node.ieeeAddress}; new name: $deviceName"),
                     Action.Output.PayloadOutput(zigBeePayload(
                         data = Name(id = id, key = ZigBeeProtocol.key, value = deviceName).serialize(),
                         action = CommonDeviceActions.nameChangedAction
                     ))
-                )
+                ).asFlow()
             }
             .takeUntil(actions.filterIsInstance<Action.Input.NodeChange.Removed>())
     }

@@ -29,6 +29,8 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.asLiveData
+import androidx.lifecycle.viewModelScope
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.core.components.services.HardServiceConnection
@@ -40,18 +42,14 @@ import com.tunjid.rcswitchcontrol.client.clientState
 import com.tunjid.rcswitchcontrol.client.nsdServiceInfo
 import com.tunjid.rcswitchcontrol.common.Mutation
 import com.tunjid.rcswitchcontrol.common.Mutator
+import com.tunjid.rcswitchcontrol.common.asSuspend
 import com.tunjid.rcswitchcontrol.common.deserialize
-import com.tunjid.rcswitchcontrol.common.filterIsInstance
-import com.tunjid.rcswitchcontrol.common.toLiveData
 import com.tunjid.rcswitchcontrol.di.AppBroadcasts
 import com.tunjid.rcswitchcontrol.di.AppContext
 import com.tunjid.rcswitchcontrol.di.dagger
 import com.tunjid.rcswitchcontrol.models.Broadcast
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
-import io.reactivex.Flowable
-import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.processors.PublishProcessor
-import io.reactivex.rxkotlin.addTo
+import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 
 interface RootController: ViewModelStoreOwner
@@ -62,11 +60,13 @@ val Fragment.rootController : ViewModelStoreOwner get() = generateSequence(this,
 
 class ControlViewModel @Inject constructor(
     @AppContext private val context: Context,
-    broadcasts: AppBroadcasts
+    broadcasts: @JvmSuppressWildcards AppBroadcasts
 ) : ViewModel() {
 
-    private val disposable: CompositeDisposable = CompositeDisposable()
-    private val actions = PublishProcessor.create<Input>()
+    private val actions = MutableSharedFlow<Input>(
+        replay = 1,
+        extraBufferCapacity = 5,
+    )
 
     private val nsdConnection = HardServiceConnection(context, ClientNsdService::class.java) {
         accept(Input.Async.ClientServiceBound(it.state))
@@ -82,57 +82,59 @@ class ControlViewModel @Inject constructor(
     val state: LiveData<ControlState>
 
     init {
-        val connectionStatuses: Flowable<Status> = broadcasts
-            .filterIsInstance<Broadcast.ClientNsd.ConnectionStatus>()
-            .map(Broadcast.ClientNsd.ConnectionStatus::status)
-            .mergeWith(
-                actions.filterIsInstance<Input.Async.ClientServiceBound>()
-                    .switchMap(Input.Async.ClientServiceBound::clientServiceState)
-                    .map(State::status)
-            )
-            .startWith(Status.Disconnected())
+        val connectionStatuses: Flow<Status> = merge(
+            broadcasts
+                .filterIsInstance<Broadcast.ClientNsd.ConnectionStatus>()
+                .map(Broadcast.ClientNsd.ConnectionStatus::status.asSuspend),
+            actions.filterIsInstance<Input.Async.ClientServiceBound>()
+                .flatMapLatest(Input.Async.ClientServiceBound::clientServiceState.asSuspend)
+                .map(State::status.asSuspend)
+        )
+            .onStart { emit(Status.Disconnected()) }
 
-        val serverResponses: Flowable<Payload> = broadcasts
+        val serverResponses: Flow<Payload> = broadcasts
             .filterIsInstance<Broadcast.ClientNsd.ServerResponse>()
-            .map(Broadcast.ClientNsd.ServerResponse::data)
+            .map(Broadcast.ClientNsd.ServerResponse::data.asSuspend)
             .filter(String::isNotBlank)
             .map { it.deserialize<Payload>() }
 
-        val clientStateObservable = clientState(
+        val clientStateObservable = viewModelScope.clientState(
             connectionStatuses,
             serverResponses,
         )
             .map { Mutation<ControlState> { copy(clientState = it) } }
-            .doOnSubscribe { nsdConnection.boundService?.onAppForeGround() }
+            .onStart { nsdConnection.boundService?.onAppForeGround() }
 
         val actionMutations = actions
             .filterIsInstance<Input.Sync>()
             .map(::onSyncInput)
 
-        val stateObservable = clientStateObservable
-            .mergeWith(actionMutations)
+        val stateObservable = merge(
+            clientStateObservable,
+            actionMutations,
+        )
             .scan(ControlState(), Mutator::mutate)
             .map { updateSelections(it) }
 
-        state = stateObservable.toLiveData()
+        state = stateObservable.asLiveData()
 
         // Keep the connection alive
-        disposable.add(stateObservable.subscribe())
+        stateObservable.launchIn(viewModelScope)
 
         actions
             .filterIsInstance<Input.Async>()
             .map(::onAsyncInput)
-            .subscribe()
-            .addTo(disposable)
+            .launchIn(viewModelScope)
     }
 
     override fun onCleared() {
-        disposable.clear()
         nsdConnection.unbindService()
         super.onCleared()
     }
 
-    fun accept(input: Input) = actions.onNext(input)
+    fun accept(input: Input) {
+        actions.tryEmit(input)
+    }
 
     private fun updateSelections(state: ControlState): ControlState {
         val selectedIds = state.selectedDevices.map(Device::diffId)

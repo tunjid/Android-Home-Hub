@@ -82,13 +82,8 @@ dependencies {
     implementation parent.ext.lifecycleRxKtx
     implementation parent.ext.lifecycleLiveDataKtx
 
-    implementation parent.ext.rxJava
-    implementation parent.ext.rxKotlin
-    implementation parent.ext.rxAndroid
-    implementation parent.ext.rxReplayingShare
-
     implementation parent.ext.coroutines
-    implementation parent.ext.coroutinesReactive
+
     implementation parent.ext.ktor
     implementation parent.ext.ktorNetwork
 

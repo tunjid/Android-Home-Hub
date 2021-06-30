@@ -32,7 +32,5 @@ interface AppComponent {
 
     val broadcaster: AppBroadcaster
 
-    fun appDisposable(): AppDisposable
-
     fun viewModelFactory(): ViewModelProvider.Factory
 }

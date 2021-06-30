@@ -3,11 +3,7 @@ package com.tunjid.rcswitchcontrol.common
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.channelFlow
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.reflect.KProperty1
@@ -54,3 +50,25 @@ fun <T, R> Flow<T>.takeUntil(notifier: Flow<R>): Flow<T> = channelFlow {
         }
     }
 }
+
+fun <T, R> Flow<T>.distinctBy(
+    keySelector: (T) -> R
+): Flow<T> =
+    scan(UniquenessStore<T, R>()) { store, item ->
+        val key = keySelector(item)
+        println("key: $key; isUnique: ${!store.seenKeys.contains(key)}")
+        store.copy(
+            emittedItem = item,
+            seenKeys = store.seenKeys + key,
+            isUnique = !store.seenKeys.contains(key)
+        )
+    }
+        .filter { it.isUnique }
+        .mapNotNull { it.emittedItem }
+
+
+private data class UniquenessStore<T, R>(
+    val seenKeys: Set<R> = setOf(),
+    val emittedItem: T? = null,
+    val isUnique: Boolean = false,
+)

@@ -24,18 +24,31 @@ import com.zsmartsystems.zigbee.transport.TransportConfig
 import com.zsmartsystems.zigbee.transport.TransportConfigOption
 import com.zsmartsystems.zigbee.transport.TrustCentreJoinMode
 import com.zsmartsystems.zigbee.zcl.clusters.ZclIasZoneCluster
-import io.reactivex.Flowable
-import io.reactivex.Single
-import io.reactivex.processors.PublishProcessor
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.merge
 
 
-internal fun initialize(
+internal suspend fun initialize(
     action: Action.Input.Start
-): Single<Action.Input.InitializationStatus> = Single.fromCallable {
-    val inputs = PublishProcessor.create<Action.Input>()
-    val outputs = PublishProcessor.create<Action.Output>()
+): Action.Input.InitializationStatus {
+    val inputs = MutableSharedFlow<Action.Input>(
+        replay = 1,
+        extraBufferCapacity = 3,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    val outputs = MutableSharedFlow<Action.Output>(
+        replay = 1,
+        extraBufferCapacity = 3,
+        onBufferOverflow = BufferOverflow.SUSPEND
+    )
     val synchronousOutputs = mutableListOf<Action.Output>()
-    val onOutput = if (outputs.hasSubscribers()) outputs::onNext else synchronousOutputs::add
+    val onOutput: (Action.Output) -> Unit = if (outputs.subscriptionCount.value > 0) {
+        { outputs.tryEmit(it) }
+    } else synchronousOutputs::add
 
     val (_, dongle, dataStoreName) = action
     val transportOptions = TransportConfig()
@@ -61,14 +74,16 @@ internal fun initialize(
 
         addNetworkNodeListener(object : ZigBeeNetworkNodeListener {
             override fun nodeAdded(node: ZigBeeNode) {
-                inputs.onNext(Action.Input.NodeChange.Added(node))
+                inputs.tryEmit(Action.Input.NodeChange.Added(node))
                 onOutput(Action.Output.Log("Node added $node"))
             }
 
-            override fun nodeUpdated(node: ZigBeeNode) = outputs.onNext(Action.Output.Log("Node updated $node"))
+            override fun nodeUpdated(node: ZigBeeNode) {
+                outputs.tryEmit(Action.Output.Log("Node updated $node"))
+            }
 
             override fun nodeRemoved(node: ZigBeeNode) {
-                inputs.onNext(Action.Input.NodeChange.Removed(node))
+                inputs.tryEmit(Action.Input.NodeChange.Removed(node))
                 onOutput(Action.Output.Log("Node removed $node"))
             }
         })
@@ -79,7 +94,7 @@ internal fun initialize(
 
     val initResponse = networkManager.initialize()
 
-    if (initResponse != ZigBeeStatus.SUCCESS) return@fromCallable Action.Input.InitializationStatus.Error
+    if (initResponse != ZigBeeStatus.SUCCESS) return Action.Input.InitializationStatus.Error
 
     synchronousOutputs.add(Action.Output.Log("PAN ID          = " + networkManager.zigBeePanId))
     synchronousOutputs.add(Action.Output.Log("Extended PAN ID = " + networkManager.zigBeeExtendedPanId))
@@ -148,15 +163,18 @@ internal fun initialize(
 
     dongleBackend.postSetup()
 
-    return@fromCallable Action.Input.InitializationStatus.Initialized(
+    return Action.Input.InitializationStatus.Initialized(
         startAction = action,
         dataStore = dataStore,
         networkManager = networkManager,
         inputs = inputs,
-        outputs = Flowable.defer {
-            Flowable
-                .fromIterable(synchronousOutputs.toList())
-                .mergeWith(outputs)
+        outputs = flow {
+            emitAll(
+                merge(
+                    synchronousOutputs.toList().asFlow(),
+                    outputs
+                )
+            )
         }
     )
 }

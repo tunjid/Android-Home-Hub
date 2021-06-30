@@ -27,6 +27,7 @@ package com.rcswitchcontrol.zigbee.protocol
 import android.content.Context
 import com.rcswitchcontrol.protocols.CommonDeviceActions
 import com.rcswitchcontrol.protocols.CommsProtocol
+import com.rcswitchcontrol.protocols.CommsProtocol.Companion.sharedDispatcher
 import com.rcswitchcontrol.protocols.Name
 import com.rcswitchcontrol.protocols.asAction
 import com.rcswitchcontrol.protocols.io.ConsoleStream
@@ -45,13 +46,20 @@ import com.tunjid.rcswitchcontrol.common.serializeList
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager
 import com.zsmartsystems.zigbee.ZigBeeNode
 import com.zsmartsystems.zigbee.console.ZigBeeConsoleCommand
-import io.reactivex.Flowable
-import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.processors.PublishProcessor
-import io.reactivex.rxkotlin.addTo
-import io.reactivex.schedulers.Schedulers
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import java.io.PrintWriter
-import java.util.concurrent.TimeUnit
 
 private typealias Node = com.rcswitchcontrol.zigbee.models.ZigBeeNode
 
@@ -71,8 +79,8 @@ internal sealed class Action {
                 val startAction: Start,
                 val dataStore: ZigBeeDataStore,
                 val networkManager: ZigBeeNetworkManager,
-                val inputs: PublishProcessor<Input>,
-                val outputs: Flowable<Output>,
+                val inputs: MutableSharedFlow<Input>,
+                val outputs: Flow<Output>,
             ) : InitializationStatus()
 
             object Error : InitializationStatus()
@@ -108,36 +116,42 @@ class ZigBeeProtocol(
     override val printWriter: PrintWriter
 ) : CommsProtocol {
 
-    private val payloadOutputProcessor = PublishProcessor.create<Payload>()
-    private val disposable = CompositeDisposable()
+    private val payloadOutputProcessor = MutableSharedFlow<Payload>(
+        replay = 1,
+        extraBufferCapacity = 5,
+        onBufferOverflow = BufferOverflow.SUSPEND
+    )
+    override val scope = CoroutineScope(SupervisorJob() + sharedDispatcher)
 
     internal val responseStream = ConsoleStream { response ->
-        zigBeePayload(response = response)
-            .let(payloadOutputProcessor::onNext)
+        scope.launch {
+            payloadOutputProcessor.emit(zigBeePayload(response = response))
+        }
     }
     internal val payloadStream = ConsoleStream {
-        it.takeIf(String::isNotBlank)
-            ?.deserialize<Payload>()
-            ?.let(payloadOutputProcessor::onNext)
+        scope.launch {
+            it.takeIf(String::isNotBlank)
+                ?.deserialize<Payload>()
+                ?.let { payloadOutputProcessor.emit(it) }
+        }
     }
-
-    internal val sharedScheduler = Schedulers.from(CommsProtocol.sharedPool)
 
     private var initializationStatus: Action.Input.InitializationStatus = Action.Input.InitializationStatus.UnInitialized
 
     init {
-        initialize(Action.Input.Start(
-            deviceNames = ReactivePreferences(context.getSharedPreferences("device names", Context.MODE_PRIVATE)),
-            dongle = dongle,
-            dataStoreName = "47",
-        ))
-            .subscribeOn(sharedScheduler)
-            .observeOn(sharedScheduler)
-            .subscribe(::onInitialize)
-            .addTo(disposable)
+        scope.launch(sharedDispatcher) {
+            val start = Action.Input.Start(
+                deviceNames = ReactivePreferences(
+                    context.getSharedPreferences("device names", Context.MODE_PRIVATE)
+                ),
+                dongle = dongle,
+                dataStoreName = "47",
+            )
+            onInitialize(initialize(start))
+        }
     }
 
-    private fun onInitialize(status: Action.Input.InitializationStatus) {
+    private suspend fun onInitialize(status: Action.Input.InitializationStatus) {
         initializationStatus = status
         when (status) {
             Action.Input.InitializationStatus.Error -> Unit
@@ -145,50 +159,52 @@ class ZigBeeProtocol(
             is Action.Input.InitializationStatus.Initialized -> {
 
                 payloadOutputProcessor
-                    .onBackpressureBuffer()
-                    .concatMap { payload ->
-                        Flowable.just(payload)
-                            .delay(OUTPUT_BUFFER_RATE, TimeUnit.MILLISECONDS, sharedScheduler)
+                    .map { payload ->
+                        delay(OUTPUT_BUFFER_RATE)
+                        payload
                     }
-                    .subscribeOn(sharedScheduler)
-                    .observeOn(sharedScheduler)
-                    .subscribe(this::pushOut)
-                    .addTo(disposable)
+                    .flowOn(sharedDispatcher)
+                    .onEach(this::pushOut)
+                    .launchIn(scope)
 
-                status.outputs
-                    .mergeWith(processInputs(status.inputs))
-                    .subscribe { output ->
+                merge(
+                    status.outputs,
+                    processInputs(status.inputs)
+                )
+                    .onEach { output ->
                         when (output) {
                             is Action.Output.PayloadReprocess -> processInput(output.payload)
-                            is Action.Output.PayloadOutput -> payloadOutputProcessor.onNext(output.payload)
-                            is Action.Output.Log -> payloadOutputProcessor.onNext(output.payload).also { println(output) }
+                            is Action.Output.PayloadOutput -> payloadOutputProcessor.emit(output.payload)
+                            is Action.Output.Log -> payloadOutputProcessor.emit(output.payload).also { println(output) }
                         }
                     }
-                    .addTo(disposable)
+                    .launchIn(scope)
 
-                status.inputs.onNext(status)
+                status.inputs.emit(status)
             }
         }
     }
 
-    override fun processInput(payload: Payload): Payload = when (val status = initializationStatus) {
-        Action.Input.InitializationStatus.UnInitialized -> zigBeePayload(response = "ZigBee protocol is still initializing")
-        Action.Input.InitializationStatus.Error -> zigBeePayload(response = "ZigBee protocol initialization failed; unavailable")
-        is Action.Input.InitializationStatus.Initialized -> zigBeePayload().apply {
-            addCommand(CommsProtocol.resetAction)
+    override suspend fun processInput(payload: Payload): Payload =
+        when (val status = initializationStatus) {
+            Action.Input.InitializationStatus.UnInitialized -> zigBeePayload(response = "ZigBee protocol is still initializing")
+            Action.Input.InitializationStatus.Error -> zigBeePayload(response = "ZigBee protocol initialization failed; unavailable")
+            is Action.Input.InitializationStatus.Initialized -> zigBeePayload().apply {
+                addCommand(CommsProtocol.resetAction)
 
-            when (val payloadAction = payload.action) {
-                null -> response = "Unrecognized command $payloadAction"
+                when (val payloadAction = payload.action) {
+                    null -> response = "Unrecognized command $payloadAction"
 //                CommsProtocol.resetAction -> reset()
-                CommsProtocol.pingAction -> {
-                    response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_ping)
+                    CommsProtocol.pingAction -> {
+                        response =
+                            ContextProvider.appContext.getString(R.string.zigbeeprotocol_ping)
                 }
                 CommonDeviceActions.refreshDevicesAction -> {
                     val savedDevices = status.dataStore.savedDevices
                     action = CommonDeviceActions.refreshDevicesAction
                     response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_saved_devices_request)
                     data = savedDevices.serializeList()
-                    status.inputs.onNext(Action.Input.AttributeRequest(nodes = savedDevices))
+                    status.inputs.emit(Action.Input.AttributeRequest(nodes = savedDevices))
                 }
                 CommonDeviceActions.renameAction -> when (val newName = payload.data?.deserialize<Name>()) {
                     null -> Unit
@@ -213,7 +229,12 @@ class ZigBeeProtocol(
                         else -> {
                             val args = command?.args ?: listOf(payloadAction.value)
                             response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_executing, args.commandString())
-                            status.inputs.onNext(Action.Input.CommandInput(mapper.consoleCommand, args))
+                            status.inputs.emit(
+                                Action.Input.CommandInput(
+                                    command = mapper.consoleCommand,
+                                    args = args
+                                )
+                            )
                         }
                     }
                 }
@@ -223,7 +244,7 @@ class ZigBeeProtocol(
     }
 
     override fun close() {
-        disposable.clear()
+        scope.cancel()
         when (val status = initializationStatus) {
             is Action.Input.InitializationStatus.Initialized -> status.networkManager.shutdown()
             Action.Input.InitializationStatus.Error -> Unit

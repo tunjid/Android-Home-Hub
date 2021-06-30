@@ -18,26 +18,29 @@
 package com.tunjid.rcswitchcontrol.common
 
 import android.content.SharedPreferences
-import com.jakewharton.rx.replayingShare
-import io.reactivex.BackpressureStrategy
-import io.reactivex.Flowable
-import io.reactivex.rxkotlin.Flowables
-import io.reactivex.schedulers.Schedulers
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 
 private val listeners: MutableSet<SharedPreferences.OnSharedPreferenceChangeListener> = mutableSetOf()
 
 class ReactivePreferences(
     val preferences: SharedPreferences,
 ) {
-    val monitor = Flowables.create<String>(BackpressureStrategy.BUFFER) { emitter ->
+    val monitor = callbackFlow<String> {
         val prefs = preferences
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            emitter.onNext(key)
+            channel.trySend(key)
         }
         listener
             .also(prefs::registerOnSharedPreferenceChangeListener)
             .let(listeners::add)
-        emitter.setCancellable {
+        awaitClose {
             listener
                 .also(prefs::unregisterOnSharedPreferenceChangeListener)
                 .let(listeners::remove)
@@ -86,12 +89,9 @@ class ReactivePreference<T : Any>(
      */
     val setter = ::value::set
 
-    val monitor: Flowable<T> = reactivePreferences.monitor
+    val monitor: Flow<T> = reactivePreferences.monitor
         .filter(key::equals)
-        .concatMap { pull }
-        .startWith(pull)
-        .observeOn(Schedulers.io())
-        .replayingShare()
-
-    private val pull get() = Flowable.fromCallable(::value).subscribeOn(Schedulers.io())
+        .map { value }
+        .onStart { emit(value) }
+        .flowOn(Dispatchers.IO)
 }

@@ -42,13 +42,13 @@ import com.tunjid.globalui.UiState
 import com.tunjid.globalui.uiState
 import com.tunjid.globalui.updatePartial
 import com.tunjid.rcswitchcontrol.R
+import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.common.mapDistinct
+import com.tunjid.rcswitchcontrol.control.ControlFragment
 import com.tunjid.rcswitchcontrol.databinding.FragmentNsdScanBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderNsdListBinding
 import com.tunjid.rcswitchcontrol.di.viewModelFactory
 import com.tunjid.rcswitchcontrol.navigation.AppNavigator
-import com.tunjid.rcswitchcontrol.control.ControlFragment
-import com.tunjid.rcswitchcontrol.client.ClientLoad
 
 /**
  * A [androidx.fragment.app.Fragment] listing supported NSD servers
@@ -63,23 +63,23 @@ class HostScanFragment : Fragment(R.layout.fragment_nsd_scan) {
         super.onViewCreated(view, savedInstanceState)
 
         uiState = UiState(
-                toolbarShows = true,
-                toolbarTitle = getString(R.string.app_name),
-                toolbarMenuRes = R.menu.menu_nsd_scan,
-                toolbarMenuRefresher = ::onToolbarRefreshed,
-                toolbarMenuClickListener = ::onToolbarMenuItemSelected,
+            toolbarShows = true,
+            toolbarTitle = getString(R.string.app_name),
+            toolbarMenuRes = R.menu.menu_nsd_scan,
+            toolbarMenuRefresher = ::onToolbarRefreshed,
+            toolbarMenuClickListener = ::onToolbarMenuItemSelected,
         )
         val binding = FragmentNsdScanBinding.bind(view)
 
         binding.list.apply {
             val listAdapter = listAdapterOf(
-                    initialItems = viewModel.state.value?.items ?: listOf(),
-                    viewHolderCreator = { parent, _ ->
-                        parent.viewHolderFrom(ViewholderNsdListBinding::inflate).apply {
-                            this.binding.title.setOnClickListener { onServiceClicked(item.info) }
-                        }
-                    },
-                    viewHolderBinder = { holder, service, _ -> holder.bind(service) }
+                initialItems = viewModel.state.value?.items ?: listOf(),
+                viewHolderCreator = { parent, _ ->
+                    parent.viewHolderFrom(ViewholderNsdListBinding::inflate).apply {
+                        this.binding.title.setOnClickListener { onServiceClicked(item.info) }
+                    }
+                },
+                viewHolderBinder = { holder, service, _ -> holder.bind(service) }
             )
 
             layoutManager = verticalLayoutManager()
@@ -87,7 +87,13 @@ class HostScanFragment : Fragment(R.layout.fragment_nsd_scan) {
 
             viewModel.state.apply {
                 mapDistinct(NSDState::items).observe(viewLifecycleOwner, listAdapter::submitList)
-                mapDistinct(NSDState::isScanning).observe(viewLifecycleOwner) { ::uiState.updatePartial { copy(toolbarInvalidated = true) } }
+                mapDistinct(NSDState::isScanning).observe(viewLifecycleOwner) {
+                    ::uiState.updatePartial {
+                        copy(
+                            toolbarInvalidated = true
+                        )
+                    }
+                }
             }
         }
     }
@@ -123,10 +129,10 @@ class HostScanFragment : Fragment(R.layout.fragment_nsd_scan) {
         navigator.push(ControlFragment.newInstance(ClientLoad.NewClient(serviceInfo)))
     }
 
-    private fun scanDevices(enable: Boolean) {
-        if (enable) viewModel.findDevices()
-        else viewModel.stopScanning()
-    }
+    private fun scanDevices(enable: Boolean) = viewModel.accept(
+        if (enable) Input.StartScanning
+        else Input.StopScanning
+    )
 
     companion object {
 
@@ -145,7 +151,7 @@ private var BindingViewHolder<ViewholderNsdListBinding>.item by BindingViewHolde
 private fun BindingViewHolder<ViewholderNsdListBinding>.bind(item: NsdItem) {
     this.item = item
     binding.title.text = SpannableStringBuilder()
-            .append(item.info.serviceName)
-            .append("\n")
-            .append(item.info.host.hostAddress.scale(0.8F))
+        .append(item.info.serviceName)
+        .append("\n")
+        .append(item.info.host.hostAddress.scale(0.8F))
 }

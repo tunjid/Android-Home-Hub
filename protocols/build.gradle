@@ -13,5 +13,7 @@ dependencies {
 
     implementation parent.ext.tunjiAndroidxRecyclerView
 
+    implementation parent.ext.coroutines
+
     implementation project(':common')
 }

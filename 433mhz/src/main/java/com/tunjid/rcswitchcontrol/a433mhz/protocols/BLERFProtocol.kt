@@ -34,6 +34,7 @@ import android.os.Looper
 import android.os.ParcelUuid
 import android.util.Log
 import com.rcswitchcontrol.protocols.CommsProtocol
+import com.rcswitchcontrol.protocols.CommsProtocol.Companion.sharedDispatcher
 import com.rcswitchcontrol.protocols.Name
 import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.communications.bluetooth.BLEScanner
@@ -49,7 +50,14 @@ import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService.Companion.ST
 import com.tunjid.rcswitchcontrol.common.Broadcaster
 import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.common.deserialize
-import io.reactivex.disposables.CompositeDisposable
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.reactive.asFlow
 import java.io.PrintWriter
 import java.util.*
 
@@ -62,8 +70,9 @@ import java.util.*
 
 @Suppress("PrivatePropertyName")
 class BLERFProtocol constructor(override val printWriter: PrintWriter) : CommsProtocol, RFProtocolActions by SharedRFProtocolActions {
+
+    override val scope = CoroutineScope(SupervisorJob() + sharedDispatcher)
     private val deviceMap = HashMap<CommsProtocol.Action, BluetoothDevice>()
-    private val disposable = CompositeDisposable()
 
     private val switchStore = RfSwitchDataStore()
     private val switchCreator = RfSwitch.SwitchCreator()
@@ -96,7 +105,7 @@ class BLERFProtocol constructor(override val printWriter: PrintWriter) : CommsPr
             .build()
 
         bleConnection.bind()
-        disposable.add(Broadcaster.listen(
+        Broadcaster.listen(
             ClientBleService.gattConnectedAction.value,
             ClientBleService.gattConnectingAction.value,
             ClientBleService.gattDisconnectedAction.value,
@@ -104,15 +113,18 @@ class BLERFProtocol constructor(override val printWriter: PrintWriter) : CommsPr
             ClientBleService.controlAction.value,
             ClientBleService.snifferAction.value,
             ClientBleService.DATA_AVAILABLE_UNKNOWN)
-            .subscribe(this::onBleIntentReceived, Throwable::printStackTrace))
+            .asFlow()
+            .onEach(this::onBleIntentReceived)
+            .catch { it.printStackTrace() }
+            .launchIn(scope)
     }
 
     override fun close() {
-        disposable.clear()
+        scope.cancel()
         bleConnection.unbindService()
     }
 
-    override fun processInput(payload: Payload): Payload {
+    override suspend fun processInput(payload: Payload): Payload {
         val output = bleRfPayload().apply { addCommand(CommsProtocol.resetAction) }
 
         when (val receivedAction = payload.action) {
@@ -283,7 +295,7 @@ class BLERFProtocol constructor(override val printWriter: PrintWriter) : CommsPr
             }
         }
 
-        CommsProtocol.sharedPool.submit { pushOut(this) }
+        scope.launch(sharedDispatcher) { pushOut(this@run) }
         Log.i(TAG, "Received data for: $intentAction")
     }
 
@@ -300,7 +312,7 @@ class BLERFProtocol constructor(override val printWriter: PrintWriter) : CommsPr
         for (device in deviceMap.values) output.addCommand(CommsProtocol.Action(device.name))
 
         output.response = resources.getString(R.string.scanblercprotocol_scan_response, deviceMap.size)
-        pushOut(output)
+        scope.launch(sharedDispatcher) { pushOut(output) }
     }
 
     companion object {

@@ -27,6 +27,7 @@ package com.rcswitchcontrol.zigbee.protocol
 import android.content.Context
 import com.rcswitchcontrol.protocols.CommonDeviceActions
 import com.rcswitchcontrol.protocols.CommsProtocol
+import com.rcswitchcontrol.protocols.CommsProtocol.Companion.sharedDispatcher
 import com.rcswitchcontrol.protocols.Name
 import com.rcswitchcontrol.protocols.asAction
 import com.rcswitchcontrol.protocols.io.ConsoleStream
@@ -46,9 +47,7 @@ import com.zsmartsystems.zigbee.ZigBeeNetworkManager
 import com.zsmartsystems.zigbee.ZigBeeNode
 import com.zsmartsystems.zigbee.console.ZigBeeConsoleCommand
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
@@ -122,7 +121,7 @@ class ZigBeeProtocol(
         extraBufferCapacity = 5,
         onBufferOverflow = BufferOverflow.SUSPEND
     )
-    internal val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    override val scope = CoroutineScope(SupervisorJob() + sharedDispatcher)
 
     internal val responseStream = ConsoleStream { response ->
         scope.launch {
@@ -136,8 +135,6 @@ class ZigBeeProtocol(
                 ?.let { payloadOutputProcessor.emit(it) }
         }
     }
-
-    internal val sharedDispatcher = CommsProtocol.sharedPool.asCoroutineDispatcher()
 
     private var initializationStatus: Action.Input.InitializationStatus = Action.Input.InitializationStatus.UnInitialized
 
@@ -188,24 +185,26 @@ class ZigBeeProtocol(
         }
     }
 
-    override fun processInput(payload: Payload): Payload = when (val status = initializationStatus) {
-        Action.Input.InitializationStatus.UnInitialized -> zigBeePayload(response = "ZigBee protocol is still initializing")
-        Action.Input.InitializationStatus.Error -> zigBeePayload(response = "ZigBee protocol initialization failed; unavailable")
-        is Action.Input.InitializationStatus.Initialized -> zigBeePayload().apply {
-            addCommand(CommsProtocol.resetAction)
+    override suspend fun processInput(payload: Payload): Payload =
+        when (val status = initializationStatus) {
+            Action.Input.InitializationStatus.UnInitialized -> zigBeePayload(response = "ZigBee protocol is still initializing")
+            Action.Input.InitializationStatus.Error -> zigBeePayload(response = "ZigBee protocol initialization failed; unavailable")
+            is Action.Input.InitializationStatus.Initialized -> zigBeePayload().apply {
+                addCommand(CommsProtocol.resetAction)
 
-            when (val payloadAction = payload.action) {
-                null -> response = "Unrecognized command $payloadAction"
+                when (val payloadAction = payload.action) {
+                    null -> response = "Unrecognized command $payloadAction"
 //                CommsProtocol.resetAction -> reset()
-                CommsProtocol.pingAction -> {
-                    response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_ping)
+                    CommsProtocol.pingAction -> {
+                        response =
+                            ContextProvider.appContext.getString(R.string.zigbeeprotocol_ping)
                 }
                 CommonDeviceActions.refreshDevicesAction -> {
                     val savedDevices = status.dataStore.savedDevices
                     action = CommonDeviceActions.refreshDevicesAction
                     response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_saved_devices_request)
                     data = savedDevices.serializeList()
-                    status.inputs.tryEmit(Action.Input.AttributeRequest(nodes = savedDevices))
+                    status.inputs.emit(Action.Input.AttributeRequest(nodes = savedDevices))
                 }
                 CommonDeviceActions.renameAction -> when (val newName = payload.data?.deserialize<Name>()) {
                     null -> Unit
@@ -230,7 +229,7 @@ class ZigBeeProtocol(
                         else -> {
                             val args = command?.args ?: listOf(payloadAction.value)
                             response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_executing, args.commandString())
-                            status.inputs.tryEmit(
+                            status.inputs.emit(
                                 Action.Input.CommandInput(
                                     command = mapper.consoleCommand,
                                     args = args

@@ -1,6 +1,7 @@
 package com.rcswitchcontrol.zigbee.protocol
 
 import com.rcswitchcontrol.protocols.CommonDeviceActions
+import com.rcswitchcontrol.protocols.CommsProtocol.Companion.sharedDispatcher
 import com.rcswitchcontrol.protocols.Name
 import com.rcswitchcontrol.protocols.io.ConsoleStream
 import com.rcswitchcontrol.zigbee.commands.PayloadPublishingCommand

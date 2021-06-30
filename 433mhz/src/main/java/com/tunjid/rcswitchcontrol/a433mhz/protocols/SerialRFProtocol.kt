@@ -29,6 +29,7 @@ import android.hardware.usb.UsbDevice
 import android.util.Base64
 import android.util.Log
 import com.rcswitchcontrol.protocols.CommsProtocol
+import com.rcswitchcontrol.protocols.CommsProtocol.Companion.sharedDispatcher
 import com.rcswitchcontrol.protocols.Name
 import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.rcswitchcontrol.a433mhz.R
@@ -41,6 +42,9 @@ import com.tunjid.rcswitchcontrol.common.SerialInfo
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.common.serial.Mik3yUsbSerialPort
 import com.tunjid.rcswitchcontrol.common.serial.ProxyUsbSerialPort
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import java.io.PrintWriter
 
 /**
@@ -57,6 +61,8 @@ class SerialRFProtocol constructor(
     override val printWriter: PrintWriter
 ) : CommsProtocol, RFProtocolActions by SharedRFProtocolActions {
 
+    override val scope = CoroutineScope(SupervisorJob() + sharedDispatcher)
+
     private val switchStore = RfSwitchDataStore()
     private val switchCreator = RfSwitch.SwitchCreator()
 
@@ -70,7 +76,7 @@ class SerialRFProtocol constructor(
         port.close()
     }
 
-    override fun processInput(payload: Payload): Payload {
+    override suspend fun processInput(payload: Payload): Payload {
         val output = serialRfPayload().apply { addCommand(CommsProtocol.resetAction) }
 
         when (val receivedAction = payload.action) {
@@ -199,7 +205,7 @@ class SerialRFProtocol constructor(
             else -> Log.i("IOT", "RF Unknown read. Size: ${rawData.size}, as String: ${String(rawData)}")
         }
 
-        CommsProtocol.sharedPool.submit { pushOut(it) }
+        scope.launch(sharedDispatcher) { pushOut(it) }
         Unit
     }
 

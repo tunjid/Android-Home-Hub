@@ -18,6 +18,9 @@ dependencies {
     implementation parent.ext.rxJava
     implementation parent.ext.rxAndroid
 
+    implementation parent.ext.coroutines
+    implementation parent.ext.coroutinesReactive
+
     implementation project(':common')
     implementation project(':protocols')
 }

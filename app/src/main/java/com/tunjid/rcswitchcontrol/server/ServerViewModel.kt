@@ -2,9 +2,7 @@ package com.tunjid.rcswitchcontrol.server
 
 import android.content.Context
 import android.net.nsd.NsdServiceInfo
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.io.ConsoleWriter
@@ -88,7 +86,7 @@ class ServerViewModel @Inject constructor(
     broadcasts: @JvmSuppressWildcards AppBroadcasts
 ) : ViewModel() {
 
-    val state: LiveData<State>
+    val state: StateFlow<State>
 
     private val inputs = MutableSharedFlow<Input>(
         replay = 1,
@@ -140,7 +138,7 @@ class ServerViewModel @Inject constructor(
         )
             .shareIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(), replay = 1)
 
-        val backingState = combine(
+        state = combine(
             registrations
                 .map(Output.Server.Registered::service.asSuspend)
                 .map(NsdServiceInfo::getServiceName),
@@ -152,9 +150,11 @@ class ServerViewModel @Inject constructor(
                 .onStart { emit(Status.Stopped) },
             ::State
         )
-            .shareIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(), replay = 1)
-
-        state = backingState.asLiveData()
+            .stateIn(
+                scope = viewModelScope,
+                initialValue = State(),
+                started = SharingStarted.WhileSubscribed()
+            )
 
         // Kick off
         writes

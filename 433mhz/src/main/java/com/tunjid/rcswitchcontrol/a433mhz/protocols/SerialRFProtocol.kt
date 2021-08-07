@@ -213,9 +213,9 @@ class SerialRFProtocol constructor(
         const val NOTIFICATION = 1
         const val SNIFF_PAYLOAD = 10
 
-        const val ERROR_FLAG: Byte = 'E'.toByte()
-        const val SNIFF_FLAG: Byte = 'R'.toByte()
-        const val TRANSMIT_FLAG: Byte = 'T'.toByte()
+        const val ERROR_FLAG: Byte = 'E'.code.toByte()
+        const val SNIFF_FLAG: Byte = 'R'.code.toByte()
+        const val TRANSMIT_FLAG: Byte = 'T'.code.toByte()
 
         val ArduinoSerialInfo = SerialInfo(
             vendorId = 0x2341,

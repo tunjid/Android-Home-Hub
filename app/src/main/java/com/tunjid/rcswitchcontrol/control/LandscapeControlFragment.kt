@@ -5,6 +5,9 @@ import android.content.res.ColorStateList
 import android.os.Bundle
 import android.view.View
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.flexbox.AlignItems
 import com.google.android.flexbox.FlexDirection
@@ -24,6 +27,7 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.client.ProtocolKey
 import com.tunjid.rcswitchcontrol.client.keys
+import com.tunjid.rcswitchcontrol.common.asSuspend
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentControlLandscapeBinding
 import com.tunjid.rcswitchcontrol.di.viewModelFactory
@@ -31,6 +35,8 @@ import com.tunjid.rcswitchcontrol.server.HostFragment
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
 import com.tunjid.rcswitchcontrol.utils.item
 import com.tunjid.rcswitchcontrol.utils.makeAccessibleForTV
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape),
     RootController,
@@ -63,8 +69,7 @@ class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape),
                 else -> listOf(devices)
             }
             val listAdapter = listAdapterOf(
-                initialItems = persistentItems + (viewModel.state.value?.clientState?.keys
-                    ?: listOf()),
+                initialItems = persistentItems + viewModel.state.value.clientState.keys,
                 viewHolderCreator = { parent, _ ->
                     HeaderViewHolder(parent.context, ::onHeaderHighlighted)
                 },
@@ -78,10 +83,14 @@ class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape),
             }
             adapter = listAdapter
 
-            viewModel.state
-                .mapDistinct(ControlState::clientState)
-                .mapDistinct { persistentItems + it.keys }
-                .observe(viewLifecycleOwner, listAdapter::submitList)
+            viewLifecycleOwner.lifecycleScope.launch {
+                viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                    viewModel.state
+                        .mapDistinct(ControlState::clientState.asSuspend)
+                        .mapDistinct { persistentItems + it.keys }
+                        .collect(listAdapter::submitList)
+                }
+            }
         }
     }
 
@@ -98,7 +107,8 @@ class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape),
     }
 }
 
-class HeaderViewHolder(context: Context, onFocused: (Any?) -> Unit) : RecyclerView.ViewHolder(MaterialButton(context)) {
+class HeaderViewHolder(context: Context, onFocused: (Any?) -> Unit) :
+    RecyclerView.ViewHolder(MaterialButton(context)) {
 
     val text = itemView as MaterialButton
 

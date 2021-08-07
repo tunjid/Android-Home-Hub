@@ -33,6 +33,9 @@ import androidx.core.view.doOnLayout
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED
@@ -57,6 +60,7 @@ import com.tunjid.rcswitchcontrol.client.ProtocolKey
 import com.tunjid.rcswitchcontrol.client.Status
 import com.tunjid.rcswitchcontrol.client.isConnected
 import com.tunjid.rcswitchcontrol.client.keys
+import com.tunjid.rcswitchcontrol.common.asSuspend
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.control.Page.HISTORY
 import com.tunjid.rcswitchcontrol.databinding.FragmentControlBinding
@@ -66,6 +70,9 @@ import com.tunjid.rcswitchcontrol.models.Broadcast
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
 import com.tunjid.rcswitchcontrol.utils.FragmentTabAdapter
 import com.tunjid.rcswitchcontrol.utils.attach
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 
 class ControlFragment : Fragment(R.layout.fragment_control),
     RootController,
@@ -97,7 +104,8 @@ class ControlFragment : Fragment(R.layout.fragment_control),
         )
 
         val bottomSheetBehavior = BottomSheetBehavior.from(viewBinding.bottomSheet)
-        val offset = requireContext().resources.getDimensionPixelSize(R.dimen.triple_and_half_margin)
+        val offset =
+            requireContext().resources.getDimensionPixelSize(R.dimen.triple_and_half_margin)
 
         val calculateTranslation: (slideOffset: Float) -> Float = calculate@{ slideOffset ->
             val peekHeight = bottomSheetBehavior.peekHeight.toFloat()
@@ -109,7 +117,8 @@ class ControlFragment : Fragment(R.layout.fragment_control),
         }
 
         val onPageSelected: (position: Int) -> Unit = {
-            bottomSheetBehavior.state = if (viewModel.pages[it] == HISTORY) STATE_HALF_EXPANDED else STATE_HIDDEN
+            bottomSheetBehavior.state =
+                if (viewModel.pages[it] == HISTORY) STATE_HALF_EXPANDED else STATE_HIDDEN
         }
 
         val pageAdapter = FragmentTabAdapter<Page>(this)
@@ -131,39 +140,65 @@ class ControlFragment : Fragment(R.layout.fragment_control),
         }
 
         view.doOnLayout {
-            liveUiState.mapDistinct { it.systemUI.dynamic.run { topInset to bottomInset } }.observe(viewLifecycleOwner) { (topInset, bottomInset) ->
-                viewBinding.bottomSheet.updateLayoutParams { height = it.height - topInset - resources.getDimensionPixelSize(R.dimen.double_and_half_margin) }
-                bottomSheetBehavior.peekHeight = resources.getDimensionPixelSize(R.dimen.sextuple_margin) + bottomInset
-            }
+            liveUiState.mapDistinct { it.systemUI.dynamic.run { topInset to bottomInset } }
+                .observe(viewLifecycleOwner) { (topInset, bottomInset) ->
+                    viewBinding.bottomSheet.updateLayoutParams {
+                        height =
+                            it.height - topInset - resources.getDimensionPixelSize(R.dimen.double_and_half_margin)
+                    }
+                    bottomSheetBehavior.peekHeight =
+                        resources.getDimensionPixelSize(R.dimen.sextuple_margin) + bottomInset
+                }
 
             bottomSheetBehavior.expandedOffset = offset
-            bottomSheetBehavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
+            bottomSheetBehavior.addBottomSheetCallback(object :
+                BottomSheetBehavior.BottomSheetCallback() {
                 override fun onSlide(bottomSheet: View, slideOffset: Float) {
                     viewBinding.mainPager.updatePadding(bottom = calculateTranslation(slideOffset).toInt())
                 }
 
                 override fun onStateChanged(bottomSheet: View, newState: Int) {
-                    if (newState == STATE_HIDDEN && viewModel.pages[viewBinding.mainPager.currentItem] == HISTORY) bottomSheetBehavior.state = STATE_COLLAPSED
+                    if (newState == STATE_HIDDEN && viewModel.pages[viewBinding.mainPager.currentItem] == HISTORY) bottomSheetBehavior.state =
+                        STATE_COLLAPSED
                 }
             })
             onPageSelected(viewBinding.mainPager.currentItem)
         }
 
-        viewModel.state.mapDistinct(ControlState::clientState).apply {
-            mapDistinct(ClientState::keys).observe(viewLifecycleOwner, commandAdapter::submitList)
-            mapDistinct(ClientState::isNew).observe(viewLifecycleOwner) { isNew ->
-                if (isNew) viewBinding.commandsPager.adapter?.notifyDataSetChanged()
+        val state = viewModel.state
+        val clientState = state.mapDistinct(ControlState::clientState.asSuspend)
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+
+                clientState.mapDistinct(ClientState::keys.asSuspend)
+                    .onEach(commandAdapter::submitList)
+                    .launchIn(this)
+
+                clientState.mapDistinct(ClientState::isNew.asSuspend).onEach { isNew ->
+                    if (isNew) viewBinding.commandsPager.adapter?.notifyDataSetChanged()
+                }
+                    .launchIn(this)
+
+                clientState.mapDistinct(ClientState::commandInfo.asSuspend).onEach {
+                    if (it != null) ZigBeeArgumentDialogFragment.newInstance(it)
+                        .show(childFragmentManager, "info")
+                }
+                    .launchIn(this)
+
+                clientState.mapDistinct(ClientState::connectionStatus.asSuspend).onEach { status ->
+                    ::uiState.updatePartial { copy(toolbarInvalidated = true) }
+                    viewBinding.connectionStatus.text =
+                        resources.getString(R.string.connection_state, status.text)
+                }
+                    .launchIn(this)
+
+                state.mapDistinct(ControlState::selectedDevices.asSuspend)
+                    .onEach {
+                        ::uiState.updatePartial { copy(toolbarInvalidated = true) }
+                    }
+                    .launchIn(this)
             }
-            mapDistinct(ClientState::commandInfo).observe(viewLifecycleOwner) {
-                if (it != null) ZigBeeArgumentDialogFragment.newInstance(it).show(childFragmentManager, "info")
-            }
-            mapDistinct(ClientState::connectionStatus).observe(viewLifecycleOwner) { status ->
-                ::uiState.updatePartial { copy(toolbarInvalidated = true) }
-                viewBinding.connectionStatus.text = resources.getString(R.string.connection_state, status.text)
-            }
-        }
-        viewModel.state.mapDistinct(ControlState::selectedDevices).observe(viewLifecycleOwner) {
-            ::uiState.updatePartial { copy(toolbarInvalidated = true) }
         }
     }
 
@@ -174,12 +209,14 @@ class ControlFragment : Fragment(R.layout.fragment_control),
 
     private fun onToolbarRefreshed(menu: Menu) {
         val state = viewModel.state.value
-        menu.findItem(R.id.menu_ping)?.isVisible = viewModel.state.value?.clientState.isConnected
-        menu.findItem(R.id.menu_connect)?.isVisible = !viewModel.state.value?.clientState.isConnected
+        menu.findItem(R.id.menu_ping)?.isVisible = viewModel.state.value.clientState.isConnected
+        menu.findItem(R.id.menu_connect)?.isVisible =
+            !viewModel.state.value.clientState.isConnected
         menu.findItem(R.id.menu_forget)?.isVisible = !ServerNsdService.isServer
 
-        menu.findItem(R.id.menu_rename_device)?.isVisible = state != null && state.selectedDevices.size == 1
-        menu.findItem(R.id.menu_create_group)?.isVisible = state != null && state.selectedDevices.find { device -> device is Device.RF } == null
+        menu.findItem(R.id.menu_rename_device)?.isVisible = state.selectedDevices.size == 1
+        menu.findItem(R.id.menu_create_group)?.isVisible =
+            state.selectedDevices.find { device -> device is Device.RF } == null
     }
 
     private fun onToolbarMenuItemSelected(item: MenuItem) {
@@ -189,19 +226,24 @@ class ControlFragment : Fragment(R.layout.fragment_control),
             R.id.menu_forget -> requireActivity().let {
                 viewModel.accept(Input.Async.ForgetServer)
 
-                startActivity(Intent(it, MainActivity::class.java)
-                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                startActivity(
+                    Intent(it, MainActivity::class.java)
+                        .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
 
                 it.finish()
             }
             R.id.menu_rename_device -> viewModel.state.value
-                ?.selectedDevices
-                ?.firstOrNull()
+                .selectedDevices
+                .firstOrNull()
                 ?.editName
                 ?.let(RenameSwitchDialogFragment.Companion::newInstance)
                 ?.show(childFragmentManager, item.itemId.toString()).let { true }
-            R.id.menu_create_group -> GroupDeviceDialogFragment.newInstance.show(childFragmentManager, item.itemId.toString())
+            R.id.menu_create_group -> GroupDeviceDialogFragment.newInstance.show(
+                childFragmentManager,
+                item.itemId.toString()
+            )
             else -> Unit
         }
     }
@@ -216,7 +258,8 @@ class ControlFragment : Fragment(R.layout.fragment_control),
             is Status.Disconnected -> getString(R.string.disconnected)
         }
 
-    override fun onArgsEntered(command: ZigBeeCommand) = viewModel.accept(Input.Async.ServerCommand(command.payload))
+    override fun onArgsEntered(command: ZigBeeCommand) =
+        viewModel.accept(Input.Async.ServerCommand(command.payload))
 
     companion object {
         fun newInstance(load: ClientLoad) = ControlFragment().apply { this.load = load }

@@ -40,8 +40,8 @@ buildscript {
         // in the individual module build.gradle files
     }
     project.ext {
-        buildToolsVersion = "29.0.2"
-        compileSdkVersion = 29
+        buildToolsVersion = "30.0.2"
+        compileSdkVersion = 30
         targetSdkVersion = 26
         minSdkVersion = 21
 
@@ -52,11 +52,12 @@ buildscript {
         constraintLayout = 'androidx.constraintlayout:constraintlayout:2.0.4'
         dynamicAnimationsKtx = 'androidx.dynamicanimation:dynamicanimation-ktx:1.0.0-alpha03'
 
-        lifecycleRuntimeKtx = 'androidx.lifecycle:lifecycle-runtime-ktx:2.2.0'
-        lifecycleViewModelKtx = 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.2.0'
-        lifecycleExtKtx = 'androidx.lifecycle:lifecycle-extensions:2.2.0'
-        lifecycleRxKtx = 'androidx.lifecycle:lifecycle-reactivestreams-ktx:2.2.0'
-        lifecycleLiveDataKtx = 'androidx.lifecycle:lifecycle-livedata-ktx:2.2.0'
+        lifecycleRuntimeKtx = 'androidx.lifecycle:lifecycle-runtime-ktx:2.4.0-alpha03'
+        lifecycleViewModelKtx = 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.4.0-alpha03'
+        lifecycleRxKtx = 'androidx.lifecycle:lifecycle-reactivestreams-ktx:2.4.0-alpha03'
+        lifecycleLiveDataKtx = 'androidx.lifecycle:lifecycle-livedata-ktx:2.4.0-alpha03'
+        lifecycleService = 'androidx.lifecycle:lifecycle-service:2.4.0-alpha03'
+        lifecycleProcess = 'androidx.lifecycle:lifecycle-process:2.4.0-alpha03'
 
         gson = 'com.google.code.gson:gson:2.8.5'
 

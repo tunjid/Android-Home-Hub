@@ -29,6 +29,9 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ItemTouchHelper.Callback.makeMovementFlags
@@ -49,6 +52,7 @@ import com.tunjid.globalui.uiState
 import com.tunjid.globalui.updatePartial
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.client.ClientState
+import com.tunjid.rcswitchcontrol.common.asSuspend
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderPaddingBinding
@@ -62,6 +66,8 @@ import com.tunjid.rcswitchcontrol.viewholders.DeviceAdapterListener
 import com.tunjid.rcswitchcontrol.viewholders.bind
 import com.tunjid.rcswitchcontrol.viewholders.rfDeviceDeviceViewHolder
 import com.tunjid.rcswitchcontrol.viewholders.zigbeeDeviceViewHolder
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 class DevicesFragment : Fragment(R.layout.fragment_list),
     DeviceAdapterListener,
@@ -88,9 +94,10 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
         super.onViewCreated(view, savedInstanceState)
 
         viewBinding.list.apply {
-            liveUiState.mapDistinct { it.systemUI.dynamic.bottomInset }.observe(viewLifecycleOwner) {
-                updatePadding(bottom = it)
-            }
+            liveUiState.mapDistinct { it.systemUI.dynamic.bottomInset }
+                .observe(viewLifecycleOwner) {
+                    updatePadding(bottom = it)
+                }
             val listAdapter = listAdapterOf(
                 initialItems = currentDevices,
                 viewHolderCreator = ::createViewHolder,
@@ -98,7 +105,8 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
                 viewHolderBinder = { holder, device, _ ->
                     when (device) {
                         is Device.RF -> holder.typed<ViewholderRemoteSwitchBinding>().bind(device)
-                        is Device.ZigBee -> holder.typed<ViewholderZigbeeDeviceBinding>().bind(device)
+                        is Device.ZigBee -> holder.typed<ViewholderZigbeeDeviceBinding>()
+                            .bind(device)
                     }
                 },
                 itemIdFunction = { it.hashCode().toLong() }
@@ -117,21 +125,25 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
                 itemViewSwipeSupplier = { true }
             )
 
-            viewModel.state
-                .mapDistinct(ControlState::clientState)
-                .mapDistinct(ClientState::devices).apply {
-                    observe(viewLifecycleOwner, listAdapter::submitList)
-                    observe(viewLifecycleOwner) { refreshUi() }
+            val clientState = viewModel.state
+                .mapDistinct(ControlState::clientState.asSuspend)
+                .mapDistinct(ClientState::devices.asSuspend)
 
-                    mapDistinct {
-                        it.filterIsInstance<Device.ZigBee>()
-                            .map(Device.ZigBee::trifecta)
-                            .map(Triple<Pair<String, Any?>, Pair<String, Any?>, Pair<String, Any?>>::toString)
-                    }
-                        .observe(viewLifecycleOwner) {
-//                    Log.i("TEST", "Trifecta: \n ${it.joinToString(separator = "\n")}")
+            viewLifecycleOwner.lifecycleScope.launch {
+                viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                    clientState
+                        .collect {
+                            listAdapter.submitList(it)
+                            refreshUi()
                         }
                 }
+            }
+
+//            clientState.mapDistinct {
+//                it.filterIsInstance<Device.ZigBee>()
+//                    .map(Device.ZigBee::trifecta)
+//                    .map(Triple<Pair<String, Any?>, Pair<String, Any?>, Pair<String, Any?>>::toString)
+//            }
         }
     }
 
@@ -161,7 +173,8 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
         else -> Unit
     }
 
-    override fun send(command: ZigBeeCommand) = viewModel.accept(Input.Async.ServerCommand(command.payload))
+    override fun send(command: ZigBeeCommand) =
+        viewModel.accept(Input.Async.ServerCommand(command.payload))
 
     override fun onGroupNamed(groupName: CharSequence) {
         viewModel.accept(Input.Sync.ClearSelections)

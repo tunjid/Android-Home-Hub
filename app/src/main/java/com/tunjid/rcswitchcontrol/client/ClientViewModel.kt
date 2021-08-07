@@ -10,6 +10,7 @@ import com.tunjid.rcswitchcontrol.common.*
 import com.tunjid.rcswitchcontrol.di.AppBroadcaster
 import com.tunjid.rcswitchcontrol.di.AppBroadcasts
 import com.tunjid.rcswitchcontrol.models.Broadcast
+import com.tunjid.rcswitchcontrol.onboarding.NSDState
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.utils.io.*
@@ -65,7 +66,7 @@ class ClientViewModel @Inject constructor(
     broadcasts: @JvmSuppressWildcards AppBroadcasts,
 ) : ViewModel() {
 
-    val state: LiveData<State>
+    val state: StateFlow<State>
 
     private val inputs = MutableSharedFlow<Input>(
         replay = 1,
@@ -84,7 +85,7 @@ class ClientViewModel @Inject constructor(
             .filterIsInstance<Output.Connection>()
             .shareIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(), replay = 1)
 
-        val backingState = merge(
+        state = merge(
             broadcasts
                 .filterIsInstance<Broadcast.ClientNsd.Stop>()
                 .map { Mutation { copy(isStopped = true) } },
@@ -96,11 +97,11 @@ class ClientViewModel @Inject constructor(
                 .map { Mutation { copy(inBackground = it) } },
         )
             .scan(State(), Mutator::mutate)
-            .shareIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(), replay = 1)
-
-        state = backingState
-            .distinctUntilChanged()
-            .asLiveData()
+            .stateIn(
+                scope = viewModelScope,
+                initialValue = State(),
+                started = SharingStarted.WhileSubscribed(),
+            )
 
         inputs
             .filterIsInstance<Input.Send>()
@@ -125,7 +126,7 @@ class ClientViewModel @Inject constructor(
             .onEach { broadcaster(it) }
             .launchIn(viewModelScope)
 
-        backingState
+        state
             .map(State::status.asSuspend)
             .distinctUntilChanged()
             .map(Broadcast.ClientNsd::ConnectionStatus)

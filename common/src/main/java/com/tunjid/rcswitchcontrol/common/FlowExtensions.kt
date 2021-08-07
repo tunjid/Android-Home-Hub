@@ -10,6 +10,8 @@ import kotlin.reflect.KProperty1
 
 val <T, R> KProperty1<T, R>.asSuspend: suspend (T) -> R get() = { t: T -> invoke(t) }
 
+fun <A, B> Flow<A>.mapDistinct(mapper: suspend (A) -> B) = map(mapper).distinctUntilChanged()
+
 fun <A, B : Any, R> Flow<A>.withLatestFrom(
     other: Flow<B>,
     transform: suspend (A, B) -> R

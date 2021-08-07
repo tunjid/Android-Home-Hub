@@ -76,9 +76,10 @@ dependencies {
     implementation 'androidx.recyclerview:recyclerview:1.2.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
 
+    implementation parent.ext.lifecycleService
+    implementation parent.ext.lifecycleProcess
     implementation parent.ext.lifecycleRuntimeKtx
     implementation parent.ext.lifecycleViewModelKtx
-    implementation parent.ext.lifecycleExtKtx
     implementation parent.ext.lifecycleRxKtx
     implementation parent.ext.lifecycleLiveDataKtx
 

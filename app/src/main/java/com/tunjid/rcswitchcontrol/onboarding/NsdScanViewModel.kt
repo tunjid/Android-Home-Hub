@@ -29,7 +29,6 @@ import android.content.Intent
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.tunjid.androidx.communications.nsd.NsdHelper
 import com.tunjid.androidx.recyclerview.diff.Diffable
@@ -102,7 +101,11 @@ class NsdScanViewModel @Inject constructor(
                 )
             }
         }
-        .asLiveData()
+        .stateIn(
+            scope = viewModelScope,
+            initialValue = NSDState(),
+            started = SharingStarted.WhileSubscribed(),
+        )
 
     init {
         broadcasts.filterIsInstance<Broadcast.ClientNsd.StartDiscovery>()

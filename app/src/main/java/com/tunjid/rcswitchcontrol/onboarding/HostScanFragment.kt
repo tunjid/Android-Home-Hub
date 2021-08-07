@@ -32,6 +32,9 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.tunjid.androidx.core.text.scale
 import com.tunjid.androidx.navigation.activityNavigatorController
 import com.tunjid.androidx.recyclerview.listAdapterOf
@@ -43,12 +46,15 @@ import com.tunjid.globalui.uiState
 import com.tunjid.globalui.updatePartial
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.client.ClientLoad
+import com.tunjid.rcswitchcontrol.common.asSuspend
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.control.ControlFragment
 import com.tunjid.rcswitchcontrol.databinding.FragmentNsdScanBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderNsdListBinding
 import com.tunjid.rcswitchcontrol.di.viewModelFactory
 import com.tunjid.rcswitchcontrol.navigation.AppNavigator
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 /**
  * A [androidx.fragment.app.Fragment] listing supported NSD servers
@@ -73,7 +79,7 @@ class HostScanFragment : Fragment(R.layout.fragment_nsd_scan) {
 
         binding.list.apply {
             val listAdapter = listAdapterOf(
-                initialItems = viewModel.state.value?.items ?: listOf(),
+                initialItems = viewModel.state.value.items,
                 viewHolderCreator = { parent, _ ->
                     parent.viewHolderFrom(ViewholderNsdListBinding::inflate).apply {
                         this.binding.title.setOnClickListener { onServiceClicked(item.info) }
@@ -85,13 +91,17 @@ class HostScanFragment : Fragment(R.layout.fragment_nsd_scan) {
             layoutManager = verticalLayoutManager()
             adapter = listAdapter
 
-            viewModel.state.apply {
-                mapDistinct(NSDState::items).observe(viewLifecycleOwner, listAdapter::submitList)
-                mapDistinct(NSDState::isScanning).observe(viewLifecycleOwner) {
-                    ::uiState.updatePartial {
-                        copy(
-                            toolbarInvalidated = true
-                        )
+            val state = viewModel.state
+
+            viewLifecycleOwner.lifecycleScope.launch {
+                viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                    state.mapDistinct(NSDState::items.asSuspend).collect(listAdapter::submitList)
+                    state.mapDistinct(NSDState::isScanning.asSuspend).collect {
+                        ::uiState.updatePartial {
+                            copy(
+                                toolbarInvalidated = true
+                            )
+                        }
                     }
                 }
             }

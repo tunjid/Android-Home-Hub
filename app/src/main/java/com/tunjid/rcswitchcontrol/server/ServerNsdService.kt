@@ -27,14 +27,18 @@ package com.tunjid.rcswitchcontrol.server
 import android.content.Intent
 import android.util.Log
 import androidx.lifecycle.LifecycleService
+import androidx.lifecycle.lifecycleScope
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.tunjid.androidx.core.components.services.SelfBinder
 import com.tunjid.androidx.core.components.services.SelfBindingService
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
+import com.tunjid.rcswitchcontrol.common.asSuspend
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.di.viewModelFactory
 import com.tunjid.rcswitchcontrol.utils.notificationBuilder
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 /**
  * Service hosting a [CommsProtocol] on network service discovery
@@ -48,10 +52,11 @@ class ServerNsdService : LifecycleService(), SelfBindingService<ServerNsdService
 
     override fun onCreate() {
         super.onCreate()
-        val service = this
-        viewModel.state.apply {
-            mapDistinct(State::status).observe(service, ::onStatusChanged)
-            mapDistinct(State::numClients).observe(service) {
+        lifecycleScope.launch {
+            viewModel.state.mapDistinct(State::status.asSuspend).collect(::onStatusChanged)
+        }
+        lifecycleScope.launch {
+            viewModel.state.mapDistinct(State::numClients.asSuspend).collect {
                 Log.i("TEST", "There are $it clients")
             }
         }
@@ -86,8 +91,10 @@ class ServerNsdService : LifecycleService(), SelfBindingService<ServerNsdService
     }
 
     companion object {
-        private const val SERVER_FLAG = "com.tunjid.rcswitchcontrol.ServerNsdService.services.server.flag"
-        private const val SERVICE_NAME_KEY = "com.tunjid.rcswitchcontrol.ServerNsdService.services.server.serviceName"
+        private const val SERVER_FLAG =
+            "com.tunjid.rcswitchcontrol.ServerNsdService.services.server.flag"
+        private const val SERVICE_NAME_KEY =
+            "com.tunjid.rcswitchcontrol.ServerNsdService.services.server.serviceName"
         private const val WIRELESS_SWITCH_SERVICE = "Wireless Switch Service"
         private const val NOTIFICATION_ID = 3
 

@@ -29,7 +29,7 @@ import android.app.PendingIntent
 import android.content.Intent
 import android.net.nsd.NsdServiceInfo
 import androidx.lifecycle.LifecycleService
-import androidx.lifecycle.asFlow
+import androidx.lifecycle.lifecycleScope
 import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.core.components.services.SelfBinder
 import com.tunjid.androidx.core.components.services.SelfBindingService
@@ -37,11 +37,14 @@ import com.tunjid.androidx.core.delegates.intentExtras
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.MainActivity
 import com.tunjid.rcswitchcontrol.R
+import com.tunjid.rcswitchcontrol.common.asSuspend
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.di.viewModelFactory
 import com.tunjid.rcswitchcontrol.utils.addNotificationChannel
 import com.tunjid.rcswitchcontrol.utils.notificationBuilder
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import java.util.*
 
 var Intent.nsdServiceInfo by intentExtras<NsdServiceInfo?>()
@@ -49,7 +52,7 @@ var Intent.nsdServiceName by intentExtras<String?>()
 
 class ClientNsdService : LifecycleService(), SelfBindingService<ClientNsdService> {
 
-    val state: Flow<State> by lazy { viewModel.state.asFlow() }
+    val state: Flow<State> by lazy { viewModel.state }
 
     private val viewModel by viewModelFactory<ClientViewModel>()
 
@@ -59,13 +62,17 @@ class ClientNsdService : LifecycleService(), SelfBindingService<ClientNsdService
         super.onCreate()
         addNotificationChannel(R.string.switch_service, R.string.switch_service_description)
 
-        val service = this
-        viewModel.state.apply {
-            observe(service, ::onStateChanged)
-            mapDistinct(State::serviceName).observe(service) {
+        val state = viewModel.state
+        lifecycleScope.launch {
+            state.collect(::onStateChanged)
+        }
+        lifecycleScope.launch {
+            state.mapDistinct(State::serviceName.asSuspend).collect {
                 it?.let(Companion::lastConnectedService::set)
             }
-            mapDistinct(State::isStopped).observe(service) {
+        }
+        lifecycleScope.launch {
+            state.mapDistinct(State::isStopped.asSuspend).collect {
                 if (it) stopSelf()
             }
         }

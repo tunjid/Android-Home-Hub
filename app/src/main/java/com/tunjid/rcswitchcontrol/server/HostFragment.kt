@@ -31,6 +31,9 @@ import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.tunjid.androidx.recyclerview.gridLayoutManager
 import com.tunjid.androidx.recyclerview.listAdapterOf
 import com.tunjid.androidx.recyclerview.viewbinding.BindingViewHolder
@@ -47,6 +50,8 @@ import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderHostCardBinding
 import com.tunjid.rcswitchcontrol.di.viewModelFactory
 import com.tunjid.rcswitchcontrol.utils.makeAccessibleForTV
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 class HostFragment : Fragment(R.layout.fragment_list),
     NameServiceDialogFragment.ServiceNameListener {
@@ -58,7 +63,7 @@ class HostFragment : Fragment(R.layout.fragment_list),
 
         FragmentListBinding.bind(view).list.apply {
             val listAdapter = listAdapterOf(
-                initialItems = viewModel.state.value?.let(view.context::items) ?: listOf(),
+                initialItems = viewModel.state.value.let(view.context::items),
                 viewHolderCreator = { parent, _ ->
                     parent.viewHolderFrom(ViewholderHostCardBinding::inflate).apply {
                         binding.button.strokeColor = ColorStateList.valueOf(Color.WHITE)
@@ -75,9 +80,13 @@ class HostFragment : Fragment(R.layout.fragment_list),
             layoutManager = gridLayoutManager(2)
             adapter = listAdapter
 
-            viewModel.state
-                .mapDistinct(context::items)
-                .observe(viewLifecycleOwner, listAdapter::submitList)
+            viewLifecycleOwner.lifecycleScope.launch {
+                viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                    viewModel.state
+                        .mapDistinct(context::items)
+                        .collect(listAdapter::submitList)
+                }
+            }
         }
     }
 

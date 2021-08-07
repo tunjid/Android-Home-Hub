@@ -28,6 +28,9 @@ import android.os.Bundle
 import android.view.View
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.flexbox.AlignItems
 import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.FlexboxLayoutManager
@@ -43,6 +46,7 @@ import com.tunjid.globalui.updatePartial
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.client.ClientState
 import com.tunjid.rcswitchcontrol.client.ProtocolKey
+import com.tunjid.rcswitchcontrol.common.asSuspend
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderCommandBinding
@@ -52,6 +56,8 @@ import com.tunjid.rcswitchcontrol.viewholders.bind
 import com.tunjid.rcswitchcontrol.viewholders.bindCommand
 import com.tunjid.rcswitchcontrol.viewholders.commandViewHolder
 import com.tunjid.rcswitchcontrol.viewholders.historyViewHolder
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 sealed class RecordFragment : Fragment(R.layout.fragment_list) {
 
@@ -80,8 +86,10 @@ sealed class RecordFragment : Fragment(R.layout.fragment_list) {
                 },
                 viewHolderBinder = { holder, record, _ ->
                     when (holder.binding) {
-                        is ViewholderHistoryBinding -> holder.typed<ViewholderHistoryBinding>().bind(record)
-                        is ViewholderCommandBinding -> holder.typed<ViewholderCommandBinding>().bindCommand(record)
+                        is ViewholderHistoryBinding -> holder.typed<ViewholderHistoryBinding>()
+                            .bind(record)
+                        is ViewholderCommandBinding -> holder.typed<ViewholderCommandBinding>()
+                            .bindCommand(record)
                     }
                 },
                 viewTypeFunction = { if (key == null) 0 else 1 }
@@ -97,19 +105,23 @@ sealed class RecordFragment : Fragment(R.layout.fragment_list) {
             }
             adapter = listAdapter
 
-            viewModel.state.mapDistinct(ControlState::clientState).apply {
-                if (key == null) mapDistinct(ClientState::history).observe(viewLifecycleOwner) { history ->
-                    listAdapter.submitList(history)
-                    if (history.isNotEmpty()) smoothScrollToPosition(history.lastIndex)
-                }
-                else mapDistinct { it.commands[key] }.observe(viewLifecycleOwner) {
-                    it?.let(listAdapter::submitList)
+            val clientState = viewModel.state.mapDistinct(ControlState::clientState.asSuspend)
+
+            viewLifecycleOwner.lifecycleScope.launch {
+                viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                    if (key == null) clientState.mapDistinct(ClientState::history.asSuspend).collect { history ->
+                        listAdapter.submitList(history)
+                        if (history.isNotEmpty()) smoothScrollToPosition(history.lastIndex)
+                    }
+                    else clientState.mapDistinct { it.commands[key] }.collect {
+                        it?.let(listAdapter::submitList)
+                    }
                 }
             }
         }
     }
 
-    private fun initialItems(): List<Record> = viewModel.state.value?.clientState?.let {
+    private fun initialItems(): List<Record> = viewModel.state.value.clientState.let {
         if (key == null) it.history else it.commands[key]
     } ?: listOf()
 
@@ -128,6 +140,7 @@ sealed class RecordFragment : Fragment(R.layout.fragment_list) {
 
         fun historyInstance(): HistoryFragment = HistoryFragment()
 
-        fun commandInstance(key: ProtocolKey): CommandsFragment = CommandsFragment().apply { this.key = key.key }
+        fun commandInstance(key: ProtocolKey): CommandsFragment =
+            CommandsFragment().apply { this.key = key.key }
     }
 }

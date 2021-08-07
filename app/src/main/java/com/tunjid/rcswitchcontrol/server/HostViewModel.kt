@@ -25,14 +25,14 @@
 package com.tunjid.rcswitchcontrol.server
 
 import android.content.Context
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.tunjid.androidx.core.components.services.HardServiceConnection
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.di.AppBroadcaster
 import com.tunjid.rcswitchcontrol.di.AppContext
 import com.tunjid.rcswitchcontrol.models.Broadcast
+import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 
 class HostViewModel @Inject constructor(
@@ -40,12 +40,19 @@ class HostViewModel @Inject constructor(
     private val broadcaster: AppBroadcaster
 ) : ViewModel() {
 
-    private val proxyState = MediatorLiveData<State>()
-    private val serverConnection = HardServiceConnection(context, ServerNsdService::class.java) { server ->
-        proxyState.addSource(server.state, proxyState::setValue)
-    }
+    private val proxyState = MutableStateFlow<Flow<State>>(emptyFlow())
+    private val serverConnection =
+        HardServiceConnection(context, ServerNsdService::class.java) { server ->
+            proxyState.value = server.state
+        }
 
-    val state: LiveData<State> = proxyState
+    val state: StateFlow<State> = proxyState
+        .flatMapLatest { it }
+        .stateIn(
+            scope = viewModelScope,
+            initialValue = State(),
+            started = SharingStarted.WhileSubscribed(),
+        )
 
     init {
         serverConnection.bind()
@@ -53,9 +60,7 @@ class HostViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        serverConnection.boundService
-            ?.state
-            ?.let(proxyState::removeSource)
+        proxyState.value = emptyFlow()
         serverConnection.unbindService()
     }
 

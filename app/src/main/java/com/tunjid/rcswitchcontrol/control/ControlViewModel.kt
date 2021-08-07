@@ -26,10 +26,8 @@ package com.tunjid.rcswitchcontrol.control
 
 import android.content.Context
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelStoreOwner
-import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
@@ -52,11 +50,12 @@ import com.tunjid.rcswitchcontrol.server.ServerNsdService
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 
-interface RootController: ViewModelStoreOwner
+interface RootController : ViewModelStoreOwner
 
-val Fragment.rootController : ViewModelStoreOwner get() = generateSequence(this, Fragment::getParentFragment)
-    .filterIsInstance<RootController>()
-    .firstOrNull() ?: this
+val Fragment.rootController: ViewModelStoreOwner
+    get() = generateSequence(this, Fragment::getParentFragment)
+        .filterIsInstance<RootController>()
+        .firstOrNull() ?: this
 
 class ControlViewModel @Inject constructor(
     @AppContext private val context: Context,
@@ -79,7 +78,7 @@ class ControlViewModel @Inject constructor(
     val isBound: Boolean
         get() = nsdConnection.boundService != null
 
-    val state: LiveData<ControlState>
+    val state: StateFlow<ControlState>
 
     init {
         val connectionStatuses: Flow<Status> = merge(
@@ -109,17 +108,20 @@ class ControlViewModel @Inject constructor(
             .filterIsInstance<Input.Sync>()
             .map(::onSyncInput)
 
-        val stateObservable = merge(
+        state = merge(
             clientStateObservable,
             actionMutations,
         )
             .scan(ControlState(), Mutator::mutate)
             .map { updateSelections(it) }
-
-        state = stateObservable.asLiveData()
+            .stateIn(
+                scope = viewModelScope,
+                initialValue = ControlState(),
+                started = SharingStarted.WhileSubscribed(),
+            )
 
         // Keep the connection alive
-        stateObservable.launchIn(viewModelScope)
+        state.launchIn(viewModelScope)
 
         actions
             .filterIsInstance<Input.Async>()
@@ -150,10 +152,12 @@ class ControlViewModel @Inject constructor(
     private fun onSyncInput(action: Input.Sync) = when (action) {
         is Input.Sync.Select -> Mutation {
             val filtered = selectedDevices.filterNot { it.diffId == action.device.diffId }
-            copy(selectedDevices = when (filtered.size != selectedDevices.size) {
-                true -> filtered
-                false -> selectedDevices + action.device
-            })
+            copy(
+                selectedDevices = when (filtered.size != selectedDevices.size) {
+                    true -> filtered
+                    false -> selectedDevices + action.device
+                }
+            )
         }
         Input.Sync.ClearSelections -> Mutation<ControlState> {
             copy(selectedDevices = listOf())
@@ -187,10 +191,14 @@ class ControlViewModel @Inject constructor(
         is Input.Async.ServerCommand -> nsdConnection.boundService
             ?.sendMessage(action.payload) ?: Unit
         is Input.Async.ClientServiceBound,
-        Input.Async.PingServer -> onAsyncInput(Input.Async.ServerCommand(Payload(
-            key = CommsProtocol.key,
-            action = CommsProtocol.pingAction
-        )))
+        Input.Async.PingServer -> onAsyncInput(
+            Input.Async.ServerCommand(
+                Payload(
+                    key = CommsProtocol.key,
+                    action = CommsProtocol.pingAction
+                )
+            )
+        )
         Input.Async.AppBackgrounded -> nsdConnection.boundService?.onAppBackground() ?: Unit
     }
 }

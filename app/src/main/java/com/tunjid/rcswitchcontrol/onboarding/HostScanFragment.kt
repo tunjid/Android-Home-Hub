@@ -62,7 +62,6 @@ import kotlinx.coroutines.launch
 class HostScanFragment : Fragment(R.layout.fragment_nsd_scan) {
 
     private val viewModel by viewModelFactory<NsdScanViewModel>()
-    private val isScanning: Boolean get() = viewModel.state.value?.isScanning == true
     private val navigator by activityNavigatorController<AppNavigator>()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -97,11 +96,7 @@ class HostScanFragment : Fragment(R.layout.fragment_nsd_scan) {
                 viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                     state.mapDistinct(NSDState::items.asSuspend).collect(listAdapter::submitList)
                     state.mapDistinct(NSDState::isScanning.asSuspend).collect {
-                        ::uiState.updatePartial {
-                            copy(
-                                toolbarInvalidated = true
-                            )
-                        }
+                        ::uiState.updatePartial { copy(toolbarInvalidated = true) }
                     }
                 }
             }
@@ -120,6 +115,8 @@ class HostScanFragment : Fragment(R.layout.fragment_nsd_scan) {
 
     private fun onToolbarRefreshed(menu: Menu) {
         super.onPrepareOptionsMenu(menu)
+        val isScanning = viewModel.state.value.isScanning
+
         menu.findItem(R.id.menu_stop)?.isVisible = isScanning
         menu.findItem(R.id.menu_scan)?.isVisible = !isScanning
 

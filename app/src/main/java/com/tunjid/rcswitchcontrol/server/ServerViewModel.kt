@@ -2,25 +2,26 @@ package com.tunjid.rcswitchcontrol.server
 
 import android.content.Context
 import android.net.nsd.NsdServiceInfo
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.io.ConsoleWriter
 import com.tunjid.androidx.communications.nsd.NsdHelper
 import com.tunjid.androidx.recyclerview.diff.Diffable
 import com.tunjid.rcswitchcontrol.R
+import com.tunjid.rcswitchcontrol.arch.UiStateMachine
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.client.ClientStateCache
 import com.tunjid.rcswitchcontrol.common.*
 import com.tunjid.rcswitchcontrol.di.AppBroadcaster
 import com.tunjid.rcswitchcontrol.di.AppBroadcasts
 import com.tunjid.rcswitchcontrol.di.AppContext
+import com.tunjid.rcswitchcontrol.di.UiScope
 import com.tunjid.rcswitchcontrol.models.Broadcast
 import com.tunjid.rcswitchcontrol.protocols.ProxyProtocol
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.util.network.*
 import io.ktor.utils.io.*
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.awaitClose
@@ -81,12 +82,13 @@ private class CachingProtocol(
 ) : CommsProtocol by protocol
 
 class ServerViewModel @Inject constructor(
+    @UiScope scope: CoroutineScope,
     @AppContext context: Context,
     broadcaster: AppBroadcaster,
     broadcasts: @JvmSuppressWildcards AppBroadcasts
-) : ViewModel() {
+) : UiStateMachine<Input, State>(scope) {
 
-    val state: StateFlow<State>
+    override val state: StateFlow<State>
 
     private val inputs = MutableSharedFlow<Input>(
         replay = 1,
@@ -94,29 +96,30 @@ class ServerViewModel @Inject constructor(
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
 
-    private val protocol = CachingProtocol(ProxyProtocol(
-        context = context,
-        printWriter = ConsoleWriter { inputs.tryEmit(Response(it)) }
-    ))
+    private val protocol = CachingProtocol(
+        ProxyProtocol(
+            context = context,
+            printWriter = ConsoleWriter { inputs.tryEmit(Response(it)) }
+        ))
 
     init {
         val serverOutputs: Flow<Output.Server> = inputs
             .filterIsInstance<Input.Restart>()
             .onStart { emit(Input.Restart) }
             .flatMapLatest { context.registerServer(ServerNsdService.serviceName) }
-            .shareIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(), replay = 1)
+            .shareIn(scope = scope, started = SharingStarted.WhileSubscribed(), replay = 1)
             .takeUntil(broadcasts.filterIsInstance<Broadcast.ServerNsd.Stop>())
 
         val registrations: Flow<Output.Server.Registered> = serverOutputs
             .filterIsInstance<Output.Server.Registered>()
-            .shareIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(), replay = 1)
+            .shareIn(scope = scope, started = SharingStarted.WhileSubscribed(), replay = 1)
 
         val clientOutputs: Flow<Output.Client> = registrations
             .map(Output.Server.Registered::socket.asSuspend)
             .flatMapLatest(ServerSocket::clients)
             .flatMapMerge(concurrency = Int.MAX_VALUE, transform = protocol::outputs)
             .flowOn(Dispatchers.IO)
-            .shareIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(), replay = 1)
+            .shareIn(scope = scope, started = SharingStarted.WhileSubscribed(), replay = 1)
 
         val clients: Flow<Set<WritableSocketConnection>> = clientOutputs
             .filterIsInstance<Output.Client.Status>()
@@ -126,7 +129,7 @@ class ServerViewModel @Inject constructor(
                     is Output.Client.Status.Dropped -> set - status.writer
                 }
             }
-            .shareIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(), replay = 1)
+            .shareIn(scope = scope, started = SharingStarted.WhileSubscribed(), replay = 1)
 
         val writes: Flow<String> = merge(
             clientOutputs
@@ -136,7 +139,7 @@ class ServerViewModel @Inject constructor(
                 .filterIsInstance<Response>()
                 .map(Response::data.asSuspend)
         )
-            .shareIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(), replay = 1)
+            .shareIn(scope = scope, started = SharingStarted.WhileSubscribed(), replay = 1)
 
         state = combine(
             registrations
@@ -151,7 +154,7 @@ class ServerViewModel @Inject constructor(
             ::State
         )
             .stateIn(
-                scope = viewModelScope,
+                scope = scope,
                 initialValue = State(),
                 started = SharingStarted.WhileSubscribed()
             )
@@ -165,7 +168,7 @@ class ServerViewModel @Inject constructor(
                 writers.forEach { it.write(data) }
             }
             .flowOn(Dispatchers.IO)
-            .launchIn(viewModelScope)
+            .launchIn(scope)
 
         registrations
             .onEach { registration ->
@@ -174,10 +177,10 @@ class ServerViewModel @Inject constructor(
                 ClientNsdService.lastConnectedService = registration.service.serviceName
                 broadcaster(Broadcast.ClientNsd.StartDiscovery())
             }
-            .launchIn(viewModelScope)
+            .launchIn(scope)
     }
 
-    fun accept(input: Input) {
+    override val accept: (Input) -> Unit = { input ->
         inputs.tryEmit(input)
     }
 }

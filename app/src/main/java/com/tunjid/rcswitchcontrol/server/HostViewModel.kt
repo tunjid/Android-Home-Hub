@@ -25,20 +25,29 @@
 package com.tunjid.rcswitchcontrol.server
 
 import android.content.Context
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.tunjid.androidx.core.components.services.HardServiceConnection
+import com.tunjid.rcswitchcontrol.arch.UiStateMachine
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.di.AppBroadcaster
 import com.tunjid.rcswitchcontrol.di.AppContext
+import com.tunjid.rcswitchcontrol.di.UiScope
 import com.tunjid.rcswitchcontrol.models.Broadcast
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 class HostViewModel @Inject constructor(
+    @UiScope scope: CoroutineScope,
     @AppContext context: Context,
     private val broadcaster: AppBroadcaster
-) : ViewModel() {
+) : UiStateMachine<Unit, State>(scope) {
 
     private val proxyState = MutableStateFlow<Flow<State>>(emptyFlow())
     private val serverConnection =
@@ -46,20 +55,23 @@ class HostViewModel @Inject constructor(
             proxyState.value = server.state
         }
 
-    val state: StateFlow<State> = proxyState
+    override val state: StateFlow<State> = proxyState
         .flatMapLatest { it }
         .stateIn(
-            scope = viewModelScope,
+            scope = scope,
             initialValue = State(),
             started = SharingStarted.WhileSubscribed(),
         )
 
+    override val accept: (Unit) -> Unit = { }
+
     init {
+        scope.cancel()
         serverConnection.bind()
     }
 
-    override fun onCleared() {
-        super.onCleared()
+    override fun close() {
+        super.close()
         proxyState.value = emptyFlow()
         serverConnection.unbindService()
     }

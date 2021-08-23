@@ -24,10 +24,9 @@
 
 package com.tunjid.rcswitchcontrol.server
 
+import android.app.Service
 import android.content.Intent
 import android.util.Log
-import androidx.lifecycle.LifecycleService
-import androidx.lifecycle.lifecycleScope
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.tunjid.androidx.core.components.services.SelfBinder
 import com.tunjid.androidx.core.components.services.SelfBindingService
@@ -35,31 +34,40 @@ import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.common.asSuspend
 import com.tunjid.rcswitchcontrol.common.mapDistinct
-import com.tunjid.rcswitchcontrol.di.viewModelFactory
+import com.tunjid.rcswitchcontrol.di.dagger
+import com.tunjid.rcswitchcontrol.di.stateMachine
 import com.tunjid.rcswitchcontrol.utils.notificationBuilder
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 /**
  * Service hosting a [CommsProtocol] on network service discovery
  */
-class ServerNsdService : LifecycleService(), SelfBindingService<ServerNsdService> {
+class ServerNsdService : Service(), SelfBindingService<ServerNsdService> {
 
     private val binder = Binder()
-    private val viewModel by viewModelFactory<ServerViewModel>()
+    private val scope = dagger.appComponent.uiScope()
+    private val stateMachine by stateMachine<ServerViewModel>()
 
-    val state by lazy { viewModel.state }
+    val state by lazy { stateMachine.state }
 
     override fun onCreate() {
         super.onCreate()
-        lifecycleScope.launch {
-            viewModel.state.mapDistinct(State::status.asSuspend).collect(::onStatusChanged)
+        scope.launch {
+            stateMachine.state.mapDistinct(State::status.asSuspend).collect(::onStatusChanged)
         }
-        lifecycleScope.launch {
-            viewModel.state.mapDistinct(State::numClients.asSuspend).collect {
+        scope.launch {
+            stateMachine.state.mapDistinct(State::numClients.asSuspend).collect {
                 Log.i("TEST", "There are $it clients")
             }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stateMachine.close()
+        scope.cancel()
     }
 
     private fun onStatusChanged(status: Status) = when (status) {
@@ -75,12 +83,9 @@ class ServerNsdService : LifecycleService(), SelfBindingService<ServerNsdService
         Status.Stopped -> stopSelf()
     }
 
-    override fun onBind(intent: Intent): SelfBinder<ServerNsdService> {
-        super.onBind(intent)
-        return binder
-    }
+    override fun onBind(intent: Intent): SelfBinder<ServerNsdService> = binder
 
-    fun restart() = viewModel.accept(Input.Restart)
+    fun restart() = stateMachine.accept(Input.Restart)
 
     /**
      * [android.os.Binder] for [ServerNsdService]

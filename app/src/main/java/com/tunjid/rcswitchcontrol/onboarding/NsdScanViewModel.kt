@@ -28,16 +28,16 @@ import android.content.Context
 import android.content.Intent
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.tunjid.androidx.communications.nsd.NsdHelper
 import com.tunjid.androidx.recyclerview.diff.Diffable
+import com.tunjid.rcswitchcontrol.arch.UiStateMachine
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.client.nsdServiceInfo
 import com.tunjid.rcswitchcontrol.common.asSuspend
 import com.tunjid.rcswitchcontrol.common.takeUntil
 import com.tunjid.rcswitchcontrol.di.AppBroadcasts
 import com.tunjid.rcswitchcontrol.di.AppContext
+import com.tunjid.rcswitchcontrol.di.UiScope
 import com.tunjid.rcswitchcontrol.models.Broadcast
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.awaitClose
@@ -71,19 +71,20 @@ private sealed class Output {
 }
 
 class NsdScanViewModel @Inject constructor(
+    @UiScope scope: CoroutineScope,
     broadcasts: @JvmSuppressWildcards AppBroadcasts,
     @AppContext private val context: Context
-) : ViewModel() {
+) : UiStateMachine<Input, NSDState>(scope) {
 
     private val scanProcessor = MutableSharedFlow<Input>(
         replay = 1,
         extraBufferCapacity = 1,
     )
 
-    val state = scanProcessor
+    override val state = scanProcessor
         .flatMapLatest {
             when (it) {
-                Input.StartScanning -> context.nsdServices(viewModelScope)
+                Input.StartScanning -> context.nsdServices(scope)
                     .map(::NsdItem)
                     .map<NsdItem, Output>(Output::ScanResult)
                     .onStart { emit(Output.Scanning(isScanning = true)) }
@@ -102,7 +103,7 @@ class NsdScanViewModel @Inject constructor(
             }
         }
         .stateIn(
-            scope = viewModelScope,
+            scope = scope,
             initialValue = NSDState(),
             started = SharingStarted.WhileSubscribed(),
         )
@@ -112,7 +113,7 @@ class NsdScanViewModel @Inject constructor(
             .filter { ClientNsdService.lastConnectedService != null }
             .flatMapLatest { broadcast ->
                 broadcast.service?.let(::flowOf)
-                    ?: context.nsdServices(viewModelScope)
+                    ?: context.nsdServices(scope)
                         .filter { it.serviceName == ClientNsdService.lastConnectedService }
                         .take(1)
             }
@@ -121,10 +122,10 @@ class NsdScanViewModel @Inject constructor(
                     nsdServiceInfo = it
                 })
             }
-            .launchIn(viewModelScope)
+            .launchIn(scope)
     }
 
-    fun accept(input: Input) {
+    override val accept: (Input) -> Unit = { input ->
         scanProcessor.tryEmit(input)
     }
 }

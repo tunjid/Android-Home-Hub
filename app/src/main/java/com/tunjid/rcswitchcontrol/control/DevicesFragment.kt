@@ -58,7 +58,8 @@ import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderPaddingBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderRemoteSwitchBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderZigbeeDeviceBinding
-import com.tunjid.rcswitchcontrol.di.viewModelFactory
+import com.tunjid.rcswitchcontrol.di.rootStateMachine
+import com.tunjid.rcswitchcontrol.di.stateMachine
 import com.tunjid.rcswitchcontrol.navigation.AppNavigator
 import com.tunjid.rcswitchcontrol.utils.DeletionHandler
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
@@ -75,10 +76,10 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
 
     private var isDeleting: Boolean = false
     private val viewBinding by viewLifecycle(FragmentListBinding::bind)
-    private val viewModel by viewModelFactory<ControlViewModel>(this::rootController)
+    private val stateMachine by rootStateMachine<ControlViewModel>()
     private val navigator by activityNavigatorController<AppNavigator>()
 
-    private val currentDevices get() = viewModel.state.value?.selectedDevices ?: listOf()
+    private val currentDevices get() = stateMachine.state.value.selectedDevices
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -86,7 +87,7 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
             isEnabled = currentDevices.isEmpty()
 
             if (!isEnabled) activity?.onBackPressed()
-            else viewModel.accept(Input.Sync.ClearSelections)
+            else stateMachine.accept(Input.Sync.ClearSelections)
         }
     }
 
@@ -125,7 +126,7 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
                 itemViewSwipeSupplier = { true }
             )
 
-            val clientState = viewModel.state
+            val clientState = stateMachine.state
                 .mapDistinct(ControlState::clientState.asSuspend)
                 .mapDistinct(ClientState::devices.asSuspend)
 
@@ -153,7 +154,7 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
     }
 
     private fun refreshUi() = ::uiState.updatePartial {
-        val selected = viewModel.state.value?.selectedDevices
+        val selected = stateMachine.state.value?.selectedDevices
         copy(
             altToolbarTitle = getString(R.string.devices_selected, currentDevices.size),
             altToolbarShows = !selected.isNullOrEmpty()
@@ -165,19 +166,19 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
     }
 
     override fun onLongClicked(device: Device) {
-        viewModel.accept(Input.Sync.Select(device))
+        stateMachine.accept(Input.Sync.Select(device))
     }
 
     override fun onSwitchToggled(device: Device, isOn: Boolean) = when (device) {
-        is Device.RF -> viewModel.accept(Input.Async.ServerCommand(device.togglePayload(isOn)))
+        is Device.RF -> stateMachine.accept(Input.Async.ServerCommand(device.togglePayload(isOn)))
         else -> Unit
     }
 
     override fun send(command: ZigBeeCommand) =
-        viewModel.accept(Input.Async.ServerCommand(command.payload))
+        stateMachine.accept(Input.Async.ServerCommand(command.payload))
 
     override fun onGroupNamed(groupName: CharSequence) {
-        viewModel.accept(Input.Sync.ClearSelections)
+        stateMachine.accept(Input.Sync.ClearSelections)
     }
 
     private fun getDeviceViewType(device: Device) = device::class.hashCode()
@@ -203,7 +204,7 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
         val devices = currentDevices
         val deletionHandler = DeletionHandler<Device>(position) { self ->
             if (self.hasItems() && self.peek() is Device.RF) self.pop().also { device ->
-                viewModel.accept(Input.Async.ServerCommand((device as Device.RF).deletePayload))
+                stateMachine.accept(Input.Async.ServerCommand((device as Device.RF).deletePayload))
             }
             isDeleting = false
         }

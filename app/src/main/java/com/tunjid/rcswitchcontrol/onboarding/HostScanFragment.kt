@@ -51,7 +51,7 @@ import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.control.ControlFragment
 import com.tunjid.rcswitchcontrol.databinding.FragmentNsdScanBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderNsdListBinding
-import com.tunjid.rcswitchcontrol.di.viewModelFactory
+import com.tunjid.rcswitchcontrol.di.stateMachine
 import com.tunjid.rcswitchcontrol.navigation.AppNavigator
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -61,7 +61,7 @@ import kotlinx.coroutines.launch
  */
 class HostScanFragment : Fragment(R.layout.fragment_nsd_scan) {
 
-    private val viewModel by viewModelFactory<NsdScanViewModel>()
+    private val stateMachine by stateMachine<NsdScanViewModel>()
     private val navigator by activityNavigatorController<AppNavigator>()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -78,7 +78,7 @@ class HostScanFragment : Fragment(R.layout.fragment_nsd_scan) {
 
         binding.list.apply {
             val listAdapter = listAdapterOf(
-                initialItems = viewModel.state.value.items,
+                initialItems = stateMachine.state.value.items,
                 viewHolderCreator = { parent, _ ->
                     parent.viewHolderFrom(ViewholderNsdListBinding::inflate).apply {
                         this.binding.title.setOnClickListener { onServiceClicked(item.info) }
@@ -90,7 +90,7 @@ class HostScanFragment : Fragment(R.layout.fragment_nsd_scan) {
             layoutManager = verticalLayoutManager()
             adapter = listAdapter
 
-            val state = viewModel.state
+            val state = stateMachine.state
 
             viewLifecycleOwner.lifecycleScope.launch {
                 viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -115,7 +115,7 @@ class HostScanFragment : Fragment(R.layout.fragment_nsd_scan) {
 
     private fun onToolbarRefreshed(menu: Menu) {
         super.onPrepareOptionsMenu(menu)
-        val isScanning = viewModel.state.value.isScanning
+        val isScanning = stateMachine.state.value.isScanning
 
         menu.findItem(R.id.menu_stop)?.isVisible = isScanning
         menu.findItem(R.id.menu_scan)?.isVisible = !isScanning
@@ -136,7 +136,7 @@ class HostScanFragment : Fragment(R.layout.fragment_nsd_scan) {
         navigator.push(ControlFragment.newInstance(ClientLoad.NewClient(serviceInfo)))
     }
 
-    private fun scanDevices(enable: Boolean) = viewModel.accept(
+    private fun scanDevices(enable: Boolean) = stateMachine.accept(
         if (enable) Input.StartScanning
         else Input.StopScanning
     )

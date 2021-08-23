@@ -32,13 +32,13 @@ import com.rcswitchcontrol.protocols.Name
 import com.rcswitchcontrol.protocols.renamePayload
 import com.tunjid.androidx.core.delegates.fragmentArgs
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.di.viewModelFactory
+import com.tunjid.rcswitchcontrol.di.rootStateMachine
 
 @SuppressLint("InflateParams")
 class RenameSwitchDialogFragment : DialogFragment() {
 
     private var name by fragmentArgs<Name>()
-    private val viewModel by viewModelFactory<ControlViewModel>(this::rootController)
+    private val stateMachine by rootStateMachine<ControlViewModel>()
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog = editTextDialog { editText, builder ->
         editText.setText(name.value)
@@ -46,7 +46,7 @@ class RenameSwitchDialogFragment : DialogFragment() {
         builder
             .setTitle(R.string.rename_switch)
             .setPositiveButton(R.string.rename) { _, _ ->
-                viewModel.accept(Input.Async.ServerCommand(name.copy(value = editText.text.toString()).renamePayload))
+                stateMachine.accept(Input.Async.ServerCommand(name.copy(value = editText.text.toString()).renamePayload))
                 dismiss()
             }
     }

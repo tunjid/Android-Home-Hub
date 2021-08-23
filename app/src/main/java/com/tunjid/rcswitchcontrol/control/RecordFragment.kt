@@ -51,7 +51,8 @@ import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderCommandBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderHistoryBinding
-import com.tunjid.rcswitchcontrol.di.viewModelFactory
+import com.tunjid.rcswitchcontrol.di.rootStateMachine
+import com.tunjid.rcswitchcontrol.di.stateMachine
 import com.tunjid.rcswitchcontrol.viewholders.bind
 import com.tunjid.rcswitchcontrol.viewholders.bindCommand
 import com.tunjid.rcswitchcontrol.viewholders.commandViewHolder
@@ -65,7 +66,7 @@ sealed class RecordFragment : Fragment(R.layout.fragment_list) {
     class CommandsFragment : RecordFragment()
 
     internal var key: CommsProtocol.Key? by fragmentArgs()
-    private val viewModel by viewModelFactory<ControlViewModel>(::rootController)
+    private val stateMachine by rootStateMachine<ControlViewModel>()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -105,7 +106,7 @@ sealed class RecordFragment : Fragment(R.layout.fragment_list) {
             }
             adapter = listAdapter
 
-            val clientState = viewModel.state.mapDistinct(ControlState::clientState.asSuspend)
+            val clientState = stateMachine.state.mapDistinct(ControlState::clientState.asSuspend)
 
             viewLifecycleOwner.lifecycleScope.launch {
                 viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -121,7 +122,7 @@ sealed class RecordFragment : Fragment(R.layout.fragment_list) {
         }
     }
 
-    private fun initialItems(): List<Record> = viewModel.state.value.clientState.let {
+    private fun initialItems(): List<Record> = stateMachine.state.value.clientState.let {
         if (key == null) it.history else it.commands[key]
     } ?: listOf()
 
@@ -132,7 +133,7 @@ sealed class RecordFragment : Fragment(R.layout.fragment_list) {
     }
 
     private fun onRecordClicked(record: Record) = when (record) {
-        is Record.Command -> viewModel.accept(Input.Async.ServerCommand(record.payload))
+        is Record.Command -> stateMachine.accept(Input.Async.ServerCommand(record.payload))
         is Record.Response -> Unit
     }
 

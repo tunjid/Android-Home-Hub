@@ -17,8 +17,8 @@
 
 package com.tunjid.rcswitchcontrol.di
 
-import androidx.lifecycle.ViewModelProvider
 import dagger.Component
+import kotlinx.coroutines.CoroutineScope
 import javax.inject.Singleton
 
 @Singleton
@@ -32,5 +32,8 @@ interface AppComponent {
 
     val broadcaster: AppBroadcaster
 
-    fun viewModelFactory(): ViewModelProvider.Factory
+    fun stateMachineCreator(): StateMachineCreator
+
+    @UiScope
+    fun uiScope() : CoroutineScope
 }

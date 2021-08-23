@@ -15,10 +15,9 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.tunjid.fingergestures.di
+package com.tunjid.rcswitchcontrol.di
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
+import com.tunjid.rcswitchcontrol.arch.StateMachine
 import dagger.MapKey
 import javax.inject.Provider
 import kotlin.reflect.KClass
@@ -33,20 +32,6 @@ import kotlin.reflect.KClass
 )
 @Retention(AnnotationRetention.RUNTIME)
 @MapKey
-annotation class ViewModelKey(val value: KClass<out ViewModel>)
+annotation class ViewModelKey(val value: KClass<out StateMachine<*, *>>)
 
-typealias ViewModelCreators = Map<Class<out ViewModel>, @JvmSuppressWildcards Provider<ViewModel>>
-
-open class ViewModelFactory(private val creators: ViewModelCreators) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        val creator = creators[modelClass]
-            ?: creators.entries.firstOrNull { modelClass.isAssignableFrom(it.key) }?.value
-            ?: throw IllegalArgumentException("unknown model class $modelClass")
-        try {
-            @Suppress("UNCHECKED_CAST")
-            return creator.get() as T
-        } catch (e: Exception) {
-            throw RuntimeException(e)
-        }
-    }
-}
+typealias StateMachineFactory = Map<Class<out StateMachine<*, *>>, @JvmSuppressWildcards Provider<StateMachine<*, *>>>

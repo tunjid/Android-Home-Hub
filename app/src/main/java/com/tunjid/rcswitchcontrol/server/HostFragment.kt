@@ -45,10 +45,9 @@ import com.tunjid.rcswitchcontrol.MainActivity
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.control.NameServiceDialogFragment
-import com.tunjid.rcswitchcontrol.control.rootController
 import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderHostCardBinding
-import com.tunjid.rcswitchcontrol.di.viewModelFactory
+import com.tunjid.rcswitchcontrol.di.rootStateMachine
 import com.tunjid.rcswitchcontrol.utils.makeAccessibleForTV
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -56,14 +55,14 @@ import kotlinx.coroutines.launch
 class HostFragment : Fragment(R.layout.fragment_list),
     NameServiceDialogFragment.ServiceNameListener {
 
-    private val viewModel by viewModelFactory<HostViewModel>(this::rootController)
+    private val stateMachine by rootStateMachine<HostViewModel>()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         FragmentListBinding.bind(view).list.apply {
             val listAdapter = listAdapterOf(
-                initialItems = viewModel.state.value.let(view.context::items),
+                initialItems = stateMachine.state.value.let(view.context::items),
                 viewHolderCreator = { parent, _ ->
                     parent.viewHolderFrom(ViewholderHostCardBinding::inflate).apply {
                         binding.button.strokeColor = ColorStateList.valueOf(Color.WHITE)
@@ -82,7 +81,7 @@ class HostFragment : Fragment(R.layout.fragment_list),
 
             viewLifecycleOwner.lifecycleScope.launch {
                 viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                    viewModel.state
+                    stateMachine.state
                         .mapDistinct(context::items)
                         .collect(listAdapter::submitList)
                 }
@@ -92,9 +91,9 @@ class HostFragment : Fragment(R.layout.fragment_list),
 
     private fun onItemClicked(item: HostItem) = when (item.id) {
         R.string.rename_server -> NameServiceDialogFragment.newInstance().show(childFragmentManager, "")
-        R.string.restart_server -> viewModel.restartServer()
+        R.string.restart_server -> stateMachine.restartServer()
         R.string.stop_server -> {
-            viewModel.stop()
+            stateMachine.stop()
             startActivity(Intent(requireActivity(), MainActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
@@ -115,7 +114,7 @@ class HostFragment : Fragment(R.layout.fragment_list),
         ::uiState.updatePartial { copy(altToolbarShows = false) }
     }
 
-    override fun onServiceNamed(name: String) = viewModel.nameServer(name)
+    override fun onServiceNamed(name: String) = stateMachine.nameServer(name)
 
     companion object {
         fun newInstance(): HostFragment = HostFragment().apply { arguments = Bundle() }

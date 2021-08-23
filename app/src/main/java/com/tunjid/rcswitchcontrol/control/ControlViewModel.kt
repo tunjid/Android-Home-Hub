@@ -26,12 +26,11 @@ package com.tunjid.rcswitchcontrol.control
 
 import android.content.Context
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelStoreOwner
-import androidx.lifecycle.viewModelScope
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.core.components.services.HardServiceConnection
+import com.tunjid.rcswitchcontrol.arch.UiStateMachine
 import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.client.State
@@ -44,9 +43,12 @@ import com.tunjid.rcswitchcontrol.common.asSuspend
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.di.AppBroadcasts
 import com.tunjid.rcswitchcontrol.di.AppContext
+import com.tunjid.rcswitchcontrol.di.UiScope
 import com.tunjid.rcswitchcontrol.di.dagger
 import com.tunjid.rcswitchcontrol.models.Broadcast
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 
@@ -58,9 +60,10 @@ val Fragment.rootController: ViewModelStoreOwner
         .firstOrNull() ?: this
 
 class ControlViewModel @Inject constructor(
+    @UiScope scope: CoroutineScope,
     @AppContext private val context: Context,
     broadcasts: @JvmSuppressWildcards AppBroadcasts
-) : ViewModel() {
+) : UiStateMachine<Input, ControlState>(scope) {
 
     private val actions = MutableSharedFlow<Input>(
         replay = 1,
@@ -78,7 +81,7 @@ class ControlViewModel @Inject constructor(
     val isBound: Boolean
         get() = nsdConnection.boundService != null
 
-    val state: StateFlow<ControlState>
+    override val state: StateFlow<ControlState>
 
     init {
         val connectionStatuses: Flow<Status> = merge(
@@ -97,7 +100,7 @@ class ControlViewModel @Inject constructor(
             .filter(String::isNotBlank)
             .map { it.deserialize<Payload>() }
 
-        val clientStateObservable = viewModelScope.clientState(
+        val clientStateObservable = scope.clientState(
             connectionStatuses,
             serverResponses,
         )
@@ -115,26 +118,26 @@ class ControlViewModel @Inject constructor(
             .scan(ControlState(), Mutator::mutate)
             .map { updateSelections(it) }
             .stateIn(
-                scope = viewModelScope,
+                scope = scope,
                 initialValue = ControlState(),
                 started = SharingStarted.WhileSubscribed(),
             )
 
         // Keep the connection alive
-        state.launchIn(viewModelScope)
+        state.launchIn(scope)
 
         actions
             .filterIsInstance<Input.Async>()
             .map(::onAsyncInput)
-            .launchIn(viewModelScope)
+            .launchIn(scope)
     }
 
-    override fun onCleared() {
+    override fun close() {
         nsdConnection.unbindService()
-        super.onCleared()
+        scope.cancel()
     }
 
-    fun accept(input: Input) {
+    override val accept: (Input) -> Unit = { input ->
         actions.tryEmit(input)
     }
 

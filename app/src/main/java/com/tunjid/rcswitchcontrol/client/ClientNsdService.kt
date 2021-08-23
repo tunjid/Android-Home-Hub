@@ -26,10 +26,9 @@ package com.tunjid.rcswitchcontrol.client
 
 import android.app.Notification
 import android.app.PendingIntent
+import android.app.Service
 import android.content.Intent
 import android.net.nsd.NsdServiceInfo
-import androidx.lifecycle.LifecycleService
-import androidx.lifecycle.lifecycleScope
 import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.core.components.services.SelfBinder
 import com.tunjid.androidx.core.components.services.SelfBindingService
@@ -39,10 +38,12 @@ import com.tunjid.rcswitchcontrol.MainActivity
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.common.asSuspend
 import com.tunjid.rcswitchcontrol.common.mapDistinct
-import com.tunjid.rcswitchcontrol.di.viewModelFactory
+import com.tunjid.rcswitchcontrol.di.dagger
+import com.tunjid.rcswitchcontrol.di.stateMachine
 import com.tunjid.rcswitchcontrol.utils.addNotificationChannel
 import com.tunjid.rcswitchcontrol.utils.notificationBuilder
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import java.util.*
@@ -50,11 +51,12 @@ import java.util.*
 var Intent.nsdServiceInfo by intentExtras<NsdServiceInfo?>()
 var Intent.nsdServiceName by intentExtras<String?>()
 
-class ClientNsdService : LifecycleService(), SelfBindingService<ClientNsdService> {
+class ClientNsdService : Service(), SelfBindingService<ClientNsdService> {
 
-    val state: Flow<State> by lazy { viewModel.state }
+    val state: StateFlow<State> by lazy { stateMachine.state }
 
-    private val viewModel by viewModelFactory<ClientViewModel>()
+    private val scope = dagger.appComponent.uiScope()
+    private val stateMachine by stateMachine<ClientViewModel>()
 
     private val binder = NsdClientBinder()
 
@@ -62,20 +64,26 @@ class ClientNsdService : LifecycleService(), SelfBindingService<ClientNsdService
         super.onCreate()
         addNotificationChannel(R.string.switch_service, R.string.switch_service_description)
 
-        val state = viewModel.state
-        lifecycleScope.launch {
+        val state = stateMachine.state
+        scope.launch {
             state.collect(::onStateChanged)
         }
-        lifecycleScope.launch {
+        scope.launch {
             state.mapDistinct(State::serviceName.asSuspend).collect {
                 it?.let(Companion::lastConnectedService::set)
             }
         }
-        lifecycleScope.launch {
+        scope.launch {
             state.mapDistinct(State::isStopped.asSuspend).collect {
                 if (it) stopSelf()
             }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stateMachine.close()
+        scope.cancel()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -84,7 +92,6 @@ class ClientNsdService : LifecycleService(), SelfBindingService<ClientNsdService
     }
 
     override fun onBind(intent: Intent): SelfBinder<ClientNsdService> {
-        super.onBind(intent)
         onAppForeGround()
         initialize(intent)
         return binder
@@ -103,14 +110,14 @@ class ClientNsdService : LifecycleService(), SelfBindingService<ClientNsdService
         intent
             ?.nsdServiceInfo
             ?.let(Input::Connect)
-            ?.let(viewModel::accept)
+            ?.let(stateMachine.accept)
     }
 
-    fun onAppBackground() = viewModel.accept(Input.ContextChanged(inBackground = true))
+    fun onAppBackground() = stateMachine.accept(Input.ContextChanged(inBackground = true))
 
-    fun onAppForeGround() = viewModel.accept(Input.ContextChanged(inBackground = false))
+    fun onAppForeGround() = stateMachine.accept(Input.ContextChanged(inBackground = false))
 
-    fun sendMessage(payload: Payload) = viewModel.accept(Input.Send(payload))
+    fun sendMessage(payload: Payload) = stateMachine.accept(Input.Send(payload))
 
     private fun connectedNotification(serviceName: String): Notification =
         notificationBuilder()

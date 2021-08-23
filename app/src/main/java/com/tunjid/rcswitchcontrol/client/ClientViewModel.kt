@@ -1,19 +1,17 @@
 package com.tunjid.rcswitchcontrol.client
 
 import android.net.nsd.NsdServiceInfo
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.asLiveData
-import androidx.lifecycle.viewModelScope
 import com.rcswitchcontrol.protocols.models.Payload
+import com.tunjid.rcswitchcontrol.arch.UiStateMachine
 import com.tunjid.rcswitchcontrol.common.*
 import com.tunjid.rcswitchcontrol.di.AppBroadcaster
 import com.tunjid.rcswitchcontrol.di.AppBroadcasts
+import com.tunjid.rcswitchcontrol.di.UiScope
 import com.tunjid.rcswitchcontrol.models.Broadcast
-import com.tunjid.rcswitchcontrol.onboarding.NSDState
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.utils.io.*
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.*
@@ -62,11 +60,12 @@ private val Write.isValid get() = writer != null && writer.canWrite
 private suspend fun Write.print() = writer?.write(data) ?: Unit
 
 class ClientViewModel @Inject constructor(
+    @UiScope scope: CoroutineScope,
     broadcaster: AppBroadcaster,
     broadcasts: @JvmSuppressWildcards AppBroadcasts,
-) : ViewModel() {
+) : UiStateMachine<Input, State>(scope) {
 
-    val state: StateFlow<State>
+    override val state: StateFlow<State>
 
     private val inputs = MutableSharedFlow<Input>(
         replay = 1,
@@ -79,11 +78,11 @@ class ClientViewModel @Inject constructor(
             .filterIsInstance<Input.Connect>()
             .map(Input.Connect::service.asSuspend)
             .flatMapConcat(NsdServiceInfo::outputs)
-            .shareIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(), replay = 1)
+            .shareIn(scope = scope, started = SharingStarted.WhileSubscribed(), replay = 1)
 
         val connections = outputs
             .filterIsInstance<Output.Connection>()
-            .shareIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(), replay = 1)
+            .shareIn(scope = scope, started = SharingStarted.WhileSubscribed(), replay = 1)
 
         state = merge(
             broadcasts
@@ -98,7 +97,7 @@ class ClientViewModel @Inject constructor(
         )
             .scan(State(), Mutator::mutate)
             .stateIn(
-                scope = viewModelScope,
+                scope = scope,
                 initialValue = State(),
                 started = SharingStarted.WhileSubscribed(),
             )
@@ -108,33 +107,35 @@ class ClientViewModel @Inject constructor(
             .map(Input.Send::payload.asSuspend)
             .map(Payload::serialize)
             .withLatestFrom(connections) { data, connection ->
-                Write(data = data, writer = when (connection) {
-                    is Output.Connection.Connected -> connection.writer
-                    is Output.Connection.Connecting,
-                    Output.Connection.Disconnected -> null
-                })
+                Write(
+                    data = data, writer = when (connection) {
+                        is Output.Connection.Connected -> connection.writer
+                        is Output.Connection.Connecting,
+                        Output.Connection.Disconnected -> null
+                    }
+                )
             }
             .filter(Write::isValid.asSuspend)
             .onEach(Write::print)
             .flowOn(Dispatchers.IO)
-            .launchIn(viewModelScope)
+            .launchIn(scope)
 
         outputs
             .filterIsInstance<Output.Response>()
             .map(Output.Response::data.asSuspend)
             .map(Broadcast.ClientNsd::ServerResponse)
             .onEach { broadcaster(it) }
-            .launchIn(viewModelScope)
+            .launchIn(scope)
 
         state
             .map(State::status.asSuspend)
             .distinctUntilChanged()
             .map(Broadcast.ClientNsd::ConnectionStatus)
             .onEach { broadcaster(it) }
-            .launchIn(viewModelScope)
+            .launchIn(scope)
     }
 
-    fun accept(input: Input) {
+    override val accept: (Input) -> Unit = { input ->
         inputs.tryEmit(input)
     }
 }

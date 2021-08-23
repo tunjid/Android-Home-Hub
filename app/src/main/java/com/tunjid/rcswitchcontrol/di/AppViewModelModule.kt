@@ -17,70 +17,68 @@
 
 package com.tunjid.rcswitchcontrol.di
 
-import androidx.activity.viewModels
+import android.app.Service
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
-import androidx.fragment.app.activityViewModels
-import androidx.fragment.app.viewModels
 import androidx.lifecycle.LifecycleService
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelLazy
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelStoreOwner
-import com.tunjid.fingergestures.di.ViewModelCreators
-import com.tunjid.fingergestures.di.ViewModelFactory
-import com.tunjid.fingergestures.di.ViewModelKey
+import com.tunjid.rcswitchcontrol.arch.StateMachine
 import com.tunjid.rcswitchcontrol.client.ClientViewModel
-import com.tunjid.rcswitchcontrol.utils.LifecycleViewModelStoreProvider
-import com.tunjid.rcswitchcontrol.server.ServerViewModel
 import com.tunjid.rcswitchcontrol.control.ControlViewModel
-import com.tunjid.rcswitchcontrol.server.HostViewModel
 import com.tunjid.rcswitchcontrol.onboarding.NsdScanViewModel
+import com.tunjid.rcswitchcontrol.server.HostViewModel
+import com.tunjid.rcswitchcontrol.server.ServerViewModel
 import dagger.Binds
 import dagger.Module
 import dagger.multibindings.IntoMap
-import javax.inject.Inject
-import javax.inject.Singleton
 
-inline fun <reified VM : ViewModel> Fragment.viewModelFactory(
-    noinline ownerProducer: () -> ViewModelStoreOwner = { this }
-) = viewModels<VM>(ownerProducer = ownerProducer) { dagger.viewModelFactory }
+inline fun <reified SM : StateMachine<*, *>> Fragment.stateMachine() = lazy {
+    val path = generateSequence(parentFragment, Fragment::getParentFragment)
+        .mapNotNull(Fragment::getTag)
+        .joinToString(separator = "/")
+    dagger.stateMachine<SM>(path)
+}
 
-inline fun <reified VM : ViewModel> Fragment.activityViewModelFactory() =
-    activityViewModels<VM> { dagger.viewModelFactory }
+inline fun <reified SM : StateMachine<*, *>> Fragment.rootStateMachine() = lazy {
+    dagger.stateMachine<SM>("Root")
+}
 
-inline fun <reified VM : ViewModel> FragmentActivity.viewModelFactory() =
-    viewModels<VM> { dagger.viewModelFactory }
+inline fun <reified SM : StateMachine<*, *>> FragmentActivity.stateMachine() = lazy {
+    dagger.stateMachine<SM>(this.javaClass.simpleName)
+}
 
-inline fun <reified VM : ViewModel> LifecycleService.viewModelFactory() =
-    ViewModelLazy(
-        viewModelClass = VM::class,
-        storeProducer = { LifecycleViewModelStoreProvider(lifecycle).viewModelStore },
-        factoryProducer = { dagger.viewModelFactory }
-    )
+inline fun <reified SM : StateMachine<*, *>> Service.stateMachine() = lazy {
+    dagger.stateMachine<SM>(this.javaClass.simpleName)
+}
 
-val Dagger.viewModelFactory get() = appComponent.viewModelFactory()
-
-@Singleton
-class AppViewModelFactory @Inject constructor(creators: ViewModelCreators) : ViewModelFactory(creators)
+inline fun <reified SM : StateMachine<*, *>> Dagger.stateMachine(
+    path: String
+) = appComponent.stateMachineCreator().invoke(path, SM::class) as SM
 
 @Module
 abstract class AppViewModelModule {
+
     @Binds
-    abstract fun bindAppViewModelFactory(factory: AppViewModelFactory): ViewModelProvider.Factory
+    @IntoMap
+    @ViewModelKey(ControlViewModel::class)
+    abstract fun bindControlViewModel(stateMachine: ControlViewModel): StateMachine<*, *>
 
-    @Binds @IntoMap @ViewModelKey(ControlViewModel::class)
-    abstract fun bindControlViewModel(viewModel: ControlViewModel): ViewModel
+    @Binds
+    @IntoMap
+    @ViewModelKey(HostViewModel::class)
+    abstract fun bindPersonHostViewModel(stateMachine: HostViewModel): StateMachine<*, *>
 
-    @Binds @IntoMap @ViewModelKey(HostViewModel::class)
-    abstract fun bindPersonHostViewModel(viewModel: HostViewModel): ViewModel
+    @Binds
+    @IntoMap
+    @ViewModelKey(NsdScanViewModel::class)
+    abstract fun bindNsdScanViewModel(stateMachine: NsdScanViewModel): StateMachine<*, *>
 
-    @Binds @IntoMap @ViewModelKey(NsdScanViewModel::class)
-    abstract fun bindNsdScanViewModel(viewModel: NsdScanViewModel): ViewModel
+    @Binds
+    @IntoMap
+    @ViewModelKey(ServerViewModel::class)
+    abstract fun bindServerViewModel(stateMachine: ServerViewModel): StateMachine<*, *>
 
-    @Binds @IntoMap @ViewModelKey(ServerViewModel::class)
-    abstract fun bindServerViewModel(viewModel: ServerViewModel): ViewModel
-
-    @Binds @IntoMap @ViewModelKey(ClientViewModel::class)
-    abstract fun bindClientViewModel(viewModel: ClientViewModel): ViewModel
+    @Binds
+    @IntoMap
+    @ViewModelKey(ClientViewModel::class)
+    abstract fun bindClientViewModel(stateMachine: ClientViewModel): StateMachine<*, *>
 }

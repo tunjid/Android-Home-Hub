@@ -38,15 +38,13 @@ import android.content.res.Configuration
 import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.util.Log
-import androidx.lifecycle.ProcessLifecycleOwner
-import androidx.lifecycle.ViewModelProvider
 import com.google.android.things.pio.PeripheralManager
 import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.di.Dagger
-import com.tunjid.rcswitchcontrol.utils.LifecycleViewModelStoreProvider
-import com.tunjid.rcswitchcontrol.server.ServerNsdService
+import com.tunjid.rcswitchcontrol.di.stateMachine
 import com.tunjid.rcswitchcontrol.onboarding.NsdScanViewModel
+import com.tunjid.rcswitchcontrol.server.ServerNsdService
 
 /**
  * App Singleton.
@@ -70,11 +68,8 @@ class App : android.app.Application() {
         receiver
     }
 
-    private val viewModel by lazy {
-        ViewModelProvider(
-            LifecycleViewModelStoreProvider(ProcessLifecycleOwner.get().lifecycle),
-            dagger.appComponent.viewModelFactory()
-        ).get(NsdScanViewModel::class.java)
+    private val stateMachine by lazy {
+        dagger.stateMachine<NsdScanViewModel>("Application")
     }
 
     @SuppressLint("CheckResult")
@@ -89,7 +84,7 @@ class App : android.app.Application() {
                 if (ServerNsdService.isServer) startService(Intent(activity, ServerNsdService::class.java))
                 // Initialize lazy objects
                 receiver
-                viewModel
+                stateMachine
             }
 
             override fun onActivityResumed(activity: Activity) = Unit

@@ -22,6 +22,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.tunjid.rcswitchcontrol.App
+import com.tunjid.rcswitchcontrol.arch.StateMachine
 import com.tunjid.rcswitchcontrol.models.Broadcast
 import dagger.Module
 import dagger.Provides
@@ -33,6 +34,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import javax.inject.Qualifier
 import javax.inject.Singleton
+import kotlin.reflect.KClass
+
+private typealias StateMachineCache = MutableMap<String, MutableMap<KClass<out StateMachine<*, *>>, StateMachine<*, *>>>
+typealias StateMachineCreator = (path: String, modelClass: KClass<out StateMachine<*, *>>) -> StateMachine<*, *>
 
 typealias AppBroadcaster = (@JvmSuppressWildcards Broadcast) -> Unit
 typealias AppBroadcasts = Flow<Broadcast>
@@ -40,6 +45,9 @@ typealias AppScope = CoroutineScope
 
 @Qualifier
 annotation class AppContext
+
+@Qualifier
+annotation class UiScope
 
 @Module
 class AppModule(private val app: App) {
@@ -49,6 +57,8 @@ class AppModule(private val app: App) {
         replay = 1,
         extraBufferCapacity = 5,
     )
+
+    private val stateMachineCache: StateMachineCache = mutableMapOf()
 
     init {
         ProcessLifecycleOwner.get().lifecycle.addObserver(LifecycleEventObserver { _, event ->
@@ -75,4 +85,28 @@ class AppModule(private val app: App) {
     @Provides
     @Singleton
     fun provideAppScope(): AppScope = appScope
+
+    @Provides
+    @Singleton
+    fun provideStateMachineCreator(factory: StateMachineFactory): StateMachineCreator =
+        { path, modelClass ->
+            val classToInstances = stateMachineCache.getOrPut(path) { mutableMapOf() }
+            classToInstances.getOrPut(modelClass) {
+                val creator = factory[modelClass.java]
+                    ?: factory.entries.firstOrNull { modelClass.java.isAssignableFrom(it.key) }?.value
+                    ?: throw IllegalArgumentException("unknown model class $modelClass")
+
+                try {
+                    creator.get()
+                } catch (e: Exception) {
+                    throw RuntimeException(e)
+                }
+            }
+
+        }
+
+    @Provides
+    @UiScope
+    fun provideUiScope(): CoroutineScope =
+        CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 }

@@ -65,7 +65,8 @@ import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.control.Page.HISTORY
 import com.tunjid.rcswitchcontrol.databinding.FragmentControlBinding
 import com.tunjid.rcswitchcontrol.di.dagger
-import com.tunjid.rcswitchcontrol.di.viewModelFactory
+import com.tunjid.rcswitchcontrol.di.rootStateMachine
+import com.tunjid.rcswitchcontrol.di.stateMachine
 import com.tunjid.rcswitchcontrol.models.Broadcast
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
 import com.tunjid.rcswitchcontrol.utils.FragmentTabAdapter
@@ -79,12 +80,12 @@ class ControlFragment : Fragment(R.layout.fragment_control),
     ZigBeeArgumentDialogFragment.ZigBeeArgsListener {
 
     private val viewBinding by viewLifecycle(FragmentControlBinding::bind)
-    private val viewModel by viewModelFactory<ControlViewModel>(this::rootController)
+    private val stateMachine by rootStateMachine<ControlViewModel>()
     private var load by fragmentArgs<ClientLoad>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        viewModel.accept(Input.Async.Load(load))
+        stateMachine.accept(Input.Async.Load(load))
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -118,7 +119,7 @@ class ControlFragment : Fragment(R.layout.fragment_control),
 
         val onPageSelected: (position: Int) -> Unit = {
             bottomSheetBehavior.state =
-                if (viewModel.pages[it] == HISTORY) STATE_HALF_EXPANDED else STATE_HIDDEN
+                if (stateMachine.pages[it] == HISTORY) STATE_HALF_EXPANDED else STATE_HIDDEN
         }
 
         val pageAdapter = FragmentTabAdapter<Page>(this)
@@ -130,7 +131,7 @@ class ControlFragment : Fragment(R.layout.fragment_control),
             registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
                 override fun onPageSelected(position: Int) = onPageSelected(position)
             })
-            pageAdapter.submitList(viewModel.pages)
+            pageAdapter.submitList(stateMachine.pages)
         }
 
         viewBinding.commandsPager.apply {
@@ -158,14 +159,14 @@ class ControlFragment : Fragment(R.layout.fragment_control),
                 }
 
                 override fun onStateChanged(bottomSheet: View, newState: Int) {
-                    if (newState == STATE_HIDDEN && viewModel.pages[viewBinding.mainPager.currentItem] == HISTORY) bottomSheetBehavior.state =
+                    if (newState == STATE_HIDDEN && stateMachine.pages[viewBinding.mainPager.currentItem] == HISTORY) bottomSheetBehavior.state =
                         STATE_COLLAPSED
                 }
             })
             onPageSelected(viewBinding.mainPager.currentItem)
         }
 
-        val state = viewModel.state
+        val state = stateMachine.state
         val clientState = state.mapDistinct(ControlState::clientState.asSuspend)
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -204,14 +205,14 @@ class ControlFragment : Fragment(R.layout.fragment_control),
 
     override fun onStop() {
         super.onStop()
-        viewModel.accept(Input.Async.AppBackgrounded)
+        stateMachine.accept(Input.Async.AppBackgrounded)
     }
 
     private fun onToolbarRefreshed(menu: Menu) {
-        val state = viewModel.state.value
-        menu.findItem(R.id.menu_ping)?.isVisible = viewModel.state.value.clientState.isConnected
+        val state = stateMachine.state.value
+        menu.findItem(R.id.menu_ping)?.isVisible = stateMachine.state.value.clientState.isConnected
         menu.findItem(R.id.menu_connect)?.isVisible =
-            !viewModel.state.value.clientState.isConnected
+            !stateMachine.state.value.clientState.isConnected
         menu.findItem(R.id.menu_forget)?.isVisible = !ServerNsdService.isServer
 
         menu.findItem(R.id.menu_rename_device)?.isVisible = state.selectedDevices.size == 1
@@ -220,11 +221,11 @@ class ControlFragment : Fragment(R.layout.fragment_control),
     }
 
     private fun onToolbarMenuItemSelected(item: MenuItem) {
-        if (viewModel.isBound) when (item.itemId) {
-            R.id.menu_ping -> viewModel.accept(Input.Async.PingServer).let { true }
+        if (stateMachine.isBound) when (item.itemId) {
+            R.id.menu_ping -> stateMachine.accept(Input.Async.PingServer).let { true }
             R.id.menu_connect -> dagger.appComponent.broadcaster(Broadcast.ClientNsd.StartDiscovery())
             R.id.menu_forget -> requireActivity().let {
-                viewModel.accept(Input.Async.ForgetServer)
+                stateMachine.accept(Input.Async.ForgetServer)
 
                 startActivity(
                     Intent(it, MainActivity::class.java)
@@ -234,7 +235,7 @@ class ControlFragment : Fragment(R.layout.fragment_control),
 
                 it.finish()
             }
-            R.id.menu_rename_device -> viewModel.state.value
+            R.id.menu_rename_device -> stateMachine.state.value
                 .selectedDevices
                 .firstOrNull()
                 ?.editName
@@ -259,7 +260,7 @@ class ControlFragment : Fragment(R.layout.fragment_control),
         }
 
     override fun onArgsEntered(command: ZigBeeCommand) =
-        viewModel.accept(Input.Async.ServerCommand(command.payload))
+        stateMachine.accept(Input.Async.ServerCommand(command.payload))
 
     companion object {
         fun newInstance(load: ClientLoad) = ControlFragment().apply { this.load = load }

@@ -30,7 +30,8 @@ import com.tunjid.rcswitchcontrol.client.keys
 import com.tunjid.rcswitchcontrol.common.asSuspend
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentControlLandscapeBinding
-import com.tunjid.rcswitchcontrol.di.viewModelFactory
+import com.tunjid.rcswitchcontrol.di.rootStateMachine
+import com.tunjid.rcswitchcontrol.di.stateMachine
 import com.tunjid.rcswitchcontrol.server.HostFragment
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
 import com.tunjid.rcswitchcontrol.utils.item
@@ -45,7 +46,7 @@ class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape),
     private val innerNavigator by childStackNavigationController(R.id.child_fragment_container)
 
     private val viewBinding by viewLifecycle(FragmentControlLandscapeBinding::bind)
-    private val viewModel by viewModelFactory<ControlViewModel>(this::rootController)
+    private val stateMachine by rootStateMachine<ControlViewModel>()
     private var load by fragmentArgs<ClientLoad>()
 
     private val host by lazy { requireActivity().getString(R.string.host) }
@@ -56,7 +57,7 @@ class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape),
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        viewModel.accept(Input.Async.Load(load))
+        stateMachine.accept(Input.Async.Load(load))
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -69,7 +70,7 @@ class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape),
                 else -> listOf(devices)
             }
             val listAdapter = listAdapterOf(
-                initialItems = persistentItems + viewModel.state.value.clientState.keys,
+                initialItems = persistentItems + stateMachine.state.value.clientState.keys,
                 viewHolderCreator = { parent, _ ->
                     HeaderViewHolder(parent.context, ::onHeaderHighlighted)
                 },
@@ -85,7 +86,7 @@ class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape),
 
             viewLifecycleOwner.lifecycleScope.launch {
                 viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                    viewModel.state
+                    stateMachine.state
                         .mapDistinct(ControlState::clientState.asSuspend)
                         .mapDistinct { persistentItems + it.keys }
                         .collect(listAdapter::submitList)

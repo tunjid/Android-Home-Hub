@@ -17,9 +17,12 @@
 
 package com.tunjid.rcswitchcontrol.di
 
+import com.tunjid.rcswitchcontrol.navigation.StackNav
 import dagger.Component
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Singleton
+import kotlin.reflect.KMutableProperty0
 
 @Singleton
 @Component(modules = [
@@ -27,6 +30,10 @@ import javax.inject.Singleton
     AppViewModelModule::class,
 ])
 interface AppComponent {
+
+    val state: StateFlow<AppState>
+
+    val nav: KMutableProperty0<StackNav>
 
     fun broadcasts(): AppBroadcasts
 

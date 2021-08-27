@@ -40,12 +40,15 @@ import com.tunjid.rcswitchcontrol.common.asSuspend
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.di.dagger
 import com.tunjid.rcswitchcontrol.di.stateMachine
+import com.tunjid.rcswitchcontrol.navigation.Named
+import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.utils.addNotificationChannel
 import com.tunjid.rcswitchcontrol.utils.notificationBuilder
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import kotlinx.parcelize.Parcelize
 import java.util.*
 
 var Intent.nsdServiceInfo by intentExtras<NsdServiceInfo?>()
@@ -55,8 +58,8 @@ class ClientNsdService : Service(), SelfBindingService<ClientNsdService> {
 
     val state: StateFlow<State> by lazy { stateMachine.state }
 
-    private val scope = dagger.appComponent.uiScope()
-    private val stateMachine by stateMachine<ClientViewModel>()
+    private val scope by lazy { dagger.appComponent.uiScope() }
+    private val stateMachine by lazy { dagger.stateMachine<ClientViewModel>() }
 
     private val binder = NsdClientBinder()
 
@@ -82,8 +85,8 @@ class ClientNsdService : Service(), SelfBindingService<ClientNsdService> {
 
     override fun onDestroy() {
         super.onDestroy()
-        stateMachine.close()
         scope.cancel()
+        stateMachine.close()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

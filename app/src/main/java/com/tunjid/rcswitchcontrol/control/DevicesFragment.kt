@@ -24,23 +24,15 @@
 
 package com.tunjid.rcswitchcontrol.control
 
-import android.os.Bundle
-import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.doOnAttach
 import androidx.core.view.updatePadding
-import androidx.fragment.app.Fragment
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ItemTouchHelper.Callback.makeMovementFlags
 import androidx.recyclerview.widget.RecyclerView
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
 import com.rcswitchcontrol.zigbee.models.payload
-import com.tunjid.androidx.core.delegates.viewLifecycle
-import com.tunjid.androidx.navigation.activityNavigatorController
-import com.tunjid.androidx.navigation.addOnBackPressedCallback
 import com.tunjid.androidx.recyclerview.gridLayoutManager
 import com.tunjid.androidx.recyclerview.listAdapterOf
 import com.tunjid.androidx.recyclerview.setSwipeDragOptions
@@ -58,10 +50,10 @@ import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderPaddingBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderRemoteSwitchBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderZigbeeDeviceBinding
-import com.tunjid.rcswitchcontrol.di.rootStateMachine
+import com.tunjid.rcswitchcontrol.di.dagger
+import com.tunjid.rcswitchcontrol.di.isResumed
 import com.tunjid.rcswitchcontrol.di.stateMachine
-import com.tunjid.rcswitchcontrol.navigation.AppNavigator
-import com.tunjid.rcswitchcontrol.utils.DeletionHandler
+import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.utils.SpanCountCalculator
 import com.tunjid.rcswitchcontrol.viewholders.DeviceAdapterListener
 import com.tunjid.rcswitchcontrol.viewholders.bind
@@ -70,39 +62,75 @@ import com.tunjid.rcswitchcontrol.viewholders.zigbeeDeviceViewHolder
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
-class DevicesFragment : Fragment(R.layout.fragment_list),
-    DeviceAdapterListener,
-    GroupDeviceDialogFragment.GroupNameListener {
+fun ViewGroup.devicesScreen(node: Node): BindingViewHolder<FragmentListBinding> =
+    viewHolderFrom(FragmentListBinding::inflate).apply {
+        val scope = binding.attachedScope()
+        val dagger = binding.root.context.dagger
+        val stateMachine = dagger.stateMachine<ControlViewModel>(node)
 
-    private var isDeleting: Boolean = false
-    private val viewBinding by viewLifecycle(FragmentListBinding::bind)
-    private val stateMachine by rootStateMachine<ControlViewModel>()
-    private val navigator by activityNavigatorController<AppNavigator>()
+//    addOnBackPressedCallback {
+//        isEnabled = stateMachine.state.value.selectedDevices.isEmpty()
+//
+//        if (!isEnabled) activity?.onBackPressed()
+//        else stateMachine.accept(Input.Sync.ClearSelections)
+//    }
 
-    private val currentDevices get() = stateMachine.state.value.selectedDevices
+        val deviceAdapterListener = object : DeviceAdapterListener {
+            override fun onClicked(device: Device) {
+                if (stateMachine.state.value.selectedDevices.isNotEmpty()) onLongClicked(device)
+            }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        addOnBackPressedCallback {
-            isEnabled = currentDevices.isEmpty()
+            override fun onLongClicked(device: Device) {
+                stateMachine.accept(Input.Sync.Select(device))
+            }
 
-            if (!isEnabled) activity?.onBackPressed()
-            else stateMachine.accept(Input.Sync.ClearSelections)
+            override fun onSwitchToggled(device: Device, isOn: Boolean) = when (device) {
+                is Device.RF -> stateMachine.accept(
+                    Input.Async.ServerCommand(
+                        device.togglePayload(
+                            isOn
+                        )
+                    )
+                )
+                else -> Unit
+            }
+
+            override fun send(command: ZigBeeCommand) =
+                stateMachine.accept(Input.Async.ServerCommand(command.payload))
+
+//        override fun onGroupNamed(groupName: CharSequence) {
+//            stateMachine.accept(Input.Sync.ClearSelections)
+//        }
         }
-    }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
+        val refreshUi = {
+            binding::uiState.updatePartial {
+                val selected = stateMachine.state.value.selectedDevices
+                copy(
+                    altToolbarTitle = binding.root.context.getString(
+                        R.string.devices_selected,
+                        stateMachine.state.value.selectedDevices.size
+                    ),
+                    altToolbarShows = !selected.isNullOrEmpty()
+                )
+            }
+        }
 
-        viewBinding.list.apply {
-            liveUiState.mapDistinct { it.systemUI.dynamic.bottomInset }
-                .observe(viewLifecycleOwner) {
-                    updatePadding(bottom = it)
-                }
+        binding.list.apply {
             val listAdapter = listAdapterOf(
-                initialItems = currentDevices,
-                viewHolderCreator = ::createViewHolder,
-                viewTypeFunction = ::getDeviceViewType,
+                initialItems = stateMachine.state.value.selectedDevices,
+                viewHolderCreator = { parent: ViewGroup, viewType: Int ->
+                    when (viewType) {
+                        Device.RF::class.hashCode() -> parent.rfDeviceDeviceViewHolder(
+                            deviceAdapterListener
+                        )
+                        Device.ZigBee::class.hashCode() -> parent.zigbeeDeviceViewHolder(
+                            deviceAdapterListener
+                        )
+                        else -> parent.viewHolderFrom(ViewholderPaddingBinding::inflate)
+                    }
+                },
+                viewTypeFunction = { device -> device::class.hashCode() },
                 viewHolderBinder = { holder, device, _ ->
                     when (device) {
                         is Device.RF -> holder.typed<ViewholderRemoteSwitchBinding>().bind(device)
@@ -120,9 +148,16 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
                 supportsChangeAnimations = false
             }
 
-            setSwipeDragOptions(
-                swipeConsumer = { viewHolder: RecyclerView.ViewHolder, _ -> onDelete(viewHolder) },
-                movementFlagFunction = ::swipeDirection,
+            setSwipeDragOptions<BindingViewHolder<*>>(
+                swipeConsumer = { _: RecyclerView.ViewHolder, _ ->
+
+                },
+                movementFlagFunction = { holder ->
+                    // TODO fix this
+                    val isDeleting = false
+                    if (isDeleting || holder.binding is ViewholderZigbeeDeviceBinding) 0
+                    else makeMovementFlags(0, ItemTouchHelper.LEFT)
+                },
                 itemViewSwipeSupplier = { true }
             )
 
@@ -130,15 +165,28 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
                 .mapDistinct(ControlState::clientState.asSuspend)
                 .mapDistinct(ClientState::devices.asSuspend)
 
-            viewLifecycleOwner.lifecycleScope.launch {
-                viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            binding.root.doOnAttach {
+                scope.launch {
+                    binding.liveUiState
+                        .mapDistinct { it.systemUI.dynamic.bottomInset }
+                        .collect {
+                            binding.list.updatePadding(bottom = it)
+                        }
+                }
+                scope.launch {
                     clientState
                         .collect {
                             listAdapter.submitList(it)
                             refreshUi()
                         }
                 }
+                scope.launch {
+                    dagger.appComponent.state
+                        .mapDistinct { it.isResumed }
+                        .collect { refreshUi() }
+                }
             }
+
 
 //            clientState.mapDistinct {
 //                it.filterIsInstance<Device.ZigBee>()
@@ -147,93 +195,3 @@ class DevicesFragment : Fragment(R.layout.fragment_list),
 //            }
         }
     }
-
-    override fun onResume() {
-        super.onResume()
-        refreshUi()
-    }
-
-    private fun refreshUi() = ::uiState.updatePartial {
-        val selected = stateMachine.state.value?.selectedDevices
-        copy(
-            altToolbarTitle = getString(R.string.devices_selected, currentDevices.size),
-            altToolbarShows = !selected.isNullOrEmpty()
-        )
-    }
-
-    override fun onClicked(device: Device) {
-        if (currentDevices.isNotEmpty()) onLongClicked(device)
-    }
-
-    override fun onLongClicked(device: Device) {
-        stateMachine.accept(Input.Sync.Select(device))
-    }
-
-    override fun onSwitchToggled(device: Device, isOn: Boolean) = when (device) {
-        is Device.RF -> stateMachine.accept(Input.Async.ServerCommand(device.togglePayload(isOn)))
-        else -> Unit
-    }
-
-    override fun send(command: ZigBeeCommand) =
-        stateMachine.accept(Input.Async.ServerCommand(command.payload))
-
-    override fun onGroupNamed(groupName: CharSequence) {
-        stateMachine.accept(Input.Sync.ClearSelections)
-    }
-
-    private fun getDeviceViewType(device: Device) = device::class.hashCode()
-
-    private fun createViewHolder(parent: ViewGroup, viewType: Int) = when (viewType) {
-        Device.RF::class.hashCode() -> parent.rfDeviceDeviceViewHolder(this)
-        Device.ZigBee::class.hashCode() -> parent.zigbeeDeviceViewHolder(this)
-        else -> parent.viewHolderFrom(ViewholderPaddingBinding::inflate)
-    }
-
-    private fun swipeDirection(holder: BindingViewHolder<*>): Int =
-        if (isDeleting || holder.binding is ViewholderZigbeeDeviceBinding) 0
-        else makeMovementFlags(0, ItemTouchHelper.LEFT)
-
-    private fun onDelete(viewHolder: RecyclerView.ViewHolder) {
-        if (isDeleting) return
-        isDeleting = true
-
-        if (view == null) return
-
-        val position = viewHolder.adapterPosition
-
-        val devices = currentDevices
-        val deletionHandler = DeletionHandler<Device>(position) { self ->
-            if (self.hasItems() && self.peek() is Device.RF) self.pop().also { device ->
-                stateMachine.accept(Input.Async.ServerCommand((device as Device.RF).deletePayload))
-            }
-            isDeleting = false
-        }
-
-        deletionHandler.push(devices[position])
-//        devices.removeAt(position)
-//        listManager.notifyItemRemoved(position)
-
-        navigator.transientBarDriver.showSnackBar { snackBar ->
-            snackBar.setText(R.string.deleted_switch)
-                .addCallback(deletionHandler)
-                .setAction(R.string.undo) {
-                    if (deletionHandler.hasItems()) {
-                        val deletedAt = deletionHandler.deletedPosition
-//                            devices.add(deletedAt, deletionHandler.pop())
-//                            listManager.notifyItemInserted(deletedAt)
-                    }
-                    isDeleting = false
-                }
-        }
-    }
-
-    companion object {
-        fun newInstance(): DevicesFragment {
-            val fragment = DevicesFragment()
-            val bundle = Bundle()
-
-            fragment.arguments = bundle
-            return fragment
-        }
-    }
-}

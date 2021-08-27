@@ -26,41 +26,50 @@ package com.tunjid.rcswitchcontrol
 
 import android.os.Bundle
 import android.view.WindowManager
+import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import com.tunjid.androidx.navigation.Navigator
+import androidx.lifecycle.lifecycleScope
 import com.tunjid.globalui.GlobalUiDriver
 import com.tunjid.globalui.GlobalUiHost
 import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.client.nsdServiceInfo
 import com.tunjid.rcswitchcontrol.client.nsdServiceName
-import com.tunjid.rcswitchcontrol.control.ControlFragment
-import com.tunjid.rcswitchcontrol.control.LandscapeControlFragment
+import com.tunjid.rcswitchcontrol.common.mapDistinct
+import com.tunjid.rcswitchcontrol.control.controlScreen
 import com.tunjid.rcswitchcontrol.databinding.ActivityMainBinding
-import com.tunjid.rcswitchcontrol.navigation.AppNavigator
-import com.tunjid.rcswitchcontrol.onboarding.StartFragment
+import com.tunjid.rcswitchcontrol.di.dagger
+import com.tunjid.rcswitchcontrol.di.nav
+import com.tunjid.rcswitchcontrol.navigation.Node
+import com.tunjid.rcswitchcontrol.navigation.updatePartial
+import com.tunjid.rcswitchcontrol.onboarding.HostScan
+import com.tunjid.rcswitchcontrol.onboarding.Start
+import com.tunjid.rcswitchcontrol.onboarding.hostScanScreen
+import com.tunjid.rcswitchcontrol.onboarding.startScreen
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity(),
-    GlobalUiHost,
-    Navigator.Controller {
+    GlobalUiHost {
 
-    override val navigator: AppNavigator by lazy { AppNavigator(this) }
     private val binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
 
-    override val globalUiController by lazy { GlobalUiDriver(this, binding, navigator) }
+    override val globalUiController by lazy { GlobalUiDriver(this, binding) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
 
+        onBackPressedDispatcher.addCallback(this) {
+            dagger::nav.updatePartial { pop() }
+        }
         window.statusBarColor = ContextCompat.getColor(this, R.color.transparent)
         if (ServerNsdService.isServer) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         val startIntent = intent
 
-        val isSavedInstance = savedInstanceState != null
         val controlLoad = when (ServerNsdService.isServer || App.isAndroidThings) {
             true -> ClientLoad.StartServer
             false -> when (val info = startIntent.nsdServiceInfo) {
@@ -70,12 +79,25 @@ class MainActivity : AppCompatActivity(),
             }
         }
 
-        if (!isSavedInstance) navigator.push(when (controlLoad) {
-            null -> StartFragment.newInstance()
-            else -> when (App.isLandscape) {
-                true -> LandscapeControlFragment.newInstance(controlLoad)
-                false -> ControlFragment.newInstance(controlLoad)
-            }
-        })
+        if (controlLoad != null) dagger::nav.updatePartial { push(Node(controlLoad)) }
+
+
+        lifecycleScope.launch {
+            dagger.appComponent.state
+                .mapDistinct { it.nav.currentNode }
+                .collect { node ->
+                    binding.contentContainer.apply {
+                        removeAllViews()
+                        val screen = when (val named = node?.named) {
+                            Start -> startScreen()
+                            HostScan -> hostScanScreen(node)
+                            is ClientLoad -> controlScreen(node, named)
+                            else -> null
+                        }
+                        println("Screen: ${node?.named}")
+                        if (screen != null) addView(screen.binding.root)
+                    }
+                }
+        }
     }
 }

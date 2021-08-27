@@ -51,7 +51,7 @@ class ZigBeeArgumentDialogFragment : DialogFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        commandInfo = arguments!!.getParcelable(COMMAND_INFO)!!
+        commandInfo = requireArguments().getParcelable(COMMAND_INFO)!!
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {

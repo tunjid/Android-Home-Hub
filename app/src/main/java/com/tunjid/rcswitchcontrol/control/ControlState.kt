@@ -1,13 +1,8 @@
 package com.tunjid.rcswitchcontrol.control
 
-import android.content.res.Resources
-import androidx.fragment.app.Fragment
 import com.rcswitchcontrol.protocols.models.Payload
-import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.client.ClientState
-import com.tunjid.rcswitchcontrol.server.HostFragment
-import com.tunjid.rcswitchcontrol.utils.Tab
 import kotlinx.coroutines.flow.Flow
 
 typealias ClientServiceState = com.tunjid.rcswitchcontrol.client.State
@@ -33,19 +28,17 @@ data class ControlState(
     val selectedDevices: List<Device> = listOf(),
 )
 
-enum class Page : Tab {
+enum class Page: CharSequence {
 
-    HOST, HISTORY, DEVICES;
+    Host, History, Devices;
 
-    override fun createFragment(): Fragment = when (this) {
-        HOST -> HostFragment.newInstance()
-        HISTORY -> RecordFragment.historyInstance()
-        DEVICES -> DevicesFragment.newInstance()
-    }
+    override val length: Int
+        get() = name.length
 
-    override fun title(res: Resources): CharSequence = when (this) {
-        HOST -> res.getString(R.string.host)
-        HISTORY -> res.getString(R.string.history)
-        DEVICES -> res.getString(R.string.devices)
-    }
+    override fun get(index: Int): Char =
+        name.get(index = index)
+
+    override fun subSequence(startIndex: Int, endIndex: Int): CharSequence =
+        name.subSequence(startIndex, endIndex)
+//    }
 }

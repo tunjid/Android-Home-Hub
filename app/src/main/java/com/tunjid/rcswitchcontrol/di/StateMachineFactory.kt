@@ -17,7 +17,7 @@
 
 package com.tunjid.rcswitchcontrol.di
 
-import com.tunjid.rcswitchcontrol.arch.StateMachine
+import com.tunjid.rcswitchcontrol.arch.ClosableStateMachine
 import dagger.MapKey
 import javax.inject.Provider
 import kotlin.reflect.KClass
@@ -32,6 +32,6 @@ import kotlin.reflect.KClass
 )
 @Retention(AnnotationRetention.RUNTIME)
 @MapKey
-annotation class ViewModelKey(val value: KClass<out StateMachine<*, *>>)
+annotation class ViewModelKey(val value: KClass<out ClosableStateMachine<*, *>>)
 
-typealias StateMachineFactory = Map<Class<out StateMachine<*, *>>, @JvmSuppressWildcards Provider<StateMachine<*, *>>>
+typealias StateMachineFactory = Map<Class<out ClosableStateMachine<*, *>>, @JvmSuppressWildcards Provider<ClosableStateMachine<*, *>>>

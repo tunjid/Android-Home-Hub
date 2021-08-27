@@ -24,54 +24,47 @@
 
 package com.tunjid.rcswitchcontrol.onboarding
 
-import android.os.Bundle
 import android.view.View
-import androidx.fragment.app.Fragment
-import com.tunjid.androidx.navigation.activityNavigatorController
+import android.view.ViewGroup
+import androidx.core.view.doOnAttach
+import com.tunjid.androidx.recyclerview.viewbinding.viewHolderFrom
 import com.tunjid.globalui.UiState
 import com.tunjid.globalui.uiState
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.control.ControlFragment
 import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.databinding.FragmentStartBinding
-import com.tunjid.rcswitchcontrol.navigation.AppNavigator
+import com.tunjid.rcswitchcontrol.di.dagger
+import com.tunjid.rcswitchcontrol.di.nav
+import com.tunjid.rcswitchcontrol.navigation.Named
+import com.tunjid.rcswitchcontrol.navigation.Node
+import com.tunjid.rcswitchcontrol.navigation.updatePartial
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
+import kotlinx.parcelize.Parcelize
 
-class StartFragment : Fragment(R.layout.fragment_start) {
+@Parcelize
+object Start : Named
 
-    private val navigator by activityNavigatorController<AppNavigator>()
+fun ViewGroup.startScreen() =
+    viewHolderFrom(FragmentStartBinding::inflate).apply {
+        val dagger = binding.root.context.dagger
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        uiState = UiState(
+        binding.root.doOnAttach {
+            it.uiState = UiState(
                 toolbarShows = true,
-                toolbarTitle = getString(R.string.app_name)
-        )
+                toolbarTitle = it.context.getString(R.string.app_name)
+            )
+        }
 
         val onClick: (View) -> Unit = { v: View ->
             when (v.id) {
                 R.id.server -> {
                     ServerNsdService.isServer = true
-                    navigator.push(ControlFragment.newInstance(ClientLoad.StartServer))
+                    dagger::nav.updatePartial { push(Node(ClientLoad.StartServer)) }
                 }
-                R.id.client -> navigator.push(HostScanFragment.newInstance())
+                R.id.client -> dagger::nav.updatePartial { push(Node(HostScan)) }
             }
         }
 
-        FragmentStartBinding.bind(view).apply {
-            server.setOnClickListener(onClick)
-            client.setOnClickListener(onClick)
-        }
+        binding.server.setOnClickListener(onClick)
+        binding.client.setOnClickListener(onClick)
     }
-
-    companion object {
-
-        fun newInstance(): StartFragment {
-            val startFragment = StartFragment()
-            val args = Bundle()
-            startFragment.arguments = args
-            return startFragment
-        }
-    }
-}

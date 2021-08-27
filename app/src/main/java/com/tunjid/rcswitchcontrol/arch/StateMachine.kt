@@ -10,7 +10,7 @@ interface StateMachine<Action, State> {
     val state: StateFlow<State>
 }
 
-abstract class UiStateMachine<Action, State>(
+abstract class ClosableStateMachine<Action, State>(
     protected val scope: CoroutineScope
 ) : StateMachine<Action, State>, Closeable {
     override fun close() = scope.cancel()

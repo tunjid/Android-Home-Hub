@@ -26,20 +26,15 @@ package com.tunjid.rcswitchcontrol.onboarding
 
 
 import android.net.nsd.NsdServiceInfo
-import android.os.Bundle
 import android.text.SpannableStringBuilder
-import android.view.Menu
 import android.view.MenuItem
-import android.view.View
-import androidx.fragment.app.Fragment
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
+import android.view.ViewGroup
+import androidx.core.view.doOnAttach
 import com.tunjid.androidx.core.text.scale
-import com.tunjid.androidx.navigation.activityNavigatorController
 import com.tunjid.androidx.recyclerview.listAdapterOf
 import com.tunjid.androidx.recyclerview.verticalLayoutManager
 import com.tunjid.androidx.recyclerview.viewbinding.BindingViewHolder
+import com.tunjid.androidx.recyclerview.viewbinding.viewHolderDelegate
 import com.tunjid.androidx.recyclerview.viewbinding.viewHolderFrom
 import com.tunjid.globalui.UiState
 import com.tunjid.globalui.uiState
@@ -48,112 +43,115 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.common.asSuspend
 import com.tunjid.rcswitchcontrol.common.mapDistinct
-import com.tunjid.rcswitchcontrol.control.ControlFragment
+import com.tunjid.rcswitchcontrol.control.attachedScope
+import com.tunjid.rcswitchcontrol.control.whileAttached
 import com.tunjid.rcswitchcontrol.databinding.FragmentNsdScanBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderNsdListBinding
+import com.tunjid.rcswitchcontrol.di.dagger
+import com.tunjid.rcswitchcontrol.di.isResumed
+import com.tunjid.rcswitchcontrol.di.nav
 import com.tunjid.rcswitchcontrol.di.stateMachine
-import com.tunjid.rcswitchcontrol.navigation.AppNavigator
+import com.tunjid.rcswitchcontrol.navigation.Named
+import com.tunjid.rcswitchcontrol.navigation.Node
+import com.tunjid.rcswitchcontrol.navigation.updatePartial
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import kotlinx.parcelize.Parcelize
 
 /**
  * A [androidx.fragment.app.Fragment] listing supported NSD servers
  */
-class HostScanFragment : Fragment(R.layout.fragment_nsd_scan) {
 
-    private val stateMachine by stateMachine<NsdScanViewModel>()
-    private val navigator by activityNavigatorController<AppNavigator>()
+@Parcelize
+object HostScan : Named
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
+fun ViewGroup.hostScanScreen(node: Node) =
+    viewHolderFrom(FragmentNsdScanBinding::inflate).apply {
+        val scope = this.binding.attachedScope()
+        val dagger = this.binding.root.context.dagger
+        val stateMachine = dagger.stateMachine<NsdScanViewModel>(node)
 
-        uiState = UiState(
-            toolbarShows = true,
-            toolbarTitle = getString(R.string.app_name),
-            toolbarMenuRes = R.menu.menu_nsd_scan,
-            toolbarMenuRefresher = ::onToolbarRefreshed,
-            toolbarMenuClickListener = ::onToolbarMenuItemSelected,
-        )
-        val binding = FragmentNsdScanBinding.bind(view)
+        val scanDevices = { enable: Boolean ->
+            stateMachine.accept(
+                if (enable) Input.StartScanning
+                else Input.StopScanning
+            )
+        }
+
+
+        val onServiceClicked = { serviceInfo: NsdServiceInfo ->
+            dagger::nav.updatePartial { push(Node(ClientLoad.NewClient(serviceInfo))) }
+        }
 
         binding.list.apply {
             val listAdapter = listAdapterOf(
                 initialItems = stateMachine.state.value.items,
                 viewHolderCreator = { parent, _ ->
                     parent.viewHolderFrom(ViewholderNsdListBinding::inflate).apply {
-                        this.binding.title.setOnClickListener { onServiceClicked(item.info) }
+                        this.binding.title.setOnClickListener { onServiceClicked(this.item.info) }
                     }
                 },
                 viewHolderBinder = { holder, service, _ -> holder.bind(service) }
             )
 
-            layoutManager = verticalLayoutManager()
-            adapter = listAdapter
+            this.layoutManager = this.verticalLayoutManager()
+            this.adapter = listAdapter
 
-            val state = stateMachine.state
+            binding.root.doOnAttach {
+                this.uiState = UiState(
+                    toolbarShows = true,
+                    toolbarTitle = binding.root.context.getString(R.string.app_name),
+                    toolbarMenuRes = R.menu.menu_nsd_scan,
+                    toolbarMenuClickListener = binding.whileAttached { item: MenuItem ->
+                        when (item.itemId) {
+                            R.id.menu_scan -> scanDevices(true)
+                            R.id.menu_stop -> scanDevices(false)
+                            else -> Unit
+                        }
+                    },
+                )
 
-            viewLifecycleOwner.lifecycleScope.launch {
-                viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                    state.mapDistinct(NSDState::items.asSuspend).collect(listAdapter::submitList)
-                    state.mapDistinct(NSDState::isScanning.asSuspend).collect {
-                        ::uiState.updatePartial { copy(toolbarInvalidated = true) }
-                    }
+                ::uiState.updatePartial {
+                    copy(toolbarMenuRefresher = binding.whileAttached { menu ->
+                        scope.launch {
+                            stateMachine.state
+                                .mapDistinct(NSDState::isScanning.asSuspend)
+                                .collect { isScanning ->
+
+                                    menu.findItem(R.id.menu_stop)?.isVisible = isScanning
+                                    menu.findItem(R.id.menu_scan)?.isVisible = !isScanning
+
+                                    val refresh = menu.findItem(R.id.menu_refresh)
+
+                                    refresh?.isVisible = isScanning
+                                    if (isScanning) refresh?.setActionView(R.layout.actionbar_indeterminate_progress)
+                                }
+                        }
+                    })
+                }
+
+                scope.launch {
+                    stateMachine.state
+                        .mapDistinct(NSDState::items.asSuspend)
+                        .collect(listAdapter::submitList)
+                }
+                scope.launch {
+                    stateMachine.state
+                        .mapDistinct(NSDState::isScanning.asSuspend)
+                        .collect {
+                            binding::uiState.updatePartial { this.copy(toolbarInvalidated = true) }
+                        }
+                }
+                scope.launch {
+                    dagger.appComponent.state
+                        .mapDistinct { it.isResumed }
+                        .collect { scanDevices(it) }
                 }
             }
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        scanDevices(true)
-    }
-
-    override fun onPause() {
-        super.onPause()
-        scanDevices(false)
-    }
-
-    private fun onToolbarRefreshed(menu: Menu) {
-        super.onPrepareOptionsMenu(menu)
-        val isScanning = stateMachine.state.value.isScanning
-
-        menu.findItem(R.id.menu_stop)?.isVisible = isScanning
-        menu.findItem(R.id.menu_scan)?.isVisible = !isScanning
-
-        val refresh = menu.findItem(R.id.menu_refresh)
-
-        refresh?.isVisible = isScanning
-        if (isScanning) refresh?.setActionView(R.layout.actionbar_indeterminate_progress)
-    }
-
-    private fun onToolbarMenuItemSelected(item: MenuItem) = when (item.itemId) {
-        R.id.menu_scan -> scanDevices(true)
-        R.id.menu_stop -> scanDevices(false)
-        else -> Unit
-    }
-
-    private fun onServiceClicked(serviceInfo: NsdServiceInfo) {
-        navigator.push(ControlFragment.newInstance(ClientLoad.NewClient(serviceInfo)))
-    }
-
-    private fun scanDevices(enable: Boolean) = stateMachine.accept(
-        if (enable) Input.StartScanning
-        else Input.StopScanning
-    )
-
-    companion object {
-
-        fun newInstance(): HostScanFragment {
-            val fragment = HostScanFragment()
-            val bundle = Bundle()
-
-            fragment.arguments = bundle
-            return fragment
-        }
-    }
-}
-
-private var BindingViewHolder<ViewholderNsdListBinding>.item by BindingViewHolder.Prop<NsdItem>()
+private var BindingViewHolder<ViewholderNsdListBinding>.item by viewHolderDelegate<NsdItem>()
 
 private fun BindingViewHolder<ViewholderNsdListBinding>.bind(item: NsdItem) {
     this.item = item

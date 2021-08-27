@@ -32,28 +32,27 @@ import com.rcswitchcontrol.protocols.Name
 import com.rcswitchcontrol.protocols.renamePayload
 import com.tunjid.androidx.core.delegates.fragmentArgs
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.di.rootStateMachine
 
 @SuppressLint("InflateParams")
 class RenameSwitchDialogFragment : DialogFragment() {
 
-    private var name by fragmentArgs<Name>()
-    private val stateMachine by rootStateMachine<ControlViewModel>()
-
-    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog = editTextDialog { editText, builder ->
-        editText.setText(name.value)
-
-        builder
-            .setTitle(R.string.rename_switch)
-            .setPositiveButton(R.string.rename) { _, _ ->
-                stateMachine.accept(Input.Async.ServerCommand(name.copy(value = editText.text.toString()).renamePayload))
-                dismiss()
-            }
-    }
-
-    companion object {
-        fun newInstance(name: Name): RenameSwitchDialogFragment = RenameSwitchDialogFragment().apply {
-            this.name = name
-        }
-    }
+//    private var name by fragmentArgs<Name>()
+//    private val stateMachine by stateMachine<ControlViewModel>(AppRoot)()
+//
+//    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog = editTextDialog { editText, builder ->
+//        editText.setText(name.value)
+//
+//        builder
+//            .setTitle(R.string.rename_switch)
+//            .setPositiveButton(R.string.rename) { _, _ ->
+//                stateMachine.accept(Input.Async.ServerCommand(name.copy(value = editText.text.toString()).renamePayload))
+//                dismiss()
+//            }
+//    }
+//
+//    companion object {
+//        fun newInstance(name: Name): RenameSwitchDialogFragment = RenameSwitchDialogFragment().apply {
+//            this.name = name
+//        }
+//    }
 }

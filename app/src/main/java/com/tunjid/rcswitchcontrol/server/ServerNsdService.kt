@@ -47,8 +47,8 @@ import kotlinx.coroutines.launch
 class ServerNsdService : Service(), SelfBindingService<ServerNsdService> {
 
     private val binder = Binder()
-    private val scope = dagger.appComponent.uiScope()
-    private val stateMachine by stateMachine<ServerViewModel>()
+    private val scope by lazy { dagger.appComponent.uiScope() }
+    private val stateMachine by lazy { dagger.stateMachine<ServerViewModel>() }
 
     val state by lazy { stateMachine.state }
 
@@ -66,8 +66,8 @@ class ServerNsdService : Service(), SelfBindingService<ServerNsdService> {
 
     override fun onDestroy() {
         super.onDestroy()
-        stateMachine.close()
         scope.cancel()
+        stateMachine.close()
     }
 
     private fun onStatusChanged(status: Status) = when (status) {

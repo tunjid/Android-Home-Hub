@@ -12,6 +12,8 @@ import androidx.core.view.doOnAttach
 import androidx.core.view.doOnDetach
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
+import androidx.recyclerview.widget.ListAdapter
+import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
@@ -68,10 +70,10 @@ class FragmentTabAdapter<T : Tab> : FragmentStateAdapter {
 fun attach(
         tabLayout: TabLayout,
         viewPager: ViewPager2,
-        adapter: FragmentTabAdapter<out Tab>
+        adapter: ListAdapter<out CharSequence, *>
 ) {
     val mediator = TabLayoutMediator(tabLayout, viewPager) { tab, position ->
-        tab.text = adapter.getPageTitle(position)
+        tab.text = adapter.currentList[position].toString()
     }.apply { attach() }
     viewPager.doOnAttach { it.doOnDetach { mediator.detach() } }
 }

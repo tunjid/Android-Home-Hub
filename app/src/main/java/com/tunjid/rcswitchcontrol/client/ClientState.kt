@@ -1,9 +1,6 @@
 package com.tunjid.rcswitchcontrol.client
 
-import android.content.res.Resources
 import android.net.nsd.NsdServiceInfo
-import android.os.Parcelable
-import androidx.fragment.app.Fragment
 import com.rcswitchcontrol.protocols.CommonDeviceActions
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.Name
@@ -22,9 +19,8 @@ import com.tunjid.rcswitchcontrol.common.deserializeList
 import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.control.Device
 import com.tunjid.rcswitchcontrol.control.Record
-import com.tunjid.rcswitchcontrol.control.RecordFragment
 import com.tunjid.rcswitchcontrol.control.foldAttributes
-import com.tunjid.rcswitchcontrol.utils.Tab
+import com.tunjid.rcswitchcontrol.navigation.Named
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -36,15 +32,15 @@ import kotlinx.coroutines.flow.shareIn
 import kotlinx.parcelize.Parcelize
 import java.util.*
 
-data class ProtocolKey(val key: CommsProtocol.Key) : Tab {
-    val title get() = key.value.split(".").last().toUpperCase(Locale.US).removeSuffix("PROTOCOL")
+data class ProtocolKey(
+    val key: CommsProtocol.Key
+) : CharSequence by key.value
+    .split(".")
+    .last()
+    .toUpperCase(Locale.US)
+    .removeSuffix("PROTOCOL")
 
-    override fun title(res: Resources) = title
-
-    override fun createFragment(): Fragment = RecordFragment.commandInstance(this)
-}
-
-sealed class ClientLoad : Parcelable {
+sealed class ClientLoad : Named {
     @Parcelize
     data class NewClient(val info: NsdServiceInfo) : ClientLoad()
 

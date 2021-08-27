@@ -3,6 +3,7 @@ package com.tunjid.globalui
 import android.view.View
 import androidx.fragment.app.Fragment
 import androidx.transition.TransitionValues
+import androidx.viewbinding.ViewBinding
 import com.tunjid.androidx.core.content.unwrapActivity
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
@@ -22,11 +23,15 @@ private val Fragment.globalUiHost by GlobalUiHostDelegate<Fragment>(Fragment::ge
 
 private val View.globalUiHost by GlobalUiHostDelegate<View> { it.context.unwrapActivity }
 
+private val ViewBinding.globalUiHost by GlobalUiHostDelegate<ViewBinding> { it.root.globalUiHost }
+
 private val TransitionValues.globalUiHost by GlobalUiHostDelegate<TransitionValues>{ it.view.context.unwrapActivity }
 
 val Fragment.liveUiState get() = globalUiHost.globalUiController.liveUiState
 
 val View.liveUiState get() = globalUiHost.globalUiController.liveUiState
+
+val ViewBinding.liveUiState get() = globalUiHost.globalUiController.liveUiState
 
 /**
  * Convenience for changing [GlobalUiConfig] with a [Fragment] ref.
@@ -41,6 +46,12 @@ var Fragment.uiState: UiState
  * Convenience for changing [GlobalUiConfig] with a [View] ref, useful in Anko Components
  */
 var View.uiState: UiState
+    get() = globalUiHost.globalUiController.uiState
+    set(value) {
+        globalUiHost.globalUiController.uiState = value
+    }
+
+var ViewBinding.uiState: UiState
     get() = globalUiHost.globalUiController.uiState
     set(value) {
         globalUiHost.globalUiController.uiState = value

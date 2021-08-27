@@ -69,12 +69,14 @@ class App : android.app.Application() {
     }
 
     private val stateMachine by lazy {
-        dagger.stateMachine<NsdScanViewModel>("Application")
+        dagger.stateMachine<NsdScanViewModel>()
     }
 
     @SuppressLint("CheckResult")
     override fun onCreate() {
         super.onCreate()
+        dagger
+        println("App")
 
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit

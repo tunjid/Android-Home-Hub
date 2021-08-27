@@ -17,13 +17,11 @@
 
 package com.tunjid.rcswitchcontrol.di
 
-import android.app.Service
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.LifecycleService
+import com.tunjid.rcswitchcontrol.arch.ClosableStateMachine
 import com.tunjid.rcswitchcontrol.arch.StateMachine
 import com.tunjid.rcswitchcontrol.client.ClientViewModel
 import com.tunjid.rcswitchcontrol.control.ControlViewModel
+import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.onboarding.NsdScanViewModel
 import com.tunjid.rcswitchcontrol.server.HostViewModel
 import com.tunjid.rcswitchcontrol.server.ServerViewModel
@@ -31,28 +29,10 @@ import dagger.Binds
 import dagger.Module
 import dagger.multibindings.IntoMap
 
-inline fun <reified SM : StateMachine<*, *>> Fragment.stateMachine() = lazy {
-    val path = generateSequence(parentFragment, Fragment::getParentFragment)
-        .mapNotNull(Fragment::getTag)
-        .joinToString(separator = "/")
-    dagger.stateMachine<SM>(path)
-}
+inline fun <reified SM : ClosableStateMachine<*, *>> Dagger.stateMachine(
+    node: Node? = null
+) = appComponent.stateMachineCreator().invoke(node, SM::class) as SM
 
-inline fun <reified SM : StateMachine<*, *>> Fragment.rootStateMachine() = lazy {
-    dagger.stateMachine<SM>("Root")
-}
-
-inline fun <reified SM : StateMachine<*, *>> FragmentActivity.stateMachine() = lazy {
-    dagger.stateMachine<SM>(this.javaClass.simpleName)
-}
-
-inline fun <reified SM : StateMachine<*, *>> Service.stateMachine() = lazy {
-    dagger.stateMachine<SM>(this.javaClass.simpleName)
-}
-
-inline fun <reified SM : StateMachine<*, *>> Dagger.stateMachine(
-    path: String
-) = appComponent.stateMachineCreator().invoke(path, SM::class) as SM
 
 @Module
 abstract class AppViewModelModule {
@@ -60,25 +40,25 @@ abstract class AppViewModelModule {
     @Binds
     @IntoMap
     @ViewModelKey(ControlViewModel::class)
-    abstract fun bindControlViewModel(stateMachine: ControlViewModel): StateMachine<*, *>
+    abstract fun bindControlViewModel(stateMachine: ControlViewModel): ClosableStateMachine<*, *>
 
     @Binds
     @IntoMap
     @ViewModelKey(HostViewModel::class)
-    abstract fun bindPersonHostViewModel(stateMachine: HostViewModel): StateMachine<*, *>
+    abstract fun bindPersonHostViewModel(stateMachine: HostViewModel): ClosableStateMachine<*, *>
 
     @Binds
     @IntoMap
     @ViewModelKey(NsdScanViewModel::class)
-    abstract fun bindNsdScanViewModel(stateMachine: NsdScanViewModel): StateMachine<*, *>
+    abstract fun bindNsdScanViewModel(stateMachine: NsdScanViewModel): ClosableStateMachine<*, *>
 
     @Binds
     @IntoMap
     @ViewModelKey(ServerViewModel::class)
-    abstract fun bindServerViewModel(stateMachine: ServerViewModel): StateMachine<*, *>
+    abstract fun bindServerViewModel(stateMachine: ServerViewModel): ClosableStateMachine<*, *>
 
     @Binds
     @IntoMap
     @ViewModelKey(ClientViewModel::class)
-    abstract fun bindClientViewModel(stateMachine: ClientViewModel): StateMachine<*, *>
+    abstract fun bindClientViewModel(stateMachine: ClientViewModel): ClosableStateMachine<*, *>
 }

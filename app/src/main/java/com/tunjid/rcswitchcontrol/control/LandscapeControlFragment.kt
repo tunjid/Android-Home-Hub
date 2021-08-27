@@ -30,9 +30,6 @@ import com.tunjid.rcswitchcontrol.client.keys
 import com.tunjid.rcswitchcontrol.common.asSuspend
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentControlLandscapeBinding
-import com.tunjid.rcswitchcontrol.di.rootStateMachine
-import com.tunjid.rcswitchcontrol.di.stateMachine
-import com.tunjid.rcswitchcontrol.server.HostFragment
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
 import com.tunjid.rcswitchcontrol.utils.item
 import com.tunjid.rcswitchcontrol.utils.makeAccessibleForTV
@@ -46,7 +43,7 @@ class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape),
     private val innerNavigator by childStackNavigationController(R.id.child_fragment_container)
 
     private val viewBinding by viewLifecycle(FragmentControlLandscapeBinding::bind)
-    private val stateMachine by rootStateMachine<ControlViewModel>()
+//    private val stateMachine by stateMachine<ControlViewModel>(AppRoot)()
     private var load by fragmentArgs<ClientLoad>()
 
     private val host by lazy { requireActivity().getString(R.string.host) }
@@ -55,78 +52,78 @@ class LandscapeControlFragment : Fragment(R.layout.fragment_control_landscape),
 
     override val stableTag: String = "ControlHeaders"
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        stateMachine.accept(Input.Async.Load(load))
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        uiState = UiState(toolbarShows = false, insetFlags = InsetFlags.NONE)
-
-        viewBinding.list.apply {
-            val persistentItems = when {
-                ServerNsdService.isServer -> listOf(host, devices)
-                else -> listOf(devices)
-            }
-            val listAdapter = listAdapterOf(
-                initialItems = persistentItems + stateMachine.state.value.clientState.keys,
-                viewHolderCreator = { parent, _ ->
-                    HeaderViewHolder(parent.context, ::onHeaderHighlighted)
-                },
-                viewHolderBinder = { holder, key, _ -> holder.bind(key) }
-            )
-
-            layoutManager = FlexboxLayoutManager(context).apply {
-                alignItems = AlignItems.STRETCH
-                flexDirection = FlexDirection.ROW
-                justifyContent = JustifyContent.CENTER
-            }
-            adapter = listAdapter
-
-            viewLifecycleOwner.lifecycleScope.launch {
-                viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                    stateMachine.state
-                        .mapDistinct(ControlState::clientState.asSuspend)
-                        .mapDistinct { persistentItems + it.keys }
-                        .collect(listAdapter::submitList)
-                }
-            }
-        }
-    }
-
-    private fun onHeaderHighlighted(key: Any?) = when (key) {
-        host -> HostFragment.newInstance()
-        devices -> DevicesFragment.newInstance()
-        is ProtocolKey -> RecordFragment.commandInstance(ProtocolKey(key.key))
-        else -> null
-    }?.let { innerNavigator.push(it); Unit } ?: Unit
-
-    companion object {
-        fun newInstance(load: ClientLoad): LandscapeControlFragment =
-            LandscapeControlFragment().apply { this.load = load }
-    }
+//    override fun onCreate(savedInstanceState: Bundle?) {
+//        super.onCreate(savedInstanceState)
+//        stateMachine.accept(Input.Async.Load(load))
+//    }
+//
+//    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+//        super.onViewCreated(view, savedInstanceState)
+//        uiState = UiState(toolbarShows = false, insetFlags = InsetFlags.NONE)
+//
+//        viewBinding.list.apply {
+//            val persistentItems = when {
+//                ServerNsdService.isServer -> listOf(host, devices)
+//                else -> listOf(devices)
+//            }
+//            val listAdapter = listAdapterOf(
+//                initialItems = persistentItems + stateMachine.state.value.clientState.keys,
+//                viewHolderCreator = { parent, _ ->
+//                    HeaderViewHolder(parent.context, ::onHeaderHighlighted)
+//                },
+//                viewHolderBinder = { holder, key, _ -> holder.bind(key) }
+//            )
+//
+//            layoutManager = FlexboxLayoutManager(context).apply {
+//                alignItems = AlignItems.STRETCH
+//                flexDirection = FlexDirection.ROW
+//                justifyContent = JustifyContent.CENTER
+//            }
+//            adapter = listAdapter
+//
+//            viewLifecycleOwner.lifecycleScope.launch {
+//                viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+//                    stateMachine.state
+//                        .mapDistinct(ControlState::clientState.asSuspend)
+//                        .mapDistinct { persistentItems + it.keys }
+//                        .collect(listAdapter::submitList)
+//                }
+//            }
+//        }
+//    }
+//
+//    private fun onHeaderHighlighted(key: Any?) = when (key) {
+//        host -> HostScreen.newInstance()
+//        devices -> DevicesFragment.newInstance()
+//        is ProtocolKey -> RecordFragment.commandInstance(ProtocolKey(key.key))
+//        else -> null
+//    }?.let { innerNavigator.push(it); Unit } ?: Unit
+//
+//    companion object {
+//        fun newInstance(load: ClientLoad): LandscapeControlFragment =
+//            LandscapeControlFragment().apply { this.load = load }
+//    }
 }
 
-class HeaderViewHolder(context: Context, onFocused: (Any?) -> Unit) :
-    RecyclerView.ViewHolder(MaterialButton(context)) {
-
-    val text = itemView as MaterialButton
-
-    init {
-        text.apply {
-            cornerRadius = context.resources.getDimensionPixelSize(R.dimen.quadruple_margin)
-            backgroundTintList = ColorStateList.valueOf(context.colorAt(R.color.app_background))
-            makeAccessibleForTV(stroked = false, onFocused)
-        }
-    }
-
-    fun bind(key: Any) {
-        itemView.item = key
-        text.text = when (key) {
-            is ProtocolKey -> key.title
-            is String -> key
-            else -> "unknown"
-        }
-    }
-}
+//class HeaderViewHolder(context: Context, onFocused: (Any?) -> Unit) :
+//    RecyclerView.ViewHolder(MaterialButton(context)) {
+//
+//    val text = itemView as MaterialButton
+//
+//    init {
+//        text.apply {
+//            cornerRadius = context.resources.getDimensionPixelSize(R.dimen.quadruple_margin)
+//            backgroundTintList = ColorStateList.valueOf(context.colorAt(R.color.app_background))
+//            makeAccessibleForTV(stroked = false, onFocused)
+//        }
+//    }
+//
+//    fun bind(key: Any) {
+//        itemView.item = key
+//        text.text = when (key) {
+//            is ProtocolKey -> key.title
+//            is String -> key
+//            else -> "unknown"
+//        }
+//    }
+//}

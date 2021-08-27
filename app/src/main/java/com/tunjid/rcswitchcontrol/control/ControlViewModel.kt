@@ -30,7 +30,7 @@ import androidx.lifecycle.ViewModelStoreOwner
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.core.components.services.HardServiceConnection
-import com.tunjid.rcswitchcontrol.arch.UiStateMachine
+import com.tunjid.rcswitchcontrol.arch.ClosableStateMachine
 import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.client.State
@@ -63,7 +63,7 @@ class ControlViewModel @Inject constructor(
     @UiScope scope: CoroutineScope,
     @AppContext private val context: Context,
     broadcasts: @JvmSuppressWildcards AppBroadcasts
-) : UiStateMachine<Input, ControlState>(scope) {
+) : ClosableStateMachine<Input, ControlState>(scope) {
 
     private val actions = MutableSharedFlow<Input>(
         replay = 1,
@@ -74,8 +74,8 @@ class ControlViewModel @Inject constructor(
         accept(Input.Async.ClientServiceBound(it.state))
     }
 
-    val pages: List<Page> = mutableListOf(Page.HISTORY, Page.DEVICES).apply {
-        if (ServerNsdService.isServer) add(0, Page.HOST)
+    val pages: List<Page> = mutableListOf(Page.History, Page.Devices).apply {
+        if (ServerNsdService.isServer) add(0, Page.Host)
     }
 
     val isBound: Boolean

@@ -24,35 +24,28 @@
 
 package com.tunjid.rcswitchcontrol.control
 
-import android.os.Bundle
-import android.view.View
+import android.view.ViewGroup
+import androidx.core.view.doOnAttach
 import androidx.core.view.updatePadding
-import androidx.fragment.app.Fragment
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.flexbox.AlignItems
 import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.FlexboxLayoutManager
 import com.google.android.flexbox.JustifyContent
 import com.rcswitchcontrol.protocols.CommsProtocol
-import com.tunjid.androidx.core.delegates.fragmentArgs
 import com.tunjid.androidx.recyclerview.listAdapterOf
 import com.tunjid.androidx.recyclerview.verticalLayoutManager
 import com.tunjid.androidx.recyclerview.viewbinding.typed
+import com.tunjid.androidx.recyclerview.viewbinding.viewHolderFrom
 import com.tunjid.globalui.liveUiState
-import com.tunjid.globalui.uiState
-import com.tunjid.globalui.updatePartial
-import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.client.ClientState
-import com.tunjid.rcswitchcontrol.client.ProtocolKey
 import com.tunjid.rcswitchcontrol.common.asSuspend
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderCommandBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderHistoryBinding
-import com.tunjid.rcswitchcontrol.di.rootStateMachine
+import com.tunjid.rcswitchcontrol.di.dagger
 import com.tunjid.rcswitchcontrol.di.stateMachine
+import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.viewholders.bind
 import com.tunjid.rcswitchcontrol.viewholders.bindCommand
 import com.tunjid.rcswitchcontrol.viewholders.commandViewHolder
@@ -60,88 +53,78 @@ import com.tunjid.rcswitchcontrol.viewholders.historyViewHolder
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
-sealed class RecordFragment : Fragment(R.layout.fragment_list) {
+fun ViewGroup.recordScreen(
+    node: Node,
+    key: CommsProtocol.Key?
+) = viewHolderFrom(FragmentListBinding::inflate).apply {
 
-    class HistoryFragment : RecordFragment()
-    class CommandsFragment : RecordFragment()
+    val scope = binding.attachedScope()
+    val dagger = binding.root.context.dagger
+    val stateMachine = dagger.stateMachine<ControlViewModel>(node)
 
-    internal var key: CommsProtocol.Key? by fragmentArgs()
-    private val stateMachine by rootStateMachine<ControlViewModel>()
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        liveUiState.mapDistinct { it.systemUI.dynamic.bottomInset }.observe(viewLifecycleOwner) {
-            view.updatePadding(bottom = it)
-        }
-
-        val binding = FragmentListBinding.bind(view)
-        binding.list.apply {
-            val listAdapter = listAdapterOf(
-                initialItems = initialItems(),
-                viewHolderCreator = { parent, viewType ->
-                    when (viewType) {
-                        0 -> parent.historyViewHolder()
-                        1 -> parent.commandViewHolder(::onRecordClicked)
-                        else -> throw IllegalArgumentException("Invalid view type")
-                    }
-                },
-                viewHolderBinder = { holder, record, _ ->
-                    when (holder.binding) {
-                        is ViewholderHistoryBinding -> holder.typed<ViewholderHistoryBinding>()
-                            .bind(record)
-                        is ViewholderCommandBinding -> holder.typed<ViewholderCommandBinding>()
-                            .bindCommand(record)
-                    }
-                },
-                viewTypeFunction = { if (key == null) 0 else 1 }
-            )
-
-            layoutManager = when (key) {
-                null -> verticalLayoutManager()
-                else -> FlexboxLayoutManager(context).apply {
-                    alignItems = AlignItems.CENTER
-                    flexDirection = FlexDirection.ROW
-                    justifyContent = JustifyContent.CENTER
-                }
-            }
-            adapter = listAdapter
-
-            val clientState = stateMachine.state.mapDistinct(ControlState::clientState.asSuspend)
-
-            viewLifecycleOwner.lifecycleScope.launch {
-                viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                    if (key == null) clientState.mapDistinct(ClientState::history.asSuspend).collect { history ->
-                        listAdapter.submitList(history)
-                        if (history.isNotEmpty()) smoothScrollToPosition(history.lastIndex)
-                    }
-                    else clientState.mapDistinct { it.commands[key] }.collect {
-                        it?.let(listAdapter::submitList)
+    val listAdapter = listAdapterOf(
+        initialItems = stateMachine.state.value.clientState.let {
+            if (key == null) it.history else it.commands[key]
+        } ?: listOf(),
+        viewHolderCreator = { parent, viewType ->
+            when (viewType) {
+                0 -> parent.historyViewHolder()
+                1 -> parent.commandViewHolder { record ->
+                    when (record) {
+                        is Record.Command -> stateMachine.accept(Input.Async.ServerCommand(record.payload))
+                        is Record.Response -> Unit
                     }
                 }
+                else -> throw IllegalArgumentException("Invalid view type")
+            }
+        },
+        viewHolderBinder = { holder, record, _ ->
+            when (holder.binding) {
+                is ViewholderHistoryBinding -> holder.typed<ViewholderHistoryBinding>()
+                    .bind(record)
+                is ViewholderCommandBinding -> holder.typed<ViewholderCommandBinding>()
+                    .bindCommand(record)
+            }
+        },
+        viewTypeFunction = { if (key == null) 0 else 1 }
+    )
+
+    binding.list.apply {
+        layoutManager = when (key) {
+            null -> verticalLayoutManager()
+            else -> FlexboxLayoutManager(context).apply {
+                alignItems = AlignItems.CENTER
+                flexDirection = FlexDirection.ROW
+                justifyContent = JustifyContent.CENTER
             }
         }
+        adapter = listAdapter
     }
 
-    private fun initialItems(): List<Record> = stateMachine.state.value.clientState.let {
-        if (key == null) it.history else it.commands[key]
-    } ?: listOf()
+    binding.root.doOnAttach {
+        val clientState = stateMachine.state.mapDistinct(ControlState::clientState.asSuspend)
 
-    override fun onResume() {
-        super.onResume()
-        uiState
-        ::uiState.updatePartial { copy(altToolbarShows = false) }
+        scope.launch {
+            liveUiState.mapDistinct { it.systemUI.dynamic.bottomInset }.collect {
+                binding.root.updatePadding(bottom = it)
+            }
+        }
+        scope.launch {
+            if (key == null) clientState.mapDistinct(ClientState::history.asSuspend)
+                .collect { history ->
+                    listAdapter.submitList(history)
+                    if (history.isNotEmpty()) binding.list.smoothScrollToPosition(history.lastIndex)
+                }
+            else clientState.mapDistinct { it.commands[key] }.collect {
+                it?.let(listAdapter::submitList)
+            }
+        }
+
     }
 
-    private fun onRecordClicked(record: Record) = when (record) {
-        is Record.Command -> stateMachine.accept(Input.Async.ServerCommand(record.payload))
-        is Record.Response -> Unit
-    }
-
-    companion object {
-
-        fun historyInstance(): HistoryFragment = HistoryFragment()
-
-        fun commandInstance(key: ProtocolKey): CommandsFragment =
-            CommandsFragment().apply { this.key = key.key }
-    }
+//    override fun onResume() {
+//        super.onResume()
+//        uiState
+//        ::uiState.updatePartial { copy(altToolbarShows = false) }
+//    }
 }

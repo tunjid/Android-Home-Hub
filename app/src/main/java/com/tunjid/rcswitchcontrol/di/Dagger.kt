@@ -28,6 +28,10 @@ val Service.dagger: Dagger get() = (application as App).dagger
 val Activity.dagger: Dagger get() = (application as App).dagger
 val Fragment.dagger: Dagger get() = requireActivity().dagger
 
+var Dagger.nav
+    get() = appComponent.nav.get()
+    set(value) = appComponent.nav.set(value)
+
 class Dagger(
     val appComponent: AppComponent
 ) {

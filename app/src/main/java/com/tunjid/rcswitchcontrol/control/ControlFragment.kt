@@ -24,245 +24,316 @@
 
 package com.tunjid.rcswitchcontrol.control
 
-import android.content.Intent
-import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.ViewGroup
+import androidx.core.view.doOnAttach
+import androidx.core.view.doOnDetach
 import androidx.core.view.doOnLayout
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
-import androidx.fragment.app.Fragment
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.RecyclerView
+import androidx.viewbinding.ViewBinding
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HALF_EXPANDED
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN
 import com.google.android.material.bottomsheet.setupForBottomSheet
-import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
-import com.rcswitchcontrol.zigbee.models.payload
 import com.tunjid.androidx.core.content.colorAt
-import com.tunjid.androidx.core.delegates.fragmentArgs
-import com.tunjid.androidx.core.delegates.viewLifecycle
+import com.tunjid.androidx.recyclerview.listAdapterOf
+import com.tunjid.androidx.recyclerview.viewbinding.viewHolderFrom
 import com.tunjid.globalui.InsetFlags
 import com.tunjid.globalui.UiState
 import com.tunjid.globalui.liveUiState
 import com.tunjid.globalui.uiState
 import com.tunjid.globalui.updatePartial
-import com.tunjid.rcswitchcontrol.MainActivity
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.client.ClientState
-import com.tunjid.rcswitchcontrol.client.ProtocolKey
 import com.tunjid.rcswitchcontrol.client.Status
 import com.tunjid.rcswitchcontrol.client.isConnected
 import com.tunjid.rcswitchcontrol.client.keys
 import com.tunjid.rcswitchcontrol.common.asSuspend
 import com.tunjid.rcswitchcontrol.common.mapDistinct
-import com.tunjid.rcswitchcontrol.control.Page.HISTORY
 import com.tunjid.rcswitchcontrol.databinding.FragmentControlBinding
 import com.tunjid.rcswitchcontrol.di.dagger
-import com.tunjid.rcswitchcontrol.di.rootStateMachine
+import com.tunjid.rcswitchcontrol.di.isResumed
+import com.tunjid.rcswitchcontrol.di.nav
 import com.tunjid.rcswitchcontrol.di.stateMachine
 import com.tunjid.rcswitchcontrol.models.Broadcast
+import com.tunjid.rcswitchcontrol.navigation.Node
+import com.tunjid.rcswitchcontrol.navigation.updatePartial
+import com.tunjid.rcswitchcontrol.onboarding.Start
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
-import com.tunjid.rcswitchcontrol.utils.FragmentTabAdapter
+import com.tunjid.rcswitchcontrol.server.hostScreen
 import com.tunjid.rcswitchcontrol.utils.attach
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
-class ControlFragment : Fragment(R.layout.fragment_control),
-    RootController,
-    ZigBeeArgumentDialogFragment.ZigBeeArgsListener {
+fun ViewBinding.attachedScope(): CoroutineScope {
+    val scope = root.context.dagger.appComponent.uiScope()
+    root.doOnAttach { root.doOnDetach { scope.cancel() } }
+    return scope
+}
 
-    private val viewBinding by viewLifecycle(FragmentControlBinding::bind)
-    private val stateMachine by rootStateMachine<ControlViewModel>()
-    private var load by fragmentArgs<ClientLoad>()
+fun <T> ViewBinding.whileAttached(action: (T) -> Unit): (T) -> Unit =
+    WhileAttached(root, action = action)
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        stateMachine.accept(Input.Async.Load(load))
+
+class WhileAttached<T>(view: View, action: (T) -> Unit) : (T) -> Unit {
+    private var backing = action
+
+    init {
+        view.doOnAttach {
+            view.doOnDetach { backing = { } }
+        }
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
+    override fun invoke(item: T) = backing(item)
+}
 
-        uiState = UiState(
-            toolbarShows = true,
-            toolbarTitle = getString(R.string.switches),
-            toolbarMenuRes = R.menu.menu_fragment_nsd_client,
-            toolbarMenuRefresher = ::onToolbarRefreshed,
-            toolbarMenuClickListener = ::onToolbarMenuItemSelected,
-            altToolbarMenuRes = R.menu.menu_alt_devices,
-            altToolbarMenuRefresher = ::onToolbarRefreshed,
-            altToolbarMenuClickListener = ::onToolbarMenuItemSelected,
-            navBarColor = view.context.colorAt(R.color.black_50),
-            insetFlags = InsetFlags.NO_BOTTOM
-        )
+fun ViewGroup.controlScreen(
+    node: Node,
+    load: ClientLoad,
+) = viewHolderFrom(FragmentControlBinding::inflate).apply {
+    val scope = binding.attachedScope()
+    val dagger = binding.root.context.dagger
+    val stateMachine = dagger.stateMachine<ControlViewModel>(node)
 
-        val bottomSheetBehavior = BottomSheetBehavior.from(viewBinding.bottomSheet)
-        val offset =
-            requireContext().resources.getDimensionPixelSize(R.dimen.triple_and_half_margin)
+    binding.root.doOnAttach {
+        stateMachine.accept(Input.Async.Load(load))
 
-        val calculateTranslation: (slideOffset: Float) -> Float = calculate@{ slideOffset ->
-            val peekHeight = bottomSheetBehavior.peekHeight.toFloat()
-            when (slideOffset) {
-                in -1F..0F -> peekHeight + (peekHeight * slideOffset)
-                0F -> peekHeight
-                else -> peekHeight + ((viewBinding.bottomSheet.height - peekHeight) * slideOffset)
+        val toolbarClick = binding.whileAttached { item: MenuItem ->
+            if (stateMachine.isBound) when (item.itemId) {
+                R.id.menu_ping -> stateMachine.accept(Input.Async.PingServer).let { true }
+                R.id.menu_connect -> dagger.appComponent.broadcaster(Broadcast.ClientNsd.StartDiscovery())
+                R.id.menu_forget -> {
+                    stateMachine.accept(Input.Async.ForgetServer)
+                    dagger::nav.updatePartial { filter { it.named is Start } }
+                }
+                R.id.menu_rename_device -> {
+//                        stateMachine.state.value
+//                            .selectedDevices
+//                            .firstOrNull()
+//                            ?.editName
+//                            ?.let(RenameSwitchDialogFragment.Companion::newInstance)
+//                            ?.show(childFragmentManager, item.itemId.toString()).let { true }
+                }
+                R.id.menu_create_group -> {
+//                        GroupDeviceDialogFragment.newInstance.show(
+//                            childFragmentManager,
+//                            item.itemId.toString()
+//                        )
+                }
+                else -> Unit
             }
         }
 
-        val onPageSelected: (position: Int) -> Unit = {
-            bottomSheetBehavior.state =
-                if (stateMachine.pages[it] == HISTORY) STATE_HALF_EXPANDED else STATE_HIDDEN
+        binding.uiState = UiState(
+            toolbarShows = true,
+            toolbarTitle = binding.root.context.getString(R.string.switches),
+            toolbarMenuRes = R.menu.menu_fragment_nsd_client,
+            toolbarMenuClickListener = toolbarClick,
+            altToolbarMenuRes = R.menu.menu_alt_devices,
+            altToolbarMenuClickListener = toolbarClick,
+            navBarColor = binding.root.context.colorAt(R.color.black_50),
+            insetFlags = InsetFlags.NO_BOTTOM
+        )
+    }
+
+    val bottomSheetBehavior = BottomSheetBehavior.from(binding.bottomSheet)
+    val offset =
+        binding.root.context.resources.getDimensionPixelSize(R.dimen.triple_and_half_margin)
+
+    val calculateTranslation: (slideOffset: Float) -> Float = calculate@{ slideOffset ->
+        val peekHeight = bottomSheetBehavior.peekHeight.toFloat()
+        when (slideOffset) {
+            in -1F..0F -> peekHeight + (peekHeight * slideOffset)
+            0F -> peekHeight
+            else -> peekHeight + ((binding.bottomSheet.height - peekHeight) * slideOffset)
         }
+    }
 
-        val pageAdapter = FragmentTabAdapter<Page>(this)
-        val commandAdapter = FragmentTabAdapter<ProtocolKey>(this)
+    val onPageSelected: (position: Int) -> Unit = {
+        bottomSheetBehavior.state =
+            if (stateMachine.pages[it] == Page.History) STATE_HALF_EXPANDED else STATE_HIDDEN
+    }
 
-        viewBinding.mainPager.apply {
-            adapter = pageAdapter
-            attach(viewBinding.tabs, viewBinding.mainPager, pageAdapter)
-            registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
-                override fun onPageSelected(position: Int) = onPageSelected(position)
-            })
-            pageAdapter.submitList(stateMachine.pages)
-        }
+    val pageAdapter = listAdapterOf(
+        initialItems = stateMachine.pages,
+        viewHolderCreator = { parent, ordinal ->
+            when (Page.values()[ordinal]) {
+                Page.Host -> parent.hostScreen(node = node)
+                Page.History -> parent.recordScreen(node = node, key = null)
+                Page.Devices -> parent.devicesScreen(node = node)
+            }.apply {
+                binding.root.layoutParams = RecyclerView.LayoutParams(
+                    RecyclerView.LayoutParams.MATCH_PARENT,
+                    RecyclerView.LayoutParams.MATCH_PARENT
+                )
+            }
+        },
+        viewHolderBinder = { _, _, _ -> },
+        viewTypeFunction = { it.ordinal }
+    )
+    val commandAdapter = listAdapterOf(
+        initialItems = stateMachine.state.value.clientState.keys,
+        viewHolderCreator = { parent, hashCode ->
+            parent.recordScreen(
+                node = node,
+                key = stateMachine.state.value.clientState.keys.first {
+                    it.hashCode() == hashCode
+                }.key
+            ).apply {
+                binding.root.layoutParams = RecyclerView.LayoutParams(
+                    RecyclerView.LayoutParams.MATCH_PARENT,
+                    RecyclerView.LayoutParams.MATCH_PARENT
+                )
+            }
+        },
+        viewHolderBinder = { _, _, _ -> },
+        viewTypeFunction = { it.hashCode() }
+    )
 
-        viewBinding.commandsPager.apply {
-            adapter = commandAdapter
-            attach(viewBinding.commandTabs, viewBinding.commandsPager, commandAdapter)
-            setupForBottomSheet()
-        }
+    binding.mainPager.apply {
+        adapter = pageAdapter
+        attach(binding.tabs, binding.mainPager, pageAdapter)
+        registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) = onPageSelected(position)
+        })
+        pageAdapter.submitList(stateMachine.pages)
+    }
 
-        view.doOnLayout {
-            liveUiState.mapDistinct { it.systemUI.dynamic.run { topInset to bottomInset } }
-                .observe(viewLifecycleOwner) { (topInset, bottomInset) ->
-                    viewBinding.bottomSheet.updateLayoutParams {
-                        height =
+    binding.commandsPager.apply {
+        adapter = commandAdapter
+        attach(binding.commandTabs, binding.commandsPager, commandAdapter)
+        setupForBottomSheet()
+    }
+
+    binding.root.doOnLayout {
+        scope.launch {
+            val resources = binding.root.context.resources
+            binding.liveUiState
+                .mapDistinct { it.systemUI.dynamic.run { this.topInset to this.bottomInset } }
+                .collect { (topInset, bottomInset) ->
+                    binding.bottomSheet.updateLayoutParams {
+                        this.height =
                             it.height - topInset - resources.getDimensionPixelSize(R.dimen.double_and_half_margin)
                     }
                     bottomSheetBehavior.peekHeight =
                         resources.getDimensionPixelSize(R.dimen.sextuple_margin) + bottomInset
                 }
-
-            bottomSheetBehavior.expandedOffset = offset
-            bottomSheetBehavior.addBottomSheetCallback(object :
-                BottomSheetBehavior.BottomSheetCallback() {
-                override fun onSlide(bottomSheet: View, slideOffset: Float) {
-                    viewBinding.mainPager.updatePadding(bottom = calculateTranslation(slideOffset).toInt())
-                }
-
-                override fun onStateChanged(bottomSheet: View, newState: Int) {
-                    if (newState == STATE_HIDDEN && stateMachine.pages[viewBinding.mainPager.currentItem] == HISTORY) bottomSheetBehavior.state =
-                        STATE_COLLAPSED
-                }
-            })
-            onPageSelected(viewBinding.mainPager.currentItem)
         }
 
-        val state = stateMachine.state
-        val clientState = state.mapDistinct(ControlState::clientState.asSuspend)
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-
-                clientState.mapDistinct(ClientState::keys.asSuspend)
-                    .onEach(commandAdapter::submitList)
-                    .launchIn(this)
-
-                clientState.mapDistinct(ClientState::isNew.asSuspend).onEach { isNew ->
-                    if (isNew) viewBinding.commandsPager.adapter?.notifyDataSetChanged()
-                }
-                    .launchIn(this)
-
-                clientState.mapDistinct(ClientState::commandInfo.asSuspend).onEach {
-                    if (it != null) ZigBeeArgumentDialogFragment.newInstance(it)
-                        .show(childFragmentManager, "info")
-                }
-                    .launchIn(this)
-
-                clientState.mapDistinct(ClientState::connectionStatus.asSuspend).onEach { status ->
-                    ::uiState.updatePartial { copy(toolbarInvalidated = true) }
-                    viewBinding.connectionStatus.text =
-                        resources.getString(R.string.connection_state, status.text)
-                }
-                    .launchIn(this)
-
-                state.mapDistinct(ControlState::selectedDevices.asSuspend)
-                    .onEach {
-                        ::uiState.updatePartial { copy(toolbarInvalidated = true) }
-                    }
-                    .launchIn(this)
+        bottomSheetBehavior.expandedOffset = offset
+        bottomSheetBehavior.addBottomSheetCallback(object :
+            BottomSheetBehavior.BottomSheetCallback() {
+            override fun onSlide(bottomSheet: View, slideOffset: Float) {
+                binding.mainPager.updatePadding(bottom = calculateTranslation(slideOffset).toInt())
             }
-        }
+
+            override fun onStateChanged(bottomSheet: View, newState: Int) {
+                if (newState == STATE_HIDDEN && stateMachine.pages[binding.mainPager.currentItem] == Page.History) bottomSheetBehavior.state =
+                    STATE_COLLAPSED
+            }
+        })
+        onPageSelected(binding.mainPager.currentItem)
     }
 
-    override fun onStop() {
-        super.onStop()
-        stateMachine.accept(Input.Async.AppBackgrounded)
-    }
+    val state = stateMachine.state
+    val clientState = state.mapDistinct(ControlState::clientState.asSuspend)
 
-    private fun onToolbarRefreshed(menu: Menu) {
-        val state = stateMachine.state.value
-        menu.findItem(R.id.menu_ping)?.isVisible = stateMachine.state.value.clientState.isConnected
-        menu.findItem(R.id.menu_connect)?.isVisible =
-            !stateMachine.state.value.clientState.isConnected
+    val toolbarRefresh = { menu: Menu, isConnected: Boolean, selectedDevices: List<Device> ->
+        menu.findItem(R.id.menu_ping)?.isVisible = isConnected
+        menu.findItem(R.id.menu_connect)?.isVisible = isConnected
         menu.findItem(R.id.menu_forget)?.isVisible = !ServerNsdService.isServer
 
-        menu.findItem(R.id.menu_rename_device)?.isVisible = state.selectedDevices.size == 1
-        menu.findItem(R.id.menu_create_group)?.isVisible =
-            state.selectedDevices.find { device -> device is Device.RF } == null
+        menu.findItem(R.id.menu_rename_device)?.isVisible = selectedDevices.size == 1
+        menu.findItem(R.id.menu_create_group)?.isVisible = selectedDevices.find { device ->
+            device is Device.RF
+        } == null
     }
 
-    private fun onToolbarMenuItemSelected(item: MenuItem) {
-        if (stateMachine.isBound) when (item.itemId) {
-            R.id.menu_ping -> stateMachine.accept(Input.Async.PingServer).let { true }
-            R.id.menu_connect -> dagger.appComponent.broadcaster(Broadcast.ClientNsd.StartDiscovery())
-            R.id.menu_forget -> requireActivity().let {
-                stateMachine.accept(Input.Async.ForgetServer)
+    binding.root.doOnAttach {
 
-                startActivity(
-                    Intent(it, MainActivity::class.java)
-                        .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                )
+        val toolbarMenuRefresher = binding.whileAttached { menu: Menu ->
+            scope.launch {
+                stateMachine.state
+                    .mapDistinct { it.clientState.isConnected to it.selectedDevices }
+                    .collect { (isConnected, selectedDevices) ->
+                        toolbarRefresh(
+                            menu,
+                            isConnected,
+                            selectedDevices
+                        )
+                    }
 
-                it.finish()
             }
-            R.id.menu_rename_device -> stateMachine.state.value
-                .selectedDevices
-                .firstOrNull()
-                ?.editName
-                ?.let(RenameSwitchDialogFragment.Companion::newInstance)
-                ?.show(childFragmentManager, item.itemId.toString()).let { true }
-            R.id.menu_create_group -> GroupDeviceDialogFragment.newInstance.show(
-                childFragmentManager,
-                item.itemId.toString()
+        }
+
+        ::uiState.updatePartial {
+            copy(
+                toolbarMenuRefresher = toolbarMenuRefresher,
+                altToolbarMenuRefresher = toolbarMenuRefresher
             )
-            else -> Unit
         }
-    }
 
-    private val Status.text: String
-        get() = when (this) {
-            is Status.Connected -> getString(R.string.connected_to, serviceName)
-            is Status.Connecting -> when (serviceName) {
-                null -> getString(R.string.connecting)
-                else -> getString(R.string.connecting_to, serviceName)
+        clientState.mapDistinct(ClientState::keys.asSuspend)
+            .onEach { commandAdapter.submitList(it) }
+            .launchIn(scope)
+
+        clientState.mapDistinct(ClientState::isNew.asSuspend).onEach { isNew ->
+            if (isNew) binding.commandsPager.adapter?.notifyDataSetChanged()
+        }
+            .launchIn(scope)
+
+//        clientState.mapDistinct(ClientState::commandInfo.asSuspend).onEach {
+//            if (it != null) ZigBeeArgumentDialogFragment.newInstance(it)
+//                .show(childFragmentManager, "info")
+//        }
+//            .launchIn(scope)
+
+        clientState.mapDistinct(ClientState::connectionStatus.asSuspend).onEach { status ->
+            binding::uiState.updatePartial { copy(toolbarInvalidated = true) }
+            val context = binding.root.context
+            binding.connectionStatus.text =
+                binding.root.context.resources.getString(
+                    R.string.connection_state, when (status) {
+                        is Status.Connected -> context.getString(
+                            R.string.connected_to,
+                            status.serviceName
+                        )
+                        is Status.Connecting -> when (status.serviceName) {
+                            null -> context.getString(R.string.connecting)
+                            else -> context.getString(R.string.connecting_to, status.serviceName)
+                        }
+                        is Status.Disconnected -> context.getString(R.string.disconnected)
+                    }
+                )
+        }
+            .launchIn(scope)
+
+        state.mapDistinct(ControlState::selectedDevices.asSuspend)
+            .onEach {
+                binding::uiState.updatePartial { copy(toolbarInvalidated = true) }
             }
-            is Status.Disconnected -> getString(R.string.disconnected)
-        }
+            .launchIn(scope)
 
-    override fun onArgsEntered(command: ZigBeeCommand) =
-        stateMachine.accept(Input.Async.ServerCommand(command.payload))
-
-    companion object {
-        fun newInstance(load: ClientLoad) = ControlFragment().apply { this.load = load }
+        dagger.appComponent.state
+            .mapDistinct { !it.isResumed }
+            .onEach { stateMachine.accept(Input.Async.AppBackgrounded) }
+            .launchIn(scope)
     }
+
+//    override fun onArgsEntered(command: ZigBeeCommand) =
+//        stateMachine.accept(Input.Async.ServerCommand(command.payload))
+//
+//
+//}
 }

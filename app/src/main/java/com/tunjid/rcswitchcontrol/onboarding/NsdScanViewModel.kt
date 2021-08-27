@@ -30,7 +30,7 @@ import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
 import com.tunjid.androidx.communications.nsd.NsdHelper
 import com.tunjid.androidx.recyclerview.diff.Diffable
-import com.tunjid.rcswitchcontrol.arch.UiStateMachine
+import com.tunjid.rcswitchcontrol.arch.ClosableStateMachine
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.client.nsdServiceInfo
 import com.tunjid.rcswitchcontrol.common.asSuspend
@@ -74,7 +74,7 @@ class NsdScanViewModel @Inject constructor(
     @UiScope scope: CoroutineScope,
     broadcasts: @JvmSuppressWildcards AppBroadcasts,
     @AppContext private val context: Context
-) : UiStateMachine<Input, NSDState>(scope) {
+) : ClosableStateMachine<Input, NSDState>(scope) {
 
     private val scanProcessor = MutableSharedFlow<Input>(
         replay = 1,
@@ -136,7 +136,7 @@ private fun Context.nsdServices(scope: CoroutineScope): Flow<NsdServiceInfo> {
             .setServiceFoundConsumer { channel.trySend(NsdUpdate.Found(it)) }
             .setResolveSuccessConsumer { channel.trySend(NsdUpdate.Resolved(it)) }
             .setResolveErrorConsumer { service, errorCode ->
-                channel.trySend(NsdUpdate.ResolutionFailed(service,errorCode))
+                channel.trySend(NsdUpdate.ResolutionFailed(service, errorCode))
             }
             .build()
         channel.trySend(NsdUpdate.Helper(helper = helper))

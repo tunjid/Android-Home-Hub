@@ -21,9 +21,6 @@ import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.os.Bundle
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.ProcessLifecycleOwner
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.arch.ClosableStateMachine
 import com.tunjid.rcswitchcontrol.common.Mutation
@@ -38,7 +35,6 @@ import dagger.Provides
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.isActive
@@ -66,17 +62,17 @@ enum class AppStatus {
     Resumed, Paused, Stopped, Destroyed
 }
 
-@Parcelize
-data class SimpleName(override val name: String) : Named
-
-val AppRoot = Node(SimpleName("Root"))
-
 data class AppState(
     val nav: StackNav = StackNav(
         root = AppRoot,
     ).push(Node(Start)),
     val status: AppStatus = AppStatus.Destroyed
 )
+
+@Parcelize
+data class SimpleName(override val name: String) : Named
+
+val AppRoot = Node(SimpleName("Root"))
 
 val AppState.isResumed get() = status == AppStatus.Resumed
 
@@ -139,10 +135,6 @@ class AppModule(private val app: App) {
             app.registerActivityLifecycleCallbacks(callback)
             awaitClose { app.unregisterActivityLifecycleCallbacks(callback) }
         }
-
-        ProcessLifecycleOwner.get().lifecycle.addObserver(LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_DESTROY) appScope.cancel()
-        })
 
         appStateFlow = merge(
             appStatuses,

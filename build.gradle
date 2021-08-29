@@ -52,13 +52,6 @@ buildscript {
         constraintLayout = 'androidx.constraintlayout:constraintlayout:2.0.4'
         dynamicAnimationsKtx = 'androidx.dynamicanimation:dynamicanimation-ktx:1.0.0-alpha03'
 
-        lifecycleRuntimeKtx = 'androidx.lifecycle:lifecycle-runtime-ktx:2.4.0-alpha03'
-        lifecycleViewModelKtx = 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.4.0-alpha03'
-        lifecycleRxKtx = 'androidx.lifecycle:lifecycle-reactivestreams-ktx:2.4.0-alpha03'
-        lifecycleLiveDataKtx = 'androidx.lifecycle:lifecycle-livedata-ktx:2.4.0-alpha03'
-        lifecycleService = 'androidx.lifecycle:lifecycle-service:2.4.0-alpha03'
-        lifecycleProcess = 'androidx.lifecycle:lifecycle-process:2.4.0-alpha03'
-
         composeActivity = 'androidx.activity:activity-compose:1.3.1'
         composeMaterial = 'androidx.compose.material:material:1.0.1'
         composeAnimation = 'androidx.compose.animation:animation:1.0.1'

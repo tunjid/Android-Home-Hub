@@ -7,16 +7,15 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
+import com.tunjid.globalui.ToolbarIcon
+import com.tunjid.globalui.UiState
 import com.tunjid.rcswitchcontrol.arch.StateMachine
+import com.tunjid.rcswitchcontrol.common.Mutation
 import com.tunjid.rcswitchcontrol.onboarding.Input
 import com.tunjid.rcswitchcontrol.onboarding.NSDState
 import com.tunjid.rcswitchcontrol.onboarding.NsdItem
-import com.tunjid.rcswitchcontrol.ui.RootUiController
-import com.tunjid.rcswitchcontrol.ui.ToolbarIcon
-import com.tunjid.rcswitchcontrol.ui.UiState
 import com.tunjid.rcswitchcontrol.ui.mapState
 import com.tunjid.rcswitchcontrol.ui.theme.darkText
-import com.tunjid.rcswitchcontrol.ui.updatePartial
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collect
 
@@ -26,7 +25,7 @@ private const val REFRESH = 2
 
 @Composable
 fun HostScanScreen(
-    rootUiController: RootUiController,
+    uiStateMachine: StateMachine<Mutation<UiState>, UiState>,
     stateMachine: StateMachine<Input, NSDState>,
 ) {
     val rootScope = rememberCoroutineScope()
@@ -40,12 +39,19 @@ fun HostScanScreen(
     }
 
     DisposableEffect(true) {
-        rootUiController.uiState = UiState(
-            toolbarShows = true,
-            toolbarTitle = "Home Hub",
-            toolbarMenuClickListener = { toolbarClicks.value(it) },
-        )
-        onDispose { toolbarClicks.value = {} }
+        uiStateMachine.accept(Mutation {
+            UiState(
+                toolbarShows = true,
+                toolbarTitle = "Home Hub",
+                toolbarMenuClickListener = { icon: ToolbarIcon ->
+                    when (icon.id) {
+                        SCAN -> stateMachine.accept(Input.StartScanning)
+                        STOP -> stateMachine.accept(Input.StopScanning)
+                    }
+                },
+            )
+        })
+        onDispose { uiStateMachine.accept(Mutation { copy(toolbarMenuClickListener = {}) }) }
     }
 
     val isScanning = remember {
@@ -56,7 +62,7 @@ fun HostScanScreen(
     }
     LaunchedEffect(true) {
         isScanning.collect { scanning ->
-            rootUiController::uiState.updatePartial {
+            uiStateMachine.accept(Mutation {
                 copy(
                     toolbarIcons = listOfNotNull(
                         ToolbarIcon(id = SCAN, text = "Scan").takeIf { !scanning },
@@ -64,7 +70,7 @@ fun HostScanScreen(
                         ToolbarIcon(id = REFRESH, text = "Refresh").takeIf { scanning },
                     )
                 )
-            }
+            })
         }
     }
 

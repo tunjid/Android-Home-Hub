@@ -101,14 +101,14 @@ fun ViewGroup.hostScanScreen(node: Node) =
                 this.uiState = UiState(
                     toolbarShows = true,
                     toolbarTitle = binding.root.context.getString(R.string.app_name),
-                    toolbarMenuRes = R.menu.menu_nsd_scan,
-                    toolbarMenuClickListener = binding.whileAttached { item: MenuItem ->
-                        when (item.itemId) {
-                            R.id.menu_scan -> scanDevices(true)
-                            R.id.menu_stop -> scanDevices(false)
-                            else -> Unit
-                        }
-                    },
+//                    toolbarMenuRes = R.menu.menu_nsd_scan,
+//                    toolbarMenuClickListener = binding.whileAttached { item: MenuItem ->
+//                        when (item.itemId) {
+//                            R.id.menu_scan -> scanDevices(true)
+//                            R.id.menu_stop -> scanDevices(false)
+//                            else -> Unit
+//                        }
+//                    },
                 )
 
                 ::uiState.updatePartial {
@@ -139,7 +139,7 @@ fun ViewGroup.hostScanScreen(node: Node) =
                     stateMachine.state
                         .mapDistinct(NSDState::isScanning.asSuspend)
                         .collect {
-                            binding::uiState.updatePartial { this.copy(toolbarInvalidated = true) }
+//                            binding::uiState.updatePartial { this.copy(toolbarInvalidated = true) }
                         }
                 }
                 scope.launch {

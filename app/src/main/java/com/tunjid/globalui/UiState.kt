@@ -30,28 +30,28 @@ import android.view.MenuItem
 import android.view.View
 import androidx.annotation.ColorInt
 import androidx.annotation.DrawableRes
-import androidx.annotation.MenuRes
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.dynamicanimation.animation.SpringAnimation
 import kotlin.reflect.KMutableProperty0
 
-fun KMutableProperty0<UiState>.updatePartial(updater: UiState.() -> UiState) = set(updater.invoke(get()))
+fun KMutableProperty0<UiState>.updatePartial(updater: UiState.() -> UiState) =
+        set(updater.invoke(get()))
+
+data class ToolbarIcon(
+        val id: Int,
+        val text: String,
+        val imageVector: ImageVector? = null,
+        val contentDescription: String? = null,
+)
 
 data class UiState(
-        @param:MenuRes
-        @field:MenuRes
-        @get:MenuRes
-        val toolbarMenuRes: Int = 0,
+        val toolbarIcons: List<ToolbarIcon> = listOf(),
         val toolbarShows: Boolean = false,
         val toolbarOverlaps: Boolean = false,
-        val toolbarInvalidated: Boolean = false,
         val toolbarTitle: CharSequence = "",
-        @param:MenuRes
-        @field:MenuRes
-        @get:MenuRes
-        val altToolbarMenuRes: Int = 0,
+        val altToolbarIcons: List<ToolbarIcon> = listOf(),
         val altToolbarShows: Boolean = false,
         val altToolbarOverlaps: Boolean = false,
-        val altToolbarInvalidated: Boolean = false,
         val altToolbarTitle: CharSequence = "",
         @param:DrawableRes
         @field:DrawableRes
@@ -75,9 +75,9 @@ data class UiState(
         val systemUI: SystemUI = NoOpSystemUI,
         val fabClickListener: (View) -> Unit = emptyCallback(),
         val fabTransitionOptions: SpringAnimation.() -> Unit = emptyCallback(),
-        val toolbarMenuClickListener: (MenuItem) -> Unit = emptyCallback(),
+        val toolbarMenuClickListener: (ToolbarIcon) -> Unit = emptyCallback(),
         val toolbarMenuRefresher: (Menu) -> Unit = emptyCallback(),
-        val altToolbarMenuClickListener: (MenuItem) -> Unit = emptyCallback(),
+        val altToolbarMenuClickListener: (ToolbarIcon) -> Unit = emptyCallback(),
         val altToolbarMenuRefresher: (Menu) -> Unit = emptyCallback(),
 )
 
@@ -87,9 +87,10 @@ private fun <T> emptyCallback(): (T) -> Unit = {}
 // They aggregate the parts of Global UI they react to
 
 internal data class ToolbarState(
-        val toolbarMenuRes: Int,
+        val icons: List<ToolbarIcon>,
+        val visible: Boolean,
+        val overlaps: Boolean,
         val toolbarTitle: CharSequence,
-        val toolbarInvalidated: Boolean
 )
 
 internal data class SnackbarPositionalState(
@@ -124,18 +125,20 @@ internal data class BottomNavPositionalState(
 )
 
 internal val UiState.toolbarState
-    get() = ToolbarState(
-            toolbarMenuRes = toolbarMenuRes,
-            toolbarTitle = toolbarTitle,
-            toolbarInvalidated = toolbarInvalidated
-    )
+        get() = ToolbarState(
+                icons = toolbarIcons,
+                toolbarTitle = toolbarTitle,
+                visible = toolbarShows,
+                overlaps = toolbarOverlaps,
+        )
 
 internal val UiState.altToolbarState
-    get() = ToolbarState(
-            toolbarMenuRes = altToolbarMenuRes,
-            toolbarTitle = altToolbarTitle,
-            toolbarInvalidated = altToolbarInvalidated
-    )
+        get() = ToolbarState(
+                icons = altToolbarIcons,
+                toolbarTitle = altToolbarTitle,
+                visible = altToolbarShows,
+                overlaps = altToolbarOverlaps,
+        )
 
 internal val UiState.fabState
     get() = FabPositionalState(

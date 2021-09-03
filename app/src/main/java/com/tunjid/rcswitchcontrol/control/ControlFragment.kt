@@ -138,10 +138,10 @@ fun ViewGroup.controlScreen(
         binding.uiState = UiState(
             toolbarShows = true,
             toolbarTitle = binding.root.context.getString(R.string.switches),
-            toolbarMenuRes = R.menu.menu_fragment_nsd_client,
-            toolbarMenuClickListener = toolbarClick,
-            altToolbarMenuRes = R.menu.menu_alt_devices,
-            altToolbarMenuClickListener = toolbarClick,
+//            toolbarMenuRes = R.menu.menu_fragment_nsd_client,
+//            toolbarMenuClickListener = toolbarClick,
+//            altToolbarMenuRes = R.menu.menu_alt_devices,
+//            altToolbarMenuClickListener = toolbarClick,
             navBarColor = binding.root.context.colorAt(R.color.black_50),
             insetFlags = InsetFlags.NO_BOTTOM
         )
@@ -300,7 +300,7 @@ fun ViewGroup.controlScreen(
 //            .launchIn(scope)
 
         clientState.mapDistinct(ClientState::connectionStatus.asSuspend).onEach { status ->
-            binding::uiState.updatePartial { copy(toolbarInvalidated = true) }
+//            binding::uiState.updatePartial { copy(toolbarInvalidated = true) }
             val context = binding.root.context
             binding.connectionStatus.text =
                 binding.root.context.resources.getString(
@@ -321,7 +321,7 @@ fun ViewGroup.controlScreen(
 
         state.mapDistinct(ControlState::selectedDevices.asSuspend)
             .onEach {
-                binding::uiState.updatePartial { copy(toolbarInvalidated = true) }
+//                binding::uiState.updatePartial { copy(toolbarInvalidated = true) }
             }
             .launchIn(scope)
 

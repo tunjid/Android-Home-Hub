@@ -32,22 +32,22 @@ fun Toolbar.onMenuItemClicked(item: ((MenuItem) -> Unit)?) =
         }
 
 internal fun Toolbar.updatePartial(toolbarState: ToolbarState) {
-    val (@MenuRes menu: Int, title: CharSequence, invalidatedAlone: Boolean) = toolbarState
-    if (invalidatedAlone) return refreshMenu()
-
-    val currentTitle = this.title?.toString() ?: ""
-    if (currentTitle.isNotBlank()) TransitionManager.beginDelayedTransition(this, AutoTransition().apply {
-        // We only want to animate the title, but it's lazy initialized.
-        // If it's there, use it, else fuzzy match to it's initialization
-        val titleTextView = children.filterIsInstance<TextView>()
-                .filter { it.text?.toString() == currentTitle }
-                .firstOrNull()
-        if (titleTextView != null) addTarget(titleTextView) else addTarget(TextView::class.java)
-    })
-
-    this.title = if (title.isEmpty()) " " else title
-    refreshMenu(menu)
-    updateIcons()
+//    val (@MenuRes menu: Int, title: CharSequence, invalidatedAlone: Boolean) = toolbarState
+//    if (invalidatedAlone) return refreshMenu()
+//
+//    val currentTitle = this.title?.toString() ?: ""
+//    if (currentTitle.isNotBlank()) TransitionManager.beginDelayedTransition(this, AutoTransition().apply {
+//        // We only want to animate the title, but it's lazy initialized.
+//        // If it's there, use it, else fuzzy match to it's initialization
+//        val titleTextView = children.filterIsInstance<TextView>()
+//                .filter { it.text?.toString() == currentTitle }
+//                .firstOrNull()
+//        if (titleTextView != null) addTarget(titleTextView) else addTarget(TextView::class.java)
+//    })
+//
+//    this.title = if (title.isEmpty()) " " else title
+//    refreshMenu(menu)
+//    updateIcons()
 }
 
 private fun Toolbar.refreshMenu(menu: Int? = null) {

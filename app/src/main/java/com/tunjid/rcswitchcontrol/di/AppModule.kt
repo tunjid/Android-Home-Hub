@@ -21,6 +21,7 @@ import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.os.Bundle
+import com.tunjid.globalui.UiState
 import com.tunjid.rcswitchcontrol.App
 import com.tunjid.rcswitchcontrol.arch.ClosableStateMachine
 import com.tunjid.rcswitchcontrol.common.Mutation
@@ -63,6 +64,7 @@ enum class AppStatus {
 }
 
 data class AppState(
+    val ui: UiState = UiState(),
     val nav: StackNav = StackNav(
         root = AppRoot,
     ).push(Node(Start)),

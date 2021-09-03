@@ -114,7 +114,7 @@ class GlobalUiDriver(
                 systemUI = value.systemUI.filterNoOp(uiState.systemUI),
             )
             liveUiState.value = updated
-            liveUiState.value = updated.copy(toolbarInvalidated = false) // Reset after firing once
+//            liveUiState.value = updated.copy(toolbarInvalidated = false) // Reset after firing once
         }
 
     init {
@@ -146,11 +146,11 @@ class GlobalUiDriver(
 //            toolbarHider::set
         }
         UiState::toolbarState.distinct onChanged binding.toolbar::updatePartial
-        UiState::toolbarMenuClickListener.distinct onChanged binding.toolbar::onMenuItemClicked
+//        UiState::toolbarMenuClickListener.distinct onChanged binding.toolbar::onMenuItemClicked
 
         UiState::altToolbarShows.distinct onChanged ::toggleAltToolbar
         UiState::altToolbarState.distinct onChanged binding.altToolbar::updatePartial
-        UiState::altToolbarMenuClickListener.distinct onChanged binding.altToolbar::onMenuItemClicked
+//        UiState::altToolbarMenuClickListener.distinct onChanged binding.altToolbar::onMenuItemClicked
 
         UiState::toolbarPosition.distinct onChanged { y ->
             binding.toolbar.updateLayoutParams<ViewGroup.MarginLayoutParams> { topMargin = y }

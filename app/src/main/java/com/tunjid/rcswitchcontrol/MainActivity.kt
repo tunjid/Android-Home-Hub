@@ -27,7 +27,10 @@ package com.tunjid.rcswitchcontrol
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.addCallback
+import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.tunjid.globalui.GlobalUiDriver
@@ -39,6 +42,7 @@ import com.tunjid.rcswitchcontrol.client.nsdServiceName
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.control.controlScreen
 import com.tunjid.rcswitchcontrol.databinding.ActivityMainBinding
+import com.tunjid.rcswitchcontrol.di.ComposeDagger
 import com.tunjid.rcswitchcontrol.di.dagger
 import com.tunjid.rcswitchcontrol.di.nav
 import com.tunjid.rcswitchcontrol.navigation.Node
@@ -48,23 +52,27 @@ import com.tunjid.rcswitchcontrol.onboarding.Start
 import com.tunjid.rcswitchcontrol.onboarding.hostScanScreen
 import com.tunjid.rcswitchcontrol.onboarding.startScreen
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
+import com.tunjid.rcswitchcontrol.ui.Root
+import com.tunjid.rcswitchcontrol.ui.theme.Elevations
+import com.tunjid.rcswitchcontrol.ui.theme.LocalElevations
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
-class MainActivity : AppCompatActivity(),
-    GlobalUiHost {
+class MainActivity : AppCompatActivity(){
 
-    private val binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
-
-    override val globalUiController by lazy { GlobalUiDriver(this, binding) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(binding.root)
-
         onBackPressedDispatcher.addCallback(this) {
             dagger::nav.updatePartial { pop() }
         }
+
+        setContent {
+            CompositionLocalProvider(ComposeDagger provides dagger) {
+                Root()
+            }
+        }
+
         window.statusBarColor = ContextCompat.getColor(this, R.color.transparent)
         if (ServerNsdService.isServer) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
@@ -80,24 +88,5 @@ class MainActivity : AppCompatActivity(),
         }
 
         if (controlLoad != null) dagger::nav.updatePartial { push(Node(controlLoad)) }
-
-
-        lifecycleScope.launch {
-            dagger.appComponent.state
-                .mapDistinct { it.nav.currentNode }
-                .collect { node ->
-                    binding.contentContainer.apply {
-                        removeAllViews()
-                        val screen = when (val named = node?.named) {
-                            Start -> startScreen()
-                            HostScan -> hostScanScreen(node)
-                            is ClientLoad -> controlScreen(node, named)
-                            else -> null
-                        }
-                        println("Screen: ${node?.named}")
-                        if (screen != null) addView(screen.binding.root)
-                    }
-                }
-        }
     }
 }

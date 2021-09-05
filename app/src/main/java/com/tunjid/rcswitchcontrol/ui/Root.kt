@@ -1,11 +1,10 @@
 package com.tunjid.rcswitchcontrol.ui
 
-import android.widget.FrameLayout
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material.BottomAppBar
 import androidx.compose.material.BottomNavigation
@@ -19,19 +18,25 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.max
+import com.tunjid.globalui.FragmentContainerPositionalState
 import com.tunjid.globalui.ToolbarState
 import com.tunjid.globalui.UiState
 import com.tunjid.globalui.altToolbarState
+import com.tunjid.globalui.fragmentContainerState
+import com.tunjid.globalui.keyboardSize
 import com.tunjid.globalui.toolbarState
 import com.tunjid.rcswitchcontrol.client.ClientLoad
-import com.tunjid.rcswitchcontrol.control.controlScreen
 import com.tunjid.rcswitchcontrol.di.AppState
+import com.tunjid.rcswitchcontrol.di.ComposeDagger
 import com.tunjid.rcswitchcontrol.navigation.StackNav
 import com.tunjid.rcswitchcontrol.onboarding.HostScan
 import com.tunjid.rcswitchcontrol.onboarding.Start
-import com.tunjid.rcswitchcontrol.onboarding.hostScanScreen
-import com.tunjid.rcswitchcontrol.onboarding.startScreen
+import com.tunjid.rcswitchcontrol.ui.onboarding.HostScanScreen
+import com.tunjid.rcswitchcontrol.ui.onboarding.StartScreen
 import com.tunjid.rcswitchcontrol.ui.theme.AppTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
@@ -41,20 +46,22 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 @Composable
-fun Root(
-    stateFlow: StateFlow<AppState>
-) {
+fun Root() {
+    val appStateFlow = ComposeDagger.current.appComponent.state
     AppTheme {
         val rootScope = rememberCoroutineScope()
-        val uiStateFlow = remember { stateFlow.mapState(rootScope, AppState::ui) }
-        val navStateFlow = remember { stateFlow.mapState(rootScope, AppState::nav) }
+        val uiStateFlow = remember { appStateFlow.mapState(rootScope, AppState::ui) }
 
         Box {
             AppToolbar(stateFlow = uiStateFlow.mapState(rootScope, UiState::toolbarState))
             AppToolbar(stateFlow = uiStateFlow.mapState(rootScope, UiState::altToolbarState))
+            ContentBox(
+                stateFlow = uiStateFlow.mapState(rootScope) { it.fragmentContainerState }
+            ) {
             Nav(
-                navStateFlow = navStateFlow
+                navStateFlow = appStateFlow.mapState(rootScope, AppState::nav)
             )
+        }
             BottomAppBar(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -78,33 +85,27 @@ fun Nav(
         .mapState(scope, StackNav::currentNode)
         .collectAsState()
 
-    // Adds view to Compose
-    AndroidView(
-        modifier = Modifier.fillMaxSize(),
-        factory = { context ->
-            FrameLayout(context)
-        },
-        update = { container ->
-            container.apply {
-                removeAllViews()
-                val node = nodeState.value
-                val screen = when (val named = node?.named) {
-                    Start -> startScreen()
-                    HostScan -> hostScanScreen(node)
-                    is ClientLoad -> controlScreen(node, named)
-                    else -> null
-                }
-                println("Screen: ${node?.named}")
-                if (screen != null) addView(screen.binding.root)
-            }
+    val node = nodeState.value
+
+    when (node?.named) {
+        Start -> StartScreen()
+        HostScan -> HostScanScreen(node)
+        is ClientLoad -> Box {
+
         }
-    )
+        else -> Box {
+
+        }
+    }
+    println("Screen: ${node?.named}")
 }
 
 @Composable
-internal fun BoxScope.AppToolbar(stateFlow: StateFlow<ToolbarState>) {
+private fun BoxScope.AppToolbar(stateFlow: StateFlow<ToolbarState>) {
     val state by stateFlow.collectAsState()
     val alpha: Float by animateFloatAsState(if (state.visible) 1f else 0f)
+
+    println("Title: ${state.toolbarTitle}")
 
     TopAppBar(
         title = { Text(text = state.toolbarTitle.toString()) },
@@ -118,6 +119,38 @@ internal fun BoxScope.AppToolbar(stateFlow: StateFlow<ToolbarState>) {
     )
 }
 
+@Composable
+private fun ContentBox(
+    stateFlow: StateFlow<FragmentContainerPositionalState>,
+    content: @Composable BoxScope.() -> Unit
+) {
+    val state by stateFlow.collectAsState()
+
+    val bottomNavHeight = uiSizes.bottomNavSize countIf state.bottomNavVisible
+    val insetClearance = max(
+        a = bottomNavHeight,
+        b = with(LocalDensity.current) { state.keyboardSize.toDp() }
+    )
+    val navBarClearance = with(LocalDensity.current) {
+        state.navBarSize.toDp()
+    } countIf state.insetDescriptor.hasBottomInset
+    val totalBottomClearance = insetClearance + navBarClearance
+
+    val statusBarSize = with(LocalDensity.current) {
+        state.statusBarSize.toDp()
+    } countIf state.insetDescriptor.hasTopInset
+    val toolbarHeight = uiSizes.toolbarSize countIf !state.toolbarOverlaps
+    val topClearance = statusBarSize + toolbarHeight
+
+    Box(
+        modifier = Modifier.padding(
+            top = topClearance,
+            bottom = totalBottomClearance
+        ),
+        content = content
+    )
+}
+
 fun <T, R> StateFlow<T>.mapState(scope: CoroutineScope, mapper: (T) -> R) =
     map { mapper(it) }
         .distinctUntilChanged()
@@ -126,3 +159,22 @@ fun <T, R> StateFlow<T>.mapState(scope: CoroutineScope, mapper: (T) -> R) =
             initialValue = mapper(value),
             started = SharingStarted.WhileSubscribed(2000),
         )
+
+
+private data class UISizes(
+    val toolbarSize: Dp,
+    val bottomNavSize: Dp,
+    val snackbarPadding: Dp,
+    val navBarHeightThreshold: Dp
+)
+
+private val uiSizes = UISizes(
+    toolbarSize = 56.dp,
+    bottomNavSize = 56.dp,
+    snackbarPadding = 8.dp,
+    navBarHeightThreshold = 80.dp
+)
+
+private infix fun Dp.countIf(condition: Boolean) = if (condition) this else 0.dp
+
+private infix fun Int.countIf(condition: Boolean) = if (condition) this else 0

@@ -30,7 +30,7 @@ import androidx.lifecycle.ViewModelStoreOwner
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.core.components.services.HardServiceConnection
-import com.tunjid.rcswitchcontrol.arch.ClosableStateMachine
+import com.tunjid.rcswitchcontrol.common.ClosableStateMachine
 import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.client.State

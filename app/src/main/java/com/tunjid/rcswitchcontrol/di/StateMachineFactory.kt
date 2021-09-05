@@ -17,7 +17,7 @@
 
 package com.tunjid.rcswitchcontrol.di
 
-import com.tunjid.rcswitchcontrol.arch.ClosableStateMachine
+import com.tunjid.rcswitchcontrol.common.ClosableStateMachine
 import dagger.MapKey
 import javax.inject.Provider
 import kotlin.reflect.KClass

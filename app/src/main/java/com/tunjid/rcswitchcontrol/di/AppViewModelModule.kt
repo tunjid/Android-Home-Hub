@@ -17,8 +17,7 @@
 
 package com.tunjid.rcswitchcontrol.di
 
-import com.tunjid.rcswitchcontrol.arch.ClosableStateMachine
-import com.tunjid.rcswitchcontrol.arch.StateMachine
+import com.tunjid.rcswitchcontrol.common.ClosableStateMachine
 import com.tunjid.rcswitchcontrol.client.ClientViewModel
 import com.tunjid.rcswitchcontrol.control.ControlViewModel
 import com.tunjid.rcswitchcontrol.navigation.Node

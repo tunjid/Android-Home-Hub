@@ -17,6 +17,11 @@
 
 package com.tunjid.rcswitchcontrol.di
 
+import com.tunjid.globalui.UiState
+import com.tunjid.rcswitchcontrol.common.ClosableStateMachine
+import com.tunjid.rcswitchcontrol.common.StateMachine
+import com.tunjid.rcswitchcontrol.common.Mutation
+import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.navigation.StackNav
 import dagger.Component
 import kotlinx.coroutines.CoroutineScope
@@ -33,7 +38,9 @@ interface AppComponent {
 
     val state: StateFlow<AppState>
 
-    val nav: KMutableProperty0<StackNav>
+    val uiStateMachine: StateMachine<Mutation<UiState>, UiState>
+
+    val navStateMachine: StateMachine<Mutation<StackNav>, StackNav>
 
     fun broadcasts(): AppBroadcasts
 
@@ -44,3 +51,7 @@ interface AppComponent {
     @UiScope
     fun uiScope() : CoroutineScope
 }
+
+inline fun <reified SM : ClosableStateMachine<*, *>> AppComponent.stateMachine(
+    node: Node? = null
+) = stateMachineCreator().invoke(node, SM::class) as SM

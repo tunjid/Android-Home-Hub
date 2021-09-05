@@ -1,4 +1,4 @@
-package com.tunjid.rcswitchcontrol.arch
+package com.tunjid.rcswitchcontrol.common
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel

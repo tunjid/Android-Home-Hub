@@ -1,6 +1,8 @@
 package com.tunjid.rcswitchcontrol.common
 
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 
 
 data class Mutation<T>(
@@ -71,3 +73,59 @@ data class Combined<Action : Any>(
 }
 
 private val Any.flowKey get() = this::class.simpleName!!
+
+fun <Action, State> stateMachineOf(
+    scope: CoroutineScope,
+    initialState: State,
+    started: SharingStarted = SharingStarted.WhileSubscribed(5000),
+    transform: (Flow<Action>) -> Flow<Mutation<State>>
+): StateMachine<Action, State> {
+    val actions = MutableSharedFlow<Action>()
+    return object : StateMachine<Action, State> {
+        override val state: StateFlow<State> =
+            transform(actions)
+                .scan(initialState) { state, mutation ->
+                    mutation.change(state)
+                }
+                .onEach {
+                    println("STATE OUT: $it")
+                }
+                .stateIn(
+                    scope = scope,
+                    started = started,
+                    initialValue = initialState,
+                )
+
+        override val accept: (Action) -> Unit = { action ->
+            scope.launch {
+                // Suspend till the downstream is connected
+                actions.subscriptionCount.first { it > 0 }
+                actions.emit(action)
+            }
+        }
+    }
+}
+
+fun <State, SubState> StateMachine<Mutation<State>, State>.derived(
+    scope: CoroutineScope,
+    mapper: (State) -> SubState,
+    mutator: (State, SubState) -> State
+) = object : StateMachine<Mutation<SubState>, SubState> {
+    override val state: StateFlow<SubState> =
+        this@derived.state
+            .mapDistinct { mapper(it) }
+            .stateIn(
+                scope = scope,
+                started = SharingStarted.Eagerly,
+                initialValue = mapper(this@derived.state.value)
+            )
+
+    override val accept: (Mutation<SubState>) -> Unit = { mutation ->
+        this@derived.accept(Mutation {
+            val currentState = this
+            val mapped = mapper(currentState)
+            val mutated = mutation.change(mapped)
+            mutator(currentState, mutated)
+        })
+    }
+}

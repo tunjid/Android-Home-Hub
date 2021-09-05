@@ -26,7 +26,7 @@ package com.tunjid.rcswitchcontrol.server
 
 import android.content.Context
 import com.tunjid.androidx.core.components.services.HardServiceConnection
-import com.tunjid.rcswitchcontrol.arch.ClosableStateMachine
+import com.tunjid.rcswitchcontrol.common.ClosableStateMachine
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.di.AppBroadcaster
 import com.tunjid.rcswitchcontrol.di.AppContext

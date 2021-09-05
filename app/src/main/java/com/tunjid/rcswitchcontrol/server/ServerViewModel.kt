@@ -7,7 +7,7 @@ import com.rcswitchcontrol.protocols.io.ConsoleWriter
 import com.tunjid.androidx.communications.nsd.NsdHelper
 import com.tunjid.androidx.recyclerview.diff.Diffable
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.arch.ClosableStateMachine
+import com.tunjid.rcswitchcontrol.common.ClosableStateMachine
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.client.ClientStateCache
 import com.tunjid.rcswitchcontrol.common.*

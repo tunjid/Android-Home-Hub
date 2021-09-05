@@ -2,7 +2,7 @@ package com.tunjid.rcswitchcontrol.client
 
 import android.net.nsd.NsdServiceInfo
 import com.rcswitchcontrol.protocols.models.Payload
-import com.tunjid.rcswitchcontrol.arch.ClosableStateMachine
+import com.tunjid.rcswitchcontrol.common.ClosableStateMachine
 import com.tunjid.rcswitchcontrol.common.*
 import com.tunjid.rcswitchcontrol.di.AppBroadcaster
 import com.tunjid.rcswitchcontrol.di.AppBroadcasts

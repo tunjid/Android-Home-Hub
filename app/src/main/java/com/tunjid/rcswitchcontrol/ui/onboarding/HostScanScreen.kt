@@ -9,11 +9,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import com.tunjid.globalui.ToolbarIcon
 import com.tunjid.globalui.UiState
-import com.tunjid.rcswitchcontrol.arch.StateMachine
 import com.tunjid.rcswitchcontrol.common.Mutation
+import com.tunjid.rcswitchcontrol.di.ComposeDagger
+import com.tunjid.rcswitchcontrol.di.stateMachine
+import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.onboarding.Input
 import com.tunjid.rcswitchcontrol.onboarding.NSDState
 import com.tunjid.rcswitchcontrol.onboarding.NsdItem
+import com.tunjid.rcswitchcontrol.onboarding.NsdScanViewModel
 import com.tunjid.rcswitchcontrol.ui.mapState
 import com.tunjid.rcswitchcontrol.ui.theme.darkText
 import kotlinx.coroutines.flow.StateFlow
@@ -25,9 +28,11 @@ private const val REFRESH = 2
 
 @Composable
 fun HostScanScreen(
-    uiStateMachine: StateMachine<Mutation<UiState>, UiState>,
-    stateMachine: StateMachine<Input, NSDState>,
+    node: Node
 ) {
+    val uiStateMachine = ComposeDagger.current.appComponent.uiStateMachine
+    val stateMachine = ComposeDagger.current.appComponent.stateMachine<NsdScanViewModel>(node)
+
     val rootScope = rememberCoroutineScope()
     val toolbarClicks = remember {
         mutableStateOf({ icon: ToolbarIcon ->

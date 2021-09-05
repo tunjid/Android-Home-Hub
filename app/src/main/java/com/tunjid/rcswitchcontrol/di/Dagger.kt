@@ -20,8 +20,21 @@ package com.tunjid.rcswitchcontrol.di
 import android.app.Activity
 import android.app.Service
 import android.content.Context
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.fragment.app.Fragment
+import com.tunjid.globalui.UiState
 import com.tunjid.rcswitchcontrol.App
+import com.tunjid.rcswitchcontrol.common.Mutation
+import com.tunjid.rcswitchcontrol.common.StateMachine
+import com.tunjid.rcswitchcontrol.common.stateMachineOf
+import com.tunjid.rcswitchcontrol.navigation.StackNav
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
 
 val Context.dagger: Dagger get() = (applicationContext as App).dagger
 val Service.dagger: Dagger get() = (application as App).dagger
@@ -29,10 +42,10 @@ val Activity.dagger: Dagger get() = (application as App).dagger
 val Fragment.dagger: Dagger get() = requireActivity().dagger
 
 var Dagger.nav
-    get() = appComponent.nav.get()
-    set(value) = appComponent.nav.set(value)
+    get() = appComponent.navStateMachine.state.value
+    set(value) = appComponent.navStateMachine.accept(Mutation { value })
 
-class Dagger(
+data class Dagger(
     val appComponent: AppComponent
 ) {
 
@@ -43,3 +56,31 @@ class Dagger(
             .let(::Dagger)
     }
 }
+
+val DummyDagger = Dagger(object : AppComponent {
+    override val state: StateFlow<AppState> = MutableStateFlow(AppState())
+
+    override val uiStateMachine: StateMachine<Mutation<UiState>, UiState> = stateMachineOf(
+        scope = CoroutineScope(SupervisorJob() + Dispatchers.Main),
+        initialState = UiState(),
+        transform = { emptyFlow() }
+    )
+    override val navStateMachine: StateMachine<Mutation<StackNav>, StackNav> = stateMachineOf(
+        scope = CoroutineScope(SupervisorJob() + Dispatchers.Main),
+        initialState = StackNav(AppRoot),
+        transform = { emptyFlow() }
+    )
+
+    override fun broadcasts(): AppBroadcasts = flowOf()
+
+    override val broadcaster: AppBroadcaster = {}
+
+    override fun stateMachineCreator(): StateMachineCreator {
+        TODO("Not yet implemented")
+    }
+
+    override fun uiScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+})
+
+val ComposeDagger = staticCompositionLocalOf { DummyDagger }

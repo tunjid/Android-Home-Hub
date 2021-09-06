@@ -87,10 +87,11 @@ private fun <T> emptyCallback(): (T) -> Unit = {}
 // They aggregate the parts of Global UI they react to
 
 internal data class ToolbarState(
-    val icons: List<ToolbarIcon>,
+    val statusBarSize: Int,
     val visible: Boolean,
     val overlaps: Boolean,
     val toolbarTitle: CharSequence,
+    val icons: List<ToolbarIcon>,
 )
 
 internal data class SnackbarPositionalState(
@@ -131,6 +132,7 @@ internal val UiState.toolbarState
         toolbarTitle = toolbarTitle,
         visible = toolbarShows,
         overlaps = toolbarOverlaps,
+        statusBarSize = systemUI.static.statusBarSize,
     )
 
 internal val UiState.altToolbarState
@@ -139,6 +141,7 @@ internal val UiState.altToolbarState
         toolbarTitle = altToolbarTitle,
         visible = altToolbarShows,
         overlaps = altToolbarOverlaps,
+        statusBarSize = systemUI.static.statusBarSize,
     )
 
 internal val UiState.fabState

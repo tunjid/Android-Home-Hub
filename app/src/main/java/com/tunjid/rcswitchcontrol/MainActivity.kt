@@ -36,7 +36,7 @@ import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.client.nsdServiceInfo
 import com.tunjid.rcswitchcontrol.client.nsdServiceName
-import com.tunjid.rcswitchcontrol.di.ComposeDagger
+import com.tunjid.rcswitchcontrol.di.AppDependencies
 import com.tunjid.rcswitchcontrol.di.dagger
 import com.tunjid.rcswitchcontrol.di.nav
 import com.tunjid.rcswitchcontrol.navigation.Node
@@ -57,7 +57,7 @@ class MainActivity : AppCompatActivity(){
         }
 
         setContent {
-            CompositionLocalProvider(ComposeDagger provides dagger) {
+            CompositionLocalProvider(AppDependencies provides dagger.appComponent) {
                 Root()
             }
         }

@@ -57,7 +57,7 @@ data class Dagger(
     }
 }
 
-val DummyDagger = Dagger(object : AppComponent {
+val DummyDagger = object : AppComponent {
     override val state: StateFlow<AppState> = MutableStateFlow(AppState())
 
     override val uiStateMachine: StateMachine<Mutation<UiState>, UiState> = stateMachineOf(
@@ -81,6 +81,6 @@ val DummyDagger = Dagger(object : AppComponent {
 
     override fun uiScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
-})
+}
 
-val ComposeDagger = staticCompositionLocalOf { DummyDagger }
+val AppDependencies = staticCompositionLocalOf { DummyDagger }

@@ -10,7 +10,7 @@ import androidx.compose.ui.text.withStyle
 import com.tunjid.globalui.ToolbarIcon
 import com.tunjid.globalui.UiState
 import com.tunjid.rcswitchcontrol.common.Mutation
-import com.tunjid.rcswitchcontrol.di.ComposeDagger
+import com.tunjid.rcswitchcontrol.di.AppDependencies
 import com.tunjid.rcswitchcontrol.di.stateMachine
 import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.onboarding.Input
@@ -30,8 +30,8 @@ private const val REFRESH = 2
 fun HostScanScreen(
     node: Node
 ) {
-    val uiStateMachine = ComposeDagger.current.appComponent.uiStateMachine
-    val stateMachine = ComposeDagger.current.appComponent.stateMachine<NsdScanViewModel>(node)
+    val uiStateMachine = AppDependencies.current.uiStateMachine
+    val stateMachine = AppDependencies.current.stateMachine<NsdScanViewModel>(node)
 
     val rootScope = rememberCoroutineScope()
     val toolbarClicks = remember {

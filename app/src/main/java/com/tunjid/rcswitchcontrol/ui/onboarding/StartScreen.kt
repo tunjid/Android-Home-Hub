@@ -16,19 +16,20 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.tunjid.globalui.ToolbarIcon
 import com.tunjid.globalui.UiState
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.common.Mutation
-import com.tunjid.rcswitchcontrol.di.ComposeDagger
-import com.tunjid.rcswitchcontrol.onboarding.Input
+import com.tunjid.rcswitchcontrol.di.AppDependencies
+import com.tunjid.rcswitchcontrol.navigation.Node
+import com.tunjid.rcswitchcontrol.onboarding.HostScan
 import com.tunjid.rcswitchcontrol.ui.theme.AppTheme
 import com.tunjid.rcswitchcontrol.ui.theme.colorAccent
 import com.tunjid.rcswitchcontrol.ui.theme.darkText
 
 @Composable
 fun StartScreen() {
-    val uiStateMachine = ComposeDagger.current.appComponent.uiStateMachine
+    val uiStateMachine = AppDependencies.current.uiStateMachine
+    val navStateMachine = AppDependencies.current.navStateMachine
 
     DisposableEffect(true) {
         uiStateMachine.accept(Mutation {
@@ -68,7 +69,9 @@ fun StartScreen() {
             TextButton(
                 modifier = Modifier
                     .weight(1f),
-                onClick = { },
+                onClick = {
+                    navStateMachine.accept(Mutation { push(Node(HostScan)) })
+                },
                 content = {
                     Text(
                         text = stringResource(id = R.string.client),

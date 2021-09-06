@@ -10,12 +10,12 @@ import com.tunjid.globalui.bottomNavPositionalState
 import com.tunjid.globalui.fragmentContainerState
 import com.tunjid.globalui.toolbarState
 import com.tunjid.rcswitchcontrol.di.AppState
-import com.tunjid.rcswitchcontrol.di.ComposeDagger
+import com.tunjid.rcswitchcontrol.di.AppDependencies
 import com.tunjid.rcswitchcontrol.ui.theme.AppTheme
 
 @Composable
 fun Root() {
-    val appStateFlow = ComposeDagger.current.appComponent.state
+    val appStateFlow = AppDependencies.current.state
     AppTheme {
         val rootScope = rememberCoroutineScope()
         val uiStateFlow = remember { appStateFlow.mapState(rootScope, AppState::ui) }

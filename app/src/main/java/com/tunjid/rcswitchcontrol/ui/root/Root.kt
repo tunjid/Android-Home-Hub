@@ -1,8 +1,10 @@
-package com.tunjid.rcswitchcontrol.ui
+package com.tunjid.rcswitchcontrol.ui.root
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.absolutePadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -11,6 +13,7 @@ import androidx.compose.material.BottomNavigation
 import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -22,12 +25,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
-import com.tunjid.globalui.FragmentContainerPositionalState
-import com.tunjid.globalui.ToolbarState
-import com.tunjid.globalui.UiState
+import androidx.dynamicanimation.animation.SpringAnimation
+import com.tunjid.globalui.*
 import com.tunjid.globalui.altToolbarState
-import com.tunjid.globalui.fragmentContainerState
-import com.tunjid.globalui.keyboardSize
 import com.tunjid.globalui.toolbarState
 import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.di.AppState
@@ -58,20 +58,11 @@ fun Root() {
             ContentBox(
                 stateFlow = uiStateFlow.mapState(rootScope) { it.fragmentContainerState }
             ) {
-            Nav(
-                navStateFlow = appStateFlow.mapState(rootScope, AppState::nav)
-            )
-        }
-            BottomAppBar(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .wrapContentHeight()
-            ) {
-                BottomNavigation {
-
-                }
+                Nav(
+                    navStateFlow = appStateFlow.mapState(rootScope, AppState::nav)
+                )
             }
+            AppBottomNav(stateFlow = uiStateFlow.mapState(rootScope, UiState::bottomNavPositionalState))
         }
     }
 }
@@ -149,6 +140,35 @@ private fun ContentBox(
         ),
         content = content
     )
+}
+
+@Composable
+private fun BoxScope.AppBottomNav(
+    stateFlow: StateFlow<BottomNavPositionalState>
+) {
+    val state by stateFlow.collectAsState()
+    val bottomNavPositionAnimation = remember { Animatable(0f) }
+    val navBarClearance = state.navBarSize countIf state.insetDescriptor.hasBottomInset
+    val bottomNavPosition = when {
+        state.bottomNavVisible -> -navBarClearance.toFloat()
+        else -> with(LocalDensity.current) { uiSizes.bottomNavSize.toPx() }
+    }
+    LaunchedEffect(navBarClearance) {
+        bottomNavPositionAnimation.animateTo(bottomNavPosition)
+    }
+
+    BottomAppBar(
+        modifier = Modifier
+            .align(Alignment.BottomCenter)
+            .fillMaxWidth()
+            .absolutePadding(top = with(LocalDensity.current) { bottomNavPositionAnimation.value.toDp() })
+            .wrapContentHeight()
+    ) {
+
+        BottomNavigation {
+
+        }
+    }
 }
 
 fun <T, R> StateFlow<T>.mapState(scope: CoroutineScope, mapper: (T) -> R) =

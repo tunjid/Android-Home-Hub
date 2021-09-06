@@ -103,12 +103,12 @@ fun ViewGroup.recordScreen(
 
     binding.root.doOnAttach {
         val clientState = stateMachine.state.mapDistinct(ControlState::clientState.asSuspend)
-
-        scope.launch {
-            liveUiState.mapDistinct { it.systemUI.dynamic.bottomInset }.collect {
-                binding.root.updatePadding(bottom = it)
-            }
-        }
+//
+//        scope.launch {
+//            liveUiState.mapDistinct { it.systemUI.dynamic.bottomInset }.collect {
+//                binding.root.updatePadding(bottom = it)
+//            }
+//        }
         scope.launch {
             if (key == null) clientState.mapDistinct(ClientState::history.asSuspend)
                 .collect { history ->

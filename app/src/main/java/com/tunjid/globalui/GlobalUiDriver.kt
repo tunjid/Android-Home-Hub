@@ -101,7 +101,7 @@ class GlobalUiDriver(
     private val toolbarHider = ViewHider.of(binding.toolbar).setDirection(ViewHider.TOP).build()
     private val noOpInsetsListener = View.OnApplyWindowInsetsListener { _, insets -> insets }
     private val rootInsetsListener = View.OnApplyWindowInsetsListener { _, insets ->
-        liveUiState.value = uiState.reduceSystemInsets(insets, uiSizes.navBarHeightThreshold)
+//        liveUiState.value = uiState.reduceSystemInsets(insets, uiSizes.navBarHeightThreshold)
         // Consume insets so other views will not see them.
         insets.consumeSystemWindowInsets()
     }

@@ -30,31 +30,20 @@ import androidx.activity.addCallback
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
-import com.tunjid.globalui.GlobalUiDriver
-import com.tunjid.globalui.GlobalUiHost
 import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.client.nsdServiceInfo
 import com.tunjid.rcswitchcontrol.client.nsdServiceName
-import com.tunjid.rcswitchcontrol.common.mapDistinct
-import com.tunjid.rcswitchcontrol.control.controlScreen
-import com.tunjid.rcswitchcontrol.databinding.ActivityMainBinding
 import com.tunjid.rcswitchcontrol.di.ComposeDagger
 import com.tunjid.rcswitchcontrol.di.dagger
 import com.tunjid.rcswitchcontrol.di.nav
 import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.navigation.updatePartial
-import com.tunjid.rcswitchcontrol.onboarding.HostScan
-import com.tunjid.rcswitchcontrol.onboarding.Start
-import com.tunjid.rcswitchcontrol.onboarding.hostScanScreen
-import com.tunjid.rcswitchcontrol.onboarding.startScreen
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
-import com.tunjid.rcswitchcontrol.ui.Root
-import com.tunjid.rcswitchcontrol.ui.theme.Elevations
-import com.tunjid.rcswitchcontrol.ui.theme.LocalElevations
+import com.tunjid.rcswitchcontrol.ui.root.Root
+import com.tunjid.rcswitchcontrol.ui.root.insetMutations
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
@@ -88,5 +77,11 @@ class MainActivity : AppCompatActivity(){
         }
 
         if (controlLoad != null) dagger::nav.updatePartial { push(Node(controlLoad)) }
+
+        lifecycleScope.launch {
+            insetMutations().collect {
+                dagger.appComponent.uiStateMachine.accept(it)
+            }
+        }
     }
 }

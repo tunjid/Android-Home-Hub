@@ -17,7 +17,7 @@ import com.tunjid.rcswitchcontrol.onboarding.Input
 import com.tunjid.rcswitchcontrol.onboarding.NSDState
 import com.tunjid.rcswitchcontrol.onboarding.NsdItem
 import com.tunjid.rcswitchcontrol.onboarding.NsdScanViewModel
-import com.tunjid.rcswitchcontrol.ui.mapState
+import com.tunjid.rcswitchcontrol.ui.root.mapState
 import com.tunjid.rcswitchcontrol.ui.theme.darkText
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collect

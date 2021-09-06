@@ -217,19 +217,19 @@ fun ViewGroup.controlScreen(
     }
 
     binding.root.doOnLayout {
-        scope.launch {
-            val resources = binding.root.context.resources
-            binding.liveUiState
-                .mapDistinct { it.systemUI.dynamic.run { this.topInset to this.bottomInset } }
-                .collect { (topInset, bottomInset) ->
-                    binding.bottomSheet.updateLayoutParams {
-                        this.height =
-                            it.height - topInset - resources.getDimensionPixelSize(R.dimen.double_and_half_margin)
-                    }
-                    bottomSheetBehavior.peekHeight =
-                        resources.getDimensionPixelSize(R.dimen.sextuple_margin) + bottomInset
-                }
-        }
+//        scope.launch {
+//            val resources = binding.root.context.resources
+//            binding.liveUiState
+//                .mapDistinct { it.systemUI.dynamic.run { this.topInset to this.bottomInset } }
+//                .collect { (topInset, bottomInset) ->
+//                    binding.bottomSheet.updateLayoutParams {
+//                        this.height =
+//                            it.height - topInset - resources.getDimensionPixelSize(R.dimen.double_and_half_margin)
+//                    }
+//                    bottomSheetBehavior.peekHeight =
+//                        resources.getDimensionPixelSize(R.dimen.sextuple_margin) + bottomInset
+//                }
+//        }
 
         bottomSheetBehavior.expandedOffset = offset
         bottomSheetBehavior.addBottomSheetCallback(object :

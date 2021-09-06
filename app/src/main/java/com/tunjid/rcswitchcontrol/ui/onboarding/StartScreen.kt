@@ -32,7 +32,6 @@ fun StartScreen() {
 
     DisposableEffect(true) {
         uiStateMachine.accept(Mutation {
-            println("MUTATING")
             UiState(
                 toolbarShows = true,
                 toolbarTitle = "Home Hub",

@@ -166,13 +166,13 @@ fun ViewGroup.devicesScreen(node: Node): BindingViewHolder<FragmentListBinding> 
                 .mapDistinct(ClientState::devices.asSuspend)
 
             binding.root.doOnAttach {
-                scope.launch {
-                    binding.liveUiState
-                        .mapDistinct { it.systemUI.dynamic.bottomInset }
-                        .collect {
-                            binding.list.updatePadding(bottom = it)
-                        }
-                }
+//                scope.launch {
+//                    binding.liveUiState
+//                        .mapDistinct { it.systemUI.dynamic.bottomInset }
+//                        .collect {
+//                            binding.list.updatePadding(bottom = it)
+//                        }
+//                }
                 scope.launch {
                     clientState
                         .collect {

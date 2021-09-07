@@ -34,6 +34,7 @@ fun StartScreen() {
     DisposableEffect(true) {
         uiStateMachine.accept(Mutation {
             UiState(
+                systemUI = systemUI,
                 toolbarShows = true,
                 toolbarTitle = "Home Hub",
             )
@@ -77,7 +78,8 @@ fun StartScreen() {
                         text = stringResource(id = R.string.client),
                         color = colorAccent
                     )
-                })
+                }
+            )
         }
     }
 

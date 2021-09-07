@@ -158,11 +158,6 @@ class AppModule(private val app: App) {
                     }
                 }
         }
-        appScope.launch {
-            appStateMachine.state
-                .mapDistinct { it.ui.toolbarTitle }
-                .collect { println("") }
-        }
     }
 
     @Provides

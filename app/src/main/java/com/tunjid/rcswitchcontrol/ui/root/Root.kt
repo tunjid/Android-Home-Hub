@@ -9,31 +9,47 @@ import com.tunjid.globalui.altToolbarState
 import com.tunjid.globalui.bottomNavPositionalState
 import com.tunjid.globalui.fragmentContainerState
 import com.tunjid.globalui.toolbarState
-import com.tunjid.rcswitchcontrol.di.AppState
 import com.tunjid.rcswitchcontrol.di.AppDependencies
+import com.tunjid.rcswitchcontrol.di.AppState
 import com.tunjid.rcswitchcontrol.ui.theme.AppTheme
 
 @Composable
 fun Root() {
+    val rootScope = rememberCoroutineScope()
     val appStateFlow = AppDependencies.current.state
-    AppTheme {
-        val rootScope = rememberCoroutineScope()
-        val uiStateFlow = remember { appStateFlow.mapState(rootScope, AppState::ui) }
+    val uiStateFlow = remember { appStateFlow.mapState(rootScope, AppState::ui) }
 
+    AppTheme {
         Box {
-            AppToolbar(stateFlow = uiStateFlow.mapState(rootScope, UiState::toolbarState))
-            AppToolbar(stateFlow = uiStateFlow.mapState(rootScope, UiState::altToolbarState))
-            ContentBox(
-                stateFlow = uiStateFlow.mapState(rootScope) { it.fragmentContainerState }
+            AppToolbar(
+                stateFlow = uiStateFlow.mapState(
+                    scope = rootScope,
+                    mapper = UiState::toolbarState
+                )
+            )
+            AppToolbar(
+                stateFlow = uiStateFlow.mapState(
+                    scope = rootScope,
+                    mapper = UiState::altToolbarState
+                )
+            )
+            AppNavContainer(
+                stateFlow = uiStateFlow.mapState(
+                    scope = rootScope,
+                    mapper = UiState::fragmentContainerState
+                )
             ) {
                 AppNav(
-                    navStateFlow = appStateFlow.mapState(rootScope, AppState::nav)
+                    navStateFlow = appStateFlow.mapState(
+                        scope = rootScope,
+                        mapper = AppState::nav
+                    )
                 )
             }
             AppBottomNav(
                 stateFlow = uiStateFlow.mapState(
-                    rootScope,
-                    UiState::bottomNavPositionalState
+                    scope = rootScope,
+                    mapper = UiState::bottomNavPositionalState
                 )
             )
         }

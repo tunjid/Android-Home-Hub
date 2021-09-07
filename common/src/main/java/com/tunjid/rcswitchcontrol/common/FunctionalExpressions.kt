@@ -87,9 +87,6 @@ fun <Action, State> stateMachineOf(
                 .scan(initialState) { state, mutation ->
                     mutation.change(state)
                 }
-                .onEach {
-                    println("STATE OUT: $it")
-                }
                 .stateIn(
                     scope = scope,
                     started = started,

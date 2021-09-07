@@ -141,7 +141,6 @@ class GlobalUiDriver(
         }
 
         UiState::toolbarShows.distinct onChanged {
-            println("Toolbar shows: $it")
             toolbarHider.set(true)
 //            toolbarHider::set
         }

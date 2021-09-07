@@ -7,7 +7,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
-import com.tunjid.globalui.ToolbarIcon
+import com.tunjid.globalui.ToolbarItem
 import com.tunjid.globalui.UiState
 import com.tunjid.rcswitchcontrol.common.Mutation
 import com.tunjid.rcswitchcontrol.di.AppDependencies
@@ -34,22 +34,17 @@ fun HostScanScreen(
     val stateMachine = AppDependencies.current.stateMachine<NsdScanViewModel>(node)
 
     val rootScope = rememberCoroutineScope()
-    val toolbarClicks = remember {
-        mutableStateOf({ icon: ToolbarIcon ->
-            when (icon.id) {
-                SCAN -> stateMachine.accept(Input.StartScanning)
-                STOP -> stateMachine.accept(Input.StopScanning)
-            }
-        })
-    }
+
 
     DisposableEffect(true) {
         uiStateMachine.accept(Mutation {
             UiState(
+                systemUI = systemUI,
                 toolbarShows = true,
                 toolbarTitle = "Home Hub",
-                toolbarMenuClickListener = { icon: ToolbarIcon ->
-                    when (icon.id) {
+                toolbarMenuClickListener = { item: ToolbarItem ->
+                    println("Clicked $item")
+                    when (item.id) {
                         SCAN -> stateMachine.accept(Input.StartScanning)
                         STOP -> stateMachine.accept(Input.StopScanning)
                     }
@@ -69,10 +64,10 @@ fun HostScanScreen(
         isScanning.collect { scanning ->
             uiStateMachine.accept(Mutation {
                 copy(
-                    toolbarIcons = listOfNotNull(
-                        ToolbarIcon(id = SCAN, text = "Scan").takeIf { !scanning },
-                        ToolbarIcon(id = STOP, text = "Stop").takeIf { scanning },
-                        ToolbarIcon(id = REFRESH, text = "Refresh").takeIf { scanning },
+                    toolbarItems = listOfNotNull(
+                        ToolbarItem(id = SCAN, text = "Scan").takeIf { !scanning },
+                        ToolbarItem(id = STOP, text = "Stop").takeIf { scanning },
+                        ToolbarItem(id = REFRESH, text = "Refresh").takeIf { scanning },
                     )
                 )
             })

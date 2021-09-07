@@ -37,7 +37,7 @@ import kotlin.reflect.KMutableProperty0
 fun KMutableProperty0<UiState>.updatePartial(updater: UiState.() -> UiState) =
     set(updater.invoke(get()))
 
-data class ToolbarIcon(
+data class ToolbarItem(
     val id: Int,
     val text: String,
     val imageVector: ImageVector? = null,
@@ -45,11 +45,11 @@ data class ToolbarIcon(
 )
 
 data class UiState(
-    val toolbarIcons: List<ToolbarIcon> = listOf(),
+    val toolbarItems: List<ToolbarItem> = listOf(),
     val toolbarShows: Boolean = false,
     val toolbarOverlaps: Boolean = false,
     val toolbarTitle: CharSequence = "",
-    val altToolbarIcons: List<ToolbarIcon> = listOf(),
+    val altToolbarItems: List<ToolbarItem> = listOf(),
     val altToolbarShows: Boolean = false,
     val altToolbarOverlaps: Boolean = false,
     val altToolbarTitle: CharSequence = "",
@@ -75,9 +75,9 @@ data class UiState(
     val systemUI: SystemUI = NoOpSystemUI,
     val fabClickListener: (View) -> Unit = emptyCallback(),
     val fabTransitionOptions: SpringAnimation.() -> Unit = emptyCallback(),
-    val toolbarMenuClickListener: (ToolbarIcon) -> Unit = emptyCallback(),
+    val toolbarMenuClickListener: (ToolbarItem) -> Unit = emptyCallback(),
     val toolbarMenuRefresher: (Menu) -> Unit = emptyCallback(),
-    val altToolbarMenuClickListener: (ToolbarIcon) -> Unit = emptyCallback(),
+    val altToolbarMenuClickListener: (ToolbarItem) -> Unit = emptyCallback(),
     val altToolbarMenuRefresher: (Menu) -> Unit = emptyCallback(),
 )
 
@@ -91,7 +91,7 @@ internal data class ToolbarState(
     val visible: Boolean,
     val overlaps: Boolean,
     val toolbarTitle: CharSequence,
-    val icons: List<ToolbarIcon>,
+    val items: List<ToolbarItem>,
 )
 
 internal data class SnackbarPositionalState(
@@ -128,7 +128,7 @@ internal data class BottomNavPositionalState(
 
 internal val UiState.toolbarState
     get() = ToolbarState(
-        icons = toolbarIcons,
+        items = toolbarItems,
         toolbarTitle = toolbarTitle,
         visible = toolbarShows,
         overlaps = toolbarOverlaps,
@@ -137,7 +137,7 @@ internal val UiState.toolbarState
 
 internal val UiState.altToolbarState
     get() = ToolbarState(
-        icons = altToolbarIcons,
+        items = altToolbarItems,
         toolbarTitle = altToolbarTitle,
         visible = altToolbarShows,
         overlaps = altToolbarOverlaps,

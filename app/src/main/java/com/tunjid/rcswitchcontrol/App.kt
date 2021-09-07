@@ -76,7 +76,6 @@ class App : android.app.Application() {
     override fun onCreate() {
         super.onCreate()
         dagger
-        println("App")
 
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit

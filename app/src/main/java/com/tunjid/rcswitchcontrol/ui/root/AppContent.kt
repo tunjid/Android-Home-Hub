@@ -14,7 +14,7 @@ import com.tunjid.globalui.keyboardSize
 import kotlinx.coroutines.flow.StateFlow
 
 @Composable
-internal fun ContentBox(
+internal fun AppNavContainer(
     stateFlow: StateFlow<FragmentContainerPositionalState>,
     content: @Composable BoxScope.() -> Unit
 ) {

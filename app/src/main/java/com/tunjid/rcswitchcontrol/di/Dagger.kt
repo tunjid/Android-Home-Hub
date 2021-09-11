@@ -24,9 +24,9 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.fragment.app.Fragment
 import com.tunjid.globalui.UiState
 import com.tunjid.rcswitchcontrol.App
-import com.tunjid.rcswitchcontrol.common.Mutation
-import com.tunjid.rcswitchcontrol.common.StateMachine
-import com.tunjid.rcswitchcontrol.common.stateMachineOf
+import com.tunjid.mutator.Mutation
+import com.tunjid.mutator.StateHolder
+import com.tunjid.mutator.scopedStateHolder
 import com.tunjid.rcswitchcontrol.navigation.StackNav
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -42,8 +42,8 @@ val Activity.dagger: Dagger get() = (application as App).dagger
 val Fragment.dagger: Dagger get() = requireActivity().dagger
 
 var Dagger.nav
-    get() = appComponent.navStateMachine.state.value
-    set(value) = appComponent.navStateMachine.accept(Mutation { value })
+    get() = appComponent.navStateHolder.state.value
+    set(value) = appComponent.navStateHolder.accept(Mutation { value })
 
 data class Dagger(
     val appComponent: AppComponent
@@ -60,12 +60,12 @@ data class Dagger(
 val DummyDagger = object : AppComponent {
     override val state: StateFlow<AppState> = MutableStateFlow(AppState())
 
-    override val uiStateMachine: StateMachine<Mutation<UiState>, UiState> = stateMachineOf(
+    override val uiStateHolder: StateHolder<Mutation<UiState>, UiState> = scopedStateHolder(
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Main),
         initialState = UiState(),
         transform = { emptyFlow() }
     )
-    override val navStateMachine: StateMachine<Mutation<StackNav>, StackNav> = stateMachineOf(
+    override val navStateHolder: StateHolder<Mutation<StackNav>, StackNav> = scopedStateHolder(
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Main),
         initialState = StackNav(AppRoot),
         transform = { emptyFlow() }
@@ -75,7 +75,7 @@ val DummyDagger = object : AppComponent {
 
     override val broadcaster: AppBroadcaster = {}
 
-    override fun stateMachineCreator(): StateMachineCreator {
+    override fun stateMachineCreator(): StateHolderCreator {
         TODO("Not yet implemented")
     }
 

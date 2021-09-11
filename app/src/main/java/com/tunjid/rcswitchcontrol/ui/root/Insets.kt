@@ -11,7 +11,7 @@ import androidx.fragment.app.FragmentActivity
 import com.tunjid.androidx.core.content.colorAt
 import com.tunjid.globalui.UiState
 import com.tunjid.globalui.reduceSystemInsets
-import com.tunjid.rcswitchcontrol.common.Mutation
+import com.tunjid.mutator.Mutation
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow

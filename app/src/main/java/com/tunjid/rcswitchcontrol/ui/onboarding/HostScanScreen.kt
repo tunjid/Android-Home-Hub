@@ -9,7 +9,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import com.tunjid.globalui.ToolbarItem
 import com.tunjid.globalui.UiState
-import com.tunjid.rcswitchcontrol.common.Mutation
+import com.tunjid.mutator.Mutation
 import com.tunjid.rcswitchcontrol.di.AppDependencies
 import com.tunjid.rcswitchcontrol.di.stateMachine
 import com.tunjid.rcswitchcontrol.navigation.Node
@@ -30,14 +30,14 @@ private const val REFRESH = 2
 fun HostScanScreen(
     node: Node
 ) {
-    val uiStateMachine = AppDependencies.current.uiStateMachine
+    val uiStateHolder = AppDependencies.current.uiStateHolder
     val stateMachine = AppDependencies.current.stateMachine<NsdScanViewModel>(node)
 
     val rootScope = rememberCoroutineScope()
 
 
     DisposableEffect(true) {
-        uiStateMachine.accept(Mutation {
+        uiStateHolder.accept(Mutation {
             UiState(
                 systemUI = systemUI,
                 toolbarShows = true,
@@ -51,7 +51,7 @@ fun HostScanScreen(
                 },
             )
         })
-        onDispose { uiStateMachine.accept(Mutation { copy(toolbarMenuClickListener = {}) }) }
+        onDispose { uiStateHolder.accept(Mutation { copy(toolbarMenuClickListener = {}) }) }
     }
 
     val isScanning = remember {
@@ -62,7 +62,7 @@ fun HostScanScreen(
     }
     LaunchedEffect(true) {
         isScanning.collect { scanning ->
-            uiStateMachine.accept(Mutation {
+            uiStateHolder.accept(Mutation {
                 copy(
                     toolbarItems = listOfNotNull(
                         ToolbarItem(id = SCAN, text = "Scan").takeIf { !scanning },

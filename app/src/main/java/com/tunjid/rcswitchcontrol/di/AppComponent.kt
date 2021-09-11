@@ -18,9 +18,9 @@
 package com.tunjid.rcswitchcontrol.di
 
 import com.tunjid.globalui.UiState
-import com.tunjid.rcswitchcontrol.common.ClosableStateMachine
-import com.tunjid.rcswitchcontrol.common.StateMachine
-import com.tunjid.rcswitchcontrol.common.Mutation
+import com.tunjid.rcswitchcontrol.common.ClosableStateHolder
+import com.tunjid.mutator.StateHolder
+import com.tunjid.mutator.Mutation
 import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.navigation.StackNav
 import dagger.Component
@@ -38,20 +38,20 @@ interface AppComponent {
 
     val state: StateFlow<AppState>
 
-    val uiStateMachine: StateMachine<Mutation<UiState>, UiState>
+    val uiStateHolder: StateHolder<Mutation<UiState>, UiState>
 
-    val navStateMachine: StateMachine<Mutation<StackNav>, StackNav>
+    val navStateHolder: StateHolder<Mutation<StackNav>, StackNav>
 
     fun broadcasts(): AppBroadcasts
 
     val broadcaster: AppBroadcaster
 
-    fun stateMachineCreator(): StateMachineCreator
+    fun stateMachineCreator(): StateHolderCreator
 
     @UiScope
     fun uiScope() : CoroutineScope
 }
 
-inline fun <reified SM : ClosableStateMachine<*, *>> AppComponent.stateMachine(
+inline fun <reified SM : ClosableStateHolder<*, *>> AppComponent.stateMachine(
     node: Node? = null
 ) = stateMachineCreator().invoke(node, SM::class) as SM

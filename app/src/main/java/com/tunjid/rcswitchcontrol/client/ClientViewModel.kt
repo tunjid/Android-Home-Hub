@@ -2,7 +2,9 @@ package com.tunjid.rcswitchcontrol.client
 
 import android.net.nsd.NsdServiceInfo
 import com.rcswitchcontrol.protocols.models.Payload
-import com.tunjid.rcswitchcontrol.common.ClosableStateMachine
+import com.tunjid.mutator.Mutation
+import com.tunjid.mutator.reduceInto
+import com.tunjid.rcswitchcontrol.common.ClosableStateHolder
 import com.tunjid.rcswitchcontrol.common.*
 import com.tunjid.rcswitchcontrol.di.AppBroadcaster
 import com.tunjid.rcswitchcontrol.di.AppBroadcasts
@@ -63,7 +65,7 @@ class ClientViewModel @Inject constructor(
     @UiScope scope: CoroutineScope,
     broadcaster: AppBroadcaster,
     broadcasts: @JvmSuppressWildcards AppBroadcasts,
-) : ClosableStateMachine<Input, State>(scope) {
+) : ClosableStateHolder<Input, State>(scope) {
 
     override val state: StateFlow<State>
 
@@ -95,7 +97,7 @@ class ClientViewModel @Inject constructor(
                 .map(Input.ContextChanged::inBackground.asSuspend)
                 .map { Mutation { copy(inBackground = it) } },
         )
-            .scan(State(), Mutator::mutate)
+            .reduceInto(State())
             .stateIn(
                 scope = scope,
                 initialValue = State(),

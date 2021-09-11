@@ -10,6 +10,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -18,7 +19,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.tunjid.globalui.UiState
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.common.Mutation
+import com.tunjid.mutator.Mutation
 import com.tunjid.rcswitchcontrol.di.AppDependencies
 import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.onboarding.HostScan
@@ -28,18 +29,17 @@ import com.tunjid.rcswitchcontrol.ui.theme.darkText
 
 @Composable
 fun StartScreen() {
-    val uiStateMachine = AppDependencies.current.uiStateMachine
-    val navStateMachine = AppDependencies.current.navStateMachine
+    val uiStateHolder = AppDependencies.current.uiStateHolder
+    val navStateHolder = AppDependencies.current.navStateHolder
 
-    DisposableEffect(true) {
-        uiStateMachine.accept(Mutation {
+    LaunchedEffect(true) {
+        uiStateHolder.accept(Mutation {
             UiState(
                 systemUI = systemUI,
                 toolbarShows = true,
                 toolbarTitle = "Home Hub",
             )
         })
-        onDispose { uiStateMachine.accept(Mutation { copy(toolbarMenuClickListener = {}) }) }
     }
     Column(
         modifier = Modifier
@@ -71,7 +71,7 @@ fun StartScreen() {
                 modifier = Modifier
                     .weight(1f),
                 onClick = {
-                    navStateMachine.accept(Mutation { push(Node(HostScan)) })
+                    navStateHolder.accept(Mutation { push(Node(HostScan)) })
                 },
                 content = {
                     Text(

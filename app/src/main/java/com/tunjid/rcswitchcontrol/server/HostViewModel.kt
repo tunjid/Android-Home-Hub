@@ -26,7 +26,7 @@ package com.tunjid.rcswitchcontrol.server
 
 import android.content.Context
 import com.tunjid.androidx.core.components.services.HardServiceConnection
-import com.tunjid.rcswitchcontrol.common.ClosableStateMachine
+import com.tunjid.rcswitchcontrol.common.ClosableStateHolder
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.di.AppBroadcaster
 import com.tunjid.rcswitchcontrol.di.AppContext
@@ -47,7 +47,7 @@ class HostViewModel @Inject constructor(
     @UiScope scope: CoroutineScope,
     @AppContext context: Context,
     private val broadcaster: AppBroadcaster
-) : ClosableStateMachine<Unit, State>(scope) {
+) : ClosableStateHolder<Unit, State>(scope) {
 
     private val proxyState = MutableStateFlow<Flow<State>>(emptyFlow())
     private val serverConnection =

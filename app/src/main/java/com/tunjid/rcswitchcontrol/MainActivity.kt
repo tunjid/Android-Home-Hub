@@ -80,7 +80,7 @@ class MainActivity : AppCompatActivity(){
 
         lifecycleScope.launch {
             insetMutations().collect {
-                dagger.appComponent.uiStateMachine.accept(it)
+                dagger.appComponent.uiStateHolder.accept(it)
             }
         }
     }

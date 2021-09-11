@@ -53,10 +53,10 @@ internal fun BoxScope.AppToolbar(stateFlow: StateFlow<ToolbarState>) {
 
 @Composable
 fun ToolbarIcon(item: ToolbarItem) {
-    val uiStateMachine = AppDependencies.current.uiStateMachine
+    val uiStateHolder = AppDependencies.current.uiStateHolder
     val scope = rememberCoroutineScope()
 
-    val clicks by uiStateMachine.state
+    val clicks by uiStateHolder.state
         .mapState(scope) { it.toolbarMenuClickListener }
         .collectAsState()
 

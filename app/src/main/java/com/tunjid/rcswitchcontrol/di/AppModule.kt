@@ -23,12 +23,12 @@ import android.content.Context
 import android.os.Bundle
 import com.tunjid.globalui.UiState
 import com.tunjid.rcswitchcontrol.App
-import com.tunjid.rcswitchcontrol.common.ClosableStateMachine
-import com.tunjid.rcswitchcontrol.common.Mutation
-import com.tunjid.rcswitchcontrol.common.StateMachine
+import com.tunjid.rcswitchcontrol.common.ClosableStateHolder
+import com.tunjid.mutator.Mutation
+import com.tunjid.mutator.StateHolder
 import com.tunjid.rcswitchcontrol.common.derived
 import com.tunjid.rcswitchcontrol.common.mapDistinct
-import com.tunjid.rcswitchcontrol.common.stateMachineOf
+import com.tunjid.mutator.scopedStateHolder
 import com.tunjid.rcswitchcontrol.models.Broadcast
 import com.tunjid.rcswitchcontrol.navigation.Named
 import com.tunjid.rcswitchcontrol.navigation.Node
@@ -46,8 +46,8 @@ import javax.inject.Qualifier
 import javax.inject.Singleton
 import kotlin.reflect.KClass
 
-private typealias StateMachineCache = MutableMap<String, MutableMap<KClass<out ClosableStateMachine<*, *>>, ClosableStateMachine<*, *>>>
-typealias StateMachineCreator = (node: Node?, modelClass: KClass<out ClosableStateMachine<*, *>>) -> ClosableStateMachine<*, *>
+private typealias StateHolderCache = MutableMap<String, MutableMap<KClass<out ClosableStateHolder<*, *>>, ClosableStateHolder<*, *>>>
+typealias StateHolderCreator = (node: Node?, modelClass: KClass<out ClosableStateHolder<*, *>>) -> ClosableStateHolder<*, *>
 
 typealias AppBroadcaster = (@JvmSuppressWildcards Broadcast) -> Unit
 typealias AppBroadcasts = Flow<Broadcast>
@@ -88,22 +88,22 @@ class AppModule(private val app: App) {
         extraBufferCapacity = 5,
     )
 
-    private val stateMachineCache: StateMachineCache = mutableMapOf()
+    private val stateMachineCache: StateHolderCache = mutableMapOf()
 
-    private val appStateMachine = stateMachineOf(
+    private val appStateHolder = scopedStateHolder(
         scope = appScope,
         started = SharingStarted.Eagerly,
         initialState = AppState(),
         transform = { mutations: Flow<Mutation<AppState>> -> mutations }
     )
 
-    private val uiStateMachine = appStateMachine.derived(
+    private val uiStateHolder = appStateHolder.derived(
         scope = appScope,
         mapper = AppState::ui,
         mutator = { appState, ui -> appState.copy(ui = ui) }
     )
 
-    private val navStateMachine = appStateMachine.derived(
+    private val navStateHolder = appStateHolder.derived(
         scope = appScope,
         mapper = AppState::nav,
         mutator = { appState, nav -> appState.copy(nav = nav) }
@@ -112,37 +112,37 @@ class AppModule(private val app: App) {
     private val appLifecycleCallbacks = object : Application.ActivityLifecycleCallbacks {
         override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
             when (val restoredNav = savedInstanceState?.get(NAV)) {
-                is StackNav -> appStateMachine.accept(Mutation { copy(nav = restoredNav) })
+                is StackNav -> appStateHolder.accept(Mutation { copy(nav = restoredNav) })
             }
         }
 
         override fun onActivityStarted(activity: Activity) = Unit
 
         override fun onActivityResumed(activity: Activity) {
-            appStateMachine.accept(Mutation { copy(status = AppStatus.Resumed) })
+            appStateHolder.accept(Mutation { copy(status = AppStatus.Resumed) })
         }
 
         override fun onActivityPaused(activity: Activity) {
-            appStateMachine.accept(Mutation { copy(status = AppStatus.Paused) })
+            appStateHolder.accept(Mutation { copy(status = AppStatus.Paused) })
         }
 
         override fun onActivityStopped(activity: Activity) {
-            appStateMachine.accept(Mutation { copy(status = AppStatus.Stopped) })
+            appStateHolder.accept(Mutation { copy(status = AppStatus.Stopped) })
         }
 
         override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {
-            outState.putParcelable(NAV, appStateMachine.state.value.nav)
+            outState.putParcelable(NAV, appStateHolder.state.value.nav)
         }
 
         override fun onActivityDestroyed(activity: Activity) {
-            appStateMachine.accept(Mutation { copy(status = AppStatus.Destroyed) })
+            appStateHolder.accept(Mutation { copy(status = AppStatus.Destroyed) })
         }
     }
 
     init {
         app.registerActivityLifecycleCallbacks(appLifecycleCallbacks)
         appScope.launch {
-            appStateMachine.state
+            appStateHolder.state
                 .mapDistinct { it.nav }
                 .onEach { println(it.allNodes.map { it.named }) }
                 .scan(listOf<StackNav>()) { list, nav -> list.plus(element = nav).takeLast(2) }
@@ -153,7 +153,7 @@ class AppModule(private val app: App) {
                 .collect { removedPaths: List<String> ->
                     removedPaths.forEach {
                         val stateMachineMap = stateMachineCache.remove(it)
-                        stateMachineMap?.values?.forEach(ClosableStateMachine<*, *>::close)
+                        stateMachineMap?.values?.forEach(ClosableStateHolder<*, *>::close)
                         println("Removing all SM for $it")
                     }
                 }
@@ -178,7 +178,7 @@ class AppModule(private val app: App) {
 
     @Provides
     @Singleton
-    fun provideStateMachineCreator(factory: StateMachineFactory): StateMachineCreator =
+    fun provideStateHolderCreator(factory: StateHolderFactory): StateHolderCreator =
         { node, modelClass ->
             val creator = factory[modelClass.java]
                 ?: factory.entries.firstOrNull { modelClass.java.isAssignableFrom(it.key) }?.value
@@ -201,15 +201,15 @@ class AppModule(private val app: App) {
 
     @Provides
     @Singleton
-    fun provideUiStateMachine(): StateMachine<Mutation<UiState>, UiState> = uiStateMachine
+    fun provideUiStateHolder(): StateHolder<Mutation<UiState>, UiState> = uiStateHolder
 
     @Provides
     @Singleton
-    fun provideNavStateMachine(): StateMachine<Mutation<StackNav>, StackNav> = navStateMachine
+    fun provideNavStateHolder(): StateHolder<Mutation<StackNav>, StackNav> = navStateHolder
 
     @Provides
     @Singleton
-    fun provideAppStateFlow(): StateFlow<AppState> = appStateMachine.state
+    fun provideAppStateFlow(): StateFlow<AppState> = appStateHolder.state
 
     @Provides
     @UiScope

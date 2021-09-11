@@ -66,6 +66,8 @@ dependencies {
     implementation parent.ext.tunjiAndroidxCore
     implementation parent.ext.tunjiAndroidxView
 
+    implementation parent.ext.tunjiMutator
+
     implementation parent.ext.composeActivity
     implementation parent.ext.composeMaterial
     implementation parent.ext.composeAnimation

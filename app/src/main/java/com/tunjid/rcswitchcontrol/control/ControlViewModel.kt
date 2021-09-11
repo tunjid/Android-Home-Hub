@@ -30,15 +30,15 @@ import androidx.lifecycle.ViewModelStoreOwner
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.core.components.services.HardServiceConnection
-import com.tunjid.rcswitchcontrol.common.ClosableStateMachine
+import com.tunjid.mutator.Mutation
+import com.tunjid.mutator.reduceInto
 import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.client.State
 import com.tunjid.rcswitchcontrol.client.Status
 import com.tunjid.rcswitchcontrol.client.clientState
 import com.tunjid.rcswitchcontrol.client.nsdServiceInfo
-import com.tunjid.rcswitchcontrol.common.Mutation
-import com.tunjid.rcswitchcontrol.common.Mutator
+import com.tunjid.rcswitchcontrol.common.ClosableStateHolder
 import com.tunjid.rcswitchcontrol.common.asSuspend
 import com.tunjid.rcswitchcontrol.common.deserialize
 import com.tunjid.rcswitchcontrol.di.AppBroadcasts
@@ -63,7 +63,7 @@ class ControlViewModel @Inject constructor(
     @UiScope scope: CoroutineScope,
     @AppContext private val context: Context,
     broadcasts: @JvmSuppressWildcards AppBroadcasts
-) : ClosableStateMachine<Input, ControlState>(scope) {
+) : ClosableStateHolder<Input, ControlState>(scope) {
 
     private val actions = MutableSharedFlow<Input>(
         replay = 1,
@@ -115,7 +115,7 @@ class ControlViewModel @Inject constructor(
             clientStateObservable,
             actionMutations,
         )
-            .scan(ControlState(), Mutator::mutate)
+            .reduceInto(ControlState())
             .map { updateSelections(it) }
             .stateIn(
                 scope = scope,

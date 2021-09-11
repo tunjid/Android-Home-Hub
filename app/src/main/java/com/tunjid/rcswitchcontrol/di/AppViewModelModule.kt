@@ -17,7 +17,7 @@
 
 package com.tunjid.rcswitchcontrol.di
 
-import com.tunjid.rcswitchcontrol.common.ClosableStateMachine
+import com.tunjid.rcswitchcontrol.common.ClosableStateHolder
 import com.tunjid.rcswitchcontrol.client.ClientViewModel
 import com.tunjid.rcswitchcontrol.control.ControlViewModel
 import com.tunjid.rcswitchcontrol.navigation.Node
@@ -28,7 +28,7 @@ import dagger.Binds
 import dagger.Module
 import dagger.multibindings.IntoMap
 
-inline fun <reified SM : ClosableStateMachine<*, *>> Dagger.stateMachine(
+inline fun <reified SM : ClosableStateHolder<*, *>> Dagger.stateMachine(
     node: Node? = null
 ) = appComponent.stateMachineCreator().invoke(node, SM::class) as SM
 
@@ -39,25 +39,25 @@ abstract class AppViewModelModule {
     @Binds
     @IntoMap
     @ViewModelKey(ControlViewModel::class)
-    abstract fun bindControlViewModel(stateMachine: ControlViewModel): ClosableStateMachine<*, *>
+    abstract fun bindControlViewModel(stateMachine: ControlViewModel): ClosableStateHolder<*, *>
 
     @Binds
     @IntoMap
     @ViewModelKey(HostViewModel::class)
-    abstract fun bindPersonHostViewModel(stateMachine: HostViewModel): ClosableStateMachine<*, *>
+    abstract fun bindPersonHostViewModel(stateMachine: HostViewModel): ClosableStateHolder<*, *>
 
     @Binds
     @IntoMap
     @ViewModelKey(NsdScanViewModel::class)
-    abstract fun bindNsdScanViewModel(stateMachine: NsdScanViewModel): ClosableStateMachine<*, *>
+    abstract fun bindNsdScanViewModel(stateMachine: NsdScanViewModel): ClosableStateHolder<*, *>
 
     @Binds
     @IntoMap
     @ViewModelKey(ServerViewModel::class)
-    abstract fun bindServerViewModel(stateMachine: ServerViewModel): ClosableStateMachine<*, *>
+    abstract fun bindServerViewModel(stateMachine: ServerViewModel): ClosableStateHolder<*, *>
 
     @Binds
     @IntoMap
     @ViewModelKey(ClientViewModel::class)
-    abstract fun bindClientViewModel(stateMachine: ClientViewModel): ClosableStateMachine<*, *>
+    abstract fun bindClientViewModel(stateMachine: ClientViewModel): ClosableStateHolder<*, *>
 }

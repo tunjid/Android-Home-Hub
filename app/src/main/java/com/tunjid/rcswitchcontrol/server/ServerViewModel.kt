@@ -7,7 +7,7 @@ import com.rcswitchcontrol.protocols.io.ConsoleWriter
 import com.tunjid.androidx.communications.nsd.NsdHelper
 import com.tunjid.androidx.recyclerview.diff.Diffable
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.common.ClosableStateMachine
+import com.tunjid.rcswitchcontrol.common.ClosableStateHolder
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.client.ClientStateCache
 import com.tunjid.rcswitchcontrol.common.*
@@ -86,7 +86,7 @@ class ServerViewModel @Inject constructor(
     @AppContext context: Context,
     broadcaster: AppBroadcaster,
     broadcasts: @JvmSuppressWildcards AppBroadcasts
-) : ClosableStateMachine<Input, State>(scope) {
+) : ClosableStateHolder<Input, State>(scope) {
 
     override val state: StateFlow<State>
 

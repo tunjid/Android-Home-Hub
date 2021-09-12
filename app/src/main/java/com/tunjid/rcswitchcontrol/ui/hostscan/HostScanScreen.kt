@@ -13,10 +13,10 @@ import com.tunjid.mutator.Mutation
 import com.tunjid.rcswitchcontrol.di.AppDependencies
 import com.tunjid.rcswitchcontrol.di.stateMachine
 import com.tunjid.rcswitchcontrol.navigation.Node
-import com.tunjid.rcswitchcontrol.onboarding.Input
-import com.tunjid.rcswitchcontrol.onboarding.NSDState
-import com.tunjid.rcswitchcontrol.onboarding.NsdItem
-import com.tunjid.rcswitchcontrol.onboarding.NsdScanViewModel
+import com.tunjid.rcswitchcontrol.ui.hostscan.Input
+import com.tunjid.rcswitchcontrol.ui.hostscan.NSDState
+import com.tunjid.rcswitchcontrol.ui.hostscan.NsdItem
+import com.tunjid.rcswitchcontrol.ui.hostscan.HostScanStateHolder
 import com.tunjid.rcswitchcontrol.ui.root.mapState
 import com.tunjid.rcswitchcontrol.ui.theme.darkText
 import kotlinx.coroutines.flow.StateFlow
@@ -31,7 +31,7 @@ fun HostScanScreen(
     node: Node
 ) {
     val uiStateHolder = AppDependencies.current.uiStateHolder
-    val stateMachine = AppDependencies.current.stateMachine<NsdScanViewModel>(node)
+    val stateMachine = AppDependencies.current.stateMachine<HostScanStateHolder>(node)
 
     val rootScope = rememberCoroutineScope()
 

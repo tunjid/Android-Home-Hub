@@ -27,7 +27,6 @@ package com.tunjid.rcswitchcontrol.onboarding
 
 import android.net.nsd.NsdServiceInfo
 import android.text.SpannableStringBuilder
-import android.view.MenuItem
 import android.view.ViewGroup
 import androidx.core.view.doOnAttach
 import com.tunjid.androidx.core.text.scale
@@ -54,6 +53,10 @@ import com.tunjid.rcswitchcontrol.di.stateMachine
 import com.tunjid.rcswitchcontrol.navigation.Named
 import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.navigation.updatePartial
+import com.tunjid.rcswitchcontrol.ui.hostscan.Input
+import com.tunjid.rcswitchcontrol.ui.hostscan.NSDState
+import com.tunjid.rcswitchcontrol.ui.hostscan.NsdItem
+import com.tunjid.rcswitchcontrol.ui.hostscan.HostScanStateHolder
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.parcelize.Parcelize
@@ -69,7 +72,7 @@ fun ViewGroup.hostScanScreen(node: Node) =
     viewHolderFrom(FragmentNsdScanBinding::inflate).apply {
         val scope = this.binding.attachedScope()
         val dagger = this.binding.root.context.dagger
-        val stateMachine = dagger.stateMachine<NsdScanViewModel>(node)
+        val stateMachine = dagger.stateMachine<HostScanStateHolder>(node)
 
         val scanDevices = { enable: Boolean ->
             stateMachine.accept(

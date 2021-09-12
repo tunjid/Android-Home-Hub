@@ -43,7 +43,7 @@ import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.di.Dagger
 import com.tunjid.rcswitchcontrol.di.stateMachine
-import com.tunjid.rcswitchcontrol.onboarding.NsdScanViewModel
+import com.tunjid.rcswitchcontrol.ui.hostscan.HostScanStateHolder
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
 
 /**
@@ -69,7 +69,7 @@ class App : android.app.Application() {
     }
 
     private val stateMachine by lazy {
-        dagger.stateMachine<NsdScanViewModel>()
+        dagger.stateMachine<HostScanStateHolder>()
     }
 
     @SuppressLint("CheckResult")

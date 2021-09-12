@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.tunjid.rcswitchcontrol.onboarding
+package com.tunjid.rcswitchcontrol.ui.hostscan
 
 import android.content.Context
 import android.content.Intent
@@ -68,11 +68,11 @@ sealed class Input {
     object StopScanning : Input()
 }
 
-class NsdScanViewModel @Inject constructor(
+class HostScanStateHolder @Inject constructor(
     @UiScope scope: CoroutineScope,
     broadcasts: @JvmSuppressWildcards AppBroadcasts,
     @AppContext private val context: Context
-) : ClosableStateHolder<Input, NSDState>(scope), StateHolder<Input, NSDState> by NSDStateHolder(
+) : ClosableStateHolder<Input, NSDState>(scope), StateHolder<Input, NSDState> by hostScanStateHolder(
     scope,
     context
 ) {
@@ -95,7 +95,7 @@ class NsdScanViewModel @Inject constructor(
     }
 }
 
-private fun NSDStateHolder(
+private fun hostScanStateHolder(
     scope: CoroutineScope,
     context: Context
 ) = scopedStateHolder(

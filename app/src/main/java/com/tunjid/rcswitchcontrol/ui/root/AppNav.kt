@@ -9,7 +9,7 @@ import com.tunjid.rcswitchcontrol.navigation.StackNav
 import com.tunjid.rcswitchcontrol.onboarding.HostScan
 import com.tunjid.rcswitchcontrol.onboarding.Start
 import com.tunjid.rcswitchcontrol.ui.onboarding.HostScanScreen
-import com.tunjid.rcswitchcontrol.ui.onboarding.StartScreen
+import com.tunjid.rcswitchcontrol.ui.start.StartScreen
 import kotlinx.coroutines.flow.StateFlow
 
 @Composable

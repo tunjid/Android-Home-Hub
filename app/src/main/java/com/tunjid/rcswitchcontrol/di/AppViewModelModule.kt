@@ -21,7 +21,7 @@ import com.tunjid.rcswitchcontrol.common.ClosableStateHolder
 import com.tunjid.rcswitchcontrol.client.ClientViewModel
 import com.tunjid.rcswitchcontrol.control.ControlViewModel
 import com.tunjid.rcswitchcontrol.navigation.Node
-import com.tunjid.rcswitchcontrol.onboarding.NsdScanViewModel
+import com.tunjid.rcswitchcontrol.ui.hostscan.HostScanStateHolder
 import com.tunjid.rcswitchcontrol.server.HostViewModel
 import com.tunjid.rcswitchcontrol.server.ServerViewModel
 import dagger.Binds
@@ -48,8 +48,8 @@ abstract class AppViewModelModule {
 
     @Binds
     @IntoMap
-    @ViewModelKey(NsdScanViewModel::class)
-    abstract fun bindNsdScanViewModel(stateMachine: NsdScanViewModel): ClosableStateHolder<*, *>
+    @ViewModelKey(HostScanStateHolder::class)
+    abstract fun bindNsdScanViewModel(stateMachine: HostScanStateHolder): ClosableStateHolder<*, *>
 
     @Binds
     @IntoMap

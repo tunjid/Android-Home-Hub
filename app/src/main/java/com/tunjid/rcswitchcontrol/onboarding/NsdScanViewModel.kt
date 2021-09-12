@@ -30,9 +30,12 @@ import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
 import com.tunjid.androidx.communications.nsd.NsdHelper
 import com.tunjid.androidx.recyclerview.diff.Diffable
-import com.tunjid.rcswitchcontrol.common.ClosableStateHolder
+import com.tunjid.mutator.Mutation
+import com.tunjid.mutator.StateHolder
+import com.tunjid.mutator.scopedStateHolder
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.client.nsdServiceInfo
+import com.tunjid.rcswitchcontrol.common.ClosableStateHolder
 import com.tunjid.rcswitchcontrol.common.asSuspend
 import com.tunjid.rcswitchcontrol.common.takeUntil
 import com.tunjid.rcswitchcontrol.di.AppBroadcasts
@@ -65,48 +68,14 @@ sealed class Input {
     object StopScanning : Input()
 }
 
-private sealed class Output {
-    data class Scanning(val isScanning: Boolean) : Output()
-    data class ScanResult(val item: NsdItem) : Output()
-}
-
 class NsdScanViewModel @Inject constructor(
     @UiScope scope: CoroutineScope,
     broadcasts: @JvmSuppressWildcards AppBroadcasts,
     @AppContext private val context: Context
-) : ClosableStateHolder<Input, NSDState>(scope) {
-
-    private val scanProcessor = MutableSharedFlow<Input>(
-        replay = 1,
-        extraBufferCapacity = 1,
-    )
-
-    override val state = scanProcessor
-        .flatMapLatest {
-            when (it) {
-                Input.StartScanning -> context.nsdServices(scope)
-                    .map(::NsdItem)
-                    .map<NsdItem, Output>(Output::ScanResult)
-                    .onStart { emit(Output.Scanning(isScanning = true)) }
-                    .onCompletion { emit(Output.Scanning(isScanning = false)) }
-                Input.StopScanning -> flowOf(Output.Scanning(isScanning = false))
-            }
-        }
-        .scan(NSDState()) { state, output ->
-            when (output) {
-                is Output.Scanning -> state.copy(isScanning = output.isScanning)
-                is Output.ScanResult -> state.copy(
-                    items = state.items.plus(output.item)
-                        .distinctBy(NsdItem::diffId)
-                        .sortedBy(NsdItem::sortKey)
-                )
-            }
-        }
-        .stateIn(
-            scope = scope,
-            initialValue = NSDState(),
-            started = SharingStarted.WhileSubscribed(),
-        )
+) : ClosableStateHolder<Input, NSDState>(scope), StateHolder<Input, NSDState> by NSDStateHolder(
+    scope,
+    context
+) {
 
     init {
         broadcasts.filterIsInstance<Broadcast.ClientNsd.StartDiscovery>()
@@ -124,11 +93,41 @@ class NsdScanViewModel @Inject constructor(
             }
             .launchIn(scope)
     }
-
-    override val accept: (Input) -> Unit = { input ->
-        scanProcessor.tryEmit(input)
-    }
 }
+
+private fun NSDStateHolder(
+    scope: CoroutineScope,
+    context: Context
+) = scopedStateHolder(
+    scope = scope,
+    initialState = NSDState(),
+    transform = { inputFlow: Flow<Input> ->
+        inputFlow.flatMapLatest {
+            when (it) {
+                Input.StartScanning -> context.nsdServices(scope)
+                    .map(::NsdItem)
+                    .map { nsdItem ->
+                        Mutation<NSDState> {
+                            copy(
+                                items = items.plus(nsdItem)
+                                    .distinctBy(NsdItem::diffId)
+                                    .sortedBy(NsdItem::sortKey)
+                            )
+                        }
+                    }
+                    .onStart {
+                        emit(Mutation { copy(isScanning = true) })
+                    }
+                    .onCompletion {
+                        emit(Mutation { copy(isScanning = false) })
+                    }
+                Input.StopScanning -> flow {
+                    emit(Mutation<NSDState> { copy(isScanning = false) })
+                }
+            }
+        }
+    }
+)
 
 private fun Context.nsdServices(scope: CoroutineScope): Flow<NsdServiceInfo> {
     val emissions = callbackFlow<NsdUpdate> {

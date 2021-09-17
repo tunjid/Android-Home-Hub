@@ -39,13 +39,13 @@ import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.control.attachedScope
 import com.tunjid.rcswitchcontrol.databinding.FragmentListBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderHostCardBinding
+import com.tunjid.rcswitchcontrol.di.AppNav
 import com.tunjid.rcswitchcontrol.di.dagger
 import com.tunjid.rcswitchcontrol.di.nav
 import com.tunjid.rcswitchcontrol.di.stateMachine
 import com.tunjid.rcswitchcontrol.navigation.Named
 import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.navigation.updatePartial
-import com.tunjid.rcswitchcontrol.onboarding.Start
 import com.tunjid.rcswitchcontrol.utils.makeAccessibleForTV
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -74,7 +74,7 @@ fun ViewGroup.hostScreen(node: Node): BindingViewHolder<FragmentListBinding> =
                                 R.string.restart_server -> stateMachine.restartServer()
                                 R.string.stop_server -> {
                                     stateMachine.stop()
-                                    dagger::nav.updatePartial { filter { it.named is Start } }
+                                    dagger::nav.updatePartial { AppNav() }
                                 }
                                 else -> Unit
                             }

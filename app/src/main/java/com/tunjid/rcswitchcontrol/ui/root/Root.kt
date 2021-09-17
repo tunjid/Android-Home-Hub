@@ -39,7 +39,7 @@ fun Root() {
                     mapper = UiState::fragmentContainerState
                 )
             ) {
-                AppNav(
+                AppNavContainer(
                     navStateFlow = appStateFlow.mapState(
                         scope = rootScope,
                         mapper = AppState::nav

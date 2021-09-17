@@ -5,7 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import com.tunjid.rcswitchcontrol.client.ClientLoad
-import com.tunjid.rcswitchcontrol.navigation.StackNav
+import com.tunjid.rcswitchcontrol.di.AppNav
 import com.tunjid.rcswitchcontrol.onboarding.HostScan
 import com.tunjid.rcswitchcontrol.onboarding.Start
 import com.tunjid.rcswitchcontrol.ui.onboarding.HostScanScreen
@@ -13,12 +13,12 @@ import com.tunjid.rcswitchcontrol.ui.start.StartScreen
 import kotlinx.coroutines.flow.StateFlow
 
 @Composable
-internal fun AppNav(
-    navStateFlow: StateFlow<StackNav>
+internal fun AppNavContainer(
+    navStateFlow: StateFlow<AppNav>
 ) {
     val scope = rememberCoroutineScope()
     val nodeState = navStateFlow
-        .mapState(scope, StackNav::currentNode)
+        .mapState(scope, AppNav::currentNode)
         .collectAsState()
 
     val node = nodeState.value

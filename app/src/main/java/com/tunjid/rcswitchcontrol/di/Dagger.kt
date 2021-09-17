@@ -65,9 +65,9 @@ val DummyDagger = object : AppComponent {
         initialState = UiState(),
         transform = { emptyFlow() }
     )
-    override val navStateHolder: StateHolder<Mutation<StackNav>, StackNav> = scopedStateHolder(
+    override val navStateHolder: StateHolder<Mutation<AppNav>, AppNav> = scopedStateHolder(
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Main),
-        initialState = StackNav(AppRoot),
+        initialState = AppNav(),
         transform = { emptyFlow() }
     )
 

@@ -31,7 +31,6 @@ import android.view.ViewGroup
 import androidx.core.view.doOnAttach
 import androidx.core.view.doOnDetach
 import androidx.core.view.doOnLayout
-import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
@@ -46,7 +45,6 @@ import com.tunjid.androidx.recyclerview.listAdapterOf
 import com.tunjid.androidx.recyclerview.viewbinding.viewHolderFrom
 import com.tunjid.globalui.InsetFlags
 import com.tunjid.globalui.UiState
-import com.tunjid.globalui.liveUiState
 import com.tunjid.globalui.uiState
 import com.tunjid.globalui.updatePartial
 import com.tunjid.rcswitchcontrol.R
@@ -58,6 +56,7 @@ import com.tunjid.rcswitchcontrol.client.keys
 import com.tunjid.rcswitchcontrol.common.asSuspend
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.databinding.FragmentControlBinding
+import com.tunjid.rcswitchcontrol.di.AppNav
 import com.tunjid.rcswitchcontrol.di.dagger
 import com.tunjid.rcswitchcontrol.di.isResumed
 import com.tunjid.rcswitchcontrol.di.nav
@@ -65,9 +64,9 @@ import com.tunjid.rcswitchcontrol.di.stateMachine
 import com.tunjid.rcswitchcontrol.models.Broadcast
 import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.navigation.updatePartial
-import com.tunjid.rcswitchcontrol.onboarding.Start
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
 import com.tunjid.rcswitchcontrol.server.hostScreen
+import com.tunjid.rcswitchcontrol.ui.root.AppNavContainer
 import com.tunjid.rcswitchcontrol.utils.attach
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
@@ -115,7 +114,7 @@ fun ViewGroup.controlScreen(
                 R.id.menu_connect -> dagger.appComponent.broadcaster(Broadcast.ClientNsd.StartDiscovery())
                 R.id.menu_forget -> {
                     stateMachine.accept(Input.Async.ForgetServer)
-                    dagger::nav.updatePartial { filter { it.named is Start } }
+                    dagger::nav.updatePartial { AppNav() }
                 }
                 R.id.menu_rename_device -> {
 //                        stateMachine.state.value

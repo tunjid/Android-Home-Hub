@@ -21,16 +21,19 @@ import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.os.Bundle
+import android.os.Parcelable
 import com.tunjid.globalui.UiState
-import com.tunjid.rcswitchcontrol.App
-import com.tunjid.rcswitchcontrol.common.ClosableStateHolder
 import com.tunjid.mutator.Mutation
 import com.tunjid.mutator.StateHolder
+import com.tunjid.mutator.scopedStateHolder
+import com.tunjid.rcswitchcontrol.App
+import com.tunjid.rcswitchcontrol.common.ClosableStateHolder
 import com.tunjid.rcswitchcontrol.common.derived
 import com.tunjid.rcswitchcontrol.common.mapDistinct
-import com.tunjid.mutator.scopedStateHolder
 import com.tunjid.rcswitchcontrol.models.Broadcast
+import com.tunjid.rcswitchcontrol.navigation.MultiStackNav
 import com.tunjid.rcswitchcontrol.navigation.Named
+import com.tunjid.rcswitchcontrol.navigation.Nav
 import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.navigation.StackNav
 import com.tunjid.rcswitchcontrol.onboarding.Start
@@ -64,11 +67,33 @@ enum class AppStatus {
 
 data class AppState(
     val ui: UiState = UiState(),
-    val nav: StackNav = StackNav(
-        root = AppRoot,
-    ).push(Node(Start)),
+    val nav: AppNav = AppNav(),
     val status: AppStatus = AppStatus.Destroyed
 )
+
+@Parcelize
+data class AppNav(
+    val mainNav: MultiStackNav = MultiStackNav(
+        root = AppRoot,
+        children = listOf(
+            StackNav(
+                root = AppRoot,
+            ).push(Node(Start))
+        ),
+        current = 0,
+    ),
+    val bottomSheetNav: StackNav = StackNav(AppRoot)
+) : Nav<AppNav>, Parcelable {
+    fun push(node: Node) = copy(mainNav = mainNav.push(node = node))
+
+    fun pop() = copy(mainNav = mainNav.pop())
+
+    override val allNodes: Iterable<Node>
+        get() = mainNav.allNodes + bottomSheetNav.allNodes
+
+    override val currentNode: Node?
+        get() = mainNav.currentNode
+}
 
 @Parcelize
 data class SimpleName(override val name: String) : Named
@@ -112,7 +137,7 @@ class AppModule(private val app: App) {
     private val appLifecycleCallbacks = object : Application.ActivityLifecycleCallbacks {
         override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
             when (val restoredNav = savedInstanceState?.get(NAV)) {
-                is StackNav -> appStateHolder.accept(Mutation { copy(nav = restoredNav) })
+                is AppNav -> appStateHolder.accept(Mutation { copy(nav = restoredNav) })
             }
         }
 
@@ -145,7 +170,7 @@ class AppModule(private val app: App) {
             appStateHolder.state
                 .mapDistinct { it.nav }
                 .onEach { println(it.allNodes.map { it.named }) }
-                .scan(listOf<StackNav>()) { list, nav -> list.plus(element = nav).takeLast(2) }
+                .scan(listOf<AppNav>()) { list, nav -> list.plus(element = nav).takeLast(2) }
                 .filter { it.size > 1 }
                 .map { (old, new) ->
                     old.allNodes.map(Node::path) - new.allNodes.map(Node::path)
@@ -205,7 +230,7 @@ class AppModule(private val app: App) {
 
     @Provides
     @Singleton
-    fun provideNavStateHolder(): StateHolder<Mutation<StackNav>, StackNav> = navStateHolder
+    fun provideNavStateHolder(): StateHolder<Mutation<AppNav>, AppNav> = navStateHolder
 
     @Provides
     @Singleton

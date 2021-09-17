@@ -40,7 +40,7 @@ interface AppComponent {
 
     val uiStateHolder: StateHolder<Mutation<UiState>, UiState>
 
-    val navStateHolder: StateHolder<Mutation<StackNav>, StackNav>
+    val navStateHolder: StateHolder<Mutation<AppNav>, AppNav>
 
     fun broadcasts(): AppBroadcasts
 

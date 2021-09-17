@@ -6,9 +6,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.di.AppNav
-import com.tunjid.rcswitchcontrol.onboarding.HostScan
+import com.tunjid.rcswitchcontrol.ui.hostscan.HostScan
 import com.tunjid.rcswitchcontrol.onboarding.Start
-import com.tunjid.rcswitchcontrol.ui.onboarding.HostScanScreen
+import com.tunjid.rcswitchcontrol.ui.hostscan.HostScanScreen
 import com.tunjid.rcswitchcontrol.ui.start.StartScreen
 import kotlinx.coroutines.flow.StateFlow
 

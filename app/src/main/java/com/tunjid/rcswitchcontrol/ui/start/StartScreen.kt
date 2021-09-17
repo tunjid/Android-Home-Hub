@@ -21,7 +21,7 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.mutator.Mutation
 import com.tunjid.rcswitchcontrol.di.AppDependencies
 import com.tunjid.rcswitchcontrol.navigation.Node
-import com.tunjid.rcswitchcontrol.onboarding.HostScan
+import com.tunjid.rcswitchcontrol.ui.hostscan.HostScan
 import com.tunjid.rcswitchcontrol.ui.theme.AppTheme
 import com.tunjid.rcswitchcontrol.ui.theme.colorAccent
 import com.tunjid.rcswitchcontrol.ui.theme.darkText

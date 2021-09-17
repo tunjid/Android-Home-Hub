@@ -1,30 +1,35 @@
-package com.tunjid.rcswitchcontrol.ui.onboarding
+package com.tunjid.rcswitchcontrol.ui.hostscan
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.dp
 import com.tunjid.globalui.ToolbarItem
 import com.tunjid.globalui.UiState
 import com.tunjid.mutator.Mutation
 import com.tunjid.rcswitchcontrol.di.AppDependencies
 import com.tunjid.rcswitchcontrol.di.stateMachine
+import com.tunjid.rcswitchcontrol.navigation.Named
 import com.tunjid.rcswitchcontrol.navigation.Node
-import com.tunjid.rcswitchcontrol.ui.hostscan.Input
-import com.tunjid.rcswitchcontrol.ui.hostscan.NSDState
-import com.tunjid.rcswitchcontrol.ui.hostscan.NsdItem
-import com.tunjid.rcswitchcontrol.ui.hostscan.HostScanStateHolder
 import com.tunjid.rcswitchcontrol.ui.root.mapState
 import com.tunjid.rcswitchcontrol.ui.theme.darkText
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.parcelize.Parcelize
 
 private const val SCAN = 0
 private const val STOP = 1
 private const val REFRESH = 2
+
+@Parcelize
+object HostScan : Named
 
 @Composable
 fun HostScanScreen(
@@ -43,7 +48,6 @@ fun HostScanScreen(
                 toolbarShows = true,
                 toolbarTitle = "Home Hub",
                 toolbarMenuClickListener = { item: ToolbarItem ->
-                    println("Clicked $item")
                     when (item.id) {
                         SCAN -> stateMachine.accept(Input.StartScanning)
                         STOP -> stateMachine.accept(Input.StopScanning)
@@ -88,6 +92,7 @@ private fun AvailableHosts(
     stateFlow: StateFlow<List<NsdItem>>
 ) {
     val items by stateFlow.collectAsState()
+    val navStateHolder = AppDependencies.current.navStateHolder
 
     LazyColumn(content = {
         items(
@@ -95,6 +100,13 @@ private fun AvailableHosts(
             key = { items[it].diffId },
             itemContent = {
                 Text(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .clickable {
+                                   navStateHolder.accept(Mutation {
+                                       copy(mainNav = mainNav.push(Node()))
+                                   })
+                        },
                     text = buildAnnotatedString {
                         val item = items[it]
                         append(item.info.serviceName)
@@ -103,7 +115,7 @@ private fun AvailableHosts(
                             append(item.info.host.hostAddress)
                         }
                     },
-                    color = darkText
+                    color = darkText,
                 )
             }
         )

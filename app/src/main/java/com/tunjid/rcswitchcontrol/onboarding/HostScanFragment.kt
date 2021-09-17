@@ -65,9 +65,6 @@ import kotlinx.parcelize.Parcelize
  * A [androidx.fragment.app.Fragment] listing supported NSD servers
  */
 
-@Parcelize
-object HostScan : Named
-
 fun ViewGroup.hostScanScreen(node: Node) =
     viewHolderFrom(FragmentNsdScanBinding::inflate).apply {
         val scope = this.binding.attachedScope()

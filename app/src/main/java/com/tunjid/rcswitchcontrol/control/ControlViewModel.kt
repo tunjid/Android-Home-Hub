@@ -54,11 +54,6 @@ import javax.inject.Inject
 
 interface RootController : ViewModelStoreOwner
 
-val Fragment.rootController: ViewModelStoreOwner
-    get() = generateSequence(this, Fragment::getParentFragment)
-        .filterIsInstance<RootController>()
-        .firstOrNull() ?: this
-
 class ControlViewModel @Inject constructor(
     @UiScope scope: CoroutineScope,
     @AppContext private val context: Context,

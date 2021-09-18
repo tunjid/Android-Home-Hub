@@ -40,15 +40,12 @@ import com.tunjid.rcswitchcontrol.common.asSuspend
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.di.dagger
 import com.tunjid.rcswitchcontrol.di.stateMachine
-import com.tunjid.rcswitchcontrol.navigation.Named
-import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.utils.addNotificationChannel
 import com.tunjid.rcswitchcontrol.utils.notificationBuilder
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
-import kotlinx.parcelize.Parcelize
 import java.util.*
 
 var Intent.nsdServiceInfo by intentExtras<NsdServiceInfo?>()

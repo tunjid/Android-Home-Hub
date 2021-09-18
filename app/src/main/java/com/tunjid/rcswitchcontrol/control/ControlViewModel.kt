@@ -25,13 +25,15 @@
 package com.tunjid.rcswitchcontrol.control
 
 import android.content.Context
-import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelStoreOwner
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.core.components.services.HardServiceConnection
 import com.tunjid.mutator.Mutation
+import com.tunjid.mutator.StateHolder
 import com.tunjid.mutator.reduceInto
+import com.tunjid.mutator.scopedStateHolder
+import com.tunjid.mutator.toMutationStream
 import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.client.State
@@ -58,87 +60,150 @@ class ControlViewModel @Inject constructor(
     @UiScope scope: CoroutineScope,
     @AppContext private val context: Context,
     broadcasts: @JvmSuppressWildcards AppBroadcasts
-) : ClosableStateHolder<Input, ControlState>(scope) {
-
-    private val actions = MutableSharedFlow<Input>(
-        replay = 1,
-        extraBufferCapacity = 5,
-    )
-
-    private val nsdConnection = HardServiceConnection(context, ClientNsdService::class.java) {
-        accept(Input.Async.ClientServiceBound(it.state))
-    }
+) : ClosableStateHolder<Input, ControlState>(scope),
+    StateHolder<Input, ControlState> by controlStateHolder(scope, context, broadcasts) {
 
     val pages: List<Page> = mutableListOf(Page.History, Page.Devices).apply {
         if (ServerNsdService.isServer) add(0, Page.Host)
     }
 
-    val isBound: Boolean
-        get() = nsdConnection.boundService != null
-
-    override val state: StateFlow<ControlState>
 
     init {
-        val connectionStatuses: Flow<Status> = merge(
-            broadcasts
-                .filterIsInstance<Broadcast.ClientNsd.ConnectionStatus>()
-                .map(Broadcast.ClientNsd.ConnectionStatus::status.asSuspend),
-            actions.filterIsInstance<Input.Async.ClientServiceBound>()
-                .flatMapLatest(Input.Async.ClientServiceBound::clientServiceState.asSuspend)
-                .map(State::status.asSuspend)
-        )
-            .onStart { emit(Status.Disconnected()) }
-
-        val serverResponses: Flow<Payload> = broadcasts
-            .filterIsInstance<Broadcast.ClientNsd.ServerResponse>()
-            .map(Broadcast.ClientNsd.ServerResponse::data.asSuspend)
-            .filter(String::isNotBlank)
-            .map { it.deserialize<Payload>() }
-
-        val clientStateObservable = scope.clientState(
-            connectionStatuses,
-            serverResponses,
-        )
-            .map { Mutation<ControlState> { copy(clientState = it) } }
-            .onStart { nsdConnection.boundService?.onAppForeGround() }
-
-        val actionMutations = actions
-            .filterIsInstance<Input.Sync>()
-            .map(::onSyncInput)
-
-        state = merge(
-            clientStateObservable,
-            actionMutations,
-        )
-            .reduceInto(ControlState())
-            .map { updateSelections(it) }
-            .stateIn(
-                scope = scope,
-                initialValue = ControlState(),
-                started = SharingStarted.WhileSubscribed(),
-            )
-
         // Keep the connection alive
         state.launchIn(scope)
+    }
+}
 
-        actions
-            .filterIsInstance<Input.Async>()
-            .map(::onAsyncInput)
-            .launchIn(scope)
+private fun controlStateHolder(
+    scope: CoroutineScope,
+    context: Context,
+    broadcasts: AppBroadcasts
+): StateHolder<Input, ControlState> = object : StateHolder<Input, ControlState> {
+
+    val nsdConnection = HardServiceConnection(context, ClientNsdService::class.java) {
+        accept(Input.Async.ClientServiceBound(it.state))
     }
 
-    override fun close() {
-        nsdConnection.unbindService()
-        scope.cancel()
-    }
+    val delegate = scopedStateHolder<Input, ControlState>(
+        scope = scope,
+        initialState = ControlState(),
+        transform = { inputFlow ->
+            inputFlow.toMutationStream {
+                when (val type = type()) {
+                    is Input.Async.ClientServiceBound -> {
+                        val connectionStatuses: Flow<Status> = merge(
+                            broadcasts
+                                .filterIsInstance<Broadcast.ClientNsd.ConnectionStatus>()
+                                .map(Broadcast.ClientNsd.ConnectionStatus::status.asSuspend),
+                            type.flow
+                                .distinctUntilChanged()
+                                .flatMapLatest(Input.Async.ClientServiceBound::clientServiceState.asSuspend)
+                                .map(State::status.asSuspend)
+                        )
+                            .onStart { emit(Status.Disconnected()) }
 
-    override val accept: (Input) -> Unit = { input ->
-        actions.tryEmit(input)
-    }
+                        val serverResponses: Flow<Payload> = broadcasts
+                            .filterIsInstance<Broadcast.ClientNsd.ServerResponse>()
+                            .map(Broadcast.ClientNsd.ServerResponse::data.asSuspend)
+                            .filter(String::isNotBlank)
+                            .map { it.deserialize<Payload>() }
 
-    private fun updateSelections(state: ControlState): ControlState {
+                        scope.clientState(
+                            connectionStatuses,
+                            serverResponses,
+                        )
+                            .map { Mutation<ControlState> { copy(clientState = it) } }
+                            .onStart { nsdConnection.boundService?.onAppForeGround() }
+                    }
+                    Input.Async.ForgetServer -> type.flow
+                        .distinctUntilChanged()
+                        .onEach {
+                            // Don't call unbind, when the hosting activity is finished,
+                            // onDestroy will be called and the connection unbound
+                            nsdConnection.boundService?.stopSelf()
+
+                            ClientNsdService.lastConnectedService = null
+                        }
+                        .map { Mutation { this } }
+                    is Input.Async.Load -> type.flow
+                        .distinctUntilChanged()
+                        .onEach { action ->
+                            when (val load = action.load) {
+                                is ClientLoad.NewClient -> {
+                                    nsdConnection.start { nsdServiceInfo = load.info }
+                                    nsdConnection.bind { nsdServiceInfo = load.info }
+                                    Unit
+                                }
+                                is ClientLoad.ExistingClient -> {
+                                    nsdConnection.bind()
+                                    context.dagger.appComponent.broadcaster(Broadcast.ClientNsd.StartDiscovery())
+                                }
+                                ClientLoad.StartServer -> {
+                                    nsdConnection.bind()
+                                    HardServiceConnection(
+                                        context,
+                                        ServerNsdService::class.java
+                                    ).start()
+                                    context.dagger.appComponent.broadcaster(Broadcast.ClientNsd.StartDiscovery())
+                                }
+                            }
+                        }
+                        .map {
+                            Mutation { this }
+                        }
+                    Input.Async.PingServer -> type.flow
+                        .onEach {
+                            accept(
+                                Input.Async.ServerCommand(
+                                    Payload(
+                                        key = CommsProtocol.key,
+                                        action = CommsProtocol.pingAction
+                                    )
+                                )
+                            )
+                        }
+                        .map { Mutation { this } }
+                    is Input.Async.ServerCommand -> type.flow
+                        .onEach { action -> nsdConnection.boundService?.sendMessage(action.payload) }
+                        .map { Mutation { this } }
+                    Input.Sync.ClearSelections -> type.flow
+                        .map {
+                            Mutation {
+                                copy(selectedDevices = listOf())
+                            }
+                        }
+                    is Input.Sync.Select -> type.flow.map { action ->
+                        Mutation {
+                            val filtered =
+                                selectedDevices.filterNot { it.diffId == action.device.diffId }
+                            copy(
+                                selectedDevices = when (filtered.size != selectedDevices.size) {
+                                    true -> filtered
+                                    false -> selectedDevices + action.device
+                                }
+                            )
+                        }
+                    }
+                    Input.Async.AppBackgrounded -> type.flow
+                        .onEach { nsdConnection.boundService?.onAppBackground() }
+                        .map { Mutation { this } }
+                }
+            }
+                .flatMapConcat { listOf(it, updateSelections).asFlow() }
+                .onCompletion { nsdConnection.unbindService() }
+        }
+    )
+
+    override val accept: (Input) -> Unit = delegate.accept
+
+    override val state: StateFlow<ControlState> = delegate.state
+}
+
+private val updateSelections: Mutation<ControlState>
+    get() = Mutation {
+        val state = this
         val selectedIds = state.selectedDevices.map(Device::diffId)
-        return state.copy(clientState = state.clientState.copy(devices = state.clientState.devices.map {
+        copy(clientState = state.clientState.copy(devices = state.clientState.devices.map {
             when (it) {
                 is Device.RF -> it.copy(isSelected = selectedIds.contains(it.diffId))
                 is Device.ZigBee -> it.copy(isSelected = selectedIds.contains(it.diffId))
@@ -146,57 +211,3 @@ class ControlViewModel @Inject constructor(
             }
         }))
     }
-
-    private fun onSyncInput(action: Input.Sync) = when (action) {
-        is Input.Sync.Select -> Mutation {
-            val filtered = selectedDevices.filterNot { it.diffId == action.device.diffId }
-            copy(
-                selectedDevices = when (filtered.size != selectedDevices.size) {
-                    true -> filtered
-                    false -> selectedDevices + action.device
-                }
-            )
-        }
-        Input.Sync.ClearSelections -> Mutation<ControlState> {
-            copy(selectedDevices = listOf())
-        }
-    }
-
-    private fun onAsyncInput(action: Input.Async): Unit = when (action) {
-        is Input.Async.Load -> when (val load = action.load) {
-            is ClientLoad.NewClient -> {
-                nsdConnection.start { nsdServiceInfo = load.info }
-                nsdConnection.bind { nsdServiceInfo = load.info }
-                Unit
-            }
-            is ClientLoad.ExistingClient -> {
-                nsdConnection.bind()
-                context.dagger.appComponent.broadcaster(Broadcast.ClientNsd.StartDiscovery())
-            }
-            ClientLoad.StartServer -> {
-                nsdConnection.bind()
-                HardServiceConnection(context, ServerNsdService::class.java).start()
-                context.dagger.appComponent.broadcaster(Broadcast.ClientNsd.StartDiscovery())
-            }
-        }
-        Input.Async.ForgetServer -> {
-            // Don't call unbind, when the hosting activity is finished,
-            // onDestroy will be called and the connection unbound
-            nsdConnection.boundService?.stopSelf()
-
-            ClientNsdService.lastConnectedService = null
-        }
-        is Input.Async.ServerCommand -> nsdConnection.boundService
-            ?.sendMessage(action.payload) ?: Unit
-        is Input.Async.ClientServiceBound,
-        Input.Async.PingServer -> onAsyncInput(
-            Input.Async.ServerCommand(
-                Payload(
-                    key = CommsProtocol.key,
-                    action = CommsProtocol.pingAction
-                )
-            )
-        )
-        Input.Async.AppBackgrounded -> nsdConnection.boundService?.onAppBackground() ?: Unit
-    }
-}

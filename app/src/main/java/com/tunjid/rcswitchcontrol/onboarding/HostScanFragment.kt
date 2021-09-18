@@ -39,7 +39,6 @@ import com.tunjid.globalui.UiState
 import com.tunjid.globalui.uiState
 import com.tunjid.globalui.updatePartial
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.common.asSuspend
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.control.attachedScope
@@ -48,18 +47,14 @@ import com.tunjid.rcswitchcontrol.databinding.FragmentNsdScanBinding
 import com.tunjid.rcswitchcontrol.databinding.ViewholderNsdListBinding
 import com.tunjid.rcswitchcontrol.di.dagger
 import com.tunjid.rcswitchcontrol.di.isResumed
-import com.tunjid.rcswitchcontrol.di.nav
 import com.tunjid.rcswitchcontrol.di.stateMachine
-import com.tunjid.rcswitchcontrol.navigation.Named
 import com.tunjid.rcswitchcontrol.navigation.Node
-import com.tunjid.rcswitchcontrol.navigation.updatePartial
 import com.tunjid.rcswitchcontrol.ui.hostscan.Input
 import com.tunjid.rcswitchcontrol.ui.hostscan.NSDState
 import com.tunjid.rcswitchcontrol.ui.hostscan.NsdItem
 import com.tunjid.rcswitchcontrol.ui.hostscan.HostScanStateHolder
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
-import kotlinx.parcelize.Parcelize
 
 /**
  * A [androidx.fragment.app.Fragment] listing supported NSD servers
@@ -80,7 +75,7 @@ fun ViewGroup.hostScanScreen(node: Node) =
 
 
         val onServiceClicked = { serviceInfo: NsdServiceInfo ->
-            dagger::nav.updatePartial { push(Node(ClientLoad.NewClient(serviceInfo))) }
+//            dagger::nav.updatePartial { push(Node(ClientLoad.NewClient(serviceInfo))) }
         }
 
         binding.list.apply {

@@ -10,18 +10,25 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import com.tunjid.globalui.UiState
 import com.tunjid.mutator.Mutation
+import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.control.ControlViewModel
 import com.tunjid.rcswitchcontrol.control.Device
 import com.tunjid.rcswitchcontrol.di.AppDependencies
 import com.tunjid.rcswitchcontrol.di.stateMachine
+import com.tunjid.rcswitchcontrol.navigation.Named
 import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.ui.root.mapState
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.parcelize.Parcelize
 
+@Parcelize
+data class DeviceRoute(
+    val load: ClientLoad
+): Named
 
 @Composable
 fun DevicesScreen(
-    node: Node = AppDependencies.current.navStateHolder.state.value.mainNav.root
+    node: Node
 ) {
     val uiStateHolder = AppDependencies.current.uiStateHolder
     val stateMachine = AppDependencies.current.stateMachine<ControlViewModel>(node)

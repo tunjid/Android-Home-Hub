@@ -3,6 +3,7 @@ package com.tunjid.rcswitchcontrol.ui.hostscan
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -14,10 +15,14 @@ import androidx.compose.ui.unit.dp
 import com.tunjid.globalui.ToolbarItem
 import com.tunjid.globalui.UiState
 import com.tunjid.mutator.Mutation
+import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.di.AppDependencies
+import com.tunjid.rcswitchcontrol.di.DevicesRoot
 import com.tunjid.rcswitchcontrol.di.stateMachine
 import com.tunjid.rcswitchcontrol.navigation.Named
 import com.tunjid.rcswitchcontrol.navigation.Node
+import com.tunjid.rcswitchcontrol.navigation.StackNav
+import com.tunjid.rcswitchcontrol.ui.control.devices.DeviceRoute
 import com.tunjid.rcswitchcontrol.ui.root.mapState
 import com.tunjid.rcswitchcontrol.ui.theme.darkText
 import kotlinx.coroutines.flow.StateFlow
@@ -96,23 +101,30 @@ private fun AvailableHosts(
 
     LazyColumn(content = {
         items(
-            count = items.size,
-            key = { items[it].diffId },
-            itemContent = {
+            items = items,
+            key = NsdItem::diffId,
+            itemContent = { nsdItem ->
                 Text(
                     modifier = Modifier
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                         .clickable {
-                                   navStateHolder.accept(Mutation {
-                                       copy(mainNav = mainNav.push(Node()))
-                                   })
+                            navStateHolder.accept(Mutation {
+                                copy(
+                                    mainNav = mainNav.copy(
+                                        children = listOf(
+                                            StackNav(
+                                                root = DevicesRoot,
+                                            ).push(Node(DeviceRoute(ClientLoad.NewClient(nsdItem.info))))
+                                        )
+                                    )
+                                )
+                            })
                         },
                     text = buildAnnotatedString {
-                        val item = items[it]
-                        append(item.info.serviceName)
+                        append(nsdItem.info.serviceName)
                         append("\n")
                         this.withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                            append(item.info.host.hostAddress)
+                            append(nsdItem.info.host.hostAddress)
                         }
                     },
                     color = darkText,

@@ -31,7 +31,6 @@ import com.tunjid.androidx.recyclerview.viewbinding.viewHolderFrom
 import com.tunjid.globalui.UiState
 import com.tunjid.globalui.uiState
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.databinding.FragmentStartBinding
 import com.tunjid.rcswitchcontrol.di.dagger
 import com.tunjid.rcswitchcontrol.di.nav
@@ -39,6 +38,7 @@ import com.tunjid.rcswitchcontrol.navigation.Named
 import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.navigation.updatePartial
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
+import com.tunjid.rcswitchcontrol.ui.hostscan.HostScan
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
@@ -59,7 +59,7 @@ fun ViewGroup.startScreen() =
             when (v.id) {
                 R.id.server -> {
                     ServerNsdService.isServer = true
-                    dagger::nav.updatePartial { push(Node(ClientLoad.StartServer)) }
+//                    dagger::nav.updatePartial { push(Node(ClientLoad.StartServer)) }
                 }
                 R.id.client -> dagger::nav.updatePartial { push(Node(HostScan)) }
             }

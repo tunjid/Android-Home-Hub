@@ -109,7 +109,7 @@ fun ViewGroup.controlScreen(
         stateMachine.accept(Input.Async.Load(load))
 
         val toolbarClick = binding.whileAttached { item: MenuItem ->
-            if (stateMachine.isBound) when (item.itemId) {
+            when (item.itemId) {
                 R.id.menu_ping -> stateMachine.accept(Input.Async.PingServer).let { true }
                 R.id.menu_connect -> dagger.appComponent.broadcaster(Broadcast.ClientNsd.StartDiscovery())
                 R.id.menu_forget -> {

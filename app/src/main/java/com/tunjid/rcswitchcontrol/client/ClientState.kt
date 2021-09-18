@@ -1,6 +1,7 @@
 package com.tunjid.rcswitchcontrol.client
 
 import android.net.nsd.NsdServiceInfo
+import android.os.Parcelable
 import com.rcswitchcontrol.protocols.CommonDeviceActions
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.Name
@@ -20,7 +21,6 @@ import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.control.Device
 import com.tunjid.rcswitchcontrol.control.Record
 import com.tunjid.rcswitchcontrol.control.foldAttributes
-import com.tunjid.rcswitchcontrol.navigation.Named
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -40,7 +40,7 @@ data class ProtocolKey(
     .toUpperCase(Locale.US)
     .removeSuffix("PROTOCOL")
 
-sealed class ClientLoad : Named {
+sealed class ClientLoad : Parcelable {
     @Parcelize
     data class NewClient(val info: NsdServiceInfo) : ClientLoad()
 

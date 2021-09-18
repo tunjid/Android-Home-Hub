@@ -77,7 +77,7 @@ data class AppNav(
         root = AppRoot,
         children = listOf(
             StackNav(
-                root = AppRoot,
+                root = OnBoardingRoot,
             ).push(Node(Start))
         ),
         current = 0,
@@ -99,6 +99,10 @@ data class AppNav(
 data class SimpleName(override val name: String) : Named
 
 val AppRoot = Node(SimpleName("Root"))
+
+val OnBoardingRoot = Node(SimpleName("OnBoarding"))
+
+val DevicesRoot = Node(SimpleName("Devices"))
 
 val AppState.isResumed get() = status == AppStatus.Resumed
 

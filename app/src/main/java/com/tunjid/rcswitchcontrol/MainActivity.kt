@@ -76,7 +76,7 @@ class MainActivity : AppCompatActivity(){
             }
         }
 
-        if (controlLoad != null) dagger::nav.updatePartial { push(Node(controlLoad)) }
+//        if (controlLoad != null) dagger::nav.updatePartial { push(Node(controlLoad)) }
 
         lifecycleScope.launch {
             insetMutations().collect {

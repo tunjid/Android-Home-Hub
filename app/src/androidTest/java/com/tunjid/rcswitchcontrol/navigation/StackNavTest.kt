@@ -1,7 +1,7 @@
 package com.tunjid.rcswitchcontrol.navigation
 
 import com.tunjid.rcswitchcontrol.di.AppRoot
-import com.tunjid.rcswitchcontrol.onboarding.Start
+import com.tunjid.rcswitchcontrol.ui.start.Start
 import org.junit.Assert.*
 import org.junit.Test
 

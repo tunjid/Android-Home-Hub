@@ -21,6 +21,7 @@ import com.tunjid.rcswitchcontrol.di.DevicesRoot
 import com.tunjid.rcswitchcontrol.di.stateMachine
 import com.tunjid.rcswitchcontrol.navigation.Named
 import com.tunjid.rcswitchcontrol.navigation.Node
+import com.tunjid.rcswitchcontrol.navigation.Route
 import com.tunjid.rcswitchcontrol.navigation.StackNav
 import com.tunjid.rcswitchcontrol.ui.control.devices.DeviceRoute
 import com.tunjid.rcswitchcontrol.ui.root.mapState
@@ -34,62 +35,60 @@ private const val STOP = 1
 private const val REFRESH = 2
 
 @Parcelize
-object HostScan : Named
+object HostScan : Route {
+    @Composable
+    override fun Render(node: Node) {
+        val uiStateHolder = AppDependencies.current.uiStateHolder
+        val stateMachine = AppDependencies.current.stateMachine<HostScanStateHolder>(node)
 
-@Composable
-fun HostScanScreen(
-    node: Node
-) {
-    val uiStateHolder = AppDependencies.current.uiStateHolder
-    val stateMachine = AppDependencies.current.stateMachine<HostScanStateHolder>(node)
-
-    val rootScope = rememberCoroutineScope()
+        val rootScope = rememberCoroutineScope()
 
 
-    DisposableEffect(true) {
-        uiStateHolder.accept(Mutation {
-            UiState(
-                systemUI = systemUI,
-                toolbarShows = true,
-                toolbarTitle = "Home Hub",
-                toolbarMenuClickListener = { item: ToolbarItem ->
-                    when (item.id) {
-                        SCAN -> stateMachine.accept(Input.StartScanning)
-                        STOP -> stateMachine.accept(Input.StopScanning)
-                    }
-                },
-            )
-        })
-        onDispose { uiStateHolder.accept(Mutation { copy(toolbarMenuClickListener = {}) }) }
-    }
-
-    val isScanning = remember {
-        stateMachine.state.mapState(
-            scope = rootScope,
-            mapper = NSDState::isScanning
-        )
-    }
-    LaunchedEffect(true) {
-        isScanning.collect { scanning ->
+        DisposableEffect(true) {
             uiStateHolder.accept(Mutation {
-                copy(
-                    toolbarItems = listOfNotNull(
-                        ToolbarItem(id = SCAN, text = "Scan").takeIf { !scanning },
-                        ToolbarItem(id = STOP, text = "Stop").takeIf { scanning },
-                        ToolbarItem(id = REFRESH, text = "Refresh").takeIf { scanning },
-                    )
+                UiState(
+                    systemUI = systemUI,
+                    toolbarShows = true,
+                    toolbarTitle = "Home Hub",
+                    toolbarMenuClickListener = { item: ToolbarItem ->
+                        when (item.id) {
+                            SCAN -> stateMachine.accept(Input.StartScanning)
+                            STOP -> stateMachine.accept(Input.StopScanning)
+                        }
+                    },
                 )
             })
+            onDispose { uiStateHolder.accept(Mutation { copy(toolbarMenuClickListener = {}) }) }
         }
-    }
 
-    val items = remember {
-        stateMachine.state.mapState(
-            scope = rootScope,
-            mapper = NSDState::items
-        )
+        val isScanning = remember {
+            stateMachine.state.mapState(
+                scope = rootScope,
+                mapper = NSDState::isScanning
+            )
+        }
+        LaunchedEffect(true) {
+            isScanning.collect { scanning ->
+                uiStateHolder.accept(Mutation {
+                    copy(
+                        toolbarItems = listOfNotNull(
+                            ToolbarItem(id = SCAN, text = "Scan").takeIf { !scanning },
+                            ToolbarItem(id = STOP, text = "Stop").takeIf { scanning },
+                            ToolbarItem(id = REFRESH, text = "Refresh").takeIf { scanning },
+                        )
+                    )
+                })
+            }
+        }
+
+        val items = remember {
+            stateMachine.state.mapState(
+                scope = rootScope,
+                mapper = NSDState::items
+            )
+        }
+        AvailableHosts(items)
     }
-    AvailableHosts(items)
 }
 
 @Composable

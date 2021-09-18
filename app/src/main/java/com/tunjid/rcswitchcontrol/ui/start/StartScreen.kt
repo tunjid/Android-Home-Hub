@@ -17,77 +17,82 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.tunjid.globalui.UiState
-import com.tunjid.rcswitchcontrol.R
 import com.tunjid.mutator.Mutation
+import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.di.AppDependencies
 import com.tunjid.rcswitchcontrol.navigation.Node
+import com.tunjid.rcswitchcontrol.navigation.Route
 import com.tunjid.rcswitchcontrol.ui.hostscan.HostScan
 import com.tunjid.rcswitchcontrol.ui.theme.AppTheme
 import com.tunjid.rcswitchcontrol.ui.theme.colorAccent
 import com.tunjid.rcswitchcontrol.ui.theme.darkText
+import kotlinx.parcelize.Parcelize
 
-@Composable
-fun StartScreen() {
-    val uiStateHolder = AppDependencies.current.uiStateHolder
-    val navStateHolder = AppDependencies.current.navStateHolder
+@Parcelize
+object Start : Route {
+    @Composable
+    override fun Render(node: Node) {
+        val uiStateHolder = AppDependencies.current.uiStateHolder
+        val navStateHolder = AppDependencies.current.navStateHolder
 
-    LaunchedEffect(true) {
-        uiStateHolder.accept(Mutation {
-            UiState(
-                systemUI = systemUI,
-                toolbarShows = true,
-                toolbarTitle = "Home Hub",
-            )
-        })
-    }
-    Column(
-        modifier = Modifier
-            .padding(16.dp)
-            .fillMaxHeight(),
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = stringResource(id = R.string.splash_message),
-            color = darkText
-        )
-        Image(
-            modifier = Modifier.align(alignment = Alignment.CenterHorizontally),
-            painter = painterResource(id = R.drawable.ic_settings_remote_grey_24dp),
-            contentDescription = stringResource(id = R.string.app_name)
-        )
-        Row {
-            TextButton(
-                modifier = Modifier
-                    .weight(1f),
-                onClick = { },
-                content = {
-                    Text(
-                        text = stringResource(id = R.string.server),
-                        color = colorAccent
-                    )
-                })
-            TextButton(
-                modifier = Modifier
-                    .weight(1f),
-                onClick = {
-                    navStateHolder.accept(Mutation { push(Node(HostScan)) })
-                },
-                content = {
-                    Text(
-                        text = stringResource(id = R.string.client),
-                        color = colorAccent
-                    )
-                }
-            )
+        LaunchedEffect(true) {
+            uiStateHolder.accept(Mutation {
+                UiState(
+                    systemUI = systemUI,
+                    toolbarShows = true,
+                    toolbarTitle = "Home Hub",
+                )
+            })
         }
-    }
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxHeight(),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = stringResource(id = R.string.splash_message),
+                color = darkText
+            )
+            Image(
+                modifier = Modifier.align(alignment = Alignment.CenterHorizontally),
+                painter = painterResource(id = R.drawable.ic_settings_remote_grey_24dp),
+                contentDescription = stringResource(id = R.string.app_name)
+            )
+            Row {
+                TextButton(
+                    modifier = Modifier
+                        .weight(1f),
+                    onClick = { },
+                    content = {
+                        Text(
+                            text = stringResource(id = R.string.server),
+                            color = colorAccent
+                        )
+                    })
+                TextButton(
+                    modifier = Modifier
+                        .weight(1f),
+                    onClick = {
+                        navStateHolder.accept(Mutation { push(Node(HostScan)) })
+                    },
+                    content = {
+                        Text(
+                            text = stringResource(id = R.string.client),
+                            color = colorAccent
+                        )
+                    }
+                )
+            }
+        }
 
+    }
 }
 
 @Preview(name = "Start screen")
 @Composable
 private fun Preview() {
     AppTheme {
-        StartScreen()
+//        StartScreen()
     }
 }

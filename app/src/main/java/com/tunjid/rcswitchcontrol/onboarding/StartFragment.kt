@@ -41,9 +41,6 @@ import com.tunjid.rcswitchcontrol.server.ServerNsdService
 import com.tunjid.rcswitchcontrol.ui.hostscan.HostScan
 import kotlinx.parcelize.Parcelize
 
-@Parcelize
-object Start : Named
-
 fun ViewGroup.startScreen() =
     viewHolderFrom(FragmentStartBinding::inflate).apply {
         val dagger = binding.root.context.dagger

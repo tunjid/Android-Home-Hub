@@ -1,6 +1,7 @@
 package com.tunjid.rcswitchcontrol.navigation
 
 import android.os.Parcelable
+import androidx.compose.runtime.Composable
 import kotlinx.parcelize.Parcelize
 import kotlin.reflect.KMutableProperty0
 
@@ -14,9 +15,13 @@ interface Nav<T> : Named, Nestable {
     val currentNode: Node?
 }
 
-
 interface Named : Parcelable {
     val name: String get() = toString()
+}
+
+interface Route: Named {
+    @Composable
+    fun Render(node: Node)
 }
 
 @Parcelize

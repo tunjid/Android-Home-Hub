@@ -17,6 +17,7 @@ import com.tunjid.rcswitchcontrol.di.AppDependencies
 import com.tunjid.rcswitchcontrol.di.stateMachine
 import com.tunjid.rcswitchcontrol.navigation.Named
 import com.tunjid.rcswitchcontrol.navigation.Node
+import com.tunjid.rcswitchcontrol.navigation.Route
 import com.tunjid.rcswitchcontrol.ui.root.mapState
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.parcelize.Parcelize
@@ -24,37 +25,36 @@ import kotlinx.parcelize.Parcelize
 @Parcelize
 data class DeviceRoute(
     val load: ClientLoad
-): Named
+): Route{
+    @Composable
+    override fun Render(node: Node) {
+        val uiStateHolder = AppDependencies.current.uiStateHolder
+        val stateMachine = AppDependencies.current.stateMachine<ControlViewModel>(node)
 
-@Composable
-fun DevicesScreen(
-    node: Node
-) {
-    val uiStateHolder = AppDependencies.current.uiStateHolder
-    val stateMachine = AppDependencies.current.stateMachine<ControlViewModel>(node)
-
-    val rootScope = rememberCoroutineScope()
+        val rootScope = rememberCoroutineScope()
 
 
-    DisposableEffect(true) {
-        uiStateHolder.accept(Mutation {
-            UiState(
-                systemUI = systemUI,
-                toolbarShows = true,
-                toolbarTitle = "Devices",
+        DisposableEffect(true) {
+            uiStateHolder.accept(Mutation {
+                UiState(
+                    systemUI = systemUI,
+                    toolbarShows = true,
+                    toolbarTitle = "Devices",
+                )
+            })
+            onDispose { uiStateHolder.accept(Mutation { copy(toolbarMenuClickListener = {}) }) }
+        }
+
+        val devices = remember {
+            stateMachine.state.mapState(
+                scope = rootScope,
+                mapper = { it.clientState.devices }
             )
-        })
-        onDispose { uiStateHolder.accept(Mutation { copy(toolbarMenuClickListener = {}) }) }
+        }
+
+        Devices(devices)
     }
 
-    val devices = remember {
-        stateMachine.state.mapState(
-            scope = rootScope,
-            mapper = { it.clientState.devices }
-        )
-    }
-
-    Devices(devices)
 }
 
 @Composable

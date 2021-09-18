@@ -36,7 +36,7 @@ import com.tunjid.rcswitchcontrol.navigation.Named
 import com.tunjid.rcswitchcontrol.navigation.Nav
 import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.navigation.StackNav
-import com.tunjid.rcswitchcontrol.onboarding.Start
+import com.tunjid.rcswitchcontrol.ui.start.Start
 import dagger.Module
 import dagger.Provides
 import kotlinx.coroutines.CoroutineScope

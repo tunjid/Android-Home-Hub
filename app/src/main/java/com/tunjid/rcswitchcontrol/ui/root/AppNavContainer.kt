@@ -1,15 +1,14 @@
 package com.tunjid.rcswitchcontrol.ui.root
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
-import com.tunjid.rcswitchcontrol.client.ClientLoad
+import androidx.compose.ui.Modifier
 import com.tunjid.rcswitchcontrol.di.AppNav
-import com.tunjid.rcswitchcontrol.ui.hostscan.HostScan
-import com.tunjid.rcswitchcontrol.onboarding.Start
-import com.tunjid.rcswitchcontrol.ui.hostscan.HostScanScreen
-import com.tunjid.rcswitchcontrol.ui.start.StartScreen
+import com.tunjid.rcswitchcontrol.navigation.Route
 import kotlinx.coroutines.flow.StateFlow
 
 @Composable
@@ -23,14 +22,14 @@ internal fun AppNavContainer(
 
     val node = nodeState.value
 
-    when (node?.named) {
-        Start -> StartScreen()
-        HostScan -> HostScanScreen(node)
-        is ClientLoad -> Box {
-
-        }
+    when (val route = node?.named) {
+        is Route -> route.Render(node)
         else -> Box {
-
+            Text(
+                modifier = Modifier
+                    .padding(),
+                text = "404"
+            )
         }
     }
     println("Screen: ${node?.named}")

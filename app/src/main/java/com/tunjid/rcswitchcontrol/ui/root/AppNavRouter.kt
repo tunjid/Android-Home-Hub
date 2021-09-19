@@ -12,7 +12,7 @@ import com.tunjid.rcswitchcontrol.navigation.Route
 import kotlinx.coroutines.flow.StateFlow
 
 @Composable
-internal fun AppNavContainer(
+internal fun AppNavRouter(
     navStateFlow: StateFlow<AppNav>
 ) {
     val scope = rememberCoroutineScope()

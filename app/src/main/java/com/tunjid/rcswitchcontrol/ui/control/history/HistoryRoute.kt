@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -48,7 +49,6 @@ data class HistoryRoute(
                     showsBottomNav = true,
                 )
             })
-            stateMachine.accept(Input.Async.Load(load))
             onDispose { uiStateHolder.accept(Mutation { copy(toolbarMenuClickListener = {}) }) }
         }
 
@@ -60,6 +60,10 @@ data class HistoryRoute(
         }
 
         History(history)
+
+        LaunchedEffect(true) {
+            stateMachine.accept(Input.Async.Load(load))
+        }
     }
 
 }

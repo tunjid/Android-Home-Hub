@@ -66,7 +66,6 @@ import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.navigation.updatePartial
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
 import com.tunjid.rcswitchcontrol.server.hostScreen
-import com.tunjid.rcswitchcontrol.ui.root.AppNavContainer
 import com.tunjid.rcswitchcontrol.utils.attach
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel

@@ -37,19 +37,20 @@ fun Root() {
                     mapper = UiState::altToolbarState
                 )
             )
-            AppNavContainer(
+            AppRouteContainer(
                 stateFlow = uiStateFlow.mapState(
                     scope = rootScope,
                     mapper = UiState::fragmentContainerState
-                )
-            ) {
-                AppNavContainer(
-                    navStateFlow = appStateFlow.mapState(
-                        scope = rootScope,
-                        mapper = AppState::nav
+                ),
+                content = {
+                    AppNavRouter(
+                        navStateFlow = appStateFlow.mapState(
+                            scope = rootScope,
+                            mapper = AppState::nav
+                        )
                     )
-                )
-            }
+                }
+            )
             AppBottomNav(
                 stateFlow = uiStateFlow.mapState(
                     scope = rootScope,

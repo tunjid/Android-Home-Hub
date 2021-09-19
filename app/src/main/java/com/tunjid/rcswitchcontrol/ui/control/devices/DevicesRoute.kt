@@ -8,6 +8,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
+import com.rcswitchcontrol.zigbee.models.payload
 import com.tunjid.globalui.ToolbarItem
 import com.tunjid.globalui.UiState
 import com.tunjid.rcswitchcontrol.client.ClientLoad
@@ -40,9 +42,12 @@ data class DeviceRoute(
                 toolbarShows = true,
                 toolbarTitle = "Devices",
                 showsBottomNav = true,
-                toolbarItems = listOf(ToolbarItem(id = 0, text = "Ping"), ToolbarItem(id = 1, text = "Debug")),
+                toolbarItems = listOf(
+                    ToolbarItem(id = 0, text = "Ping"),
+                    ToolbarItem(id = 1, text = "Debug")
+                ),
                 toolbarMenuClickListener = {
-                    when(it.id) {
+                    when (it.id) {
                         0 -> stateMachine.accept(Input.Async.PingServer)
                         1 -> println("State: ${stateMachine.state.value.clientState}")
                     }
@@ -59,7 +64,10 @@ data class DeviceRoute(
             )
         }
 
-        Devices(devices)
+        Devices(
+            stateFlow = devices,
+            onCommandEntered = { stateMachine.accept(Input.Async.ServerCommand(it.payload)) }
+        )
 
         LaunchedEffect(true) {
             stateMachine.accept(Input.Async.Load(load))
@@ -70,7 +78,8 @@ data class DeviceRoute(
 
 @Composable
 private fun Devices(
-    stateFlow: StateFlow<List<Device>>
+    stateFlow: StateFlow<List<Device>>,
+    onCommandEntered: (ZigBeeCommand) -> Unit
 ) {
     val items by stateFlow.collectAsState()
     LazyColumn(content = {
@@ -82,7 +91,7 @@ private fun Devices(
                     is Device.RF -> Unit
                     is Device.ZigBee -> ZigBeeDeviceCard(
                         device = it,
-                        accept = {}
+                        accept = onCommandEntered
                     )
                 }
             }

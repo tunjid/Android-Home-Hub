@@ -27,6 +27,7 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.control.Device
 import com.tunjid.rcswitchcontrol.control.Throttle
 import com.tunjid.rcswitchcontrol.control.level
+import com.tunjid.rcswitchcontrol.ui.theme.eerieBlack
 
 @Composable
 fun ZigBeeDeviceCard(
@@ -38,7 +39,7 @@ fun ZigBeeDeviceCard(
         Throttle { accept(device.node.command(ZigBeeInput.Level(level = it / 100F))) }
     }
 
-    Surface {
+    Surface(color = eerieBlack) {
         Column {
             Row {
                 ZigBeeIcon(

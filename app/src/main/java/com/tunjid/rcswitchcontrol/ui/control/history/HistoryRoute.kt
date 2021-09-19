@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -86,18 +87,27 @@ private fun History(
 }
 
 @Composable
-fun RecordCard(it: Record) {
-    Text(
-        modifier = Modifier
-            .padding(
-                horizontal = 16.dp,
-                vertical = 8.dp
+fun RecordCard(
+    record: Record,
+    onClick: ((Record.Command) -> Unit)? = null
+) {
+    val modifier = Modifier
+        .padding(
+            horizontal = 16.dp,
+            vertical = 8.dp
+        )
+
+
+    Button(
+        modifier = modifier,
+        enabled = record is Record.Command,
+        shape = RoundedCornerShape(16.dp),
+        onClick = { if(record is Record.Command) onClick?.invoke(record) },
+        content = {
+            Text(
+                text = record.entry,
+                color = MaterialTheme.colors.onPrimary,
             )
-            .background(
-                color = eerieBlack,
-                shape = RoundedCornerShape(10.dp)
-            ),
-        text = it.entry,
-        color = MaterialTheme.colors.onPrimary,
+        }
     )
 }

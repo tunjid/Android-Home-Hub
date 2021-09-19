@@ -1,12 +1,10 @@
-package com.tunjid.rcswitchcontrol.ui.control.commands
+package com.tunjid.rcswitchcontrol.ui.control.info
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.ScrollableTabRow
 import androidx.compose.material.Tab
 import androidx.compose.material.TabRowDefaults
@@ -20,7 +18,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.flowlayout.FlowRow
-import com.google.accompanist.flowlayout.MainAxisAlignment
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.pagerTabIndicatorOffset
@@ -32,7 +29,6 @@ import com.tunjid.rcswitchcontrol.client.name
 import com.tunjid.rcswitchcontrol.control.ControlViewModel
 import com.tunjid.rcswitchcontrol.control.Input
 import com.tunjid.rcswitchcontrol.control.Record
-import com.tunjid.rcswitchcontrol.control.payload
 import com.tunjid.rcswitchcontrol.di.AppDependencies
 import com.tunjid.rcswitchcontrol.di.stateMachine
 import com.tunjid.rcswitchcontrol.navigation.Node
@@ -45,7 +41,7 @@ import kotlinx.coroutines.launch
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-data class CommandsRoute(
+data class InfoRoute(
     val load: ClientLoad,
     val anchorToRootNode: Boolean = true
 ) : Route {
@@ -77,10 +73,7 @@ data class CommandsRoute(
             )
         }
 
-        CommandsPager(
-            stateFlow = commands,
-            onRecordClicked = { stateMachine.accept(Input.Async.ServerCommand(it.payload)) }
-        )
+        CommandsPager(commands)
 
         LaunchedEffect(true) {
             stateMachine.accept(Input.Async.Load(load))
@@ -92,8 +85,7 @@ data class CommandsRoute(
 @Composable
 @OptIn(ExperimentalPagerApi::class)
 private fun CommandsPager(
-    stateFlow: StateFlow<List<Pair<CommsProtocol.Key, List<Record.Command>>>>,
-    onRecordClicked: (Record.Command) -> Unit
+    stateFlow: StateFlow<List<Pair<CommsProtocol.Key, List<Record.Command>>>>
 ) {
     val entries by stateFlow.collectAsState()
     val scope = rememberCoroutineScope()
@@ -122,10 +114,7 @@ private fun CommandsPager(
             }
 
             HorizontalPager(state = pagerState) { page ->
-                CommandPage(
-                    commands = entries[page].second,
-                    onRecordClicked = onRecordClicked
-                )
+                CommandPage(commands = entries[page].second)
             }
         }
 
@@ -133,18 +122,12 @@ private fun CommandsPager(
 }
 
 @Composable
-private fun CommandPage(
-    commands: List<Record.Command>,
-    onRecordClicked: (Record.Command) -> Unit
-) {
+private fun CommandPage(commands: List<Record.Command>) {
     FlowRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState()),
-        mainAxisAlignment = MainAxisAlignment.SpaceAround
+        modifier = Modifier.fillMaxWidth()
     ) {
         commands.forEach {
-            RecordCard(record = it, onClick = onRecordClicked)
+            RecordCard(it)
             Spacer(modifier = Modifier.padding(2.dp))
         }
     }

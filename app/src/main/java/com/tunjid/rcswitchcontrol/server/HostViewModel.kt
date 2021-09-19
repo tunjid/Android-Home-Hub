@@ -66,7 +66,6 @@ class HostViewModel @Inject constructor(
     override val accept: (Unit) -> Unit = { }
 
     init {
-        scope.cancel()
         serverConnection.bind()
     }
 

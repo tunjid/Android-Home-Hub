@@ -155,7 +155,7 @@ private fun CommandPage(
         modifier = Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState()),
-        mainAxisAlignment = MainAxisAlignment.SpaceAround
+        mainAxisAlignment = MainAxisAlignment.Center
     ) {
         commands.forEach {
             RecordCard(record = it, onClick = onRecordClicked)

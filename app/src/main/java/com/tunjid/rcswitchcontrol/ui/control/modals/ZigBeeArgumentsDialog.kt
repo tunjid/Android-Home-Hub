@@ -1,6 +1,7 @@
 package com.tunjid.rcswitchcontrol.ui.control.modals
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.AlertDialog
@@ -14,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommandInfo
 import com.tunjid.mutator.Mutation
@@ -53,7 +55,10 @@ fun ZigBeeArgumentDialog(
             stateHolder.accept(Mutation { copy(isOpen = false) })
         },
         title = {
-            Text(text = "Command: ${commandInfo?.command}")
+            Text(
+                modifier = Modifier.padding(vertical = 8.dp),
+                text = "Command: ${commandInfo?.command}"
+            )
         },
         text = {
             Column(

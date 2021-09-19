@@ -42,7 +42,7 @@ private const val STOP = 1
 private const val REFRESH = 2
 
 @Parcelize
-object HostScan : Route {
+object HostScanRoute : Route {
     @Composable
     override fun Render(node: Node) {
         val uiStateHolder = AppDependencies.current.uiStateHolder

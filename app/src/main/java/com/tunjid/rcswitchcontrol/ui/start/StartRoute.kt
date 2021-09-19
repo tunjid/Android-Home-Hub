@@ -21,7 +21,7 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.di.AppDependencies
 import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.navigation.Route
-import com.tunjid.rcswitchcontrol.ui.hostscan.HostScan
+import com.tunjid.rcswitchcontrol.ui.hostscan.HostScanRoute
 import com.tunjid.rcswitchcontrol.ui.root.InitialUiState
 import com.tunjid.rcswitchcontrol.ui.theme.AppTheme
 import com.tunjid.rcswitchcontrol.ui.theme.colorAccent
@@ -29,7 +29,7 @@ import com.tunjid.rcswitchcontrol.ui.theme.darkText
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-object Start : Route {
+object StartRoute : Route {
     @Composable
     override fun Render(node: Node) {
         val navStateHolder = AppDependencies.current.navStateHolder
@@ -71,7 +71,7 @@ object Start : Route {
                     modifier = Modifier
                         .weight(1f),
                     onClick = {
-                        navStateHolder.accept(Mutation { push(Node(HostScan)) })
+                        navStateHolder.accept(Mutation { push(Node(HostScanRoute)) })
                     },
                     content = {
                         Text(

@@ -34,12 +34,10 @@ import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.databinding.FragmentStartBinding
 import com.tunjid.rcswitchcontrol.di.dagger
 import com.tunjid.rcswitchcontrol.di.nav
-import com.tunjid.rcswitchcontrol.navigation.Named
 import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.navigation.updatePartial
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
-import com.tunjid.rcswitchcontrol.ui.hostscan.HostScan
-import kotlinx.parcelize.Parcelize
+import com.tunjid.rcswitchcontrol.ui.hostscan.HostScanRoute
 
 fun ViewGroup.startScreen() =
     viewHolderFrom(FragmentStartBinding::inflate).apply {
@@ -58,7 +56,7 @@ fun ViewGroup.startScreen() =
                     ServerNsdService.isServer = true
 //                    dagger::nav.updatePartial { push(Node(ClientLoad.StartServer)) }
                 }
-                R.id.client -> dagger::nav.updatePartial { push(Node(HostScan)) }
+                R.id.client -> dagger::nav.updatePartial { push(Node(HostScanRoute)) }
             }
         }
 

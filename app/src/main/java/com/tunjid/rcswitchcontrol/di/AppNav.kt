@@ -6,7 +6,7 @@ import com.tunjid.rcswitchcontrol.navigation.Named
 import com.tunjid.rcswitchcontrol.navigation.Nav
 import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.navigation.StackNav
-import com.tunjid.rcswitchcontrol.ui.start.Start
+import com.tunjid.rcswitchcontrol.ui.start.StartRoute
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
@@ -16,7 +16,7 @@ data class AppNav(
         children = listOf(
             StackNav(
                 root = OnBoardingRoot,
-            ).push(Node(Start))
+            ).push(Node(StartRoute))
         ),
         current = 0,
     ),

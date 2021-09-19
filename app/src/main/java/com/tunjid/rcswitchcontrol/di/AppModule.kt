@@ -21,7 +21,6 @@ import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.os.Bundle
-import android.os.Parcelable
 import com.tunjid.globalui.UiState
 import com.tunjid.mutator.Mutation
 import com.tunjid.mutator.StateHolder
@@ -31,12 +30,7 @@ import com.tunjid.rcswitchcontrol.common.ClosableStateHolder
 import com.tunjid.rcswitchcontrol.common.derived
 import com.tunjid.rcswitchcontrol.common.mapDistinct
 import com.tunjid.rcswitchcontrol.models.Broadcast
-import com.tunjid.rcswitchcontrol.navigation.MultiStackNav
-import com.tunjid.rcswitchcontrol.navigation.Named
-import com.tunjid.rcswitchcontrol.navigation.Nav
 import com.tunjid.rcswitchcontrol.navigation.Node
-import com.tunjid.rcswitchcontrol.navigation.StackNav
-import com.tunjid.rcswitchcontrol.ui.start.Start
 import dagger.Module
 import dagger.Provides
 import kotlinx.coroutines.CoroutineScope
@@ -44,7 +38,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.parcelize.Parcelize
 import javax.inject.Qualifier
 import javax.inject.Singleton
 import kotlin.reflect.KClass
@@ -70,50 +63,6 @@ data class AppState(
     val nav: AppNav = AppNav(),
     val status: AppStatus = AppStatus.Destroyed
 )
-
-// Descriptive alphabet using three CharRange objects, concatenated
-private val alphabet: List<Char> = ('a'..'z') + ('A'..'Z') + ('0'..'9')
-
-// Build list from 20 random samples from the alphabet,
-// and convert it to a string using "" as element separator
-fun randomString(): String = List(5) { alphabet.random() }.joinToString(separator = "")
-
-@Parcelize
-data class AppNav(
-    val mainNav: MultiStackNav = MultiStackNav(
-        root = Node(SimpleName("Root-${randomString()}")),
-        children = listOf(
-            StackNav(
-                root = OnBoardingRoot,
-            ).push(Node(Start))
-        ),
-        current = 0,
-    ),
-    val bottomSheetNav: StackNav = StackNav(Node(SimpleName("BottomSheet-${randomString()}")))
-) : Nav<AppNav>, Parcelable {
-    fun push(node: Node) = copy(mainNav = mainNav.push(node = node))
-
-    fun pop() = copy(mainNav = mainNav.pop())
-
-    override val allNodes: Iterable<Node>
-        get() = mainNav.allNodes + bottomSheetNav.allNodes
-
-    override val currentNode: Node?
-        get() = mainNav.currentNode
-}
-
-@Parcelize
-data class SimpleName(override val name: String) : Named
-
-val AppRoot = Node(SimpleName("Root"))
-
-val OnBoardingRoot = Node(SimpleName("OnBoarding"))
-
-val HistoryRoot = Node(SimpleName("History"))
-
-val DevicesRoot = Node(SimpleName("Devices"))
-
-val AppState.isResumed get() = status == AppStatus.Resumed
 
 private const val NAV = "nav"
 

@@ -3,7 +3,6 @@ package com.tunjid.rcswitchcontrol.ui.control.commands
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -19,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.google.accompanist.flowlayout.FlowCrossAxisAlignment
 import com.google.accompanist.flowlayout.FlowRow
 import com.google.accompanist.flowlayout.MainAxisAlignment
 import com.google.accompanist.pager.ExperimentalPagerApi
@@ -153,9 +153,10 @@ private fun CommandPage(
 ) {
     FlowRow(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .verticalScroll(rememberScrollState()),
-        mainAxisAlignment = MainAxisAlignment.Center
+        mainAxisAlignment = MainAxisAlignment.Center,
+        crossAxisAlignment = FlowCrossAxisAlignment.Start
     ) {
         commands.forEach {
             RecordCard(record = it, onClick = onRecordClicked)

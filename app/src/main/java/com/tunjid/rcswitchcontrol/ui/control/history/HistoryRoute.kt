@@ -1,11 +1,11 @@
 package com.tunjid.rcswitchcontrol.ui.control.history
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
@@ -28,7 +28,6 @@ import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.navigation.Route
 import com.tunjid.rcswitchcontrol.ui.root.InitialUiState
 import com.tunjid.rcswitchcontrol.ui.root.mapState
-import com.tunjid.rcswitchcontrol.ui.theme.eerieBlack
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.parcelize.Parcelize
 
@@ -104,10 +103,12 @@ fun RecordCard(
         shape = RoundedCornerShape(16.dp),
         onClick = { if(record is Record.Command) onClick?.invoke(record) },
         content = {
-            Text(
-                text = record.entry,
-                color = MaterialTheme.colors.onPrimary,
-            )
+            SelectionContainer {
+                Text(
+                    text = record.entry,
+                    color = MaterialTheme.colors.onPrimary,
+                )
+            }
         }
     )
 }

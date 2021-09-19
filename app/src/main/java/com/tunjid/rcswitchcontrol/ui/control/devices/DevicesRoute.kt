@@ -8,6 +8,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import com.tunjid.globalui.ToolbarItem
 import com.tunjid.globalui.UiState
 import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.control.ControlViewModel
@@ -39,6 +40,13 @@ data class DeviceRoute(
                 toolbarShows = true,
                 toolbarTitle = "Devices",
                 showsBottomNav = true,
+                toolbarItems = listOf(ToolbarItem(id = 0, text = "Ping"), ToolbarItem(id = 1, text = "Debug")),
+                toolbarMenuClickListener = {
+                    when(it.id) {
+                        0 -> stateMachine.accept(Input.Async.PingServer)
+                        1 -> println("State: ${stateMachine.state.value.clientState}")
+                    }
+                }
             )
         )
 

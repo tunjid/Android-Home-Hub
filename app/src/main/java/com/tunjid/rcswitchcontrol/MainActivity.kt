@@ -32,28 +32,26 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.tunjid.mutator.Mutation
 import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.client.nsdServiceInfo
 import com.tunjid.rcswitchcontrol.client.nsdServiceName
 import com.tunjid.rcswitchcontrol.di.AppDependencies
 import com.tunjid.rcswitchcontrol.di.dagger
-import com.tunjid.rcswitchcontrol.di.nav
-import com.tunjid.rcswitchcontrol.navigation.Node
-import com.tunjid.rcswitchcontrol.navigation.updatePartial
+import com.tunjid.rcswitchcontrol.di.navigateToControl
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
 import com.tunjid.rcswitchcontrol.ui.root.Root
 import com.tunjid.rcswitchcontrol.ui.root.insetMutations
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
-class MainActivity : AppCompatActivity(){
-
+class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         onBackPressedDispatcher.addCallback(this) {
-            dagger::nav.updatePartial { pop() }
+            dagger.appComponent.navStateHolder.accept(Mutation { pop() })
         }
 
         setContent {
@@ -76,7 +74,9 @@ class MainActivity : AppCompatActivity(){
             }
         }
 
-//        if (controlLoad != null) dagger::nav.updatePartial { push(Node(controlLoad)) }
+        if (controlLoad != null) dagger.appComponent.navStateHolder.accept(Mutation {
+            navigateToControl(controlLoad)
+        })
 
         lifecycleScope.launch {
             insetMutations().collect {

@@ -22,14 +22,10 @@ import com.tunjid.globalui.UiState
 import com.tunjid.mutator.Mutation
 import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.di.AppDependencies
-import com.tunjid.rcswitchcontrol.di.DevicesRoot
-import com.tunjid.rcswitchcontrol.di.HistoryRoot
+import com.tunjid.rcswitchcontrol.di.navigateToControl
 import com.tunjid.rcswitchcontrol.di.stateMachine
 import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.navigation.Route
-import com.tunjid.rcswitchcontrol.navigation.StackNav
-import com.tunjid.rcswitchcontrol.ui.control.devices.DeviceRoute
-import com.tunjid.rcswitchcontrol.ui.control.history.HistoryRoute
 import com.tunjid.rcswitchcontrol.ui.root.InitialUiState
 import com.tunjid.rcswitchcontrol.ui.root.mapState
 import com.tunjid.rcswitchcontrol.ui.theme.darkText
@@ -110,18 +106,7 @@ private fun AvailableHosts(
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                         .clickable {
                             navStateHolder.accept(Mutation {
-                                copy(
-                                    mainNav = mainNav.copy(
-                                        children = listOf(
-                                            StackNav(
-                                                root = DevicesRoot,
-                                            ).push(Node(DeviceRoute(ClientLoad.NewClient(nsdItem.info)))),
-                                            StackNav(
-                                                root = HistoryRoot,
-                                            ).push(Node(HistoryRoute(ClientLoad.NewClient(nsdItem.info)))),
-                                        )
-                                    )
-                                )
+                                navigateToControl(ClientLoad.NewClient(nsdItem.info))
                             })
                         },
                     text = buildAnnotatedString {

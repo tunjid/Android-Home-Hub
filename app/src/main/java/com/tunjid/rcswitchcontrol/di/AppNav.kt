@@ -1,11 +1,14 @@
 package com.tunjid.rcswitchcontrol.di
 
 import android.os.Parcelable
+import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.navigation.MultiStackNav
 import com.tunjid.rcswitchcontrol.navigation.Named
 import com.tunjid.rcswitchcontrol.navigation.Nav
 import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.navigation.StackNav
+import com.tunjid.rcswitchcontrol.ui.control.devices.DeviceRoute
+import com.tunjid.rcswitchcontrol.ui.control.history.HistoryRoute
 import com.tunjid.rcswitchcontrol.ui.start.StartRoute
 import kotlinx.parcelize.Parcelize
 
@@ -33,6 +36,21 @@ data class AppNav(
         get() = mainNav.currentNode
 }
 
+
+fun AppNav.navigateToControl(load: ClientLoad) = copy(
+    mainNav = MultiStackNav(
+        root = Node(SimpleName("Root-${randomString()}")),
+        current = 0,
+        children = listOf(
+            StackNav(
+                root = HistoryRoot,
+            ).push(Node(HistoryRoute(load))),
+            StackNav(
+                root = DevicesRoot,
+            ).push(Node(DeviceRoute(load))),
+        )
+    )
+)
 
 // Descriptive alphabet using three CharRange objects, concatenated
 private val alphabet: List<Char> = ('a'..'z') + ('A'..'Z') + ('0'..'9')

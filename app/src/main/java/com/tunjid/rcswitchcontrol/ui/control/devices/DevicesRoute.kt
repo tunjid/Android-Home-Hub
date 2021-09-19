@@ -3,14 +3,12 @@ package com.tunjid.rcswitchcontrol.ui.control.devices
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import com.tunjid.globalui.UiState
-import com.tunjid.mutator.Mutation
 import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.control.ControlViewModel
 import com.tunjid.rcswitchcontrol.control.Device
@@ -19,6 +17,7 @@ import com.tunjid.rcswitchcontrol.di.AppDependencies
 import com.tunjid.rcswitchcontrol.di.stateMachine
 import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.navigation.Route
+import com.tunjid.rcswitchcontrol.ui.root.InitialUiState
 import com.tunjid.rcswitchcontrol.ui.root.mapState
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.parcelize.Parcelize
@@ -30,30 +29,24 @@ data class DeviceRoute(
 ) : Route {
     @Composable
     override fun Render(node: Node) {
-        val uiStateHolder = AppDependencies.current.uiStateHolder
         val navStateHolder = AppDependencies.current.navStateHolder
         val stateMachine = AppDependencies.current.stateMachine<ControlViewModel>(
             if (anchorToRootNode) navStateHolder.state.value.mainNav.root else node
         )
 
-        val rootScope = rememberCoroutineScope()
+        InitialUiState(
+            UiState(
+                toolbarShows = true,
+                toolbarTitle = "Devices",
+                showsBottomNav = true,
+            )
+        )
 
-
-        DisposableEffect(true) {
-            uiStateHolder.accept(Mutation {
-                UiState(
-                    systemUI = systemUI,
-                    toolbarShows = true,
-                    toolbarTitle = "Devices",
-                    showsBottomNav = true,
-                )
-            })
-            onDispose { uiStateHolder.accept(Mutation { copy(toolbarMenuClickListener = {}) }) }
-        }
+        val scope = rememberCoroutineScope()
 
         val devices = remember {
             stateMachine.state.mapState(
-                scope = rootScope,
+                scope = scope,
                 mapper = { it.clientState.devices }
             )
         }

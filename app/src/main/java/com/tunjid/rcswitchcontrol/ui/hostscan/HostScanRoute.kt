@@ -5,7 +5,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -20,12 +25,12 @@ import com.tunjid.rcswitchcontrol.di.AppDependencies
 import com.tunjid.rcswitchcontrol.di.DevicesRoot
 import com.tunjid.rcswitchcontrol.di.HistoryRoot
 import com.tunjid.rcswitchcontrol.di.stateMachine
-import com.tunjid.rcswitchcontrol.navigation.Named
 import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.navigation.Route
 import com.tunjid.rcswitchcontrol.navigation.StackNav
 import com.tunjid.rcswitchcontrol.ui.control.devices.DeviceRoute
 import com.tunjid.rcswitchcontrol.ui.control.history.HistoryRoute
+import com.tunjid.rcswitchcontrol.ui.root.InitialUiState
 import com.tunjid.rcswitchcontrol.ui.root.mapState
 import com.tunjid.rcswitchcontrol.ui.theme.darkText
 import kotlinx.coroutines.flow.StateFlow
@@ -43,25 +48,20 @@ object HostScan : Route {
         val uiStateHolder = AppDependencies.current.uiStateHolder
         val stateMachine = AppDependencies.current.stateMachine<HostScanStateHolder>(node)
 
+        InitialUiState(
+            UiState(
+                toolbarShows = true,
+                toolbarTitle = "Host scan",
+                toolbarMenuClickListener = { item: ToolbarItem ->
+                    when (item.id) {
+                        SCAN -> stateMachine.accept(Input.StartScanning)
+                        STOP -> stateMachine.accept(Input.StopScanning)
+                    }
+                },
+            )
+        )
+
         val rootScope = rememberCoroutineScope()
-
-
-        DisposableEffect(true) {
-            uiStateHolder.accept(Mutation {
-                UiState(
-                    systemUI = systemUI,
-                    toolbarShows = true,
-                    toolbarTitle = "Home Hub",
-                    toolbarMenuClickListener = { item: ToolbarItem ->
-                        when (item.id) {
-                            SCAN -> stateMachine.accept(Input.StartScanning)
-                            STOP -> stateMachine.accept(Input.StopScanning)
-                        }
-                    },
-                )
-            })
-            onDispose { uiStateHolder.accept(Mutation { copy(toolbarMenuClickListener = {}) }) }
-        }
 
         val isScanning = remember {
             stateMachine.state.mapState(

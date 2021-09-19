@@ -1,9 +1,13 @@
 package com.tunjid.rcswitchcontrol.ui.root
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.tunjid.globalui.UiState
 import com.tunjid.mutator.Mutation
+import com.tunjid.rcswitchcontrol.di.AppDependencies
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -11,11 +15,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
-fun Mutation<UiState>.initialMutation(): Mutation<UiState> = Mutation {
-    val systemUi = this.systemUI
-    val sourceMutated = this@initialMutation.mutate(this)
-    sourceMutated.copy(systemUI = systemUi)
-}
 
 fun <T, R> StateFlow<T>.mapState(scope: CoroutineScope, mapper: (T) -> R) =
     map { mapper(it) }
@@ -26,6 +25,35 @@ fun <T, R> StateFlow<T>.mapState(scope: CoroutineScope, mapper: (T) -> R) =
             started = SharingStarted.WhileSubscribed(2000),
         )
 
+private data class MutableFunction<T>(var backing: (T) -> Unit = {}) : (T) -> Unit {
+    override fun invoke(item: T) = backing(item)
+}
+
+@Composable
+fun InitialUiState(state: UiState) {
+    val uiStateHolder = AppDependencies.current.uiStateHolder
+
+    val toolbarMenuClickListener = remember {
+        MutableFunction(state.toolbarMenuClickListener)
+    }
+    val altToolbarMenuClickListener = remember {
+        MutableFunction(state.altToolbarMenuClickListener)
+    }
+
+    DisposableEffect(true) {
+        uiStateHolder.accept(Mutation {
+            state.copy(
+                systemUI = systemUI,
+                toolbarMenuClickListener = toolbarMenuClickListener,
+                altToolbarMenuClickListener = altToolbarMenuClickListener
+            )
+        })
+        onDispose {
+            toolbarMenuClickListener.backing = {}
+            altToolbarMenuClickListener.backing = {}
+        }
+    }
+}
 
 data class UISizes(
     val toolbarSize: Dp,

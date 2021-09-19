@@ -11,6 +11,11 @@ import com.tunjid.rcswitchcontrol.ui.control.commands.CommandsRoute
 import com.tunjid.rcswitchcontrol.ui.control.devices.DeviceRoute
 import com.tunjid.rcswitchcontrol.ui.control.history.HistoryRoute
 import com.tunjid.rcswitchcontrol.ui.start.StartRoute
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.scan
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
@@ -55,6 +60,14 @@ fun AppNav.navigateToControl(load: ClientLoad) = copy(
         )
     )
 )
+
+fun Flow<AppNav>.nodeDiffs() =
+    distinctUntilChanged()
+        .scan(listOf<AppNav>()) { list, nav -> list.plus(element = nav).takeLast(2) }
+        .filter { it.size > 1 }
+        .map { (old, new) ->
+            old.allNodes.map(Node::path) - new.allNodes.map(Node::path)
+        }
 
 // Descriptive alphabet using three CharRange objects, concatenated
 private val alphabet: List<Char> = ('a'..'z') + ('A'..'Z') + ('0'..'9')

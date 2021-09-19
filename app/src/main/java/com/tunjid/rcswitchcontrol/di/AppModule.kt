@@ -131,17 +131,11 @@ class AppModule(private val app: App) {
         appScope.launch {
             appStateHolder.state
                 .mapDistinct { it.nav }
-                .onEach { println(it.allNodes.map { it.named }) }
-                .scan(listOf<AppNav>()) { list, nav -> list.plus(element = nav).takeLast(2) }
-                .filter { it.size > 1 }
-                .map { (old, new) ->
-                    old.allNodes.map(Node::path) - new.allNodes.map(Node::path)
-                }
+                .nodeDiffs()
                 .collect { removedPaths: List<String> ->
                     removedPaths.forEach {
                         val stateMachineMap = stateMachineCache.remove(it)
                         stateMachineMap?.values?.forEach(ClosableStateHolder<*, *>::close)
-                        println("Removing all SM for $it")
                     }
                 }
         }

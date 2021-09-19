@@ -7,6 +7,7 @@ import com.tunjid.rcswitchcontrol.navigation.Named
 import com.tunjid.rcswitchcontrol.navigation.Nav
 import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.navigation.StackNav
+import com.tunjid.rcswitchcontrol.ui.control.commands.CommandsRoute
 import com.tunjid.rcswitchcontrol.ui.control.devices.DeviceRoute
 import com.tunjid.rcswitchcontrol.ui.control.history.HistoryRoute
 import com.tunjid.rcswitchcontrol.ui.start.StartRoute
@@ -46,6 +47,9 @@ fun AppNav.navigateToControl(load: ClientLoad) = copy(
                 root = HistoryRoot,
             ).push(Node(HistoryRoute(load))),
             StackNav(
+                root = CommandsRoot,
+            ).push(Node(CommandsRoute(load))),
+            StackNav(
                 root = DevicesRoot,
             ).push(Node(DeviceRoute(load))),
         )
@@ -69,5 +73,7 @@ val OnBoardingRoot = Node(SimpleName("OnBoarding"))
 val HistoryRoot = Node(SimpleName("History"))
 
 val DevicesRoot = Node(SimpleName("Devices"))
+
+val CommandsRoot = Node(SimpleName("Commands"))
 
 val AppState.isResumed get() = status == AppStatus.Resumed

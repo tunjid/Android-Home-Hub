@@ -27,6 +27,7 @@ import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.navigation.Route
 import com.tunjid.rcswitchcontrol.ui.root.InitialUiState
 import com.tunjid.rcswitchcontrol.ui.root.mapState
+import com.tunjid.rcswitchcontrol.ui.theme.eerieBlack
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.parcelize.Parcelize
 
@@ -85,7 +86,7 @@ private fun History(
 }
 
 @Composable
-private fun RecordCard(it: Record) {
+fun RecordCard(it: Record) {
     Text(
         modifier = Modifier
             .padding(
@@ -93,7 +94,7 @@ private fun RecordCard(it: Record) {
                 vertical = 8.dp
             )
             .background(
-                color = MaterialTheme.colors.surface,
+                color = eerieBlack,
                 shape = RoundedCornerShape(10.dp)
             ),
         text = it.entry,

@@ -32,13 +32,15 @@ import kotlinx.coroutines.flow.shareIn
 import kotlinx.parcelize.Parcelize
 import java.util.*
 
-data class ProtocolKey(
-    val key: CommsProtocol.Key
-) : CharSequence by key.value
+val CommsProtocol.Key.name get() = value
     .split(".")
     .last()
     .toUpperCase(Locale.US)
     .removeSuffix("PROTOCOL")
+
+data class ProtocolKey(
+    val key: CommsProtocol.Key
+) : CharSequence by key.name
 
 sealed class ClientLoad : Parcelable {
     @Parcelize

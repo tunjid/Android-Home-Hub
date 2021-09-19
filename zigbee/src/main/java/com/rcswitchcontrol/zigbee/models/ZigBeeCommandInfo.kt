@@ -62,6 +62,17 @@ class ZigBeeCommandInfo(
         parcel.readString()!!
     )
 
+    fun updateEntry(entry: Entry) = ZigBeeCommandInfo(
+        command = command,
+        description = description,
+        syntax = syntax,
+        help = help,
+        entries = entries.map { existing ->
+            if (entry.key == existing.key) entry
+            else existing
+        }
+    )
+
     fun toArgs(): ZigBeeCommand {
         val args = entries.map { it.value }.filter(String::isNotBlank).toMutableList()
         args.add(0, command)
@@ -79,7 +90,7 @@ class ZigBeeCommandInfo(
     override fun describeContents(): Int = 0
 
     @kotlinx.serialization.Serializable
-    class Entry(var key: String, var value: String) : Writable
+    data class Entry(val key: String, val value: String) : Writable
 
     companion object CREATOR : Parcelable.Creator<ZigBeeCommandInfo> {
 

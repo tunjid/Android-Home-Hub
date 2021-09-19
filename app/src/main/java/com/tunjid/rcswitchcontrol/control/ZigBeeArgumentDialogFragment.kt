@@ -138,7 +138,7 @@ class ZigBeeArgumentDialogFragment : DialogFragment() {
         fun unbind() = editText.removeTextChangedListener(this)
 
         override fun afterTextChanged(s: Editable) {
-            entry.value = s.toString()
+//            entry.value = s.toString()
             listener()
         }
 

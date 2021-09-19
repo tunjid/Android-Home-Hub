@@ -26,6 +26,7 @@ import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.pagerTabIndicatorOffset
 import com.google.accompanist.pager.rememberPagerState
 import com.rcswitchcontrol.protocols.CommsProtocol
+import com.rcswitchcontrol.zigbee.models.payload
 import com.tunjid.globalui.UiState
 import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.client.name
@@ -38,6 +39,7 @@ import com.tunjid.rcswitchcontrol.di.stateMachine
 import com.tunjid.rcswitchcontrol.navigation.Node
 import com.tunjid.rcswitchcontrol.navigation.Route
 import com.tunjid.rcswitchcontrol.ui.control.history.RecordCard
+import com.tunjid.rcswitchcontrol.ui.control.modals.ZigBeeArgumentDialog
 import com.tunjid.rcswitchcontrol.ui.root.InitialUiState
 import com.tunjid.rcswitchcontrol.ui.root.mapState
 import kotlinx.coroutines.flow.StateFlow
@@ -69,17 +71,29 @@ data class CommandsRoute(
         val commands = remember {
             stateMachine.state.mapState(
                 scope = scope,
-                mapper = {
-                    it.clientState.commands
+                mapper = { controlState ->
+                    controlState.clientState.commands
                         .toList()
                         .sortedBy { it.first.name }
                 }
             )
         }
 
+        val commandInfo = remember {
+            stateMachine.state.mapState(
+                scope = scope,
+                mapper = { it.clientState.commandInfo }
+            )
+        }
+
         CommandsPager(
             stateFlow = commands,
             onRecordClicked = { stateMachine.accept(Input.Async.ServerCommand(it.payload)) }
+        )
+
+        ZigBeeArgumentDialog(
+            stateFlow = commandInfo,
+            onCommandEntered = { stateMachine.accept(Input.Async.ServerCommand(it.payload)) }
         )
 
         LaunchedEffect(true) {

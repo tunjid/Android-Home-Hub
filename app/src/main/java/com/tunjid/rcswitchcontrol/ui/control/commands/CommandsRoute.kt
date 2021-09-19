@@ -37,6 +37,7 @@ import com.tunjid.rcswitchcontrol.ui.control.history.RecordCard
 import com.tunjid.rcswitchcontrol.ui.root.InitialUiState
 import com.tunjid.rcswitchcontrol.ui.root.mapState
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
@@ -87,9 +88,10 @@ private fun CommandsPager(
     stateFlow: StateFlow<List<Pair<CommsProtocol.Key, List<Record.Command>>>>
 ) {
     val entries by stateFlow.collectAsState()
-    if (entries.isNotEmpty()) {
-        val pagerState = rememberPagerState(pageCount = entries.size)
+    val scope = rememberCoroutineScope()
+    val pagerState = rememberPagerState(pageCount = entries.size)
 
+    if (entries.isNotEmpty()) {
         Column(modifier = Modifier.fillMaxSize()) {
             ScrollableTabRow(
                 // Our selected tab is our current page
@@ -106,7 +108,7 @@ private fun CommandsPager(
                     Tab(
                         text = { Text(text = entry.first.name) },
                         selected = pagerState.currentPage == index,
-                        onClick = { /* TODO */ },
+                        onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
                     )
                 }
             }

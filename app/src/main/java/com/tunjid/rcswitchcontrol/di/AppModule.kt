@@ -71,10 +71,17 @@ data class AppState(
     val status: AppStatus = AppStatus.Destroyed
 )
 
+// Descriptive alphabet using three CharRange objects, concatenated
+private val alphabet: List<Char> = ('a'..'z') + ('A'..'Z') + ('0'..'9')
+
+// Build list from 20 random samples from the alphabet,
+// and convert it to a string using "" as element separator
+fun randomString(): String = List(5) { alphabet.random() }.joinToString(separator = "")
+
 @Parcelize
 data class AppNav(
     val mainNav: MultiStackNav = MultiStackNav(
-        root = AppRoot,
+        root = Node(SimpleName("Root-${randomString()}")),
         children = listOf(
             StackNav(
                 root = OnBoardingRoot,
@@ -82,7 +89,7 @@ data class AppNav(
         ),
         current = 0,
     ),
-    val bottomSheetNav: StackNav = StackNav(AppRoot)
+    val bottomSheetNav: StackNav = StackNav(Node(SimpleName("BottomSheet-${randomString()}")))
 ) : Nav<AppNav>, Parcelable {
     fun push(node: Node) = copy(mainNav = mainNav.push(node = node))
 
@@ -101,6 +108,8 @@ data class SimpleName(override val name: String) : Named
 val AppRoot = Node(SimpleName("Root"))
 
 val OnBoardingRoot = Node(SimpleName("OnBoarding"))
+
+val HistoryRoot = Node(SimpleName("History"))
 
 val DevicesRoot = Node(SimpleName("Devices"))
 

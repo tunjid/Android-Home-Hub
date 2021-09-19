@@ -1,7 +1,8 @@
-package com.tunjid.rcswitchcontrol.ui.control.devices
+package com.tunjid.rcswitchcontrol.ui.control.history
 
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
@@ -12,8 +13,8 @@ import com.tunjid.globalui.UiState
 import com.tunjid.mutator.Mutation
 import com.tunjid.rcswitchcontrol.client.ClientLoad
 import com.tunjid.rcswitchcontrol.control.ControlViewModel
-import com.tunjid.rcswitchcontrol.control.Device
 import com.tunjid.rcswitchcontrol.control.Input
+import com.tunjid.rcswitchcontrol.control.Record
 import com.tunjid.rcswitchcontrol.di.AppDependencies
 import com.tunjid.rcswitchcontrol.di.stateMachine
 import com.tunjid.rcswitchcontrol.navigation.Node
@@ -23,7 +24,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-data class DeviceRoute(
+data class HistoryRoute(
     val load: ClientLoad,
     val anchorToRootNode: Boolean = true
 ) : Route {
@@ -43,7 +44,7 @@ data class DeviceRoute(
                 UiState(
                     systemUI = systemUI,
                     toolbarShows = true,
-                    toolbarTitle = "Devices",
+                    toolbarTitle = "History",
                     showsBottomNav = true,
                 )
             })
@@ -51,21 +52,21 @@ data class DeviceRoute(
             onDispose { uiStateHolder.accept(Mutation { copy(toolbarMenuClickListener = {}) }) }
         }
 
-        val devices = remember {
+        val history = remember {
             stateMachine.state.mapState(
                 scope = rootScope,
-                mapper = { it.clientState.devices }
+                mapper = { it.clientState.history }
             )
         }
 
-        Devices(devices)
+        History(history)
     }
 
 }
 
 @Composable
-private fun Devices(
-    stateFlow: StateFlow<List<Device>>
+private fun History(
+    stateFlow: StateFlow<List<Record>>
 ) {
     val items by stateFlow.collectAsState()
     LazyColumn(content = {
@@ -73,13 +74,7 @@ private fun Devices(
             items = items,
             key = { it.diffId },
             itemContent = {
-                when (it) {
-                    is Device.RF -> Unit
-                    is Device.ZigBee -> ZigBeeDeviceCard(
-                        device = it,
-                        accept = {}
-                    )
-                }
+                Text(text = it.entry)
             }
         )
     })

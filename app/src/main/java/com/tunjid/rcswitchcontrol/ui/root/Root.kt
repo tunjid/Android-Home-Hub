@@ -1,9 +1,11 @@
 package com.tunjid.rcswitchcontrol.ui.root
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Modifier
 import com.tunjid.globalui.UiState
 import com.tunjid.globalui.altToolbarState
 import com.tunjid.globalui.bottomNavPositionalState
@@ -20,7 +22,9 @@ fun Root() {
     val uiStateFlow = remember { appStateFlow.mapState(rootScope, AppState::ui) }
 
     AppTheme {
-        Box {
+        Box(
+            modifier = Modifier.fillMaxSize()
+        ) {
             AppToolbar(
                 stateFlow = uiStateFlow.mapState(
                     scope = rootScope,

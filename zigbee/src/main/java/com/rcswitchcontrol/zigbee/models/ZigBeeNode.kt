@@ -71,21 +71,25 @@ data class ZigBeeNode internal constructor(
     )
 
     enum class Feature(
+        val text: String,
         val nameRes: Int,
         internal val clusterType: ZclClusterType,
         internal val descriptors: List<ZigBeeAttribute.Descriptor>
     ) {
         OnOff(
+            text = "On/Off",
             nameRes = R.string.zigbee_feature_on_off,
             clusterType = ZclClusterType.ON_OFF,
             descriptors = listOf(ZigBeeAttribute.Descriptor.OnOff)
         ),
         Level(
+            text = "Level",
             nameRes = R.string.zigbee_feature_level,
             clusterType = ZclClusterType.LEVEL_CONTROL,
             descriptors = listOf(ZigBeeAttribute.Descriptor.Level)
         ),
         Color(
+            text = "Color",
             nameRes = R.string.zigbee_feature_color,
             clusterType = ZclClusterType.COLOR_CONTROL,
             descriptors = listOf(ZigBeeAttribute.Descriptor.CieX, ZigBeeAttribute.Descriptor.CieY)

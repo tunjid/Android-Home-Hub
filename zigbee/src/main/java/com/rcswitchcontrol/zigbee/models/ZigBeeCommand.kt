@@ -37,9 +37,9 @@ import com.zsmartsystems.zigbee.zcl.protocol.ZclClusterType
 
 @kotlinx.serialization.Serializable
 data class ZigBeeCommand(
-        val name: String,
-        val args: List<String>
-): Writable {
+    val name: String,
+    val args: List<String>
+) : Writable {
     // Cannot be derived, it need to be serialized
     val key: String = ZigBeeProtocol::class.java.name
 
@@ -48,43 +48,48 @@ data class ZigBeeCommand(
 }
 
 sealed class ZigBeeInput<InputT>(
-        val input: InputT,
-        private val namedCommand: NamedCommand
+    val input: InputT,
+    private val namedCommand: NamedCommand
 ) {
 
     object Rediscover : ZigBeeInput<Unit>(
-            input = Unit,
-            namedCommand = NamedCommand.Custom.Rediscover
+        input = Unit,
+        namedCommand = NamedCommand.Custom.Rediscover
     )
 
     object Node : ZigBeeInput<Unit>(
-            input = Unit,
-            namedCommand = NamedCommand.Derived.DescribeNode
+        input = Unit,
+        namedCommand = NamedCommand.Derived.DescribeNode
     )
 
     data class Toggle(val isOn: Boolean) : ZigBeeInput<Boolean>(
-            input = isOn,
-            namedCommand = if (isOn) NamedCommand.Custom.On else NamedCommand.Custom.Off
+        input = isOn,
+        namedCommand = if (isOn) NamedCommand.Custom.On else NamedCommand.Custom.Off
     )
 
     data class Level(val level: Float) : ZigBeeInput<Float>(
-            input = level,
-            namedCommand = NamedCommand.Custom.Level
+        input = level,
+        namedCommand = NamedCommand.Custom.Level
     )
 
     data class Color(val rgb: Int) : ZigBeeInput<Int>(
-            input = rgb,
-            namedCommand = NamedCommand.Custom.Color
+        input = rgb,
+        namedCommand = NamedCommand.Custom.Color
     )
 
     data class Read(val feature: ZigBeeNode.Feature) : ZigBeeInput<ZigBeeNode.Feature>(
-            input = feature,
-            namedCommand = NamedCommand.Custom.DeviceAttributes
+        input = feature,
+        namedCommand = NamedCommand.Custom.DeviceAttributes
     )
 
     data class Join(val duration: Byte?) : ZigBeeInput<Byte?>(
         input = duration,
         namedCommand = NamedCommand.Derived.NetworkJoin
+    )
+
+    data class Subscribe(val feature: ZigBeeNode.Feature)  : ZigBeeInput<ZigBeeNode.Feature>(
+        input = feature,
+        namedCommand = NamedCommand.Derived.ReportingSubscribe
     )
 
     internal fun commandFor(zigBeeNode: ZigBeeNode): ZigBeeCommand = when (this) {
@@ -93,21 +98,43 @@ sealed class ZigBeeInput<InputT>(
         is Join -> listOf(duration?.toString() ?: "disable")
         is Toggle -> listOf(zigBeeNode.address(ZclClusterType.ON_OFF))
         is Level -> listOf(zigBeeNode.address(ZclClusterType.LEVEL_CONTROL), level.toString())
-        is Color -> listOf(zigBeeNode.address(ZclClusterType.COLOR_CONTROL), rgb.red.toString(), rgb.green.toString(), rgb.blue.toString())
+        is Color -> listOf(
+            zigBeeNode.address(ZclClusterType.COLOR_CONTROL),
+            rgb.red.toString(),
+            rgb.green.toString(),
+            rgb.blue.toString()
+        )
         is Read -> listOf(
-                zigBeeNode.address(feature.clusterType), feature.clusterType.id.toString())
-                .plus(zigBeeNode.clusterAttributeMap.getValue(feature.clusterType.id)
-                        .filter(feature.descriptors.map(ZigBeeAttribute.Descriptor::attributeId)::contains)
-                        .map(Int::toString)
-                )
+            zigBeeNode.address(feature.clusterType),
+            feature.clusterType.id.toString()
+        )
+            .plus(
+                zigBeeNode.clusterAttributeMap.getValue(feature.clusterType.id)
+                    .filter(feature.descriptors.map(ZigBeeAttribute.Descriptor::attributeId)::contains)
+                    .map(Int::toString)
+            )
+        is Subscribe -> listOf(
+            zigBeeNode.address(feature.clusterType),
+            feature.clusterType.id.toString()
+        )
+            .plus(
+                zigBeeNode.clusterAttributeMap.getValue(feature.clusterType.id)
+                    .filter(feature.descriptors.map(ZigBeeAttribute.Descriptor::attributeId)::contains)
+                    .map(Int::toString)
+                    .take(1)
+            )
+            .plus(listOf(
+                "5", // min interval in seconds
+                "20", // max interval in seconds
+            ))
     }.let(this::args)
 
     private fun args(params: List<String>): ZigBeeCommand =
-            ZigBeeCommand(name = namedCommand.name, args = listOf(namedCommand.command) + params)
+        ZigBeeCommand(name = namedCommand.name, args = listOf(namedCommand.command) + params)
 }
 
 val ZigBeeCommand.payload
     get() = zigBeePayload(
-            action = name.asAction,
-            data = serialize()
+        action = name.asAction,
+        data = serialize()
     )

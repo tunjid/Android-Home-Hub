@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.dp
 
 
 private val AppThemeDark = darkColors(
-    primary = codGrey,
+    primary = colorAccent,
     primaryVariant = codGrey,
     onPrimary = darkText,
 )

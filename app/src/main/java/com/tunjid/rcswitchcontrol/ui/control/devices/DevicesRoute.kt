@@ -1,5 +1,7 @@
 package com.tunjid.rcswitchcontrol.ui.control.devices
 
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
@@ -8,6 +10,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.rcswitchcontrol.zigbee.models.ZigBeeCommand
 import com.rcswitchcontrol.zigbee.models.payload
 import com.tunjid.globalui.ToolbarItem
@@ -94,6 +98,7 @@ private fun Devices(
                         accept = onCommandEntered
                     )
                 }
+                Spacer(modifier = Modifier.padding(16.dp))
             }
         )
     })

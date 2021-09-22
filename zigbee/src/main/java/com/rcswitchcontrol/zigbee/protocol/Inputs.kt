@@ -16,6 +16,7 @@ import com.tunjid.rcswitchcontrol.common.serialize
 import com.tunjid.rcswitchcontrol.common.takeUntil
 import com.tunjid.rcswitchcontrol.common.withLatestFrom
 import com.zsmartsystems.zigbee.ZigBeeNode
+import com.zsmartsystems.zigbee.zcl.clusters.ZclOnOffCluster
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -85,12 +86,36 @@ private fun handleNodeAdds(
         )
             .monitor
             .flatMapConcat { deviceName ->
+                val supportedAttributes = setOf(ZclOnOffCluster.CLUSTER_ID)
+//                node.endpoints.forEach { endpoint ->
+//                    endpoint.inputClusterIds
+//                        .filter(supportedAttributes::contains)
+//                        .map(endpoint::getInputCluster)
+//                        .forEach { cluster ->
+//                            val attribute =
+//                                cluster.attributes.first { it.id == ZclOnOffCluster.ATTR_ONOFF }
+//                            attribute.dataType
+//                            println("Data type: ${attribute.dataType}")
+//                            val res =
+//                                cluster.setReporting(ZclOnOffCluster.ATTR_ONOFF, 5, 10, true).get()
+//                            println("Cluster for $deviceName: ${cluster.clusterName} with res $res")
+//                            cluster.addAttributeListener { attribute, value ->
+//                                println("Attribute ${attribute.name} on $deviceName changed to $value")
+//                            }
+//                        }
+//                }
                 listOf(
                     Action.Output.Log("Device name changed. id: ${node.ieeeAddress}; new name: $deviceName"),
-                    Action.Output.PayloadOutput(zigBeePayload(
-                        data = Name(id = id, key = ZigBeeProtocol.key, value = deviceName).serialize(),
-                        action = CommonDeviceActions.nameChangedAction
-                    ))
+                    Action.Output.PayloadOutput(
+                        zigBeePayload(
+                            data = Name(
+                                id = id,
+                                key = ZigBeeProtocol.key,
+                                value = deviceName
+                            ).serialize(),
+                            action = CommonDeviceActions.nameChangedAction
+                        )
+                    )
                 ).asFlow()
             }
             .takeUntil(actions.filterIsInstance<Action.Input.NodeChange.Removed>())

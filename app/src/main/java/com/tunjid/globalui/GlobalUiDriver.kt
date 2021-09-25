@@ -19,8 +19,6 @@ import androidx.dynamicanimation.animation.FloatPropertyCompat
 import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.dynamicanimation.animation.SpringForce
 import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.BaseTransientBottomBar
 import com.google.android.material.snackbar.Snackbar
@@ -38,8 +36,6 @@ import com.tunjid.rcswitchcontrol.databinding.ActivityMainBinding
 import com.tunjid.rcswitchcontrol.di.dagger
 import com.tunjid.rcswitchcontrol.di.nav
 import com.tunjid.rcswitchcontrol.navigation.updatePartial
-import com.tunjid.rcswitchcontrol.utils.onMenuItemClicked
-import com.tunjid.rcswitchcontrol.utils.updatePartial
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -140,16 +136,6 @@ class GlobalUiDriver(
             }
         }
 
-        UiState::toolbarShows.distinct onChanged {
-            toolbarHider.set(true)
-//            toolbarHider::set
-        }
-        UiState::toolbarState.distinct onChanged binding.toolbar::updatePartial
-//        UiState::toolbarMenuClickListener.distinct onChanged binding.toolbar::onMenuItemClicked
-
-        UiState::altToolbarShows.distinct onChanged ::toggleAltToolbar
-        UiState::altToolbarState.distinct onChanged binding.altToolbar::updatePartial
-//        UiState::altToolbarMenuClickListener.distinct onChanged binding.altToolbar::onMenuItemClicked
 
         UiState::toolbarPosition.distinct onChanged { y ->
             binding.toolbar.updateLayoutParams<ViewGroup.MarginLayoutParams> { topMargin = y }

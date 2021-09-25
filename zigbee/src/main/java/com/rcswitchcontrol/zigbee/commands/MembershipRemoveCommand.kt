@@ -10,7 +10,7 @@ import com.tunjid.rcswitchcontrol.common.ContextProvider
  */
 class MembershipRemoveCommand : PayloadPublishingCommand by AbsZigBeeCommand(
         args = "[DEVICE] [GROUPID]",
-        commandString = ContextProvider.appContext.getString(R.string.zigbeeprotocol_joined_groups),
+        commandString = "Joined Groups",
         descriptionString = "Removes group membership from device.",
         processor = { action: CommsProtocol.Action, args: Array<out String> ->
             args.expect(3)

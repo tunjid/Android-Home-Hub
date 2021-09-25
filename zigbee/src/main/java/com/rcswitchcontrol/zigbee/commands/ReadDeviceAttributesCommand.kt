@@ -41,7 +41,7 @@ import com.zsmartsystems.zigbee.zcl.ZclCluster
  */
 class ReadDeviceAttributesCommand : PayloadPublishingCommand by AbsZigBeeCommand(
         args = "ENDPOINT CLUSTER ATTRIBUTE1 [ATTRIBUTE2 ...]",
-        commandString = ContextProvider.appContext.getString(R.string.zigbeeprotocol_device_attributes),
+        commandString = "Device Attributes",
         descriptionString = "Read one or more attributes from a device",
         processor = { action: CommsProtocol.Action, args: Array<out String> ->
             require(args.size >= 4) { "Invalid number of arguments" }

@@ -37,11 +37,6 @@ interface DeviceLongClickListener {
     fun onSwitchToggled(device: Device, isOn: Boolean)
 }
 
-interface DeviceAdapterListener :
-    DeviceLongClickListener,
-    RfDeviceListener,
-    ZigBeeDeviceListener
-
 fun BindingViewHolder<*>.highlight(device: Device) {
     scale(device.isSelected)
 }

@@ -58,7 +58,7 @@ internal suspend fun initialize(
 
     if (!dataStore.hasNoDevices) synchronousOutputs.add(Action.Output.PayloadOutput(payload = ZigBeeProtocol.zigBeePayload(
         action = CommonDeviceActions.refreshDevicesAction,
-        response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_saved_devices_request),
+        response = "Requesting saved Devices",
         data = dataStore.savedDevices.serializeList()
     )))
 

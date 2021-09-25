@@ -41,7 +41,7 @@ import com.zsmartsystems.zigbee.zcl.clusters.ZclOnOffCluster
  */
 class OffCommand : PayloadPublishingCommand by AbsZigBeeCommand(
     args = "DEVICEID/DEVICELABEL/GROUPID",
-    commandString = ContextProvider.appContext.getString(R.string.zigbeeprotocol_off),
+    commandString = "Off",
     descriptionString = "Switches device off.",
     processor = { action: CommsProtocol.Action, args: Array<out String> ->
         args.expect(2)

@@ -14,7 +14,7 @@ import com.zsmartsystems.zigbee.ZigBeeGroupAddress
  */
 class GroupRemoveCommand : PayloadPublishingCommand by AbsZigBeeCommand(
         args = "GROUP",
-        commandString = ContextProvider.appContext.getString(R.string.zigbeeprotocol_remove_group),
+        commandString = "Remove Groups",
         descriptionString = "Removes group from gateway network state.",
         processor = { action: CommsProtocol.Action, args: Array<out String> ->
             args.expect(2)

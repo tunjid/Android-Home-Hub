@@ -10,7 +10,7 @@ import com.tunjid.rcswitchcontrol.common.ContextProvider
  */
 class GroupListCommand : PayloadPublishingCommand by AbsZigBeeCommand(
         args = "",
-        commandString = ContextProvider.appContext.getString(R.string.zigbeeprotocol_list_groups),
+        commandString = "List Groups",
         descriptionString = "Lists groups in gateway network state.",
         processor = { _: CommsProtocol.Action, _: Array<out String> ->
             ZigBeeProtocol.zigBeePayload(

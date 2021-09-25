@@ -41,7 +41,7 @@ import com.zsmartsystems.zigbee.zcl.clusters.ZclLevelControlCluster
  */
 class LevelCommand : PayloadPublishingCommand by AbsZigBeeCommand(
     args = "DEVICEID LEVEL [RATE]",
-    commandString = ContextProvider.appContext.getString(R.string.zigbeeprotocol_level),
+    commandString = "Level",
     descriptionString = "Changes device level for example lamp brightness, where LEVEL is between 0 and 1.",
     processor = { action: CommsProtocol.Action, args: Array<out String> ->
         args.expect(3)

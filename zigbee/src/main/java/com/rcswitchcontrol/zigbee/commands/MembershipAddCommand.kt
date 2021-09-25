@@ -14,7 +14,7 @@ import com.zsmartsystems.zigbee.zcl.clusters.groups.AddGroupCommand
 class MembershipAddCommand : PayloadPublishingCommand by AbsZigBeeCommand(
         log = true,
         args = "[DEVICE] [GROUPID] [GROUPNAME]",
-        commandString = ContextProvider.appContext.getString(R.string.zigbeeprotocol_join_group),
+        commandString = "Join Group",
         descriptionString = "Adds group membership to device.",
         processor = { _: CommsProtocol.Action, args: Array<out String> ->
             args.expect(4)

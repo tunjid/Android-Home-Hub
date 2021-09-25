@@ -15,7 +15,7 @@ import com.zsmartsystems.zigbee.zcl.clusters.groups.GetGroupMembershipResponse
  */
 class MembershipListCommand : PayloadPublishingCommand by AbsZigBeeCommand(
         args = "[DEVICE]",
-        commandString = ContextProvider.appContext.getString(R.string.zigbeeprotocol_joined_groups),
+        commandString = "Joined Groups",
         descriptionString = "Lists group memberships from device.",
         processor = { _: CommsProtocol.Action, args: Array<out String> ->
 

@@ -9,7 +9,7 @@ import com.tunjid.rcswitchcontrol.common.ContextProvider
  */
 class MembershipViewCommand : PayloadPublishingCommand by AbsZigBeeCommand(
         args = "[DEVICE] [GROUPID]",
-        commandString = ContextProvider.appContext.getString(R.string.zigbeeprotocol_name_group),
+        commandString = "Name Group",
         descriptionString = "Views group name from device group membership.",
         processor = { _: CommsProtocol.Action, args: Array<out String> ->
 //            args.expect(3)

@@ -196,13 +196,12 @@ class ZigBeeProtocol(
                     null -> response = "Unrecognized command $payloadAction"
 //                CommsProtocol.resetAction -> reset()
                     CommsProtocol.pingAction -> {
-                        response =
-                            ContextProvider.appContext.getString(R.string.zigbeeprotocol_ping)
+                        response = "Find and control ZigBee Devices"
                 }
                 CommonDeviceActions.refreshDevicesAction -> {
                     val savedDevices = status.dataStore.savedDevices
                     action = CommonDeviceActions.refreshDevicesAction
-                    response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_saved_devices_request)
+                    response = "Requesting saved Devices"
                     data = savedDevices.serializeList()
                     status.inputs.emit(Action.Input.AttributeRequest(nodes = savedDevices))
                 }
@@ -223,12 +222,12 @@ class ZigBeeProtocol(
                     when {
                         needsCommandArgs -> {
                             action = commandInfoAction
-                            response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_enter_args, payloadAction)
+                            response = "Requesting arguments for $payloadAction"
                             data = ZigBeeCommandInfo(payloadAction.value, consoleCommand.description, consoleCommand.syntax, consoleCommand.help).serialize()
                         }
                         else -> {
                             val args = command?.args ?: listOf(payloadAction.value)
-                            response = ContextProvider.appContext.getString(R.string.zigbeeprotocol_executing, args.commandString())
+                            response = "Executing ${args.commandString()}"
                             status.inputs.emit(
                                 Action.Input.CommandInput(
                                     command = mapper.consoleCommand,

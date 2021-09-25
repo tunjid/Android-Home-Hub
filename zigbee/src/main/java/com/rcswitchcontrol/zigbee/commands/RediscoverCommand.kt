@@ -35,7 +35,7 @@ import com.zsmartsystems.zigbee.IeeeAddress
 class RediscoverCommand : PayloadPublishingCommand by AbsZigBeeCommand(
         log = true,
         args = "IEEEADDRESS",
-        commandString = ContextProvider.appContext.getString(R.string.zigbeeprotocol_rediscover),
+        commandString = "Rediscover",
         descriptionString = "Rediscover a node from its IEEE address.",
         processor = { _: CommsProtocol.Action, args: Array<out String> ->
             if (args.size != 2) throw IllegalArgumentException("Invalid command arguments")

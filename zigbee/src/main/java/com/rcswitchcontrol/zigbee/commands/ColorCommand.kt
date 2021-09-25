@@ -42,7 +42,7 @@ import com.zsmartsystems.zigbee.zcl.clusters.ZclColorControlCluster
  */
 class ColorCommand : PayloadPublishingCommand by AbsZigBeeCommand(
     args = "DEVICEID RED GREEN BLUE",
-    commandString = ContextProvider.appContext.getString(R.string.zigbeeprotocol_color),
+    commandString = "Color",
     descriptionString = "Changes light color.",
     processor = { action: CommsProtocol.Action, args: Array<out String> ->
         args.expect(5)

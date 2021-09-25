@@ -25,13 +25,11 @@
 package com.tunjid.rcswitchcontrol.control
 
 import android.content.Context
-import androidx.lifecycle.ViewModelStoreOwner
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.androidx.core.components.services.HardServiceConnection
 import com.tunjid.mutator.Mutation
 import com.tunjid.mutator.StateHolder
-import com.tunjid.mutator.reduceInto
 import com.tunjid.mutator.scopedStateHolder
 import com.tunjid.mutator.toMutationStream
 import com.tunjid.rcswitchcontrol.client.ClientLoad
@@ -50,11 +48,8 @@ import com.tunjid.rcswitchcontrol.di.dagger
 import com.tunjid.rcswitchcontrol.models.Broadcast
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
-
-interface RootController : ViewModelStoreOwner
 
 class ControlViewModel @Inject constructor(
     @UiScope scope: CoroutineScope,
@@ -62,10 +57,6 @@ class ControlViewModel @Inject constructor(
     broadcasts: @JvmSuppressWildcards AppBroadcasts
 ) : ClosableStateHolder<Input, ControlState>(scope),
     StateHolder<Input, ControlState> by controlStateHolder(scope, context, broadcasts) {
-
-    val pages: List<Page> = mutableListOf(Page.History, Page.Devices).apply {
-        if (ServerNsdService.isServer) add(0, Page.Host)
-    }
 
 
     init {

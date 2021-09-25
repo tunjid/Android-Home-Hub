@@ -12,7 +12,7 @@ import com.zsmartsystems.zigbee.ZigBeeGroupAddress
 class GroupAddCommand : PayloadPublishingCommand by AbsZigBeeCommand(
         log = true,
         args = "GROUPID GROUPLABEL",
-        commandString = ContextProvider.appContext.getString(R.string.zigbeeprotocol_add_group),
+        commandString = "Add Group",
         descriptionString = "Adds group to gateway network state.",
         processor = { _: CommsProtocol.Action, args: Array<out String> ->
             args.expect(3)

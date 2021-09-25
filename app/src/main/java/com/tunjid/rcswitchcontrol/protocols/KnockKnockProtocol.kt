@@ -48,8 +48,20 @@ internal class KnockKnockProtocol(override val printWriter: PrintWriter) : Comms
     private var state = WAITING
     private var currentJoke = 0
 
-    private val clues: Array<String> = ContextProvider.appContext.resources.getStringArray(R.array.knockknockProtocol_clues)
-    private val answers: Array<String> = ContextProvider.appContext.resources.getStringArray(R.array.knockknockProtocol_answers)
+    private val clues: Array<String> = arrayOf(
+        "Turnip",
+        "Little Old Lady",
+        "Atch",
+        "Who",
+        "Who",
+    )
+    private val answers: Array<String> = arrayOf(
+        "Turnip the heat, it\'s cold in here!",
+        "I didn\'t know you could yodel!",
+        "Bless you!",
+        "Is there an owl in here?",
+        "Is there an echo in here?",
+    )
     private val numJokes: Int = clues.size
 
     override suspend fun processInput(payload: Payload): Payload {
@@ -66,21 +78,32 @@ internal class KnockKnockProtocol(override val printWriter: PrintWriter) : Comms
 
         when (state) {
             WAITING -> {
-                output.response = ContextProvider.appContext.getString(R.string.knockknockprotocol_joke_start)
+                output.response =
+                    ContextProvider.appContext.getString(R.string.knockknockprotocol_joke_start)
                 output.addCommand(resources.action(R.string.knockknockprotocol_whos_there))
 
                 state = SENT_KNOCK_KNOCK
             }
             SENT_KNOCK_KNOCK -> state = when (action.trimmed) {
-                ContextProvider.appContext.getString(R.string.knockknockprotocol_whos_there).lowercase(Locale.US) -> {
+                ContextProvider.appContext.getString(R.string.knockknockprotocol_whos_there)
+                    .lowercase(Locale.US) -> {
                     output.response = clues[currentJoke]
-                    output.addCommand(CommsProtocol.Action(resources.getString(R.string.knockknockprotocol_who, clues[currentJoke])))
+                    output.addCommand(
+                        CommsProtocol.Action(
+                            resources.getString(
+                                R.string.knockknockprotocol_who,
+                                clues[currentJoke]
+                            )
+                        )
+                    )
 
                     SENT_CLUE
                 }
                 else -> {
-                    val formatString = ContextProvider.appContext.getString(R.string.knockknockprotocol_whos_there)
-                    val response = resources.getString(R.string.knockknockprotocol_wrong_answer, formatString)
+                    val formatString =
+                        ContextProvider.appContext.getString(R.string.knockknockprotocol_whos_there)
+                    val response =
+                        resources.getString(R.string.knockknockprotocol_wrong_answer, formatString)
                     output.response = response
                     output.addCommand(resources.action(R.string.knockknockprotocol_whos_there))
 
@@ -88,16 +111,22 @@ internal class KnockKnockProtocol(override val printWriter: PrintWriter) : Comms
                 }
             }
             SENT_CLUE -> state = when (action.trimmed) {
-                resources.getString(R.string.knockknockprotocol_who, clues[currentJoke]).lowercase(Locale.US) -> {
-                    output.response = resources.getString(R.string.knockknockprotocol_want_another, answers[currentJoke])
+                resources.getString(R.string.knockknockprotocol_who, clues[currentJoke])
+                    .lowercase(Locale.US) -> {
+                    output.response = resources.getString(
+                        R.string.knockknockprotocol_want_another,
+                        answers[currentJoke]
+                    )
                     output.addCommand(resources.action(R.string.knockknockprotocol_no))
                     output.addCommand(resources.action(R.string.knockknockprotocol_yes))
 
                     ANOTHER
                 }
                 else -> {
-                    val formatString = resources.getString(R.string.knockknockprotocol_who, clues[currentJoke])
-                    val response = resources.getString(R.string.knockknockprotocol_wrong_answer, formatString)
+                    val formatString =
+                        resources.getString(R.string.knockknockprotocol_who, clues[currentJoke])
+                    val response =
+                        resources.getString(R.string.knockknockprotocol_wrong_answer, formatString)
                     output.response = response
                     output.addCommand(resources.action(R.string.knockknockprotocol_whos_there))
 
@@ -106,7 +135,8 @@ internal class KnockKnockProtocol(override val printWriter: PrintWriter) : Comms
             }
             ANOTHER -> state = when (action.trimmed) {
                 resources.getString(R.string.knockknockprotocol_yes).lowercase(Locale.US) -> {
-                    output.response = ContextProvider.appContext.getString(R.string.knockknockprotocol_joke_start)
+                    output.response =
+                        ContextProvider.appContext.getString(R.string.knockknockprotocol_joke_start)
                     output.addCommand(resources.action(R.string.knockknockprotocol_whos_there))
 
                     if (currentJoke == numJokes - 1) currentJoke = 0
@@ -139,7 +169,8 @@ internal class KnockKnockProtocol(override val printWriter: PrintWriter) : Comms
     }
 }
 
-private val CommsProtocol.Action?.trimmed get() = this?.value?.trim { it <= ' ' }?.lowercase(Locale.US)
+private val CommsProtocol.Action?.trimmed
+    get() = this?.value?.trim { it <= ' ' }?.lowercase(Locale.US)
 
 private fun Resources.action(stringRes: Int) = CommsProtocol.Action(getString(stringRes))
 

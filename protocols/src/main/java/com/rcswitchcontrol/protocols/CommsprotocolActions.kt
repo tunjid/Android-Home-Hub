@@ -1,7 +1,5 @@
 package com.rcswitchcontrol.protocols
 
-import com.tunjid.rcswitchcontrol.common.ContextProvider
-
 interface DeviceActions {
     val renameAction: CommsProtocol.Action
     val nameChangedAction: CommsProtocol.Action
@@ -10,8 +8,8 @@ interface DeviceActions {
 }
 
 object CommonDeviceActions: DeviceActions {
-    override val renameAction get() = CommsProtocol.Action(ContextProvider.appContext.getString(R.string.device_action_rename_command))
-    override val nameChangedAction get() = CommsProtocol.Action(ContextProvider.appContext.getString(R.string.device_action_name_changed_command))
-    override val deleteAction get() = CommsProtocol.Action(ContextProvider.appContext.getString(R.string.device_action_delete_command))
-    override val refreshDevicesAction get() = CommsProtocol.Action(ContextProvider.appContext.getString(R.string.device_action_refresh_devices_command))
+    override val renameAction get() = CommsProtocol.Action("Rename")
+    override val nameChangedAction get() = CommsProtocol.Action("Name Changed")
+    override val deleteAction get() = CommsProtocol.Action("Delete")
+    override val refreshDevicesAction get() = CommsProtocol.Action("Refresh Devices")
 }

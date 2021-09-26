@@ -57,8 +57,6 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
-    compileOnly 'com.google.android.things:androidthings:1.0'
-
     implementation parent.ext.tunjiAndroidxCommunications
     implementation parent.ext.tunjiAndroidxRecyclerView
     implementation parent.ext.tunjiAndroidxNavigation

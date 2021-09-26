@@ -65,7 +65,7 @@ class MainActivity : AppCompatActivity() {
 
         val startIntent = intent
 
-        val controlLoad = when (ServerNsdService.isServer || App.isAndroidThings) {
+        val controlLoad = when (ServerNsdService.isServer) {
             true -> ClientLoad.StartServer
             false -> when (val info = startIntent.nsdServiceInfo) {
                 null -> (startIntent.nsdServiceName ?: ClientNsdService.lastConnectedService)

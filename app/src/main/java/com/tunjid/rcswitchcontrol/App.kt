@@ -113,32 +113,5 @@ class App : android.app.Application() {
         val preferences: SharedPreferences
             get() = ContextProvider.appContext.getSharedPreferences(RfSwitch.SWITCH_PREFS, Context.MODE_PRIVATE)
 
-        val isLandscape get() = isAndroidThings || isAndroidTV
-
-        // Thrown on non Android things devices
-        val isAndroidThings: Boolean
-            get() {
-                val uiModeManager = ContextProvider.appContext.getSystemService(UI_MODE_SERVICE) as UiModeManager
-                if (uiModeManager.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION) {
-                    return true
-                }
-
-                return try {
-                    PeripheralManager.getInstance().let { true }
-                } catch (e: NoClassDefFoundError) {
-                    false
-                }
-            }
-
-        val isAndroidTV: Boolean
-            get() = ContextProvider.appContext.packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
-
-        fun catcher(tag: String, log: String, runnable: () -> Unit) {
-            try {
-                runnable.invoke()
-            } catch (e: Exception) {
-                Log.e(tag, log, e)
-            }
-        }
     }
 }

@@ -28,23 +28,18 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.ActivityManager
 import android.app.Service
-import android.app.UiModeManager
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
-import android.content.pm.PackageManager
-import android.content.res.Configuration
 import android.net.wifi.WifiManager
 import android.os.Bundle
-import android.util.Log
-import com.google.android.things.pio.PeripheralManager
 import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
 import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.di.Dagger
 import com.tunjid.rcswitchcontrol.di.stateMachine
-import com.tunjid.rcswitchcontrol.ui.hostscan.HostScanStateHolder
 import com.tunjid.rcswitchcontrol.server.ServerNsdService
+import com.tunjid.rcswitchcontrol.ui.hostscan.HostScanStateHolder
 
 /**
  * App Singleton.

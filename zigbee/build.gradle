@@ -2,6 +2,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-parcelize'
 apply plugin: 'kotlin-kapt'
+apply plugin: 'com.squareup.sqldelight'
 apply from: "${project.rootDir}/androidConfig.gradle"
 
 android {

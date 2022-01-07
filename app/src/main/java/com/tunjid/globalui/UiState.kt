@@ -25,8 +25,6 @@
 package com.tunjid.globalui
 
 import android.graphics.Color
-import android.view.Menu
-import android.view.View
 import androidx.annotation.ColorInt
 import androidx.annotation.DrawableRes
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -73,12 +71,10 @@ data class UiState(
     val showsBottomNav: Boolean? = null,
     val insetFlags: InsetDescriptor = InsetFlags.ALL,
     val systemUI: SystemUI = NoOpSystemUI,
-    val fabClickListener: (View) -> Unit = emptyCallback(),
+    val fabClickListener: (Unit) -> Unit = emptyCallback(),
     val fabTransitionOptions: SpringAnimation.() -> Unit = emptyCallback(),
     val toolbarMenuClickListener: (ToolbarItem) -> Unit = emptyCallback(),
-    val toolbarMenuRefresher: (Menu) -> Unit = emptyCallback(),
     val altToolbarMenuClickListener: (ToolbarItem) -> Unit = emptyCallback(),
-    val altToolbarMenuRefresher: (Menu) -> Unit = emptyCallback(),
 )
 
 private fun <T> emptyCallback(): (T) -> Unit = {}

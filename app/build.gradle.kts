@@ -30,27 +30,46 @@ apply plugin : "kotlin-kapt"
 apply from : "${project.rootDir}/androidConfig.gradle"
 */
 
+import java.util.Properties
+import java.io.FileInputStream
 
 plugins {
     id("com.android.application")
     kotlin("android")
-
-    `android-module-convention`
+    kotlin("plugin.serialization")
 }
 
 android {
+    compileSdk = 31
+
+    defaultConfig {
+        minSdk = 21
+        targetSdk = 31
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    sourceSets {
+        named("main") {
+            manifest.srcFile("src/androidMain/AndroidManifest.xml")
+            res.srcDirs("src/androidMain/res")
+        }
+    }
     defaultConfig {
         applicationId = "com.tunjid.rcswitchcontrol"
     }
     signingConfigs {
         getByName("debug") {
             if (file("debugKeystore.properties").exists()) {
-                val props = java.util.Properties()
-                props.load(java.io.FileInputStream(file("debugKeystore.properties")))
-                storeFile = file(props["keystore"])
-                storePassword = props["keystore.password"]
-                keyAlias = props["keyAlias"]
-                keyPassword = props["keyPassword"]
+                val props = Properties()
+                props.load(FileInputStream(file("debugKeystore.properties")))
+                storeFile = file(props["keystore"]!!)
+                storePassword = props["keystore.password"] as String
+                keyAlias = props["keyAlias"]!! as String
+                keyPassword = props["keyPassword"]!! as String
             }
         }
     }

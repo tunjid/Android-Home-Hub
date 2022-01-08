@@ -1,6 +1,6 @@
 plugins {
+    id("com.squareup.sqldelight")
     `android-module-convention`
-//    id("com.squareup.sqldelight")
 }
 
 //    implementation parent.ext.usbSerialA
@@ -20,6 +20,13 @@ kotlin {
                 implementation(libs.tunjid.mutator.coroutines.common)
             }
         }
+    }
+}
+
+sqldelight {
+    database("StringKeyValueDatabase") {
+        packageName = "com.tunjid.rcswitchcontrol.common.data"
+        schemaOutputDirectory = file("build/dbs")
     }
 }
 

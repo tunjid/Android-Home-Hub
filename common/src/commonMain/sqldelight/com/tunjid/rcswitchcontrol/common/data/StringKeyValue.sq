@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS stringKeyValue (
+    id INTEGER PRIMARY KEY,
+    entry TEXT NOT NULL
+    PRIMARY KEY (id)
+);
+
+selectAll:
+SELECT *
+FROM stringKeyValue;
+
+select:
+SELECT *
+FROM stringKeyValue
+WHERE id = :id;
+
+add:
+INSERT INTO stringKeyValue (id, entry)
+VALUES (:id, :entry);
+
+setEntry:
+UPDATE stringKeyValue
+SET entry = :entry
+WHERE id = :id;

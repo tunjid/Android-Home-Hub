@@ -27,6 +27,7 @@ tunjidAndroidxComms = "1.0.0"
 tunjidMutator = "0.0.0-alpha03"
 tunjidTiler = "0.0.0-alpha03"
 tunjidTreeNav = "0.0.0-alpha01"
+sqldelight = "1.5.3"
 zigbee = "1.2.2"
 
 [libraries]
@@ -80,6 +81,8 @@ tunjid-mutator-coroutines-common = { group = "com.tunjid.mutator", name = "corou
 tunjid-mutator-coroutines-jvm = { group = "com.tunjid.mutator", name = "coroutines-jvm", version.ref = "tunjidMutator" }
 tunjid-tiler = { group = "com.tunjid.tiler", name = "tiler", version.ref = "tunjidTiler" }
 tunjid-treenav = { group = "com.tunjid.treenav", name = "treenav", version.ref = "tunjidTreeNav" }
+square-sqldelight-driver-android = { group = "com.squareup.sqldelight", name = "android-driver", version.ref = "sqldelight" }
+square-sqldelight-driver-jvm = { group = "com.squareup.sqldelight", name = "sqlite-driver", version.ref = "sqldelight" }
 zigbee-core = { group = "com.zsmartsystems.zigbee", name = "com.zsmartsystems.zigbee", version.ref = "zigbee" }
 zigbee-console = { group = "com.zsmartsystems.zigbee", name = "com.zsmartsystems.zigbee.console", version.ref = "zigbee" }
 zigbee-serial = { group = "com.zsmartsystems.zigbee", name = "com.zsmartsystems.zigbee.serial", version.ref = "zigbee" }

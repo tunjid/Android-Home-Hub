@@ -1,5 +1,6 @@
 plugins {
     `android-module-convention`
+//    id("com.squareup.sqldelight")
 }
 
 //    implementation parent.ext.usbSerialA

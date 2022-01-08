@@ -30,7 +30,7 @@ kotlin {
                 implementation(libs.gson)
             }
         }
-        val jvmMain by getting {
+        val desktopMain by getting {
             dependencies {
                 implementation(libs.zigbee.core)
                 implementation(libs.zigbee.core)

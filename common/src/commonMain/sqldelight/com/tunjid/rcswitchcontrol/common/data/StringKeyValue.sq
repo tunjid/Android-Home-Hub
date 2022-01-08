@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS stringKeyValue (
-    id INTEGER PRIMARY KEY,
-    entry TEXT NOT NULL
+    id TEXT PRIMARY KEY,
+    entry TEXT
 );
 
 selectAll:

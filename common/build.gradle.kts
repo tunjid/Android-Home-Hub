@@ -16,8 +16,21 @@ kotlin {
                 implementation(libs.ktor.core)
                 implementation(libs.ktor.network)
 
+                implementation(libs.square.sqldelight.coroutines.extensions)
+
                 implementation(libs.tunjid.mutator.core.common)
                 implementation(libs.tunjid.mutator.coroutines.common)
+            }
+        }
+        named("androidMain") {
+            dependencies {
+                implementation(libs.usbserialport.android.felHR85)
+                implementation(libs.usbserialport.android.mik3y)
+            }
+        }
+        named("desktopMain") {
+            dependencies {
+                implementation(libs.usbserialport.jvm.jssc)
             }
         }
     }

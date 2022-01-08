@@ -28,6 +28,9 @@ tunjidMutator = "0.0.0-alpha03"
 tunjidTiler = "0.0.0-alpha03"
 tunjidTreeNav = "0.0.0-alpha01"
 sqldelight = "1.5.3"
+usbFelHR85 = "6.1.0"
+usbJssc = "2.8.0"
+usbMik3y = "3.3.1"
 zigbee = "1.2.2"
 
 [libraries]
@@ -83,6 +86,10 @@ tunjid-tiler = { group = "com.tunjid.tiler", name = "tiler", version.ref = "tunj
 tunjid-treenav = { group = "com.tunjid.treenav", name = "treenav", version.ref = "tunjidTreeNav" }
 square-sqldelight-driver-android = { group = "com.squareup.sqldelight", name = "android-driver", version.ref = "sqldelight" }
 square-sqldelight-driver-jvm = { group = "com.squareup.sqldelight", name = "sqlite-driver", version.ref = "sqldelight" }
+square-sqldelight-coroutines-extensions = { group = "com.squareup.sqldelight", name = "coroutines-extensions", version.ref = "sqldelight" }
+usbserialport-android-mik3y = { group = "com.github.mik3y", name = "usb-serial-for-android", version.ref = "usbMik3y" }
+usbserialport-android-felHR85 = { group = "com.github.felHR85", name = "UsbSerial", version.ref = "usbFelHR85" }
+usbserialport-jvm-jssc = { group = "org.scream3r", name = "jssc", version.ref = "usbJssc" }
 zigbee-core = { group = "com.zsmartsystems.zigbee", name = "com.zsmartsystems.zigbee", version.ref = "zigbee" }
 zigbee-console = { group = "com.zsmartsystems.zigbee", name = "com.zsmartsystems.zigbee.console", version.ref = "zigbee" }
 zigbee-serial = { group = "com.zsmartsystems.zigbee", name = "com.zsmartsystems.zigbee.serial", version.ref = "zigbee" }

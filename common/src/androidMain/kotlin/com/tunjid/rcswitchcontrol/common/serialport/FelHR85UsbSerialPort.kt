@@ -1,9 +1,8 @@
-package com.tunjid.rcswitchcontrol.common.serial
+package com.tunjid.rcswitchcontrol.common.serialport
 
 import android.content.Context
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
-import androidx.core.content.getSystemService
 import com.felhr.usbserial.UsbSerialDevice
 import com.felhr.usbserial.UsbSerialInterface
 import com.felhr.usbserial.UsbSerialInterface.UsbReadCallback

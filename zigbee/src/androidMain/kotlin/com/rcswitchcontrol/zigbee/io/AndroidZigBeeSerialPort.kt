@@ -28,8 +28,8 @@ import android.hardware.usb.UsbDevice
 import android.util.Log
 import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.common.SerialInfo
-import com.tunjid.rcswitchcontrol.common.serial.FelHR85UsbSerialPort
-import com.tunjid.rcswitchcontrol.common.serial.ProxyUsbSerialPort
+import com.tunjid.rcswitchcontrol.common.serialport.FelHR85UsbSerialPort
+import com.tunjid.rcswitchcontrol.common.serialport.ProxyUsbSerialPort
 import com.zsmartsystems.zigbee.transport.ZigBeePort
 
 class AndroidZigBeeSerialPort(

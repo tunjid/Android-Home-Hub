@@ -1,11 +1,10 @@
-package com.tunjid.rcswitchcontrol.common.serial
+package com.tunjid.rcswitchcontrol.common.serialport
 
 import android.content.Context
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.Handler
 import android.os.HandlerThread
-import androidx.core.content.getSystemService
 import com.hoho.android.usbserial.driver.CdcAcmSerialDriver
 import com.hoho.android.usbserial.driver.UsbSerialPort
 import com.hoho.android.usbserial.util.SerialInputOutputManager

@@ -17,71 +17,29 @@
 
 package com.tunjid.rcswitchcontrol.common
 
-import android.content.SharedPreferences
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.awaitClose
+import com.squareup.sqldelight.db.SqlDriver
+import com.squareup.sqldelight.runtime.coroutines.asFlow
+import com.squareup.sqldelight.runtime.coroutines.mapToOneNotNull
+import com.tunjid.rcswitchcontrol.common.data.StringKeyValueDatabase
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
 
-private val listeners: MutableSet<SharedPreferences.OnSharedPreferenceChangeListener> = mutableSetOf()
-
-class ReactivePreferences(
-    val preferences: SharedPreferences,
-) {
-    val monitor = callbackFlow<String> {
-        val prefs = preferences
-        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            channel.trySend(key)
-        }
-        listener
-            .also(prefs::registerOnSharedPreferenceChangeListener)
-            .let(listeners::add)
-        awaitClose {
-            listener
-                .also(prefs::unregisterOnSharedPreferenceChangeListener)
-                .let(listeners::remove)
-        }
-    }
-}
-
-class ReactivePreference<T : Any>(
-    private val reactivePreferences: ReactivePreferences,
+class ReactivePreference(
+    driver: SqlDriver,
     private val key: String,
-    private val default: T,
-    private val onSet: ((T) -> Unit)? = null
 ) {
 
-    @Suppress("UNCHECKED_CAST")
-    var value: T
-        get() = with(reactivePreferences.preferences) {
-            when (default) {
-                is String -> getString(key, default)
-                is Int -> getInt(key, default)
-                is Long -> getLong(key, default)
-                is Float -> getFloat(key, default)
-                is Boolean -> getBoolean(key, default)
-                is Set<*> -> HashSet(getStringSet(key, emptySet())?.filterNotNull()
-                    ?: emptySet<String>())
-                else -> throw IllegalArgumentException("Uhh what are you doing?")
-            }
-        } as T
-        set(value) = with(reactivePreferences.preferences.edit()) {
-            when (value) {
-                is String -> putString(key, value)
-                is Int -> putInt(key, value)
-                is Long -> putLong(key, value)
-                is Float -> putFloat(key, value)
-                is Boolean -> putBoolean(key, value)
-                is Set<*> -> putStringSet(key, value.map(Any?::toString).toSet())
-                else -> throw IllegalArgumentException("Uhh what are you doing?")
-            }
-            apply()
-            onSet?.invoke(value)
-        }
+    private val queries = StringKeyValueDatabase(driver).stringKeyValueQueries
+
+    var value: String?
+        get() = queries
+            .select(id = key)
+            .executeAsOneOrNull()
+            ?.entry
+        set(value) = queries
+            .add(id = key, entry = value)
+
 
     /**
      * A reference to the setter. Same as assigning to the value, but as a method reference for
@@ -89,9 +47,9 @@ class ReactivePreference<T : Any>(
      */
     val setter = ::value::set
 
-    val monitor: Flow<T> = reactivePreferences.monitor
-        .filter(key::equals)
-        .map { value }
-        .onStart { emit(value) }
-        .flowOn(Dispatchers.IO)
+    val monitor: Flow<String> = queries.select(id = key)
+        .asFlow()
+        .mapToOneNotNull()
+        .map { it.entry }
+        .filterNotNull()
 }

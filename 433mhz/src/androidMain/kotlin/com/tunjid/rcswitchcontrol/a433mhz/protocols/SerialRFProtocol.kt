@@ -40,8 +40,8 @@ import com.tunjid.rcswitchcontrol.a433mhz.services.ClientBleService
 import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.common.SerialInfo
 import com.tunjid.rcswitchcontrol.common.deserialize
-import com.tunjid.rcswitchcontrol.common.serial.Mik3yUsbSerialPort
-import com.tunjid.rcswitchcontrol.common.serial.ProxyUsbSerialPort
+import com.tunjid.rcswitchcontrol.common.serialport.Mik3yUsbSerialPort
+import com.tunjid.rcswitchcontrol.common.serialport.ProxyUsbSerialPort
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch

@@ -25,7 +25,10 @@ import androidx.compose.ui.graphics.compositeOver
 val codGrey = Color(0xff121212)
 val darkText = Color(0xB2FFFFFF)
 val colorAccent = Color(0xffEF9A9A)
+<<<<<<< Updated upstream
 val eerieBlack = Color(0x1E1E1E)
+=======
+>>>>>>> Stashed changes
 
 /**
  * Return the fully opaque color that results from compositing [onSurface] atop [surface] with the

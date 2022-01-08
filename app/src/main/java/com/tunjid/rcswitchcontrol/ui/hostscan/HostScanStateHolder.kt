@@ -30,9 +30,13 @@ import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
 import com.tunjid.androidx.communications.nsd.NsdHelper
 import com.tunjid.androidx.recyclerview.diff.Diffable
+<<<<<<< Updated upstream:app/src/main/java/com/tunjid/rcswitchcontrol/ui/hostscan/HostScanStateHolder.kt
 import com.tunjid.mutator.Mutation
 import com.tunjid.mutator.StateHolder
 import com.tunjid.mutator.scopedStateHolder
+=======
+import com.tunjid.rcswitchcontrol.arch.StateMachine
+>>>>>>> Stashed changes:app/src/main/java/com/tunjid/rcswitchcontrol/onboarding/NsdScanViewModel.kt
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.client.nsdServiceInfo
 import com.tunjid.rcswitchcontrol.common.ClosableStateHolder
@@ -46,6 +50,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -72,10 +77,53 @@ class HostScanStateHolder @Inject constructor(
     @UiScope scope: CoroutineScope,
     broadcasts: @JvmSuppressWildcards AppBroadcasts,
     @AppContext private val context: Context
+<<<<<<< Updated upstream:app/src/main/java/com/tunjid/rcswitchcontrol/ui/hostscan/HostScanStateHolder.kt
 ) : ClosableStateHolder<Input, NSDState>(scope), StateHolder<Input, NSDState> by hostScanStateHolder(
     scope,
     context
 ) {
+=======
+) : ViewModel(), StateMachine<NSDState, Input> {
+
+    private val scanProcessor = MutableSharedFlow<Input>(
+        replay = 1,
+        extraBufferCapacity = 1,
+    )
+
+    override val scope: CoroutineScope
+        get() = viewModelScope
+
+    override val accept: (Input) -> Unit = {
+        scope.launch { scanProcessor.emit(it) }
+    }
+
+    override val state = scanProcessor
+        .flatMapLatest {
+            when (it) {
+                Input.StartScanning -> context.nsdServices(viewModelScope)
+                    .map(::NsdItem)
+                    .map<NsdItem, Output>(Output::ScanResult)
+                    .onStart { emit(Output.Scanning(isScanning = true)) }
+                    .onCompletion { emit(Output.Scanning(isScanning = false)) }
+                Input.StopScanning -> flowOf(Output.Scanning(isScanning = false))
+            }
+        }
+        .scan(NSDState()) { state, output ->
+            when (output) {
+                is Output.Scanning -> state.copy(isScanning = output.isScanning)
+                is Output.ScanResult -> state.copy(
+                    items = state.items.plus(output.item)
+                        .distinctBy(NsdItem::diffId)
+                        .sortedBy(NsdItem::sortKey)
+                )
+            }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            initialValue = NSDState(),
+            started = SharingStarted.WhileSubscribed(),
+        )
+>>>>>>> Stashed changes:app/src/main/java/com/tunjid/rcswitchcontrol/onboarding/NsdScanViewModel.kt
 
     init {
         broadcasts.filterIsInstance<Broadcast.ClientNsd.StartDiscovery>()

@@ -8,18 +8,40 @@ plugins {
 //    }
 //}
 
-dependencies {
-    implementation(libs.kotlinx.coroutines.core)
 
-    implementation(libs.zigbee.core)
-    implementation(libs.zigbee.core)
-    implementation(libs.zigbee.console)
-    implementation(libs.zigbee.serial)
-    implementation(libs.zigbee.dongle.cc2531)
-    implementation(libs.zigbee.dongle.ember)
+kotlin {
+    sourceSets {
+        val commonMain by getting {
+            dependencies {
+                implementation(libs.kotlinx.coroutines.core)
+                implementation(project(":common"))
+                implementation(project(":protocols"))
+            }
+        }
+        val androidMain by getting {
+            dependencies {
+                implementation(libs.zigbee.core)
+                implementation(libs.zigbee.core)
+                implementation(libs.zigbee.console)
+                implementation(libs.zigbee.serial)
+                implementation(libs.zigbee.dongle.cc2531)
+                implementation(libs.zigbee.dongle.ember)
 
-    implementation(libs.gson)
+                implementation(libs.gson)
+            }
+        }
+        val jvmMain by getting {
+            dependencies {
+                implementation(libs.zigbee.core)
+                implementation(libs.zigbee.core)
+                implementation(libs.zigbee.console)
+                implementation(libs.zigbee.serial)
+                implementation(libs.zigbee.dongle.cc2531)
+                implementation(libs.zigbee.dongle.ember)
 
-    implementation(project(":common"))
-    implementation(project(":protocols"))
+                implementation(libs.gson)
+            }
+        }
+    }
 }
+

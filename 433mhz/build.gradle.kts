@@ -2,11 +2,21 @@ plugins {
     `android-module-convention`
 }
 
-dependencies {
-    implementation(libs.kotlinx.coroutines.core)
+kotlin {
+    sourceSets {
+        val commonMain by getting {
+            dependencies {
+                implementation(libs.kotlinx.coroutines.core)
 
-    implementation(libs.tunjid.androidx.comms)
+                implementation(project(":common"))
+                implementation(project(":protocols"))
+            }
+        }
+        val androidMain by getting {
+            dependencies {
 
-    implementation(project(":common"))
-    implementation(project(":protocols"))
+                implementation(libs.tunjid.androidx.comms)
+            }
+        }
+    }
 }

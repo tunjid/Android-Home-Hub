@@ -37,7 +37,6 @@ import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.client.State
 import com.tunjid.rcswitchcontrol.client.Status
 import com.tunjid.rcswitchcontrol.client.clientState
-import com.tunjid.rcswitchcontrol.client.nsdServiceInfo
 import com.tunjid.rcswitchcontrol.common.ClosableStateHolder
 import com.tunjid.rcswitchcontrol.common.asSuspend
 import com.tunjid.rcswitchcontrol.common.deserialize

@@ -68,6 +68,7 @@ ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version
 ktor-client-java = { group = "io.ktor", name = "ktor-client-java", version.ref = "ktor" }
 ktor-client-logging = { group = "io.ktor", name = "ktor-client-logging", version.ref = "ktor" }
 ktor-client-serialization = { group = "io.ktor", name = "ktor-client-serialization", version.ref = "ktor" }
+ktor-network = { group = "io.ktor", name = "ktor-network", version.ref = "ktor" }
 okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
 retrofit= { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 richtext-commonmark= { group = "com.halilibo.compose-richtext", name = "richtext-commonmark", version.ref = "richtext" }

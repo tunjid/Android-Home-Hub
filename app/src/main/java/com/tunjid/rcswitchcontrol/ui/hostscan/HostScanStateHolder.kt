@@ -32,16 +32,11 @@ import com.tunjid.androidx.communications.nsd.NsdHelper
 import com.tunjid.androidx.recyclerview.diff.Diffable
 <<<<<<< Updated upstream:app/src/main/java/com/tunjid/rcswitchcontrol/ui/hostscan/HostScanStateHolder.kt
 import com.tunjid.mutator.Mutation
-import com.tunjid.mutator.StateHolder
 import com.tunjid.mutator.scopedStateHolder
 =======
-import com.tunjid.rcswitchcontrol.arch.StateMachine
 >>>>>>> Stashed changes:app/src/main/java/com/tunjid/rcswitchcontrol/onboarding/NsdScanViewModel.kt
 import com.tunjid.rcswitchcontrol.client.ClientNsdService
 import com.tunjid.rcswitchcontrol.client.nsdServiceInfo
-import com.tunjid.rcswitchcontrol.common.ClosableStateHolder
-import com.tunjid.rcswitchcontrol.common.asSuspend
-import com.tunjid.rcswitchcontrol.common.takeUntil
 import com.tunjid.rcswitchcontrol.di.AppBroadcasts
 import com.tunjid.rcswitchcontrol.di.AppContext
 import com.tunjid.rcswitchcontrol.di.UiScope

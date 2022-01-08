@@ -44,7 +44,6 @@ import com.tunjid.rcswitchcontrol.utils.addNotificationChannel
 import com.tunjid.rcswitchcontrol.utils.notificationBuilder
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import java.util.*
 

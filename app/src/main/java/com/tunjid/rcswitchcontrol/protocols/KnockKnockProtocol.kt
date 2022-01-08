@@ -28,7 +28,6 @@ import android.content.res.Resources
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
 import com.tunjid.rcswitchcontrol.R
-import com.tunjid.rcswitchcontrol.common.ContextProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import java.io.PrintWriter

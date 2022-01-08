@@ -35,7 +35,6 @@ import android.content.SharedPreferences
 import android.net.wifi.WifiManager
 import android.os.Bundle
 import com.tunjid.rcswitchcontrol.a433mhz.models.RfSwitch
-import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.di.Dagger
 import com.tunjid.rcswitchcontrol.di.stateMachine
 import com.tunjid.rcswitchcontrol.server.ServerNsdService

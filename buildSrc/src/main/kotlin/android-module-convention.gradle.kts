@@ -88,10 +88,8 @@ kotlin {
                 implementation(kotlin("test"))
             }
         }
-        val jvmMain by getting
-        val jvmTest by getting
-        val nativeMain by getting
-        val nativeTest by getting
+        val desktopMain by getting
+        val desktopTest by getting
     }
 
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {

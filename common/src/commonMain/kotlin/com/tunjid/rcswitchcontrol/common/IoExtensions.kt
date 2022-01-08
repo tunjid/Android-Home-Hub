@@ -3,6 +3,7 @@ package com.tunjid.rcswitchcontrol.common
 import io.ktor.network.sockets.*
 import io.ktor.util.network.*
 import io.ktor.utils.io.*
+import io.ktor.utils.io.core.*
 
 interface SocketConnection {
     val port: Int

@@ -34,7 +34,6 @@ import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.Handler
 import android.os.Looper
-import androidx.core.content.getSystemService
 import androidx.core.os.postDelayed
 import com.rcswitchcontrol.protocols.CommsProtocol
 import com.rcswitchcontrol.protocols.models.Payload
@@ -43,10 +42,8 @@ import com.rcswitchcontrol.zigbee.protocol.ZigBeeProtocol
 import com.tunjid.rcswitchcontrol.R
 import com.tunjid.rcswitchcontrol.a433mhz.protocols.BLERFProtocol
 import com.tunjid.rcswitchcontrol.a433mhz.protocols.SerialRFProtocol
-import com.tunjid.rcswitchcontrol.common.ContextProvider
 import com.tunjid.rcswitchcontrol.common.SerialInfo
 import com.tunjid.rcswitchcontrol.common.asSuspend
-import com.tunjid.rcswitchcontrol.common.findUsbDevice
 import com.tunjid.rcswitchcontrol.di.dagger
 import com.tunjid.rcswitchcontrol.models.Broadcast
 import kotlinx.coroutines.CoroutineScope

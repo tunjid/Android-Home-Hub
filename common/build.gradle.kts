@@ -7,12 +7,15 @@ plugins {
 
 kotlin {
     sourceSets {
-        val commonMain by getting {
+        named("commonMain") {
             dependencies {
                 implementation(libs.kotlinx.coroutines.core)
 
-                implementation(libs.tunjid.mutator.core.jvm)
-                implementation(libs.tunjid.mutator.coroutines.jvm)
+                implementation(libs.ktor.core)
+                implementation(libs.ktor.network)
+
+                implementation(libs.tunjid.mutator.core.common)
+                implementation(libs.tunjid.mutator.coroutines.common)
             }
         }
     }

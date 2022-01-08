@@ -5,7 +5,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.util.concurrent.atomic.AtomicReference
 import kotlin.reflect.KProperty1
 
 val <T, R> KProperty1<T, R>.asSuspend: suspend (T) -> R get() = { t: T -> invoke(t) }
